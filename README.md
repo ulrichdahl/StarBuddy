@@ -33,12 +33,16 @@ Prerequisites: Docker with Compose, and a [Discord application](https://discord.
 
 ```sh
 git clone https://github.com/ulrichdahl/StarMaker.git && cd StarMaker
-cp .env.example .env        # fill in Discord credentials, guild id, DB password
+cp .env.example .env        # fill in Discord credentials, guild id, DB password,
+                            # and APP_KEY (echo "base64:$(openssl rand -base64 32)")
 docker compose up -d --build
-docker compose exec app php artisan key:generate --force
 docker compose exec app php artisan migrate --seed --force
-docker compose run --rm bot npm run register   # register slash commands
+docker compose run --rm bot node dist/register-commands.js   # register slash commands
 ```
+
+If the default port 8080 is taken, change `HTTP_PORT` — and keep `APP_URL`,
+`DISCORD_REDIRECT_URI`, `SANCTUM_STATEFUL_DOMAINS`, and the redirect URL in the
+Discord developer portal in sync with it.
 
 Open `http://localhost:8080` (or your `APP_URL`) and sign in with Discord. Only members of the configured `STARMAKER_HOME_GUILD_ID` can join. Nightly database dumps land in `./backups/`.
 
