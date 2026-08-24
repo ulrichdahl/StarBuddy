@@ -10,10 +10,29 @@ class ResourceStackController extends Controller
 {
     public function index(Request $request)
     {
-        return ResourceStack::visibleTo($request->user())
+        $query = ResourceStack::visibleTo($request->user())
             ->with(['resourceType', 'location', 'user:id,name,handle'])
-            ->latest('updated_at')
-            ->paginate(50);
+            ->when($request->query('search'), fn ($q, $s) => $q->whereHas(
+                'resourceType', fn ($t) => $t->whereLike('name', "%{$s}%", caseSensitive: false),
+            ))
+            ->when($request->query('quality_min'), fn ($q, $v) => $q->where('quality', '>=', (int) $v))
+            ->when($request->query('quality_max'), fn ($q, $v) => $q->where('quality', '<=', (int) $v))
+            ->when($request->query('location_id'), fn ($q, $v) => $q->where('location_id', (int) $v))
+            ->when($request->query('visibility'), fn ($q, $v) => $q->where('visibility', $v));
+
+        $dir = $request->query('dir') === 'asc' ? 'asc' : 'desc';
+        match ($request->query('sort')) {
+            'resource' => $query->select('resource_stacks.*')
+                ->join('resource_types', 'resource_types.id', '=', 'resource_stacks.resource_type_id')
+                ->orderBy('resource_types.name', $dir),
+            'location' => $query->select('resource_stacks.*')
+                ->join('locations', 'locations.id', '=', 'resource_stacks.location_id')
+                ->orderBy('locations.name', $dir),
+            'quality', 'quantity', 'visibility' => $query->orderBy($request->query('sort'), $dir),
+            default => $query->orderBy('updated_at', $dir),
+        };
+
+        return $query->paginate(50)->appends($request->query());
     }
 
     public function store(Request $request)

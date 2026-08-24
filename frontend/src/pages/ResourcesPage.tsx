@@ -13,8 +13,10 @@ import IconButton from '@mui/material/IconButton'
 import LinearProgress from '@mui/material/LinearProgress'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
+import MenuItem from '@mui/material/MenuItem'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
+import TableSortLabel from '@mui/material/TableSortLabel'
 import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
@@ -179,14 +181,104 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
   )
 }
 
+type SortField = 'resource' | 'quality' | 'quantity' | 'location' | 'visibility' | 'updated_at'
+
 export function ResourcesPage() {
   const [editing, setEditing] = useState<ResourceStack | null>(null)
+  const [search, setSearch] = useState('')
+  const [qualityMin, setQualityMin] = useState('')
+  const [qualityMax, setQualityMax] = useState('')
+  const [filterLocation, setFilterLocation] = useState<Location | null>(null)
+  const [filterVisibility, setFilterVisibility] = useState('')
+  const [sort, setSort] = useState<SortField>('updated_at')
+  const [dir, setDir] = useState<'asc' | 'desc'>('desc')
+
+  const { data: locations = [] } = useQuery({
+    queryKey: ['locations'],
+    queryFn: async () => unwrapList<Location>((await api.get('/api/locations')).data),
+  })
+
   const { rows: stacks, total, page, setPage, rowsPerPage, isLoading, isError } =
-    usePaginatedList<ResourceStack>('resource-stacks', '/api/resource-stacks')
+    usePaginatedList<ResourceStack>('resource-stacks', '/api/resource-stacks', 50, {
+      search: search || undefined,
+      quality_min: qualityMin || undefined,
+      quality_max: qualityMax || undefined,
+      location_id: filterLocation?.id,
+      visibility: filterVisibility || undefined,
+      sort,
+      dir,
+    })
+
+  const sortBy = (field: SortField) => {
+    if (sort === field) {
+      setDir(dir === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSort(field)
+      setDir(field === 'updated_at' ? 'desc' : 'asc')
+    }
+  }
+
+  const header = (label: string, field: SortField, align?: 'right') => (
+    <TableCell align={align} sortDirection={sort === field ? dir : false}>
+      <TableSortLabel active={sort === field} direction={sort === field ? dir : 'asc'} onClick={() => sortBy(field)}>
+        {label}
+      </TableSortLabel>
+    </TableCell>
+  )
 
   return (
     <Box>
       <PageHeader title="Resources" subtitle="Raw and refined resource stacks across your locations" />
+      <Paper sx={{ p: 1.5, mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+        <TextField
+          size="small"
+          label="Search resource"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{ minWidth: 180 }}
+        />
+        <TextField
+          size="small"
+          label="Quality min"
+          type="number"
+          value={qualityMin}
+          onChange={(e) => setQualityMin(e.target.value)}
+          sx={{ width: 110 }}
+          slotProps={{ htmlInput: { min: 0, max: 1000 } }}
+        />
+        <TextField
+          size="small"
+          label="Quality max"
+          type="number"
+          value={qualityMax}
+          onChange={(e) => setQualityMax(e.target.value)}
+          sx={{ width: 110 }}
+          slotProps={{ htmlInput: { min: 0, max: 1000 } }}
+        />
+        <Autocomplete
+          size="small"
+          options={locations}
+          value={filterLocation}
+          onChange={(_, v) => setFilterLocation(v)}
+          getOptionLabel={(o) => o.name}
+          isOptionEqualToValue={(a, b) => a.id === b.id}
+          groupBy={(o) => o.system ?? 'Personal'}
+          sx={{ minWidth: 200 }}
+          renderInput={(p) => <TextField {...p} label="Location" />}
+        />
+        <TextField
+          size="small"
+          select
+          label="Visibility"
+          value={filterVisibility}
+          onChange={(e) => setFilterVisibility(e.target.value)}
+          sx={{ width: 130 }}
+        >
+          <MenuItem value="">All</MenuItem>
+          <MenuItem value="private">Private</MenuItem>
+          <MenuItem value="org">Org-visible</MenuItem>
+        </TextField>
+      </Paper>
       <Box
         sx={{
           display: 'grid',
@@ -202,12 +294,12 @@ export function ResourcesPage() {
             <Table size="small" aria-label="Resource stacks">
               <TableHead>
                 <TableRow>
-                  <TableCell>Resource</TableCell>
+                  {header('Resource', 'resource')}
                   <TableCell align="center" sx={{ width: 40 }} aria-label="Category" />
-                  <TableCell align="right">Quality</TableCell>
-                  <TableCell align="right">Quantity</TableCell>
-                  <TableCell>Location</TableCell>
-                  <TableCell>Visibility</TableCell>
+                  {header('Quality', 'quality', 'right')}
+                  {header('Quantity', 'quantity', 'right')}
+                  {header('Location', 'location')}
+                  {header('Visibility', 'visibility')}
                   <TableCell sx={{ width: 40 }} />
                 </TableRow>
               </TableHead>
