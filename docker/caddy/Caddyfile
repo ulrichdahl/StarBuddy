@@ -4,12 +4,13 @@
 :80 {
 	encode gzip
 
-	# Backend paths → PHP-FPM in the app container.
+	# Backend paths → PHP-FPM in the app container. The root directive must
+	# be at handle level: php_fastcgi's file matcher resolves against the
+	# site root (the dir is mounted read-only into this container).
 	@backend path /api/* /sanctum/* /up /broadcasting/*
 	handle @backend {
-		php_fastcgi app:9000 {
-			root /var/www/html/public
-		}
+		root * /var/www/html/public
+		php_fastcgi app:9000
 	}
 
 	# Reverb websockets.

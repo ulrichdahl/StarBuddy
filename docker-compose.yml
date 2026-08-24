@@ -43,6 +43,10 @@ services:
     volumes:
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - frontend-dist:/srv/frontend:ro
+      # php_fastcgi resolves scripts against Caddy's own filesystem, so it
+      # needs a read-only view of the backend's public dir at the same path
+      # the FPM container uses.
+      - ./backend/public:/var/www/html/public:ro
     depends_on:
       app:
         condition: service_started
