@@ -31,6 +31,8 @@ export interface ResourceType {
   unit: ResourceUnit
   /** Qualities commonly seen for this resource, used for quick-pick chips. */
   known_qualities?: number[]
+  /** Derived from spawn probabilities: common … legendary. */
+  rarity?: string | null
 }
 
 export interface Location {
@@ -45,7 +47,7 @@ export type Visibility = 'private' | 'org'
 
 export interface ResourceStack {
   id: number
-  resource_type: Pick<ResourceType, 'name' | 'category' | 'unit'>
+  resource_type: Pick<ResourceType, 'name' | 'category' | 'unit' | 'rarity'>
   quality: number | null
   /** Quantity in milli-SCU (1 crate = 1 mSCU = 0.001 SCU). */
   quantity_mscu: number | null

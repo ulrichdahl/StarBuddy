@@ -33,15 +33,30 @@ import type { Location, ResourceStack, Visibility } from '../lib/types'
 import { PageHeader } from '../components/PageHeader'
 import { ResourceEntryForm } from '../components/ResourceEntryForm'
 
-/** WoW-style rarity ladder for a quality value, desaturated for the UI. */
-function rarityColor(quality: number | null): string {
+/** Desaturated WoW ladder, shared by both rarity axes. */
+const TIER_COLORS = {
+  poor: '#8f8f8f',
+  common: '#c9d1d9',
+  uncommon: '#58a862',
+  rare: '#4f8fce',
+  epic: '#9a6bc9',
+  legendary: '#c98a3d',
+} as const
+
+/** Quality value → tier color (per-stack quality axis). */
+function qualityColor(quality: number | null): string {
   if (quality === null) return 'transparent'
-  if (quality >= 900) return '#c98a3d' // legendary
-  if (quality >= 800) return '#9a6bc9' // epic
-  if (quality >= 700) return '#4f8fce' // rare
-  if (quality >= 600) return '#58a862' // uncommon
-  if (quality >= 400) return '#c9d1d9' // common
-  return '#8f8f8f' // poor
+  if (quality >= 900) return TIER_COLORS.legendary
+  if (quality >= 800) return TIER_COLORS.epic
+  if (quality >= 700) return TIER_COLORS.rare
+  if (quality >= 600) return TIER_COLORS.uncommon
+  if (quality >= 400) return TIER_COLORS.common
+  return TIER_COLORS.poor
+}
+
+/** Resource rarity (spawn-rate derived) → tier color (row border axis). */
+function resourceRarityColor(rarity: string | null | undefined): string {
+  return TIER_COLORS[rarity as keyof typeof TIER_COLORS] ?? 'transparent'
 }
 
 function CategoryIcon({ category }: { category: string }) {
@@ -202,7 +217,11 @@ export function ResourcesPage() {
                     key={stack.id}
                     hover
                     onDoubleClick={() => setEditing(stack)}
-                    sx={{ '& td:first-of-type': { borderLeft: `4px solid ${rarityColor(stack.quality)}` } }}
+                    sx={{
+                      '& td:first-of-type': {
+                        borderLeft: `4px solid ${resourceRarityColor(stack.resource_type.rarity)}`,
+                      },
+                    }}
                   >
                     <TableCell>{stack.resource_type.name}</TableCell>
                     <TableCell align="center">
@@ -212,7 +231,7 @@ export function ResourcesPage() {
                         </Box>
                       </Tooltip>
                     </TableCell>
-                    <TableCell align="right" sx={{ color: rarityColor(stack.quality), fontVariantNumeric: 'tabular-nums' }}>
+                    <TableCell align="right" sx={{ color: qualityColor(stack.quality), fontVariantNumeric: 'tabular-nums' }}>
                       {stack.quality ?? '—'}
                     </TableCell>
                     <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>

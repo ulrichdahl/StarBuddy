@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ResourceType extends Model
 {
-    protected $fillable = ['name', 'category', 'unit', 'known_qualities'];
+    protected $fillable = ['name', 'category', 'unit', 'known_qualities', 'rarity', 'spawn_score'];
 
     protected function casts(): array
     {
