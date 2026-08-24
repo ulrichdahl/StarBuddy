@@ -25,29 +25,31 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import DeleteIcon from '@mui/icons-material/Delete'
+import DiamondIcon from '@mui/icons-material/Diamond'
 import EditIcon from '@mui/icons-material/Edit'
+import Inventory2Icon from '@mui/icons-material/Inventory2'
 import { api, unwrapList } from '../lib/api'
 import type { Location, ResourceStack, Visibility } from '../lib/types'
 import { PageHeader } from '../components/PageHeader'
 import { ResourceEntryForm } from '../components/ResourceEntryForm'
 
-/** WoW-style rarity color for a quality value. */
+/** WoW-style rarity ladder for a quality value, desaturated for the UI. */
 function rarityColor(quality: number | null): string {
   if (quality === null) return 'transparent'
-  if (quality >= 900) return '#ff8000' // legendary
-  if (quality >= 800) return '#a335ee' // epic
-  if (quality >= 700) return '#0070dd' // rare
-  if (quality >= 600) return '#1eff00' // uncommon
-  if (quality >= 400) return '#ffffff' // common
-  return '#9d9d9d' // poor
+  if (quality >= 900) return '#c98a3d' // legendary
+  if (quality >= 800) return '#9a6bc9' // epic
+  if (quality >= 700) return '#4f8fce' // rare
+  if (quality >= 600) return '#58a862' // uncommon
+  if (quality >= 400) return '#c9d1d9' // common
+  return '#8f8f8f' // poor
 }
 
-const CATEGORY_ICON: Record<string, string> = {
-  gem: '💎',
-  refined: '📦',
-  ore: '📦',
-  salvage: '📦',
-  gas: '📦',
+function CategoryIcon({ category }: { category: string }) {
+  return category === 'gem' ? (
+    <DiamondIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+  ) : (
+    <Inventory2Icon fontSize="small" sx={{ color: 'text.secondary' }} />
+  )
 }
 
 function formatQuantity(stack: ResourceStack): string {
@@ -205,9 +207,9 @@ export function ResourcesPage() {
                     <TableCell>{stack.resource_type.name}</TableCell>
                     <TableCell align="center">
                       <Tooltip title={stack.resource_type.category}>
-                        <span role="img" aria-label={stack.resource_type.category}>
-                          {CATEGORY_ICON[stack.resource_type.category] ?? '📦'}
-                        </span>
+                        <Box component="span" sx={{ display: 'inline-flex', verticalAlign: 'middle' }}>
+                          <CategoryIcon category={stack.resource_type.category} />
+                        </Box>
                       </Tooltip>
                     </TableCell>
                     <TableCell align="right" sx={{ color: rarityColor(stack.quality), fontVariantNumeric: 'tabular-nums' }}>
