@@ -13,15 +13,17 @@ class ResourceType extends Model
         return ['known_qualities' => 'array'];
     }
 
-    // Remember every quality value seen for this resource; the entry UI
-    // offers them back as quick-pick chips.
+    // Bootstrapping only: resources without their wiki band ladder learn
+    // values from entries. Once a full ladder (8 bands) is known, entries
+    // must use it — nothing new is learned, keeping the bands canonical.
     public function learnQuality(int $quality): void
     {
         $known = $this->known_qualities ?? [];
-        if (! in_array($quality, $known, true)) {
-            $known[] = $quality;
-            sort($known);
-            $this->update(['known_qualities' => $known]);
+        if (count($known) >= 8 || in_array($quality, $known, true)) {
+            return;
         }
+        $known[] = $quality;
+        sort($known);
+        $this->update(['known_qualities' => $known]);
     }
 }

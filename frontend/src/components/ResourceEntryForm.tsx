@@ -154,34 +154,39 @@ export function ResourceEntryForm() {
           )}
         />
 
-        <Autocomplete
-          freeSolo
-          options={knownQualities.map(String)}
-          value={quality || null}
-          onChange={(_, value) => {
-            setQuality(value ?? '')
-            if (value) setTimeout(() => quantityInputRef.current?.focus(), 0)
-          }}
-          onInputChange={(_, value, reason) => {
-            if (reason === 'input') setQuality(value)
-          }}
-          autoHighlight
-          openOnFocus
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              inputRef={qualityInputRef}
-              label="Quality"
-              required
-              type="text"
-              helperText={
-                knownQualities.length > 0
-                  ? 'Known bands suggested — new values are learned'
-                  : 'No bands known yet — type the number off the crate'
-              }
-            />
-          )}
-        />
+        {knownQualities.length > 0 ? (
+          // Strict: only this resource's actual bands are selectable.
+          <Autocomplete
+            options={knownQualities.map(String)}
+            value={quality || null}
+            onChange={(_, value) => {
+              setQuality(value ?? '')
+              if (value) setTimeout(() => quantityInputRef.current?.focus(), 0)
+            }}
+            autoHighlight
+            openOnFocus
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                inputRef={qualityInputRef}
+                label="Quality"
+                required
+                helperText="This resource's quality bands"
+              />
+            )}
+          />
+        ) : (
+          <TextField
+            label="Quality"
+            type="number"
+            required
+            inputRef={qualityInputRef}
+            value={quality}
+            onChange={(e) => setQuality(e.target.value)}
+            slotProps={{ htmlInput: { min: 0, max: 1000, step: 1 } }}
+            helperText="No bands known for this resource yet — type the number off the crate"
+          />
+        )}
       </Stack>
       <Stack spacing={2} sx={{ mt: 2 }}>
 
@@ -228,6 +233,13 @@ export function ResourceEntryForm() {
           size="small"
           value={visibility}
           onChange={(_, value: Visibility | null) => value && setVisibility(value)}
+          // Arrows switch the value directly — no Space needed.
+          onKeyDown={(e) => {
+            if (e.key.startsWith('Arrow')) {
+              e.preventDefault()
+              setVisibility(visibility === 'private' ? 'org' : 'private')
+            }
+          }}
           aria-label="Visibility"
         >
           <ToggleButton value="private">Private</ToggleButton>

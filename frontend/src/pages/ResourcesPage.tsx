@@ -157,6 +157,12 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
             size="small"
             value={visibility}
             onChange={(_, v: Visibility | null) => v && setVisibility(v)}
+            onKeyDown={(e) => {
+              if (e.key.startsWith('Arrow')) {
+                e.preventDefault()
+                setVisibility(visibility === 'private' ? 'org' : 'private')
+              }
+            }}
           >
             <ToggleButton value="private">Private</ToggleButton>
             <ToggleButton value="org">Org-visible</ToggleButton>
