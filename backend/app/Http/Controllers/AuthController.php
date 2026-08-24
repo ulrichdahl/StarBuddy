@@ -14,8 +14,10 @@ class AuthController extends Controller
 {
     public function redirect(): RedirectResponse
     {
+        // identify: who you are; guilds: membership check against the home
+        // guild; guilds.members.read: your roles in it, for role→org mapping.
         return Socialite::driver('discord')
-            ->scopes(['identify', 'guilds'])
+            ->scopes(['identify', 'guilds', 'guilds.members.read'])
             ->redirect();
     }
 
