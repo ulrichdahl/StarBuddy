@@ -36,6 +36,9 @@ export interface ResourceType {
 export interface Location {
   id: number
   name: string
+  // Star system for grouping; null on personal locations (ships, bases).
+  system?: string | null
+  kind?: string
 }
 
 export type Visibility = 'private' | 'org'

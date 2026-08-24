@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Location extends Model
 {
-    protected $fillable = ['user_id', 'org_id', 'kind', 'station', 'name'];
+    protected $fillable = ['user_id', 'org_id', 'kind', 'system', 'name'];
 
     public function user(): BelongsTo
     {

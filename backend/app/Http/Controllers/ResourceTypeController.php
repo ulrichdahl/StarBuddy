@@ -11,8 +11,10 @@ class ResourceTypeController extends Controller
     {
         return ResourceType::query()
             ->when($request->query('search'), fn ($q, $s) => $q->whereLike('name', "%{$s}%", caseSensitive: false))
+            ->when($request->query('categories'), fn ($q, $c) => $q->whereIn('category', explode(',', $c)))
+            ->orderBy('category')
             ->orderBy('name')
-            ->limit(50)
+            ->limit(100)
             ->get();
     }
 }

@@ -23,8 +23,8 @@ class LocationController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'kind' => ['sometimes', 'in:hangar,freight_elevator,landing_zone,ship,base,other'],
-            'station' => ['nullable', 'string', 'max:255'],
+            'kind' => ['sometimes', 'in:hangar,freight_elevator,landing_zone,station,ship,base,other'],
+            'system' => ['nullable', 'string', 'max:255'],
             'org_id' => ['nullable', 'exists:orgs,id'],
         ]);
 
@@ -39,8 +39,8 @@ class LocationController extends Controller
 
         $location->update($request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
-            'kind' => ['sometimes', 'in:hangar,freight_elevator,landing_zone,ship,base,other'],
-            'station' => ['nullable', 'string', 'max:255'],
+            'kind' => ['sometimes', 'in:hangar,freight_elevator,landing_zone,station,ship,base,other'],
+            'system' => ['nullable', 'string', 'max:255'],
         ]));
 
         return $location;

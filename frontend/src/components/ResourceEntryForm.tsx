@@ -1,11 +1,9 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
-import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Chip from '@mui/material/Chip'
-import MenuItem from '@mui/material/MenuItem'
+import InputAdornment from '@mui/material/InputAdornment'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
@@ -15,18 +13,25 @@ import Typography from '@mui/material/Typography'
 import { api, unwrapList } from '../lib/api'
 import type { CreateResourceStack, Location, ResourceType, Visibility } from '../lib/types'
 
+const CATEGORY_LABEL: Record<string, string> = {
+  refined: 'Refined',
+  gem: 'Gems',
+}
+
 /**
- * Sticky quick-entry form for resource stacks, tuned for bulk entry:
- * after a successful submit the form KEEPS location, visibility and
- * quality, clears resource + quantity, and refocuses the resource field
- * so the next stack can be typed immediately.
+ * Sticky quick-entry form for resource stacks, tuned for keyboard-only
+ * bulk entry: resource → quality → quantity → Enter, and focus jumps
+ * forward on every selection. After submit, location, visibility and
+ * quality stay; resource + quantity clear; focus returns to resource.
  */
 export function ResourceEntryForm() {
   const queryClient = useQueryClient()
   const resourceInputRef = useRef<HTMLInputElement>(null)
+  const qualityInputRef = useRef<HTMLInputElement>(null)
+  const quantityInputRef = useRef<HTMLInputElement>(null)
 
   // Sticky fields — survive submits.
-  const [location, setLocation] = useState<number | ''>('')
+  const [location, setLocation] = useState<Location | null>(null)
   const [visibility, setVisibility] = useState<Visibility>('private')
   const [quality, setQuality] = useState('')
 
@@ -39,7 +44,12 @@ export function ResourceEntryForm() {
     queryKey: ['resource-types', resourceSearch],
     queryFn: async () =>
       unwrapList<ResourceType>(
-        (await api.get('/api/resource-types', { params: { search: resourceSearch } })).data,
+        (
+          await api.get('/api/resource-types', {
+            // Entry is for stash-able crafting materials: refined + gems only.
+            params: { search: resourceSearch, categories: 'refined,gem' },
+          })
+        ).data,
       ),
   })
 
@@ -47,14 +57,18 @@ export function ResourceEntryForm() {
     queryKey: ['locations'],
     queryFn: async () => unwrapList<Location>((await api.get('/api/locations')).data),
   })
+  const sortedLocations = [...locations].sort(
+    (a, b) => (a.system ?? '￿').localeCompare(b.system ?? '￿') || a.name.localeCompare(b.name),
+  )
 
   const isPieces = resource?.unit === 'pieces'
+  const knownQualities = resource?.known_qualities ?? []
 
   const createStack = useMutation({
     mutationFn: (body: CreateResourceStack) => api.post('/api/resource-stacks', body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resource-stacks'] })
-      // Bulk-entry ergonomics: only resource + quantity reset.
+      queryClient.invalidateQueries({ queryKey: ['resource-types'] })
       setResource(null)
       setResourceSearch('')
       setQuantity('')
@@ -62,22 +76,31 @@ export function ResourceEntryForm() {
     },
   })
 
-  const canSubmit = resource !== null && location !== '' && quantity !== '' && Number(quantity) > 0
+  const canSubmit =
+    resource !== null && location !== null && quantity !== '' && Number(quantity) > 0 && quality !== ''
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault()
-    if (location === '' || !resource || !canSubmit) return
-    const body: CreateResourceStack = {
+    if (!resource || !location || !canSubmit) return
+    createStack.mutate({
       resource_type_id: resource.id,
-      quality: quality === '' ? null : Number(quality),
-      location_id: location,
+      quality: Number(quality),
+      location_id: location.id,
       visibility,
       ...(isPieces
         ? { quantity_pieces: Math.round(Number(quantity)) }
-        : // Crates are 0.001 SCU; API stores milli-SCU.
-          { quantity_mscu: Math.round(Number(quantity) * 1000) }),
-    }
-    createStack.mutate(body)
+        : { quantity_mscu: Math.round(Number(quantity) * 1000) }),
+    })
+  }
+
+  // Arrows step the smallest unit (native `step`); PageUp/PageDown step the
+  // big unit: 0.01 SCU for crates, 10 for pieces.
+  const handleQuantityKeys = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== 'PageUp' && event.key !== 'PageDown') return
+    event.preventDefault()
+    const delta = (event.key === 'PageUp' ? 1 : -1) * (isPieces ? 10 : 0.01)
+    const next = Math.max(0, (Number(quantity) || 0) + delta)
+    setQuantity(isPieces ? String(Math.round(next)) : next.toFixed(3).replace(/\.?0+$/, ''))
   }
 
   return (
@@ -89,13 +112,24 @@ export function ResourceEntryForm() {
         <Autocomplete
           options={resourceOptions}
           value={resource}
-          onChange={(_, value) => setResource(value)}
+          onChange={(_, value) => {
+            setResource(value)
+            // A different resource has different bands — a stale sticky
+            // quality must not survive the switch.
+            if (value && quality && (value.known_qualities ?? []).length > 0
+              && !(value.known_qualities ?? []).includes(Number(quality))) {
+              setQuality('')
+            }
+            if (value) setTimeout(() => qualityInputRef.current?.focus(), 0)
+          }}
           inputValue={resourceSearch}
           onInputChange={(_, value) => setResourceSearch(value)}
           getOptionLabel={(option) => option.name}
           isOptionEqualToValue={(a, b) => a.id === b.id}
-          groupBy={(option) => option.category}
+          groupBy={(option) => CATEGORY_LABEL[option.category] ?? option.category}
           loading={searching}
+          autoHighlight
+          openOnFocus
           filterOptions={(x) => x} // server-side search
           renderInput={(params) => (
             <TextField
@@ -104,59 +138,81 @@ export function ResourceEntryForm() {
               label="Resource"
               autoFocus
               required
-              placeholder="Search resources…"
+              placeholder="Search refined materials and gems…"
             />
           )}
         />
 
-        <Box>
+        {knownQualities.length > 0 ? (
+          <Autocomplete
+            options={knownQualities.map(String)}
+            value={quality || null}
+            onChange={(_, value) => {
+              setQuality(value ?? '')
+              if (value) setTimeout(() => quantityInputRef.current?.focus(), 0)
+            }}
+            autoHighlight
+            openOnFocus
+            disableClearable={false}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                inputRef={qualityInputRef}
+                label="Quality"
+                required
+                helperText="This resource's known bands — kept between entries"
+              />
+            )}
+          />
+        ) : (
           <TextField
             label="Quality"
             type="number"
-            fullWidth
+            required
+            inputRef={qualityInputRef}
             value={quality}
             onChange={(e) => setQuality(e.target.value)}
-            slotProps={{ htmlInput: { min: 0, step: 0.1, 'aria-describedby': 'quality-quick-picks' } }}
-            helperText="Optional — kept between entries"
+            slotProps={{ htmlInput: { min: 0, max: 1000, step: 1 } }}
+            helperText="No bands known yet for this resource — type the number off the crate"
           />
-          {resource?.known_qualities && resource.known_qualities.length > 0 && (
-            <Stack id="quality-quick-picks" direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap' }}>
-              {resource.known_qualities.map((q) => (
-                <Chip
-                  key={q}
-                  label={q}
-                  size="small"
-                  color={quality === String(q) ? 'primary' : 'default'}
-                  onClick={() => setQuality(String(q))}
-                />
-              ))}
-            </Stack>
-          )}
-        </Box>
+        )}
 
         <TextField
-          label={isPieces ? 'Quantity (pieces)' : 'Quantity (SCU)'}
+          label="Quantity"
           type="number"
           required
+          inputRef={quantityInputRef}
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
-          slotProps={{ htmlInput: { min: 0, step: isPieces ? 1 : 0.001 } }}
-          helperText={isPieces ? 'Whole pieces' : '1 crate = 0.001 SCU'}
+          onKeyDown={handleQuantityKeys}
+          slotProps={{
+            htmlInput: { min: 0, step: isPieces ? 1 : 0.001 },
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">{isPieces ? 'pcs' : 'SCU'}</InputAdornment>
+              ),
+            },
+          }}
+          helperText={
+            isPieces
+              ? '↑↓ = 1 piece · PgUp/PgDn = 10 — Enter saves'
+              : '↑↓ = 0.001 SCU (1 crate) · PgUp/PgDn = 0.01 SCU — Enter saves'
+          }
         />
 
-        <TextField
-          select
-          label="Location"
-          required
+        <Autocomplete
+          options={sortedLocations}
           value={location}
-          onChange={(e) => setLocation(e.target.value === '' ? '' : Number(e.target.value))}
-        >
-          {locations.map((loc) => (
-            <MenuItem key={loc.id} value={loc.id}>
-              {loc.name}
-            </MenuItem>
-          ))}
-        </TextField>
+          onChange={(_, value) => setLocation(value)}
+          getOptionLabel={(option) => option.name}
+          isOptionEqualToValue={(a, b) => a.id === b.id}
+          groupBy={(option) => option.system ?? 'Personal'}
+          autoHighlight
+          openOnFocus
+          renderInput={(params) => (
+            <TextField {...params} label="Location" required helperText="Kept between entries" />
+          )}
+        />
 
         <ToggleButtonGroup
           exclusive

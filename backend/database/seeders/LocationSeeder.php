@@ -27,7 +27,7 @@ class LocationSeeder extends Seeder
             foreach ($names as $name) {
                 Location::firstOrCreate(
                     ['name' => $name, 'user_id' => null, 'org_id' => null],
-                    ['kind' => 'landing_zone', 'station' => $system],
+                    ['kind' => 'landing_zone', 'system' => $system],
                 );
             }
         }
