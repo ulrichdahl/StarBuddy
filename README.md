@@ -2,7 +2,7 @@
 
 A self-hostable companion platform for Star Citizen communities: track your org's **resources** (with quality), **blueprints**, and **refining orders** — then ask it what your org can craft right now, what it's closest to being able to craft, and who holds the blueprint and best materials for the item you need.
 
-**Status: specification / pre-alpha.** See [`spec.html`](spec.html) for the full project specification (open it in a browser).
+**Status: specification / pre-alpha.** Read the full project specification at **[ulrichdahl.github.io/StarMaker](https://ulrichdahl.github.io/StarMaker/)** (source: [`spec.html`](spec.html); after editing it, run `scripts/build-pages.sh` to regenerate the rendered page).
 
 ## What it does
 
