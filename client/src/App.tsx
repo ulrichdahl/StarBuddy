@@ -34,6 +34,7 @@ interface SyncSummary {
   duplicates: number;
   blueprints_added: number;
   refinery_completed: number;
+  backfilled?: number;
 }
 
 function App() {
@@ -253,7 +254,8 @@ function App() {
             <p className="hint">
               Server accepted {syncResult.accepted} new events ({syncResult.duplicates} already
               known): {syncResult.blueprints_added} blueprints added, {syncResult.refinery_completed}{" "}
-              refinery completions recorded.
+              refinery completions recorded
+              {syncResult.backfilled ? `, ${syncResult.backfilled} blueprint identities backfilled` : ""}.
             </p>
           )}
           {syncError && <p className="error">{syncError}</p>}

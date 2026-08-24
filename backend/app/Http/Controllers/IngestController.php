@@ -37,7 +37,30 @@ class IngestController extends Controller
             ->all();
 
         $fresh = $events->reject(fn ($e) => in_array($e['fingerprint'], $existing, true));
-        $counts = ['accepted' => 0, 'duplicates' => $events->count() - $fresh->count(), 'blueprints_added' => 0, 'refinery_completed' => 0];
+        $counts = ['accepted' => 0, 'duplicates' => $events->count() - $fresh->count(), 'blueprints_added' => 0, 'refinery_completed' => 0, 'backfilled' => 0];
+
+        // A re-sync after the client's name-resolution improves can carry an
+        // item_class the stored row lacks — backfill instead of discarding.
+        $byClass = \App\Models\Blueprint::whereNotNull('item_class')
+            ->pluck('id', 'item_class')
+            ->mapWithKeys(fn ($id, $class) => [strtolower($class) => $id]);
+
+        foreach ($events->diffKeys($fresh) as $e) {
+            if ($e['kind'] !== 'blueprint' || empty($e['item_class'])) {
+                continue;
+            }
+            $row = BlueprintOwned::where('user_id', $user->id)
+                ->where('blueprint_name', $e['detail'])
+                ->whereNull('item_class')
+                ->first();
+            if ($row) {
+                $row->update([
+                    'item_class' => $e['item_class'],
+                    'blueprint_id' => $row->blueprint_id ?? $byClass[strtolower($e['item_class'])] ?? null,
+                ]);
+                $counts['backfilled']++;
+            }
+        }
 
         DB::transaction(function () use ($fresh, $user, &$counts) {
             foreach ($fresh as $e) {
