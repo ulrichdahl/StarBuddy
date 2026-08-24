@@ -6,12 +6,14 @@ interface LogEvent {
   kind: "blueprint" | "refinery_completed";
   timestamp: string;
   detail: string;
+  item_class: string | null;
   file: string;
 }
 
 interface ScanResult {
   live_dir: string;
   files_scanned: number;
+  localization_entries: number;
   events: LogEvent[];
 }
 
@@ -110,7 +112,10 @@ function App() {
                 <tr key={i}>
                   <td className="mono">{e.timestamp.replace("T", " ").slice(0, 19)}</td>
                   <td>{e.kind === "blueprint" ? "Blueprint" : "Refinery done"}</td>
-                  <td>{e.detail}</td>
+                  <td>
+                    {e.detail}
+                    {e.item_class && <span className="hint mono"> · {e.item_class}</span>}
+                  </td>
                 </tr>
               ))}
             </tbody>

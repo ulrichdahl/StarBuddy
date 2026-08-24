@@ -329,7 +329,7 @@
     <tr>
       <td><strong>Blueprint acquired</strong></td>
       <td><span class="pill good">Yes</span></td>
-      <td>Localized item name only, via HUD notification. No blueprint ID or tier — resolved against the recipe database by name matching. <code>[BP]</code> tokens in contract names also mark blueprint-reward missions.</td>
+      <td>Localized item name only, via HUD notification — and players with custom localization packs log <em>different names for the same blueprint</em>. The client resolves names to the canonical item class by reverse-mapping the player's own <code>data/Localization/*/global.ini</code> (<code>item_Name&lt;Class&gt;=Display Name</code>); unresolved names fall back to the server's stock-name table and an alias review queue. <code>[BP]</code> tokens in contract names also mark blueprint-reward missions.</td>
     </tr>
     <tr>
       <td><strong>Refinery order completed</strong></td>
@@ -506,7 +506,7 @@
     <tr><td><code>resource_type</code></td><td>name, category (ore / refined / salvage / gem / …), unit (mSCU / pieces), known_qualities[] — quality values seen for this resource, learned from entries/OCR and patch-data sync, offered as entry chips</td></tr>
     <tr><td><code>resource_stack</code></td><td>location_id, resource_type_id, quality (exact number off the crate, 0–1000), quantity_mscu | quantity_pieces, visibility (private default / org), source (manual / ocr / log), updated_by, updated_at</td></tr>
     <tr><td><code>item_stack</code></td><td>location_id, item_class (any game item — weapons, components, commodities…), quantity, visibility — no quality; crafted-item buff tracking is a later extension</td></tr>
-    <tr><td><code>blueprint_owned</code></td><td>member_id, blueprint_id (resolved from recipe DB), acquired_at, source_event</td></tr>
+    <tr><td><code>blueprint_owned</code></td><td>member_id, blueprint_id (resolved from recipe DB), raw localized name, item_class (canonical identity, resolved client-side via the player's localization file), acquired_at, source_event</td></tr>
     <tr><td><code>recipe</code></td><td>blueprint_id, item, tier, tags[], craft_time, ingredient slots (resource_type, qty_mscu, min_quality), game_version</td></tr>
     <tr><td><code>refinery_order</code></td><td>member_id, station, materials[] (entered/OCR), method, placed_at, eta, completed_at (from log event)</td></tr>
     <tr><td><code>craft_job</code></td><td>recipe_id, crafter member_id, reserved stacks[], status — manual tracking until the log proves otherwise</td></tr>

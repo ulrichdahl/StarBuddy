@@ -57,6 +57,21 @@ jobs:
           npm ci
           npm run tauri build
 
+      # The bundled Ubuntu libwayland conflicts with newer host Mesa/EGL
+      # (white window, "Could not create default EGL display"). Strip it so
+      # the host's Wayland client libs are used, and repack.
+      - name: Repack AppImage without bundled libwayland
+        if: runner.os == 'Linux'
+        working-directory: client/src-tauri/target/release/bundle/appimage
+        run: |
+          APPIMAGE=$(ls *.AppImage)
+          ./"$APPIMAGE" --appimage-extract >/dev/null
+          rm -fv squashfs-root/usr/lib/libwayland-*.so*
+          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          chmod +x appimagetool
+          ARCH=x86_64 ./appimagetool --appimage-extract-and-run squashfs-root "$APPIMAGE"
+          rm -rf squashfs-root appimagetool
+
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.os }}
