@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
@@ -9,18 +8,17 @@ import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
+import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
-import { api, unwrapList } from '../lib/api'
 import type { ItemStack } from '../lib/types'
+import { usePaginatedList } from '../lib/usePaginatedList'
 import { PageHeader } from '../components/PageHeader'
 import { ItemEntryForm } from '../components/ItemEntryForm'
 
 export function ItemsPage() {
-  const { data: stacks = [], isLoading, isError } = useQuery({
-    queryKey: ['item-stacks'],
-    queryFn: async () => unwrapList<ItemStack>((await api.get('/api/item-stacks')).data),
-  })
+  const { rows: stacks, total, page, setPage, rowsPerPage, isLoading, isError } =
+    usePaginatedList<ItemStack>('item-stacks', '/api/item-stacks')
 
   return (
     <Box>
@@ -76,6 +74,16 @@ export function ItemsPage() {
               </TableBody>
             </Table>
           </TableContainer>
+          {total > rowsPerPage && (
+            <TablePagination
+              component="div"
+              count={total}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={rowsPerPage}
+              rowsPerPageOptions={[rowsPerPage]}
+            />
+          )}
         </Paper>
         <ItemEntryForm />
       </Box>

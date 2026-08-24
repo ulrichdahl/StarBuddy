@@ -18,6 +18,7 @@ import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
+import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
 import ToggleButton from '@mui/material/ToggleButton'
@@ -30,6 +31,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import { api, unwrapList } from '../lib/api'
 import type { Location, ResourceStack, Visibility } from '../lib/types'
+import { usePaginatedList } from '../lib/usePaginatedList'
 import { PageHeader } from '../components/PageHeader'
 import { ResourceEntryForm } from '../components/ResourceEntryForm'
 
@@ -179,10 +181,8 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
 
 export function ResourcesPage() {
   const [editing, setEditing] = useState<ResourceStack | null>(null)
-  const { data: stacks = [], isLoading, isError } = useQuery({
-    queryKey: ['resource-stacks'],
-    queryFn: async () => unwrapList<ResourceStack>((await api.get('/api/resource-stacks')).data),
-  })
+  const { rows: stacks, total, page, setPage, rowsPerPage, isLoading, isError } =
+    usePaginatedList<ResourceStack>('resource-stacks', '/api/resource-stacks')
 
   return (
     <Box>
@@ -265,6 +265,16 @@ export function ResourcesPage() {
               </TableBody>
             </Table>
           </TableContainer>
+          {total > rowsPerPage && (
+            <TablePagination
+              component="div"
+              count={total}
+              page={page}
+              onPageChange={(_, p) => setPage(p)}
+              rowsPerPage={rowsPerPage}
+              rowsPerPageOptions={[rowsPerPage]}
+            />
+          )}
         </Paper>
         <ResourceEntryForm />
       </Box>

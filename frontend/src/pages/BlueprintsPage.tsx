@@ -15,12 +15,14 @@ import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
+import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import AddIcon from '@mui/icons-material/Add'
 import { api, unwrapList } from '../lib/api'
 import type { Blueprint, OwnedBlueprint } from '../lib/types'
+import { usePaginatedList } from '../lib/usePaginatedList'
 import { PageHeader } from '../components/PageHeader'
 
 /** Dialog for marking a blueprint as owned, with server-side search. */
@@ -88,10 +90,8 @@ function MarkOwnedDialog({ open, onClose }: { open: boolean; onClose: () => void
 
 export function BlueprintsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
-  const { data: owned = [], isLoading, isError } = useQuery({
-    queryKey: ['blueprints-owned'],
-    queryFn: async () => unwrapList<OwnedBlueprint>((await api.get('/api/blueprints-owned')).data),
-  })
+  const { rows: owned, total, page, setPage, rowsPerPage, isLoading, isError } =
+    usePaginatedList<OwnedBlueprint>('blueprints-owned', '/api/blueprints-owned', 100)
 
   return (
     <Box>
@@ -144,6 +144,16 @@ export function BlueprintsPage() {
             </TableBody>
           </Table>
         </TableContainer>
+        {total > rowsPerPage && (
+          <TablePagination
+            component="div"
+            count={total}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={rowsPerPage}
+            rowsPerPageOptions={[rowsPerPage]}
+          />
+        )}
       </Paper>
       <MarkOwnedDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </Box>

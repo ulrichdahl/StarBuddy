@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
@@ -9,10 +8,11 @@ import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
+import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
-import { api, unwrapList } from '../lib/api'
 import type { RefineryOrder } from '../lib/types'
+import { usePaginatedList } from '../lib/usePaginatedList'
 import { PageHeader } from '../components/PageHeader'
 
 function status(order: RefineryOrder): { label: string; color: 'primary' | 'secondary' } {
@@ -22,10 +22,8 @@ function status(order: RefineryOrder): { label: string; color: 'primary' | 'seco
 }
 
 export function RefineryPage() {
-  const { data: orders = [], isLoading, isError } = useQuery({
-    queryKey: ['refinery-orders'],
-    queryFn: async () => unwrapList<RefineryOrder>((await api.get('/api/refinery-orders')).data),
-  })
+  const { rows: orders, total, page, setPage, rowsPerPage, isLoading, isError } =
+    usePaginatedList<RefineryOrder>('refinery-orders', '/api/refinery-orders')
 
   return (
     <Box>
@@ -72,6 +70,16 @@ export function RefineryPage() {
             </TableBody>
           </Table>
         </TableContainer>
+        {total > rowsPerPage && (
+          <TablePagination
+            component="div"
+            count={total}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={rowsPerPage}
+            rowsPerPageOptions={[rowsPerPage]}
+          />
+        )}
       </Paper>
     </Box>
   )
