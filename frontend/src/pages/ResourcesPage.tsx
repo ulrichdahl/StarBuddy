@@ -1,20 +1,54 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Alert from '@mui/material/Alert'
+import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
+import IconButton from '@mui/material/IconButton'
 import LinearProgress from '@mui/material/LinearProgress'
 import Paper from '@mui/material/Paper'
+import Stack from '@mui/material/Stack'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
+import TextField from '@mui/material/TextField'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
+import DeleteIcon from '@mui/icons-material/Delete'
+import EditIcon from '@mui/icons-material/Edit'
 import { api, unwrapList } from '../lib/api'
-import type { ResourceStack } from '../lib/types'
+import type { Location, ResourceStack, Visibility } from '../lib/types'
 import { PageHeader } from '../components/PageHeader'
 import { ResourceEntryForm } from '../components/ResourceEntryForm'
+
+/** WoW-style rarity color for a quality value. */
+function rarityColor(quality: number | null): string {
+  if (quality === null) return 'transparent'
+  if (quality >= 900) return '#ff8000' // legendary
+  if (quality >= 800) return '#a335ee' // epic
+  if (quality >= 700) return '#0070dd' // rare
+  if (quality >= 600) return '#1eff00' // uncommon
+  if (quality >= 400) return '#ffffff' // common
+  return '#9d9d9d' // poor
+}
+
+const CATEGORY_ICON: Record<string, string> = {
+  gem: '💎',
+  refined: '📦',
+  ore: '📦',
+  salvage: '📦',
+  gas: '📦',
+}
 
 function formatQuantity(stack: ResourceStack): string {
   if (stack.resource_type.unit === 'pieces') {
@@ -23,7 +57,111 @@ function formatQuantity(stack: ResourceStack): string {
   return `${((stack.quantity_mscu ?? 0) / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} SCU`
 }
 
+function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: () => void }) {
+  const queryClient = useQueryClient()
+  const isPieces = stack.resource_type.unit === 'pieces'
+  const [quality, setQuality] = useState(String(stack.quality ?? ''))
+  const [quantity, setQuantity] = useState(
+    isPieces ? String(stack.quantity_pieces ?? 0) : String((stack.quantity_mscu ?? 0) / 1000),
+  )
+  const [location, setLocation] = useState<Location | null>(stack.location)
+  const [visibility, setVisibility] = useState<Visibility>(stack.visibility)
+
+  const { data: locations = [] } = useQuery({
+    queryKey: ['locations'],
+    queryFn: async () => unwrapList<Location>((await api.get('/api/locations')).data),
+  })
+
+  const save = useMutation({
+    mutationFn: () =>
+      api.patch(`/api/resource-stacks/${stack.id}`, {
+        quality: quality === '' ? undefined : Number(quality),
+        location_id: location?.id,
+        visibility,
+        ...(isPieces
+          ? { quantity_pieces: Math.round(Number(quantity)) }
+          : { quantity_mscu: Math.round(Number(quantity) * 1000) }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resource-stacks'] })
+      onClose()
+    },
+  })
+
+  const remove = useMutation({
+    mutationFn: () => api.delete(`/api/resource-stacks/${stack.id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resource-stacks'] })
+      onClose()
+    },
+  })
+
+  return (
+    <Dialog open onClose={onClose} fullWidth maxWidth="xs">
+      <DialogTitle>
+        {stack.resource_type.name}
+        <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
+          edit stack
+        </Typography>
+      </DialogTitle>
+      <DialogContent>
+        <Stack spacing={2} sx={{ mt: 1 }}>
+          <TextField
+            label="Quality"
+            type="number"
+            value={quality}
+            onChange={(e) => setQuality(e.target.value)}
+            slotProps={{ htmlInput: { min: 0, max: 1000, step: 1 } }}
+          />
+          <TextField
+            label={isPieces ? 'Quantity (pcs)' : 'Quantity (SCU)'}
+            type="number"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            slotProps={{ htmlInput: { min: 0, step: isPieces ? 1 : 0.001 } }}
+            helperText="Set to 0 to consume the stack"
+          />
+          <Autocomplete
+            options={locations}
+            value={location}
+            onChange={(_, value) => setLocation(value)}
+            getOptionLabel={(o) => o.name}
+            isOptionEqualToValue={(a, b) => a.id === b.id}
+            groupBy={(o) => o.system ?? 'Personal'}
+            renderInput={(params) => <TextField {...params} label="Location" />}
+          />
+          <ToggleButtonGroup
+            exclusive
+            fullWidth
+            size="small"
+            value={visibility}
+            onChange={(_, v: Visibility | null) => v && setVisibility(v)}
+          >
+            <ToggleButton value="private">Private</ToggleButton>
+            <ToggleButton value="org">Org-visible</ToggleButton>
+          </ToggleButtonGroup>
+          {(save.isError || remove.isError) && (
+            <Alert severity="error">Could not save the change. Try again.</Alert>
+          )}
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>
+        <Button color="error" startIcon={<DeleteIcon />} onClick={() => remove.mutate()} disabled={remove.isPending}>
+          Delete
+        </Button>
+        <Box>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="contained" onClick={() => save.mutate()} disabled={save.isPending || !location}>
+            {save.isPending ? 'Saving…' : 'Save'}
+          </Button>
+        </Box>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
 export function ResourcesPage() {
+  const [editing, setEditing] = useState<ResourceStack | null>(null)
   const { data: stacks = [], isLoading, isError } = useQuery({
     queryKey: ['resource-stacks'],
     queryFn: async () => unwrapList<ResourceStack>((await api.get('/api/resource-stacks')).data),
@@ -48,21 +186,36 @@ export function ResourcesPage() {
               <TableHead>
                 <TableRow>
                   <TableCell>Resource</TableCell>
-                  <TableCell>Category</TableCell>
+                  <TableCell align="center" sx={{ width: 40 }} aria-label="Category" />
                   <TableCell align="right">Quality</TableCell>
                   <TableCell align="right">Quantity</TableCell>
                   <TableCell>Location</TableCell>
                   <TableCell>Visibility</TableCell>
-                  <TableCell>Updated</TableCell>
+                  <TableCell sx={{ width: 40 }} />
                 </TableRow>
               </TableHead>
               <TableBody>
                 {stacks.map((stack) => (
-                  <TableRow key={stack.id} hover>
+                  <TableRow
+                    key={stack.id}
+                    hover
+                    onDoubleClick={() => setEditing(stack)}
+                    sx={{ '& td:first-of-type': { borderLeft: `4px solid ${rarityColor(stack.quality)}` } }}
+                  >
                     <TableCell>{stack.resource_type.name}</TableCell>
-                    <TableCell>{stack.resource_type.category}</TableCell>
-                    <TableCell align="right">{stack.quality ?? '—'}</TableCell>
-                    <TableCell align="right">{formatQuantity(stack)}</TableCell>
+                    <TableCell align="center">
+                      <Tooltip title={stack.resource_type.category}>
+                        <span role="img" aria-label={stack.resource_type.category}>
+                          {CATEGORY_ICON[stack.resource_type.category] ?? '📦'}
+                        </span>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell align="right" sx={{ color: rarityColor(stack.quality), fontVariantNumeric: 'tabular-nums' }}>
+                      {stack.quality ?? '—'}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {formatQuantity(stack)}
+                    </TableCell>
                     <TableCell>{stack.location.name}</TableCell>
                     <TableCell>
                       <Chip
@@ -72,7 +225,11 @@ export function ResourcesPage() {
                         variant="outlined"
                       />
                     </TableCell>
-                    <TableCell>{new Date(stack.updated_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <IconButton size="small" aria-label="Edit stack" onClick={() => setEditing(stack)}>
+                        <EditIcon fontSize="inherit" />
+                      </IconButton>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {!isLoading && stacks.length === 0 && (
@@ -90,6 +247,7 @@ export function ResourcesPage() {
         </Paper>
         <ResourceEntryForm />
       </Box>
+      {editing && <EditStackDialog stack={editing} onClose={() => setEditing(null)} />}
     </Box>
   )
 }

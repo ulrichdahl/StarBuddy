@@ -45,10 +45,17 @@ class SyncLocations extends Command
             $name = end($path);
             $system = $path[0];
 
-            Location::updateOrCreate(
-                ['name' => $name, 'user_id' => null, 'org_id' => null],
-                ['kind' => $kind, 'system' => $system],
-            );
+            // Space-insensitive match: the API says "Grim HEX", players (and
+            // our seed) say "GrimHEX" — one location, not two.
+            $existing = Location::whereNull('user_id')->whereNull('org_id')
+                ->whereRaw("replace(lower(name), ' ', '') = ?", [str_replace(' ', '', mb_strtolower($name))])
+                ->first();
+
+            if ($existing) {
+                $existing->update(['kind' => $existing->kind === 'landing_zone' ? 'landing_zone' : $kind, 'system' => $system]);
+            } else {
+                Location::create(['name' => $name, 'kind' => $kind, 'system' => $system]);
+            }
             $synced++;
         }
 

@@ -50,7 +50,7 @@ export interface ResourceStack {
   /** Quantity in milli-SCU (1 crate = 1 mSCU = 0.001 SCU). */
   quantity_mscu: number | null
   quantity_pieces: number | null
-  location: Pick<Location, 'name'>
+  location: Location
   visibility: Visibility
   updated_at: string
 }
@@ -68,7 +68,7 @@ export interface ItemStack {
   id: number
   item_class: string
   quantity: number
-  location: Pick<Location, 'name'>
+  location: Location
   visibility: Visibility
   updated_at: string
 }

@@ -57,8 +57,13 @@ export function ResourceEntryForm() {
     queryKey: ['locations'],
     queryFn: async () => unwrapList<Location>((await api.get('/api/locations')).data),
   })
+  // Within each system: major landing zones first, then stations, then the rest.
+  const kindRank = (l: Location) => (l.kind === 'landing_zone' ? 0 : l.kind === 'station' ? 1 : 2)
   const sortedLocations = [...locations].sort(
-    (a, b) => (a.system ?? '￿').localeCompare(b.system ?? '￿') || a.name.localeCompare(b.name),
+    (a, b) =>
+      (a.system ?? '￿').localeCompare(b.system ?? '￿') ||
+      kindRank(a) - kindRank(b) ||
+      a.name.localeCompare(b.name),
   )
 
   const isPieces = resource?.unit === 'pieces'
@@ -93,14 +98,21 @@ export function ResourceEntryForm() {
     })
   }
 
-  // Arrows step the smallest unit (native `step`); PageUp/PageDown step the
-  // big unit: 0.01 SCU for crates, 10 for pieces.
+  // Arrows step 0.001 SCU (native `step`), Ctrl+arrows 0.01, Shift+arrows
+  // 0.1 — for gems: 1 / 10 / 100 pieces.
   const handleQuantityKeys = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== 'PageUp' && event.key !== 'PageDown') return
+    const dir = event.key === 'ArrowUp' || event.key === 'PageUp' ? 1
+      : event.key === 'ArrowDown' || event.key === 'PageDown' ? -1 : 0
+    if (dir === 0) return
+
+    let step: number | null = null
+    if (event.shiftKey) step = isPieces ? 100 : 0.1
+    else if (event.ctrlKey || event.key === 'PageUp' || event.key === 'PageDown') step = isPieces ? 10 : 0.01
+    if (step === null) return // plain arrows: native 0.001 / 1 step
+
     event.preventDefault()
-    const delta = (event.key === 'PageUp' ? 1 : -1) * (isPieces ? 10 : 0.01)
-    const next = Math.max(0, (Number(quantity) || 0) + delta)
-    setQuantity(isPieces ? String(Math.round(next)) : next.toFixed(3).replace(/\.?0+$/, ''))
+    const next = Math.max(0, (Number(quantity) || 0) + dir * step)
+    setQuantity(isPieces ? String(Math.round(next)) : next.toFixed(3).replace(/\.?0+$/, '').replace(/\.$/, ''))
   }
 
   return (
@@ -143,39 +155,36 @@ export function ResourceEntryForm() {
           )}
         />
 
-        {knownQualities.length > 0 ? (
-          <Autocomplete
-            options={knownQualities.map(String)}
-            value={quality || null}
-            onChange={(_, value) => {
-              setQuality(value ?? '')
-              if (value) setTimeout(() => quantityInputRef.current?.focus(), 0)
-            }}
-            autoHighlight
-            openOnFocus
-            disableClearable={false}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                inputRef={qualityInputRef}
-                label="Quality"
-                required
-                helperText="This resource's known bands — kept between entries"
-              />
-            )}
-          />
-        ) : (
-          <TextField
-            label="Quality"
-            type="number"
-            required
-            inputRef={qualityInputRef}
-            value={quality}
-            onChange={(e) => setQuality(e.target.value)}
-            slotProps={{ htmlInput: { min: 0, max: 1000, step: 1 } }}
-            helperText="No bands known yet for this resource — type the number off the crate"
-          />
-        )}
+        <Autocomplete
+          freeSolo
+          options={knownQualities.map(String)}
+          value={quality || null}
+          onChange={(_, value) => {
+            setQuality(value ?? '')
+            if (value) setTimeout(() => quantityInputRef.current?.focus(), 0)
+          }}
+          onInputChange={(_, value, reason) => {
+            if (reason === 'input') setQuality(value)
+          }}
+          autoHighlight
+          openOnFocus
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              inputRef={qualityInputRef}
+              label="Quality"
+              required
+              type="text"
+              helperText={
+                knownQualities.length > 0
+                  ? 'Known bands suggested — new values are learned'
+                  : 'No bands known yet — type the number off the crate'
+              }
+            />
+          )}
+        />
+      </Stack>
+      <Stack spacing={2} sx={{ mt: 2 }}>
 
         <TextField
           label="Quantity"

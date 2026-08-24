@@ -49,10 +49,21 @@ class ResourceStackController extends Controller
         $data = $request->validate([
             'quality' => ['sometimes', 'integer', 'min:0', 'max:1000'],
             'quantity' => ['sometimes', 'integer', 'min:0'],
+            'quantity_mscu' => ['sometimes', 'integer', 'min:0'],
+            'quantity_pieces' => ['sometimes', 'integer', 'min:0'],
             'location_id' => ['sometimes', 'exists:locations,id'],
             'visibility' => ['sometimes', 'in:private,org'],
         ]);
 
+        $data['quantity'] = $data['quantity'] ?? $data['quantity_mscu'] ?? $data['quantity_pieces'] ?? null;
+        if ($data['quantity'] === null) {
+            unset($data['quantity']);
+        }
+        unset($data['quantity_mscu'], $data['quantity_pieces']);
+
+        if (isset($data['quality'])) {
+            $resourceStack->resourceType->learnQuality($data['quality']);
+        }
         $data['updated_by'] = $request->user()->id;
         $resourceStack->update($data);
 
