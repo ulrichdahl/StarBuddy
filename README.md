@@ -18,7 +18,14 @@ One deployment serves **one community**: the instance is bound to a single Disco
 
 ## Stack
 
-Laravel + PostgreSQL backend (`backend/`) · React (MUI) SPA (`frontend/`) · Node discord.js bot (`bot/`) · Tauri v2 desktop client (Rust log tailer, upcoming) · Docker Compose deployment · Caddy in front.
+Laravel + PostgreSQL backend (`backend/`) · React (MUI) SPA (`frontend/`) · Node discord.js bot (`bot/`) · Tauri v2 desktop client (`client/`, Rust log scanner) · Docker Compose deployment · Caddy in front.
+
+## Desktop client downloads
+
+The desktop client (Game.log watcher) is built automatically for Windows and Linux:
+
+- **[Development build](https://github.com/ulrichdahl/StarMaker/releases/tag/dev)** — rolling, replaced on every change to `main`. Windows installer (`.exe`/`.msi`), Linux AppImage/`.deb`/`.rpm`.
+- **[Stable releases](https://github.com/ulrichdahl/StarMaker/releases/latest)** — published when a `v*` tag is pushed.
 
 ## Running your own instance
 

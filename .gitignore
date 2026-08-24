@@ -4,6 +4,7 @@
 node_modules/
 vendor/
 dist/
+target/
 backups/
 *.log
 !backend/storage/logs/.gitignore
