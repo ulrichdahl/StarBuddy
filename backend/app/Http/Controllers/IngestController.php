@@ -62,7 +62,7 @@ class IngestController extends Controller
             }
         }
 
-        DB::transaction(function () use ($fresh, $user, &$counts) {
+        DB::transaction(function () use ($fresh, $user, $byClass, &$counts) {
             foreach ($fresh as $e) {
                 DB::table('ingest_events')->insert([
                     'user_id' => $user->id,
@@ -85,6 +85,9 @@ class IngestController extends Controller
                     $owned = BlueprintOwned::firstOrCreate($keys, [
                         'blueprint_name' => $e['detail'],
                         'item_class' => $e['item_class'] ?? null,
+                        'blueprint_id' => isset($e['item_class'])
+                            ? $byClass[strtolower($e['item_class'])] ?? null
+                            : null,
                         'acquired_at' => $e['timestamp'],
                         'source' => 'log',
                     ]);
