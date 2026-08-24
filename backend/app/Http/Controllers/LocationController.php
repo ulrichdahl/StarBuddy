@@ -9,8 +9,12 @@ class LocationController extends Controller
 {
     public function index(Request $request)
     {
-        return Location::where('user_id', $request->user()->id)
-            ->orWhereIn('org_id', $request->user()->orgs()->pluck('orgs.id'))
+        // Own locations, org locations, and the shared landing zones.
+        return Location::where(function ($q) use ($request) {
+            $q->where('user_id', $request->user()->id)
+                ->orWhereIn('org_id', $request->user()->orgs()->pluck('orgs.id'))
+                ->orWhere(fn ($q) => $q->whereNull('user_id')->whereNull('org_id'));
+        })
             ->orderBy('name')
             ->get();
     }
@@ -19,7 +23,7 @@ class LocationController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'kind' => ['sometimes', 'in:hangar,freight_elevator,ship,base,other'],
+            'kind' => ['sometimes', 'in:hangar,freight_elevator,landing_zone,ship,base,other'],
             'station' => ['nullable', 'string', 'max:255'],
             'org_id' => ['nullable', 'exists:orgs,id'],
         ]);
@@ -35,7 +39,7 @@ class LocationController extends Controller
 
         $location->update($request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
-            'kind' => ['sometimes', 'in:hangar,freight_elevator,ship,base,other'],
+            'kind' => ['sometimes', 'in:hangar,freight_elevator,landing_zone,ship,base,other'],
             'station' => ['nullable', 'string', 'max:255'],
         ]));
 

@@ -30,10 +30,13 @@ class ImportController extends Controller
 
     public function template()
     {
-        $csv = "location,resource,quality,quantity,unit,visibility\n"
-            ."Hangar New Babbage,Iron,874,25,crates,org\n"
-            ."Hangar New Babbage,Gold,644,12,crates,org\n"
-            ."Freight Elevator Levski,Hadanite,0,34,pieces,private\n";
+        // member: player handle, empty = yourself (importing for others needs
+        // an officer role). unit: SCU, cSCU (0.01 SCU), mSCU (0.001 SCU), or
+        // pieces for gems; empty = mSCU.
+        $csv = "member,location,resource,quality,quantity,unit,visibility\n"
+            .",New Babbage,Iron,874,2.5,SCU,org\n"
+            ."DK-Raven,Levski,Gold,644,120,cSCU,org\n"
+            .",Levski,Hadanite,10,34,pieces,private\n";
 
         return response($csv, 200, [
             'Content-Type' => 'text/csv',
@@ -57,6 +60,17 @@ class ImportController extends Controller
         }
 
         $types = ResourceType::all()->keyBy(fn ($t) => Str::lower($t->name));
+
+        // Org mates, matchable by handle (preferred) or Discord username.
+        $members = $request->user()->orgs()
+            ->with('members')
+            ->get()
+            ->flatMap(fn ($org) => $org->members)
+            ->push($request->user())
+            ->unique('id');
+        $byHandle = $members->filter(fn ($m) => $m->handle)->keyBy(fn ($m) => Str::lower($m->handle));
+        $byName = $members->keyBy(fn ($m) => Str::lower($m->name));
+
         $rows = [];
         $validCount = 0;
 
@@ -74,9 +88,39 @@ class ImportController extends Controller
                 $errors[] = 'Quality must be an integer 0–1000';
             }
 
-            $quantity = filter_var($record['quantity'] ?? null, FILTER_VALIDATE_INT);
-            if ($quantity === false || $quantity < 1) {
-                $errors[] = 'Quantity must be a positive integer';
+            // Quantities convert to storage units: integer mSCU for crated
+            // resources, whole pieces for gems.
+            $unitRaw = Str::of($record['unit'] ?? '')->lower()->trim()->toString();
+            $raw = filter_var($record['quantity'] ?? null, FILTER_VALIDATE_FLOAT);
+            $quantity = null;
+
+            if ($raw === false || $raw <= 0) {
+                $errors[] = 'Quantity must be a positive number';
+            } elseif ($type?->unit === 'pieces') {
+                if (! in_array($unitRaw, ['', 'pieces', 'piece'], true)) {
+                    $errors[] = "\"{$type->name}\" is counted in pieces, not {$record['unit']}";
+                } elseif (fmod($raw, 1) !== 0.0) {
+                    $errors[] = 'Pieces must be a whole number';
+                } else {
+                    $quantity = (int) $raw;
+                }
+            } else {
+                $factor = match ($unitRaw) {
+                    '', 'mscu' => 1,
+                    'cscu' => 10,
+                    'scu' => 1000,
+                    default => null,
+                };
+                if ($factor === null) {
+                    $errors[] = 'Unit must be SCU, cSCU, mSCU or pieces';
+                } else {
+                    $mscu = $raw * $factor;
+                    if (abs($mscu - round($mscu)) > 1e-6) {
+                        $errors[] = 'Quantity is finer than 0.001 SCU — not storable as crates';
+                    } else {
+                        $quantity = (int) round($mscu);
+                    }
+                }
             }
 
             if (($record['location'] ?? '') === '') {
@@ -88,14 +132,24 @@ class ImportController extends Controller
                 $errors[] = 'Visibility must be private or org';
             }
 
+            $memberName = trim($record['member'] ?? '');
+            $target = $memberName === ''
+                ? $request->user()
+                : ($byHandle[Str::lower($memberName)] ?? $byName[Str::lower($memberName)] ?? null);
+            if (! $target) {
+                $errors[] = "Unknown member \"{$memberName}\" — no org mate with that handle";
+            }
+
             $rows[] = [
                 'line' => $line,
                 'data' => [
+                    'member' => $memberName !== '' ? $memberName : ($request->user()->handle ?? $request->user()->name),
+                    'user_id' => $target?->id,
                     'location' => $record['location'] ?? '',
                     'resource' => $record['resource'] ?? '',
                     'resource_type_id' => $type?->id,
                     'quality' => $quality === false ? null : $quality,
-                    'quantity' => $quantity === false ? null : $quantity,
+                    'quantity' => $quantity,
                     'unit' => $type?->unit,
                     'visibility' => $visibility,
                 ],
@@ -132,6 +186,16 @@ class ImportController extends Controller
 
         $user = $request->user();
         $orgId = $user->orgs()->value('orgs.id');
+
+        // Importing on someone else's behalf is an officer action.
+        $importsForOthers = collect($rows)
+            ->filter(fn ($r) => ! $r['errors'])
+            ->contains(fn ($r) => ($r['data']['user_id'] ?? $user->id) !== $user->id);
+        if ($importsForOthers) {
+            $org = $user->orgs()->first();
+            abort_unless($org && $user->isOrgOfficer($org), 403, 'Importing for other members requires an officer role.');
+        }
+
         $imported = 0;
 
         DB::transaction(function () use ($rows, $user, $orgId, &$imported) {
@@ -142,16 +206,22 @@ class ImportController extends Controller
                     continue;
                 }
                 $d = $row['data'];
+                $targetId = $d['user_id'] ?? $user->id;
 
-                $locations[$d['location']] ??= Location::firstOrCreate(
-                    ['user_id' => $user->id, 'name' => $d['location']],
-                    ['kind' => 'other'],
-                )->id;
+                // Reuse a shared landing zone of that name before creating a
+                // personal location for the target member.
+                $locKey = $targetId.'|'.Str::lower($d['location']);
+                $locations[$locKey] ??= (
+                    Location::whereRaw('lower(name) = ?', [Str::lower($d['location'])])
+                        ->where(fn ($q) => $q->whereNull('user_id')->orWhere('user_id', $targetId))
+                        ->value('id')
+                    ?? Location::create(['user_id' => $targetId, 'name' => $d['location'], 'kind' => 'other'])->id
+                );
 
                 ResourceStack::create([
-                    'user_id' => $user->id,
+                    'user_id' => $targetId,
                     'org_id' => $orgId,
-                    'location_id' => $locations[$d['location']],
+                    'location_id' => $locations[$locKey],
                     'resource_type_id' => $d['resource_type_id'],
                     'quality' => $d['quality'],
                     'quantity' => $d['quantity'],

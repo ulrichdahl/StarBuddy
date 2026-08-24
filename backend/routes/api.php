@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('me', fn (Request $request) => $request->user()->load('orgs'));
+    Route::patch('me', [\App\Http\Controllers\ProfileController::class, 'update']);
 
     Route::get('dashboard', DashboardController::class);
 
