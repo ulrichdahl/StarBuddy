@@ -37,7 +37,8 @@ function MarkOwnedDialog({ open, onClose }: { open: boolean; onClose: () => void
   })
 
   const markOwned = useMutation({
-    mutationFn: (blueprint: Blueprint) => api.post('/api/blueprints-owned', { blueprint_id: blueprint.id }),
+    mutationFn: (blueprint: Blueprint) =>
+      api.post('/api/blueprints-owned', { blueprint_id: blueprint.id, blueprint_name: blueprint.name }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['blueprints-owned'] })
       setSelected(null)
@@ -111,7 +112,7 @@ export function BlueprintsPage() {
             <TableHead>
               <TableRow>
                 <TableCell>Blueprint</TableCell>
-                <TableCell>Category</TableCell>
+                <TableCell>Item class</TableCell>
                 <TableCell>Owner</TableCell>
                 <TableCell>Acquired</TableCell>
               </TableRow>
@@ -119,9 +120,13 @@ export function BlueprintsPage() {
             <TableBody>
               {owned.map((entry) => (
                 <TableRow key={entry.id} hover>
-                  <TableCell>{entry.blueprint.name}</TableCell>
-                  <TableCell>{entry.blueprint.category ?? '—'}</TableCell>
-                  <TableCell>{entry.owner?.handle ?? '—'}</TableCell>
+                  <TableCell>{entry.blueprint?.name ?? entry.blueprint_name}</TableCell>
+                  <TableCell>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                      {entry.item_class ?? '—'}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>{entry.user?.handle ?? entry.user?.name ?? '—'}</TableCell>
                   <TableCell>
                     {entry.acquired_at ? new Date(entry.acquired_at).toLocaleDateString() : '—'}
                   </TableCell>

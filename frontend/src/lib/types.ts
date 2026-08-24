@@ -85,19 +85,26 @@ export interface Blueprint {
 
 export interface OwnedBlueprint {
   id: number
-  blueprint: Blueprint
-  owner?: { handle: string }
-  acquired_at?: string
+  // Raw (possibly pack-localized) name from the log or manual entry.
+  blueprint_name: string
+  // Canonical item class resolved by the desktop client; null if unresolved.
+  item_class: string | null
+  // Linked recipe-DB entry once resolved server-side; null until then.
+  blueprint: Blueprint | null
+  user?: { id: number; name: string; handle: string | null }
+  acquired_at?: string | null
+  source: string
 }
 
 export interface RefineryOrder {
   id: number
-  refinery: string
-  method: string
-  status: string
-  yield_scu: number
-  completes_at: string | null
-  owner?: { handle: string }
+  station: string
+  method: string | null
+  materials: unknown[] | null
+  placed_at: string | null
+  eta: string | null
+  completed_at: string | null
+  source: string
 }
 
 /** One parsed CSV line from POST /api/import/resources/preview. */

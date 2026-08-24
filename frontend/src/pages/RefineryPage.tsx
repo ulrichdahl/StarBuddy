@@ -15,10 +15,10 @@ import { api, unwrapList } from '../lib/api'
 import type { RefineryOrder } from '../lib/types'
 import { PageHeader } from '../components/PageHeader'
 
-function statusColor(status: string): 'primary' | 'secondary' | 'default' {
-  if (status === 'processing' || status === 'open') return 'secondary'
-  if (status === 'ready' || status === 'done') return 'primary'
-  return 'default'
+function status(order: RefineryOrder): { label: string; color: 'primary' | 'secondary' } {
+  return order.completed_at
+    ? { label: 'Completed', color: 'primary' }
+    : { label: 'In progress', color: 'secondary' }
 }
 
 export function RefineryPage() {
@@ -37,27 +37,27 @@ export function RefineryPage() {
           <Table size="small" aria-label="Refinery orders">
             <TableHead>
               <TableRow>
-                <TableCell>Refinery</TableCell>
+                <TableCell>Station</TableCell>
                 <TableCell>Method</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell align="right">Yield (SCU)</TableCell>
-                <TableCell>Completes</TableCell>
-                <TableCell>Owner</TableCell>
+                <TableCell>Completed</TableCell>
+                <TableCell>ETA</TableCell>
+                <TableCell>Source</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {orders.map((order) => (
                 <TableRow key={order.id} hover>
-                  <TableCell>{order.refinery}</TableCell>
-                  <TableCell>{order.method}</TableCell>
+                  <TableCell>{order.station}</TableCell>
+                  <TableCell>{order.method ?? '—'}</TableCell>
                   <TableCell>
-                    <Chip size="small" label={order.status} color={statusColor(order.status)} variant="outlined" />
+                    <Chip size="small" {...status(order)} variant="outlined" />
                   </TableCell>
-                  <TableCell align="right">{order.yield_scu.toLocaleString()}</TableCell>
                   <TableCell>
-                    {order.completes_at ? new Date(order.completes_at).toLocaleString() : '—'}
+                    {order.completed_at ? new Date(order.completed_at).toLocaleString() : '—'}
                   </TableCell>
-                  <TableCell>{order.owner?.handle ?? '—'}</TableCell>
+                  <TableCell>{order.eta ? new Date(order.eta).toLocaleString() : '—'}</TableCell>
+                  <TableCell>{order.source}</TableCell>
                 </TableRow>
               ))}
               {!isLoading && orders.length === 0 && (
