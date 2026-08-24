@@ -27,10 +27,19 @@ class User extends Authenticatable
         ];
     }
 
+    // Active memberships only — pending join requests don't grant access.
     public function orgs(): BelongsToMany
     {
         return $this->belongsToMany(Org::class, 'org_members')
-            ->withPivot('role')
+            ->withPivot('role', 'status')
+            ->wherePivot('status', 'active')
+            ->withTimestamps();
+    }
+
+    public function orgMemberships(): BelongsToMany
+    {
+        return $this->belongsToMany(Org::class, 'org_members')
+            ->withPivot('role', 'status')
             ->withTimestamps();
     }
 
@@ -63,6 +72,6 @@ class User extends Authenticatable
     {
         $membership = $this->orgs()->where('orgs.id', $org->id)->first();
 
-        return $membership && in_array($membership->pivot->role, ['officer', 'admin'], true);
+        return $membership && in_array($membership->pivot->role, ['officer', 'admin', 'manager'], true);
     }
 }

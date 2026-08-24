@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Channel, invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import "./App.css";
 
 interface ScanProgress {
@@ -54,10 +55,46 @@ function App() {
   const [syncResult, setSyncResult] = useState<SyncSummary | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
 
+  const [watching, setWatching] = useState(false);
+  const [watcherError, setWatcherError] = useState<string | null>(null);
+  const [liveEvents, setLiveEvents] = useState<LogEvent[]>([]);
+  const [liveSynced, setLiveSynced] = useState(0);
+  const liveSyncedRef = useRef(0);
+
   useEffect(() => {
     invoke<string | null>("detect_game_log").then(setLiveDir);
     invoke<ConnectionView>("get_connection").then(setConnection);
+    invoke<boolean>("watcher_status").then(setWatching);
+
+    const subs = [
+      listen<LogEvent>("watcher-event", (e) =>
+        setLiveEvents((prev) => [e.payload, ...prev].slice(0, 25)),
+      ),
+      listen<SyncSummary>("watcher-sync", (e) => {
+        liveSyncedRef.current += e.payload.accepted;
+        setLiveSynced(liveSyncedRef.current);
+      }),
+      listen<string>("watcher-sync-error", (e) => setWatcherError(e.payload)),
+      listen<{ running: boolean }>("watcher-status", (e) => setWatching(e.payload.running)),
+    ];
+    return () => {
+      subs.forEach((p) => p.then((un) => un()));
+    };
   }, []);
+
+  const toggleWatcher = async () => {
+    setWatcherError(null);
+    try {
+      if (watching) {
+        await invoke("stop_watcher");
+      } else {
+        await invoke("start_watcher", { liveDir: customDir || liveDir });
+        setWatching(true);
+      }
+    } catch (e) {
+      setWatcherError(String(e));
+    }
+  };
 
   const pair = async () => {
     setPairing(true);
@@ -193,6 +230,34 @@ function App() {
           </div>
         )}
         {error && <p className="error">{error}</p>}
+      </section>
+
+      <section className="panel">
+        <h2>Live watcher</h2>
+        <div className="row">
+          <p style={{ flex: 1, margin: 0 }} className={watching ? "" : "hint"}>
+            {watching
+              ? `Watching Game.log — new blueprints and refinery completions sync automatically${liveSynced ? ` (${liveSynced} synced this session)` : ""}.`
+              : "Not watching. Start the watcher while playing to sync events as they happen."}
+          </p>
+          <button disabled={!liveDir && !customDir} onClick={toggleWatcher}>
+            {watching ? "Stop watching" : "Start watching"}
+          </button>
+        </div>
+        {watcherError && <p className="error">{watcherError}</p>}
+        {liveEvents.length > 0 && (
+          <table>
+            <tbody>
+              {liveEvents.map((e, i) => (
+                <tr key={`${e.timestamp}-${i}`}>
+                  <td className="mono">{e.timestamp.replace("T", " ").slice(11, 19)}</td>
+                  <td>{e.kind === "blueprint" ? "Blueprint" : "Refinery done"}</td>
+                  <td>{e.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </section>
 
       {result && (

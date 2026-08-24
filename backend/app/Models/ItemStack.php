@@ -25,12 +25,14 @@ class ItemStack extends Model
 
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        return $query->where(function (Builder $q) use ($user) {
+        $orgMateIds = \Illuminate\Support\Facades\DB::table('org_members')
+            ->whereIn('org_id', $user->orgs()->pluck('orgs.id'))
+            ->where('status', 'active')
+            ->pluck('user_id');
+
+        return $query->where(function (Builder $q) use ($user, $orgMateIds) {
             $q->where('user_id', $user->id)
-                ->orWhere(function (Builder $q) use ($user) {
-                    $q->where('visibility', 'org')
-                        ->whereIn('org_id', $user->orgs()->pluck('orgs.id'));
-                });
+                ->orWhere(fn (Builder $q) => $q->where('visibility', 'org')->whereIn('user_id', $orgMateIds));
         });
     }
 }

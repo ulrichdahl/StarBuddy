@@ -22,6 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('dashboard', DashboardController::class);
     Route::get('craftability', \App\Http\Controllers\CraftabilityController::class);
     Route::get('craftability/{blueprint}', [\App\Http\Controllers\CraftabilityController::class, 'show']);
+    Route::post('craftability/{blueprint}/craft', [\App\Http\Controllers\CraftabilityController::class, 'craft']);
 
     Route::get('resource-types', [ResourceTypeController::class, 'index']);
     Route::apiResource('locations', LocationController::class)->only(['index', 'store', 'update', 'destroy']);
@@ -44,6 +45,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // P1.1 — bulk clear of org inventory by type/category
     Route::delete('admin/inventory', [AdminInventoryController::class, 'clear']);
 
+    // Orgs: browse/join for members, moderation for managers
+    Route::get('orgs', [\App\Http\Controllers\OrgController::class, 'index']);
+    Route::post('orgs/{org}/join', [\App\Http\Controllers\OrgController::class, 'join']);
+    Route::delete('orgs/{org}/leave', [\App\Http\Controllers\OrgController::class, 'leave']);
+    Route::get('orgs/{org}/members', [\App\Http\Controllers\OrgController::class, 'members']);
+    Route::post('orgs/{org}/members/{user}/accept', [\App\Http\Controllers\OrgController::class, 'accept']);
+    Route::delete('orgs/{org}/members/{user}', [\App\Http\Controllers\OrgController::class, 'kick']);
+
     // Desktop client pairing (code generated in the web UI) + device management
     Route::post('devices/pairing-code', [DeviceController::class, 'pairingCode']);
     Route::get('devices', [DeviceController::class, 'index']);
@@ -60,4 +69,9 @@ Route::post('devices/pair', [DeviceController::class, 'pair'])->middleware('thro
 Route::prefix('bot')->middleware('bot')->group(function () {
     Route::get('health', [BotController::class, 'health']);
     Route::get('member/{discordId}', [BotController::class, 'member']);
+    // Org administration — the bot enforces Discord ManageGuild first.
+    Route::get('orgs', [BotController::class, 'listOrgs']);
+    Route::post('orgs', [BotController::class, 'createOrg']);
+    Route::delete('orgs/{name}', [BotController::class, 'deleteOrg']);
+    Route::post('orgs/{name}/manager', [BotController::class, 'setManager']);
 });

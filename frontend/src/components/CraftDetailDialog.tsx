@@ -1,8 +1,10 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import Divider from '@mui/material/Divider'
@@ -15,6 +17,7 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
 import { api } from '../lib/api'
+import { gradeLabel } from '../pages/CraftPage'
 
 interface Holding {
   member: string
@@ -51,6 +54,18 @@ interface CraftDetail {
   }
   owners: string[]
   ingredients: IngredientDetail[]
+  craftable: boolean
+  est_output_quality: number | null
+  est_stat_modifier_percent: number | null
+}
+
+function qualityTierColor(q: number): string {
+  if (q >= 900) return '#c98a3d'
+  if (q >= 800) return '#9a6bc9'
+  if (q >= 700) return '#4f8fce'
+  if (q >= 600) return '#58a862'
+  if (q >= 400) return '#c9d1d9'
+  return '#8f8f8f'
 }
 
 function amount(value: number, unit: 'mscu' | 'pieces'): string {
@@ -65,10 +80,28 @@ function craftTime(seconds: number | null): string | null {
   return `${(seconds / 3600).toLocaleString(undefined, { maximumFractionDigits: 1 })} h`
 }
 
+interface CraftResultResponse {
+  crafted: string
+  quality: number | null
+  consumed: { name: string; quantity: number; unit: 'mscu' | 'pieces' }[]
+}
+
 export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: number; onClose: () => void }) {
+  const queryClient = useQueryClient()
   const { data, isLoading, isError } = useQuery({
     queryKey: ['craft-detail', blueprintId],
     queryFn: async () => (await api.get<CraftDetail>(`/api/craftability/${blueprintId}`)).data,
+  })
+
+  const craft = useMutation({
+    mutationFn: async () =>
+      (await api.post<CraftResultResponse>(`/api/craftability/${blueprintId}/craft`)).data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['craft-detail', blueprintId] })
+      queryClient.invalidateQueries({ queryKey: ['craftability'] })
+      queryClient.invalidateQueries({ queryKey: ['resource-stacks'] })
+      queryClient.invalidateQueries({ queryKey: ['item-stacks'] })
+    },
   })
 
   const bp = data?.blueprint
@@ -84,7 +117,7 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
             <Stack direction="row" spacing={1} sx={{ mt: 0.5, flexWrap: 'wrap' }}>
               {bp.manufacturer && <Chip size="small" label={bp.manufacturer} variant="outlined" />}
               {bp.type && <Chip size="small" label={bp.sub_type ? `${bp.type} · ${bp.sub_type}` : bp.type} variant="outlined" />}
-              {bp.grade && <Chip size="small" label={`Blueprint grade ${bp.grade}`} variant="outlined" />}
+              {bp.grade && <Chip size="small" label={`Grade ${gradeLabel(bp.grade)}`} variant="outlined" />}
               {bp.item_meta?.size !== undefined && <Chip size="small" label={`Size ${bp.item_meta.size}`} variant="outlined" />}
               {craftTime(bp.craft_time_seconds) && (
                 <Chip size="small" color="secondary" variant="outlined" label={`Craft time ${craftTime(bp.craft_time_seconds)}`} />
@@ -105,6 +138,33 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
                 {bp.description || 'No description available.'}
               </Typography>
             </Box>
+
+            {data.est_output_quality !== null && (
+              <>
+                <Divider sx={{ my: 2 }} />
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                  <Typography variant="subtitle2">Best craft with current materials</Typography>
+                  <Typography
+                    variant="h5"
+                    sx={{ color: qualityTierColor(data.est_output_quality), fontVariantNumeric: 'tabular-nums' }}
+                  >
+                    {data.est_output_quality}
+                  </Typography>
+                  {data.est_stat_modifier_percent !== null && (
+                    <Typography variant="body2" color="text.secondary">
+                      ≈ {data.est_stat_modifier_percent > 0 ? '+' : ''}
+                      {data.est_stat_modifier_percent}% stats vs. shop baseline
+                      <Typography component="span" variant="caption" sx={{ ml: 0.5 }}>
+                        (community-measured estimate)
+                      </Typography>
+                    </Typography>
+                  )}
+                  {!data.craftable && (
+                    <Chip size="small" label="Materials incomplete" color="secondary" variant="outlined" />
+                  )}
+                </Box>
+              </>
+            )}
 
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
@@ -177,7 +237,34 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
                 )
               })}
             </Stack>
+
+            {craft.isSuccess && (
+              <Alert severity="success" sx={{ mt: 2 }}>
+                Crafted {craft.data.crafted}
+                {craft.data.quality !== null ? ` at quality ${craft.data.quality}` : ''} — materials
+                deducted, item added to your Items ledger.
+              </Alert>
+            )}
+            {craft.isError && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                Could not record the craft — materials may have changed. Reopen to refresh.
+              </Alert>
+            )}
           </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={onClose}>Close</Button>
+            <Button
+              variant="contained"
+              disabled={!data?.craftable || craft.isPending || craft.isSuccess}
+              onClick={() => {
+                if (window.confirm(`Record crafting ${bp.name}? The listed materials will be deducted from the ledger.`)) {
+                  craft.mutate()
+                }
+              }}
+            >
+              {craft.isPending ? 'Recording…' : craft.isSuccess ? 'Crafted' : 'I crafted this'}
+            </Button>
+          </DialogActions>
         </>
       )}
     </Dialog>

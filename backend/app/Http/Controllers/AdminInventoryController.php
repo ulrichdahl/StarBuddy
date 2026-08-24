@@ -39,8 +39,10 @@ class AdminInventoryController extends Controller
 
         $cleared = ['resource_stacks' => 0, 'item_stacks' => 0];
 
+        $memberIds = $org->members()->pluck('users.id');
+
         if ($data['resource_type_id'] || ($data['category'] ?? null)) {
-            $query = ResourceStack::where('org_id', $org->id)
+            $query = ResourceStack::whereIn('user_id', $memberIds)->where('visibility', 'org')
                 ->when($data['resource_type_id'], fn ($q, $id) => $q->where('resource_type_id', $id))
                 ->when($data['category'] ?? null, fn ($q, $c) => $q->whereHas(
                     'resourceType', fn ($t) => $t->where('category', $c),
@@ -53,7 +55,7 @@ class AdminInventoryController extends Controller
         }
 
         if ($data['item_class'] ?? null) {
-            $query = ItemStack::where('org_id', $org->id)
+            $query = ItemStack::whereIn('user_id', $memberIds)->where('visibility', 'org')
                 ->where('item_class', $data['item_class'])
                 ->when($data['member_id'] ?? null, fn ($q, $id) => $q->where('user_id', $id))
                 ->when($data['location_id'] ?? null, fn ($q, $id) => $q->where('location_id', $id));

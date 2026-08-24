@@ -8,6 +8,7 @@ import SchemaIcon from '@mui/icons-material/Schema'
 import FactoryIcon from '@mui/icons-material/Factory'
 import { api } from '../lib/api'
 import type { DashboardStats, Me } from '../lib/types'
+import { OrgListCard } from '../components/OrgListCard'
 import { PageHeader } from '../components/PageHeader'
 import { PairDeviceCard } from '../components/PairDeviceCard'
 import { ProfileCard } from '../components/ProfileCard'
@@ -97,6 +98,9 @@ export function DashboardPage({ me }: { me: Me }) {
       >
         <ProfileCard me={me} />
         <PairDeviceCard />
+      </Box>
+      <Box sx={{ mt: 2 }}>
+        <OrgListCard me={me} />
       </Box>
     </Box>
   )

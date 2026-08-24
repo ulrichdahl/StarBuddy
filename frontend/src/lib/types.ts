@@ -16,6 +16,37 @@ export interface Me {
   orgs: Org[]
 }
 
+export type OrgRole = 'member' | 'manager' | 'officer' | 'admin'
+
+export type OrgMembershipStatus = 'pending' | 'active'
+
+/** The caller's own membership in an org; null when not a member. */
+export interface OrgMembership {
+  role: OrgRole
+  status: OrgMembershipStatus
+}
+
+/** One org with pooled stats, from GET /api/orgs. */
+export interface OrgSummary {
+  id: number
+  name: string
+  member_count: number
+  total_scu: number
+  total_pieces: number
+  blueprint_count: number
+  membership: OrgMembership | null
+}
+
+/** One member row, from GET /api/orgs/{id}/members (managers only). */
+export interface OrgMember {
+  id: number
+  name: string
+  handle: string | null
+  avatar_url: string | null
+  role: OrgRole
+  status: OrgMembershipStatus
+}
+
 export interface DashboardStats {
   total_resources_scu: number
   blueprint_count: number

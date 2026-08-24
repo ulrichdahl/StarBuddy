@@ -6,6 +6,7 @@ use App\Models\Blueprint;
 use App\Models\BlueprintOwned;
 use App\Models\ResourceStack;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -67,6 +68,33 @@ class CraftabilityController extends Controller
             ];
         });
 
+        // Best achievable output quality: greedily consume the highest-
+        // quality stacks per crated ingredient, weighted by recipe share.
+        $weighted = 0;
+        $weight = 0;
+        $craftable = true;
+        foreach ($ingredients as $ing) {
+            if ($ing['available'] < $ing['need']) {
+                $craftable = false;
+            }
+            if ($ing['unit'] !== 'mscu' || $ing['need'] <= 0) {
+                continue;
+            }
+            $left = min($ing['need'], $ing['available']);
+            $sum = 0;
+            foreach ($ing['holdings'] as $h) { // already sorted best-first
+                if ($left <= 0) {
+                    break;
+                }
+                $use = min($left, $h['quantity']);
+                $sum += $use * $h['quality'];
+                $left -= $use;
+            }
+            $weighted += $sum;
+            $weight += $ing['need'];
+        }
+        $estQuality = $weight > 0 ? (int) round($weighted / $weight) : null;
+
         return [
             'blueprint' => $blueprint->only([
                 'id', 'name', 'item_class', 'type', 'sub_type', 'grade', 'tags',
@@ -75,7 +103,97 @@ class CraftabilityController extends Controller
             ]),
             'owners' => $owners,
             'ingredients' => $ingredients,
+            'craftable' => $craftable,
+            'est_output_quality' => $estQuality,
+            // Community-measured approximation: stats shift roughly linearly
+            // with quality around a ~500 baseline (≈ ±1.5% per 100 quality).
+            'est_stat_modifier_percent' => $estQuality !== null
+                ? round(($estQuality - 500) * 0.015, 1)
+                : null,
         ];
+    }
+
+    /**
+     * Record a completed craft: consume the ingredients from the stacks the
+     * member can use (best quality first — the same order the estimate
+     * shows) and add the crafted item to their item ledger.
+     */
+    public function craft(Request $request, Blueprint $blueprint)
+    {
+        $data = $request->validate(['location_id' => ['nullable', 'exists:locations,id']]);
+        $user = $request->user();
+
+        return DB::transaction(function () use ($blueprint, $user, $data) {
+            $consumed = [];
+            $qualityWeighted = 0;
+            $qualityWeight = 0;
+            $fallbackLocation = null;
+
+            foreach ($blueprint->ingredients ?? [] as $ing) {
+                $need = $ing['quantity_mscu'] ?? $ing['quantity_pieces'] ?? 0;
+                if ($need <= 0) {
+                    continue;
+                }
+                $isMscu = isset($ing['quantity_mscu']);
+
+                $stacks = ResourceStack::visibleTo($user)
+                    ->whereHas('resourceType', fn ($q) => $q->whereLike('name', $ing['name'], caseSensitive: false))
+                    ->when($isMscu, fn ($q) => $q->where('quality', '>=', 1))
+                    ->orderByDesc('quality')
+                    ->lockForUpdate()
+                    ->get();
+
+                abort_if($stacks->sum('quantity') < $need, 422, "Not enough {$ing['name']} on hand.");
+
+                $left = $need;
+                foreach ($stacks as $stack) {
+                    if ($left <= 0) {
+                        break;
+                    }
+                    $use = min($left, $stack->quantity);
+                    $left -= $use;
+                    $fallbackLocation ??= $stack->location_id;
+                    if ($isMscu) {
+                        $qualityWeighted += $use * $stack->quality;
+                        $qualityWeight += $use;
+                    }
+                    if ($use === $stack->quantity) {
+                        $stack->delete();
+                    } else {
+                        $stack->update(['quantity' => $stack->quantity - $use, 'updated_by' => $user->id]);
+                    }
+                }
+                $consumed[] = ['name' => $ing['name'], 'quantity' => $need, 'unit' => $isMscu ? 'mscu' : 'pieces'];
+            }
+
+            abort_if(empty($consumed), 422, 'This blueprint has no recorded ingredients.');
+
+            $quality = $qualityWeight > 0 ? (int) round($qualityWeighted / $qualityWeight) : null;
+            $item = \App\Models\ItemStack::create([
+                'user_id' => $user->id,
+                'org_id' => $user->orgs()->value('orgs.id'),
+                'location_id' => $data['location_id'] ?? $fallbackLocation,
+                'item_class' => $blueprint->item_class ?? $blueprint->name,
+                'item_name' => $blueprint->name.($quality !== null ? " (Q{$quality})" : ''),
+                'quantity' => 1,
+                'visibility' => 'private',
+                'source' => 'manual',
+            ]);
+
+            \App\Models\AuditLog::create([
+                'user_id' => $user->id,
+                'org_id' => $user->orgs()->value('orgs.id'),
+                'action' => 'craft.completed',
+                'details' => ['blueprint' => $blueprint->name, 'quality' => $quality, 'consumed' => $consumed],
+            ]);
+
+            return [
+                'crafted' => $blueprint->name,
+                'quality' => $quality,
+                'consumed' => $consumed,
+                'item_stack_id' => $item->id,
+            ];
+        });
     }
 
     // One-time fetch of the output item's lore from the wiki, cached on the

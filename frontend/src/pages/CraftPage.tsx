@@ -40,6 +40,12 @@ interface CraftabilityResponse {
   results: CraftResult[]
 }
 
+/** Numeric blueprint grades map to letters: 1=A, 2=B, 3=C, 4=D. */
+export function gradeLabel(grade: string | null): string | null {
+  if (grade === null) return null
+  return { '1': 'A', '2': 'B', '3': 'C', '4': 'D' }[grade] ?? grade
+}
+
 function missingLabel(m: CraftResult['missing'][number]): string {
   return m.unit === 'mscu'
     ? `${(m.missing / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} SCU ${m.name}`
@@ -134,7 +140,7 @@ export function CraftPage() {
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
                       {[r.type, r.sub_type].filter(Boolean).join(' · ')}
-                      {r.grade ? ` · G${r.grade}` : ''}
+                      {r.grade ? ` · Grade ${gradeLabel(r.grade)}` : ''}
                     </Typography>
                   </TableCell>
                   <TableCell>

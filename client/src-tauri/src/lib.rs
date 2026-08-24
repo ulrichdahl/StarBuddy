@@ -2,9 +2,11 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
-use std::sync::LazyLock;
-use tauri::Manager;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, LazyLock, Mutex};
+use tauri::{Emitter, Manager};
 
 // Notification lines are duplicated in the log (queued + displayed); events
 // are deduplicated on (timestamp, detail). Names can contain quotes
@@ -140,6 +142,29 @@ fn detect_game_log() -> Option<String> {
         .map(|d| d.to_string_lossy().into_owned())
 }
 
+fn parse_line(line: &str, localization: &HashMap<String, String>, file: &str) -> Option<LogEvent> {
+    let (kind, caps) = if let Some(c) = BLUEPRINT_RE.captures(line) {
+        ("blueprint", c)
+    } else if let Some(c) = REFINERY_RE.captures(line) {
+        ("refinery_completed", c)
+    } else {
+        return None;
+    };
+
+    let detail = caps[2].trim().to_string();
+    let item_class = (kind == "blueprint")
+        .then(|| localization.get(&normalize_name(&detail)).cloned())
+        .flatten();
+
+    Some(LogEvent {
+        kind: kind.to_string(),
+        timestamp: caps[1].to_string(),
+        detail,
+        item_class,
+        file: file.to_string(),
+    })
+}
+
 fn scan_file(
     path: &Path,
     localization: &HashMap<String, String>,
@@ -155,27 +180,10 @@ fn scan_file(
         .unwrap_or_default();
 
     for line in text.lines() {
-        let (kind, caps) = if let Some(c) = BLUEPRINT_RE.captures(line) {
-            ("blueprint", c)
-        } else if let Some(c) = REFINERY_RE.captures(line) {
-            ("refinery_completed", c)
-        } else {
-            continue;
-        };
-
-        let timestamp = caps[1].to_string();
-        let detail = caps[2].trim().to_string();
-        if seen.insert((timestamp.clone(), detail.clone())) {
-            let item_class = (kind == "blueprint")
-                .then(|| localization.get(&normalize_name(&detail)).cloned())
-                .flatten();
-            events.push(LogEvent {
-                kind: kind.to_string(),
-                timestamp,
-                detail,
-                item_class,
-                file: file.clone(),
-            });
+        if let Some(ev) = parse_line(line, localization, &file) {
+            if seen.insert((ev.timestamp.clone(), ev.detail.clone())) {
+                events.push(ev);
+            }
         }
     }
 }
@@ -371,18 +379,10 @@ async fn pair_device(
     Ok(view(Some(&settings)))
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct SyncSummary {
-    pub accepted: usize,
-    pub duplicates: usize,
-    pub blueprints_added: usize,
-    pub refinery_completed: usize,
-}
-
-#[tauri::command]
-async fn sync_events(app: tauri::AppHandle, events: Vec<LogEvent>) -> Result<SyncSummary, String> {
-    let settings = load_settings(&app).ok_or("Not paired with a server yet.")?;
-
+async fn post_events(
+    settings: &StoredSettings,
+    events: &[LogEvent],
+) -> Result<SyncSummary, String> {
     let payload: Vec<_> = events
         .iter()
         .map(|e| {
@@ -409,6 +409,146 @@ async fn sync_events(app: tauri::AppHandle, events: Vec<LogEvent>) -> Result<Syn
     }
 
     resp.json().await.map_err(|e| e.to_string())
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SyncSummary {
+    pub accepted: usize,
+    pub duplicates: usize,
+    pub blueprints_added: usize,
+    pub refinery_completed: usize,
+}
+
+#[tauri::command]
+async fn sync_events(app: tauri::AppHandle, events: Vec<LogEvent>) -> Result<SyncSummary, String> {
+    let settings = load_settings(&app).ok_or("Not paired with a server yet.")?;
+    post_events(&settings, &events).await
+}
+
+// ── Live log watcher ────────────────────────────────────────────────────────
+// Polls Game.log every 2 s from the end of the file, parses new lines,
+// streams events to the UI ("watcher-event") and auto-syncs them to the
+// server when paired ("watcher-sync" carries the result). Rotation (the
+// game recreates the log on restart) is detected by the file shrinking.
+
+#[derive(Default)]
+pub struct WatcherState(Mutex<Option<Arc<AtomicBool>>>);
+
+#[derive(Serialize, Clone)]
+struct WatcherStatus {
+    running: bool,
+    log_path: String,
+}
+
+#[tauri::command]
+fn watcher_status(state: tauri::State<WatcherState>) -> bool {
+    state.0.lock().unwrap().as_ref().is_some_and(|f| !f.load(Ordering::Relaxed))
+}
+
+#[tauri::command]
+fn stop_watcher(state: tauri::State<WatcherState>) {
+    if let Some(flag) = state.0.lock().unwrap().take() {
+        flag.store(true, Ordering::Relaxed);
+    }
+}
+
+#[tauri::command]
+fn start_watcher(
+    app: tauri::AppHandle,
+    state: tauri::State<WatcherState>,
+    live_dir: String,
+) -> Result<(), String> {
+    let log_path = PathBuf::from(&live_dir).join("Game.log");
+    if !log_path.is_file() {
+        return Err(format!("No Game.log in {live_dir} — is the game installed there?"));
+    }
+
+    let mut guard = state.0.lock().unwrap();
+    if let Some(flag) = guard.take() {
+        flag.store(true, Ordering::Relaxed);
+    }
+    let stop = Arc::new(AtomicBool::new(false));
+    *guard = Some(stop.clone());
+    drop(guard);
+
+    let localization = load_localization(Path::new(&live_dir));
+
+    tauri::async_runtime::spawn(async move {
+        let mut offset = fs::metadata(&log_path).map(|m| m.len()).unwrap_or(0);
+        let mut carry = String::new();
+
+        let _ = app.emit("watcher-status", WatcherStatus {
+            running: true,
+            log_path: log_path.to_string_lossy().into_owned(),
+        });
+
+        while !stop.load(Ordering::Relaxed) {
+            tokio_sleep().await;
+
+            let Ok(meta) = fs::metadata(&log_path) else { continue };
+            let size = meta.len();
+            if size < offset {
+                // Log rotated: the game restarted; read the new file fully.
+                offset = 0;
+                carry.clear();
+            }
+            if size == offset {
+                continue;
+            }
+
+            let Ok(mut f) = fs::File::open(&log_path) else { continue };
+            if f.seek(SeekFrom::Start(offset)).is_err() {
+                continue;
+            }
+            let mut buf = Vec::with_capacity((size - offset) as usize);
+            if f.read_to_end(&mut buf).is_err() {
+                continue;
+            }
+            offset = size;
+
+            let chunk = format!("{carry}{}", String::from_utf8_lossy(&buf));
+            let (complete, rest) = match chunk.rfind('\n') {
+                Some(i) => chunk.split_at(i + 1),
+                None => ("", chunk.as_str()),
+            };
+            carry = rest.to_string();
+
+            let events: Vec<LogEvent> = complete
+                .lines()
+                .filter_map(|l| parse_line(l, &localization, "Game.log"))
+                .collect();
+            if events.is_empty() {
+                continue;
+            }
+
+            for ev in &events {
+                let _ = app.emit("watcher-event", ev);
+            }
+            if let Some(settings) = load_settings(&app) {
+                match post_events(&settings, &events).await {
+                    Ok(summary) => {
+                        let _ = app.emit("watcher-sync", &summary);
+                    }
+                    Err(message) => {
+                        let _ = app.emit("watcher-sync-error", &message);
+                    }
+                }
+            }
+        }
+
+        let _ = app.emit("watcher-status", WatcherStatus {
+            running: false,
+            log_path: log_path.to_string_lossy().into_owned(),
+        });
+    });
+
+    Ok(())
+}
+
+async fn tokio_sleep() {
+    tauri::async_runtime::spawn_blocking(|| std::thread::sleep(std::time::Duration::from_secs(2)))
+        .await
+        .ok();
 }
 
 #[cfg(test)]
@@ -449,13 +589,17 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .manage(WatcherState::default())
         .invoke_handler(tauri::generate_handler![
             detect_game_log,
             scan_backlog,
             get_connection,
             pair_device,
             unpair,
-            sync_events
+            sync_events,
+            start_watcher,
+            stop_watcher,
+            watcher_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -12,7 +12,15 @@ class Org extends Model
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'org_members')
-            ->withPivot('role')
+            ->withPivot('role', 'status')
+            ->wherePivot('status', 'active')
+            ->withTimestamps();
+    }
+
+    public function memberships(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'org_members')
+            ->withPivot('role', 'status')
             ->withTimestamps();
     }
 }

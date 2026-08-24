@@ -42,15 +42,19 @@ class ResourceStack extends Model
         return $this->belongsTo(ResourceType::class);
     }
 
-    // Stacks a user may see: their own, plus org-visible stacks in their orgs.
+    // Stacks a user may see: their own, plus org-visible stacks belonging to
+    // current active members of their orgs (membership-based, so joining an
+    // org immediately pools your existing org-visible stock).
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
-        return $query->where(function (Builder $q) use ($user) {
+        $orgMateIds = \Illuminate\Support\Facades\DB::table('org_members')
+            ->whereIn('org_id', $user->orgs()->pluck('orgs.id'))
+            ->where('status', 'active')
+            ->pluck('user_id');
+
+        return $query->where(function (Builder $q) use ($user, $orgMateIds) {
             $q->where('user_id', $user->id)
-                ->orWhere(function (Builder $q) use ($user) {
-                    $q->where('visibility', 'org')
-                        ->whereIn('org_id', $user->orgs()->pluck('orgs.id'));
-                });
+                ->orWhere(fn (Builder $q) => $q->where('visibility', 'org')->whereIn('user_id', $orgMateIds));
         });
     }
 }
