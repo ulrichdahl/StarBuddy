@@ -4,6 +4,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import { useMe } from './lib/auth'
 import { AppShell } from './components/AppShell'
 import { LoginPage } from './pages/LoginPage'
+import { CraftPage } from './pages/CraftPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ResourcesPage } from './pages/ResourcesPage'
 import { ItemsPage } from './pages/ItemsPage'
@@ -31,6 +32,7 @@ export default function App() {
     <Routes>
       <Route element={<AppShell me={me} />}>
         <Route index element={<DashboardPage me={me} />} />
+        <Route path="/craft" element={<CraftPage />} />
         <Route path="/resources" element={<ResourcesPage />} />
         <Route path="/items" element={<ItemsPage />} />
         <Route path="/blueprints" element={<BlueprintsPage />} />

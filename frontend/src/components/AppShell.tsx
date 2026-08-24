@@ -16,6 +16,7 @@ import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import MenuIcon from '@mui/icons-material/Menu'
+import BuildIcon from '@mui/icons-material/Build'
 import DashboardIcon from '@mui/icons-material/Dashboard'
 import DiamondIcon from '@mui/icons-material/Diamond'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
@@ -29,6 +30,7 @@ const DRAWER_WIDTH = 232
 
 const NAV_ITEMS = [
   { label: 'Dashboard', to: '/', icon: <DashboardIcon /> },
+  { label: 'Craft', to: '/craft', icon: <BuildIcon /> },
   { label: 'Resources', to: '/resources', icon: <DiamondIcon /> },
   { label: 'Items', to: '/items', icon: <Inventory2Icon /> },
   { label: 'Blueprints', to: '/blueprints', icon: <SchemaIcon /> },
