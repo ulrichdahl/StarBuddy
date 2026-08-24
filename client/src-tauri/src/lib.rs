@@ -164,44 +164,80 @@ fn scan_file(
     }
 }
 
+#[derive(Serialize, Clone)]
+pub struct ScanProgress {
+    pub current: usize,
+    pub total: usize,
+    pub file: String,
+}
+
 /// Scan Game.log plus the whole logbackups history — this is the first-run
 /// import that reconstructs blueprint acquisitions from every session on disk.
-#[tauri::command]
-fn scan_backlog(live_dir: String) -> Result<ScanResult, String> {
+/// Reports per-file progress through the callback so the UI never sits silent.
+fn scan_backlog_impl(
+    live_dir: String,
+    mut progress: impl FnMut(ScanProgress),
+) -> Result<ScanResult, String> {
     let dir = PathBuf::from(&live_dir);
     if !dir.is_dir() {
         return Err(format!("Not a directory: {live_dir}"));
     }
 
-    let localization = load_localization(&dir);
-    let mut events = Vec::new();
-    let mut seen = HashSet::new();
-    let mut files_scanned = 0;
-
+    let mut files = Vec::new();
     let game_log = dir.join("Game.log");
     if game_log.is_file() {
-        scan_file(&game_log, &localization, &mut events, &mut seen);
-        files_scanned += 1;
+        files.push(game_log);
     }
-
     if let Ok(entries) = fs::read_dir(dir.join("logbackups")) {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().is_some_and(|e| e == "log") {
-                scan_file(&path, &localization, &mut events, &mut seen);
-                files_scanned += 1;
+                files.push(path);
             }
         }
+    }
+
+    let localization = load_localization(&dir);
+    let mut events = Vec::new();
+    let mut seen = HashSet::new();
+    let total = files.len();
+
+    for (i, path) in files.iter().enumerate() {
+        progress(ScanProgress {
+            current: i + 1,
+            total,
+            file: path
+                .file_name()
+                .map(|f| f.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+        });
+        scan_file(path, &localization, &mut events, &mut seen);
     }
 
     events.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
 
     Ok(ScanResult {
         live_dir,
-        files_scanned,
+        files_scanned: total,
         localization_entries: localization.len(),
         events,
     })
+}
+
+// Async + spawn_blocking keeps the scan off the main thread, so the UI
+// keeps painting and progress messages arrive while the scan runs.
+#[tauri::command]
+async fn scan_backlog(
+    live_dir: String,
+    on_progress: tauri::ipc::Channel<ScanProgress>,
+) -> Result<ScanResult, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        scan_backlog_impl(live_dir, |p| {
+            let _ = on_progress.send(p);
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[cfg(test)]
@@ -215,7 +251,7 @@ mod tests {
         let Ok(dir) = std::env::var("STARMAKER_TEST_LIVE_DIR") else {
             return;
         };
-        let result = scan_backlog(dir).expect("scan should succeed");
+        let result = scan_backlog_impl(dir, |_| {}).expect("scan should succeed");
         let blueprints: Vec<_> = result.events.iter().filter(|e| e.kind == "blueprint").collect();
         let resolved = blueprints.iter().filter(|e| e.item_class.is_some()).count();
         let refinery = result.events.len() - blueprints.len();

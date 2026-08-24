@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
 import "./App.css";
+
+interface ScanProgress {
+  current: number;
+  total: number;
+  file: string;
+}
 
 interface LogEvent {
   kind: "blueprint" | "refinery_completed";
@@ -22,6 +28,7 @@ function App() {
   const [customDir, setCustomDir] = useState("");
   const [result, setResult] = useState<ScanResult | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "blueprint" | "refinery_completed">("all");
 
@@ -31,13 +38,17 @@ function App() {
 
   const scan = async (dir: string) => {
     setScanning(true);
+    setProgress(null);
     setError(null);
+    const onProgress = new Channel<ScanProgress>();
+    onProgress.onmessage = setProgress;
     try {
-      setResult(await invoke<ScanResult>("scan_backlog", { liveDir: dir }));
+      setResult(await invoke<ScanResult>("scan_backlog", { liveDir: dir, onProgress }));
     } catch (e) {
       setError(String(e));
     } finally {
       setScanning(false);
+      setProgress(null);
     }
   };
 
@@ -73,6 +84,23 @@ function App() {
             {scanning ? "Scanning…" : "Scan log history"}
           </button>
         </div>
+        {scanning && (
+          <div className="progress">
+            <div className="progress-track">
+              <div
+                className="progress-fill"
+                style={{
+                  width: progress ? `${Math.round((progress.current / progress.total) * 100)}%` : "0%",
+                }}
+              />
+            </div>
+            <p className="hint mono">
+              {progress
+                ? `Scanning file ${progress.current} of ${progress.total} — ${progress.file}`
+                : "Preparing scan…"}
+            </p>
+          </div>
+        )}
         {error && <p className="error">{error}</p>}
       </section>
 
