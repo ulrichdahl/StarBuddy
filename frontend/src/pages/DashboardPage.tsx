@@ -56,7 +56,7 @@ export function DashboardPage({ me }: { me: Me }) {
   return (
     <Box>
       <PageHeader
-        title={`Welcome back, ${me.handle}`}
+        title={`Welcome back, ${me.handle ?? me.discord_username}`}
         subtitle={me.orgs.length > 0 ? `Tracking for ${me.orgs.map((o) => o.name).join(', ')}` : 'No org membership yet'}
       />
       <Box

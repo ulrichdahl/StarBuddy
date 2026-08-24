@@ -9,7 +9,8 @@ export interface Org {
 /** Authenticated member, from GET /api/me. */
 export interface Me {
   id: number
-  handle: string
+  // Star Citizen handle — null until the member sets it.
+  handle: string | null
   discord_username: string
   avatar_url: string | null
   orgs: Org[]

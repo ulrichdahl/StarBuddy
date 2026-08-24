@@ -98,11 +98,15 @@ export function AppShell({ me }: AppShellProps) {
             StarMaker
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
-            {me.handle}
+            {me.handle ?? me.discord_username}
           </Typography>
           <Tooltip title={me.discord_username}>
-            <Avatar src={me.avatar_url ?? undefined} alt={me.handle} sx={{ width: 32, height: 32 }}>
-              {me.handle.charAt(0).toUpperCase()}
+            <Avatar
+              src={me.avatar_url ?? undefined}
+              alt={me.handle ?? me.discord_username}
+              sx={{ width: 32, height: 32 }}
+            >
+              {(me.handle ?? me.discord_username ?? '?').charAt(0).toUpperCase()}
             </Avatar>
           </Tooltip>
         </Toolbar>
