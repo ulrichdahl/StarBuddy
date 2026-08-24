@@ -83,7 +83,17 @@ fn load_localization(live_dir: &Path) -> HashMap<String, String> {
                 continue;
             }
             // First writer wins; `_SCItem` duplicates collapse to one class.
-            map.entry(normalize_name(value)).or_insert(class);
+            let norm = normalize_name(value);
+            // Some packs glue an icon glyph to the closing quote (e.g.
+            // `STL-1C "SonicLite"P`); the HUD notification drops it, so also
+            // index the glyph-stripped form.
+            if let Some(qpos) = norm.rfind('"') {
+                let tail = &norm[qpos + 1..];
+                if !tail.is_empty() && tail.len() <= 2 && tail.chars().all(|c| c.is_ascii_alphabetic()) {
+                    map.entry(norm[..qpos + 1].to_string()).or_insert_with(|| class.clone());
+                }
+            }
+            map.entry(norm).or_insert(class);
         }
     }
 
