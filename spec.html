@@ -290,7 +290,7 @@
 <div class="wrap">
 
 <header class="masthead">
-  <p class="eyebrow">Project Specification · Draft 0.2</p>
+  <p class="eyebrow">Project Specification · Draft 0.3</p>
   <h1>StarMaker <span class="thin">/ Org Forge Ledger</span></h1>
   <p class="subtitle">A cross-platform companion tool that gives a Star Citizen org one shared answer to three questions: what resources do we hold, who can craft what, and what should we craft next.</p>
   <div class="meta">
@@ -418,9 +418,9 @@
     <div class="card"><h4><span class="fid">F1</span> Log watcher</h4>
       <p>Tails Game.log live and ingests logbackups history. Captures blueprint acquisitions, refinery completions, shop transactions, session/patch context. Version-gated regexes; Wine-prefix path autodetection on Linux.</p></div>
     <div class="card"><h4><span class="fid">F2</span> Quick resource entry</h4>
-      <p>Keyboard-first flow: autocomplete resource → type the exact quality number off the crate label (known values for that resource offered as one-key chips) → amount in crates (0.001 SCU steps) or pieces for raw/gems → storage location. Target: under 5 seconds per line. Refinery-completion events pop a pre-filled "what was in this order?" prompt.</p></div>
+      <p>Keyboard-first flow: autocomplete resource → type the exact quality number off the crate label (known values for that resource offered as one-key chips) → amount in crates (0.001 SCU steps) or pieces for raw/gems → storage location. The form is sticky: location, visibility, and last quality carry over to the next line, so bulk-entering a hangar full of containers means changing only what differs. Target: under 5 seconds per line. Refinery-completion events pop a pre-filled "what was in this order?" prompt.</p></div>
     <div class="card"><h4><span class="fid">F3</span> Org ledger</h4>
-      <p>Per-member, per-location stashes of resources (banded quality), blueprints, and pending refinery orders. Members control visibility (private / org). Transfer + consumption bookkeeping.</p></div>
+      <p>Per-member, per-location stashes of resources (exact quality), general items (no quality — crafted items and their buffs come later), blueprints, and pending refinery orders. Everything is <strong>private by default</strong>; members opt stashes into org visibility. Transfer + consumption bookkeeping.</p></div>
     <div class="card"><h4><span class="fid">F4</span> Blueprint coverage matrix</h4>
       <p>Member × blueprint grid with tier info. Answers "who can craft X" instantly; highlights coverage gaps worth grinding for. Log import only reaches as far back as logbackups on disk, so members can also mark blueprints owned manually — starter-set blueprints and pre-install acquisitions come in this way.</p></div>
     <div class="card"><h4><span class="fid">F5</span> Craftability engine</h4>
@@ -430,7 +430,7 @@
     <div class="card"><h4><span class="fid">F7</span> Discord integration</h4>
       <p>Discord OAuth is the only login; org membership via guild roles. Bot slash commands (<code>/stash</code>, <code>/blueprint have</code>, <code>/craftable</code>, <code>/need</code>) and channel notifications for refinery completions and transfers.</p></div>
     <div class="card"><h4><span class="fid">F8</span> OCR capture</h4>
-      <p>Opt-in screenshot capture of refinery and inventory screens. Local PaddleOCR (ONNX) + fuzzy matching against the known resource vocabulary — the proven, open-source Regolith recipe. User confirms parsed values before sync. Optional LLM-vision fallback for mangled screens.</p></div>
+      <p>Opt-in screenshot capture of refinery and inventory screens. Local PaddleOCR (ONNX) + fuzzy matching against the known resource vocabulary — the proven, open-source Regolith recipe. User confirms parsed values before sync. Strictly local: screenshots never leave the player's machine.</p></div>
     <div class="card"><h4><span class="fid">F9</span> Overlay</h4>
       <p>Hotkey-toggled transparent always-on-top window over the game. Tiered by platform (see §06); the web UI on a second screen/phone is the universal fallback and ships first.</p></div>
     <div class="card"><h4><span class="fid">F10</span> Website</h4>
@@ -466,13 +466,13 @@
     </tr>
     <tr>
       <td><strong>Web frontend</strong></td>
-      <td><span class="pill info">Decided</span> React (+ MUI)</td>
-      <td>Wiring open (Q6): Inertia.js keeps it a monolith; an SPA against the API maximizes component sharing with the Tauri client, whose UI is also React + MUI.</td>
+      <td><span class="pill info">Decided</span> React (+ MUI) SPA</td>
+      <td>SPA against the Sanctum API — the same API the Tauri client consumes, so web and desktop share a React + MUI component library.</td>
     </tr>
     <tr>
       <td><strong>Deployment</strong></td>
       <td><span class="pill info">Decided</span> Docker Compose</td>
-      <td>Published <code>docker-compose.yml</code> + <code>.env.example</code> is the distribution: <code>app</code> (PHP-FPM), <code>web</code> (Caddy, auto-TLS), <code>db</code> (Postgres), <code>redis</code>, <code>queue</code>, <code>scheduler</code>, <code>reverb</code>, <code>bot</code> — all from the same app image. Nightly <code>pg_dump</code> sidecar.</td>
+      <td>Published <code>docker-compose.yml</code> + <code>.env.example</code> is the distribution: <code>app</code> (PHP-FPM), <code>web</code> (Caddy, auto-TLS), <code>db</code> (Postgres), <code>redis</code>, <code>queue</code>, <code>scheduler</code>, <code>reverb</code> (one app image) + <code>bot</code> (Node image). Nightly <code>pg_dump</code> sidecar.</td>
     </tr>
     <tr>
       <td><strong>Recipe data</strong></td>
@@ -491,8 +491,8 @@
     </tr>
     <tr>
       <td><strong>Discord bot</strong></td>
-      <td>DiscordPHP daemon (artisan command, own container) — Node sidecar as fallback (Q5)</td>
-      <td>Same codebase as the app: shares models, policies, and the ledger logic directly. Slash commands + notification embeds; registered against the instance's own Discord application.</td>
+      <td><span class="pill info">Decided</span> Node + discord.js sidecar</td>
+      <td>Richest Discord ecosystem. Own container; talks to Laravel over an internal service API (token-authenticated, not exposed by Caddy) and receives notification jobs from the backend queue via webhook/redis. Slash commands + embeds registered against the instance's own Discord application.</td>
     </tr>
   </table>
   </div>
@@ -504,7 +504,8 @@
     <tr><td><code>member</code></td><td>discord_id, handle, org roles, visibility defaults</td></tr>
     <tr><td><code>location</code></td><td>member_id?, kind (hangar / freight elevator / ship / base), station, name</td></tr>
     <tr><td><code>resource_type</code></td><td>name, category (ore / refined / salvage / gem / …), unit (mSCU / pieces), known_qualities[] — quality values seen for this resource, learned from entries/OCR and patch-data sync, offered as entry chips</td></tr>
-    <tr><td><code>resource_stack</code></td><td>location_id, resource_type_id, quality (exact number off the crate, 0–1000), quantity_mscu | quantity_pieces, source (manual / ocr / log), updated_by, updated_at</td></tr>
+    <tr><td><code>resource_stack</code></td><td>location_id, resource_type_id, quality (exact number off the crate, 0–1000), quantity_mscu | quantity_pieces, visibility (private default / org), source (manual / ocr / log), updated_by, updated_at</td></tr>
+    <tr><td><code>item_stack</code></td><td>location_id, item_class (any game item — weapons, components, commodities…), quantity, visibility — no quality; crafted-item buff tracking is a later extension</td></tr>
     <tr><td><code>blueprint_owned</code></td><td>member_id, blueprint_id (resolved from recipe DB), acquired_at, source_event</td></tr>
     <tr><td><code>recipe</code></td><td>blueprint_id, item, tier, tags[], craft_time, ingredient slots (resource_type, qty_mscu, min_quality), game_version</td></tr>
     <tr><td><code>refinery_order</code></td><td>member_id, station, materials[] (entered/OCR), method, placed_at, eta, completed_at (from log event)</td></tr>
@@ -603,19 +604,19 @@
 </section>
 
 <section id="questions">
-  <p class="sec-label">08 · Open Questions</p>
-  <h2>Decisions to settle together</h2>
+  <p class="sec-label">08 · Decision Record</p>
+  <h2>Settled decisions</h2>
   <div class="callout cyan">
     <div class="callout-title">Decided 2026-08-24</div>
-    <p><strong>Stack:</strong> Laravel + React, PostgreSQL, Docker Compose deployment. <strong>Tenancy:</strong> self-hostable community instance — one deployment per community, join-gated to members of that community's Discord server, multiple orgs per instance. Other communities run their own instance with their own Discord app/bot configuration. <strong>License:</strong> AGPL-3.0-or-later — strong copyleft; hosted modifications must publish their source. Public repository on GitHub.</p>
+    <p><strong>Stack:</strong> Laravel + PostgreSQL, React SPA, Docker Compose deployment. <strong>Tenancy:</strong> self-hostable community instance — one deployment per community, join-gated to members of that community's Discord server, multiple orgs per instance; other communities run their own instance with their own Discord app/bot. <strong>License:</strong> AGPL-3.0-or-later, public repository at <a href="https://github.com/ulrichdahl/StarMaker">github.com/ulrichdahl/StarMaker</a>.</p>
   </div>
   <ol class="qlist">
-    <li><b>Product name.</b> Directory says <em>StarMaker</em> — keep it, or brand around the forge/ledger idea before the Discord app and domain get registered?</li>
-    <li><b>Scope of "resources".</b> Crafting materials only, or also components/items/commodities the org stockpiles? The schema supports both; the entry UX and craftability engine only need materials at first.</li>
-    <li><b>Privacy defaults.</b> Are member stashes org-visible by default with opt-out, or private by default with opt-in sharing? Affects trust and adoption more than any feature.</li>
-    <li><b>OCR fallback.</b> Is an optional cloud LLM-vision re-scan acceptable (screenshots leave the machine, ~$0.005 per scan), or local-only OCR on principle?</li>
-    <li><b>Bot runtime.</b> DiscordPHP daemon sharing the Laravel codebase (one language, direct model access) vs. a small Node/discord.js sidecar talking to the API (larger ecosystem, but a second language and an internal API surface). Recommendation: DiscordPHP first; the sidecar remains a drop-in swap since notifications already flow through queues.</li>
-    <li><b>Frontend wiring.</b> Inertia.js (monolith simplicity, Laravel-native auth/session) vs. React SPA against the Sanctum API (maximum component sharing with the Tauri client, which is also React + MUI and consumes the same API regardless). Recommendation: SPA — the API must exist for the desktop client anyway, and shared MUI components pay for themselves.</li>
+    <li><b>Name: StarMaker.</b> Keeping it — repo, Discord application, and any domain register under this name.</li>
+    <li><b>Item scope: everything is enterable, only resources carry quality.</b> The ledger accepts any game item (weapons, components, commodities) as quantity-only stacks; resources additionally carry the exact quality number. Crafted items and their quality-derived buffs are a later extension.</li>
+    <li><b>Privacy: private by default,</b> opt-in to org visibility per stash. The entry form is sticky — location, visibility, and last quality carry over between lines, so bulk entry never repeats settings container by container.</li>
+    <li><b>OCR: local only, no cloud.</b> PaddleOCR on-device; screenshots never leave the player's machine. No LLM-vision fallback.</li>
+    <li><b>Bot: Node + discord.js</b> in its own container, talking to the Laravel backend over an internal token-authenticated API — chosen for the Node Discord ecosystem's library depth.</li>
+    <li><b>Frontend: React SPA</b> against the Sanctum API, sharing a React + MUI component library with the Tauri desktop client.</li>
   </ol>
 </section>
 
