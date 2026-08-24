@@ -113,7 +113,11 @@ class SyncBlueprints extends Command
                     ?? $byName[Str::lower($owned->blueprint_name)]
                     ?? $this->matchQuoted($owned->blueprint_name, $byName);
                 if ($id) {
-                    $owned->update(['blueprint_id' => $id]);
+                    // Rows linked by name inherit the recipe's canonical class.
+                    $owned->update([
+                        'blueprint_id' => $id,
+                        'item_class' => $owned->item_class ?? Blueprint::find($id)?->item_class,
+                    ]);
                     $linked++;
                 }
             }
