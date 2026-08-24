@@ -1,0 +1,110 @@
+name: starmaker
+
+# StarMaker community instance. Copy .env.example to .env, fill in your
+# Discord application + guild, then:
+#   docker compose up -d --build
+#   docker compose exec app php artisan key:generate --force
+#   docker compose exec app php artisan migrate --seed --force
+#   docker compose run --rm bot npm run register   # register slash commands
+
+x-app: &app
+  build: ./backend
+  env_file: .env
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_started
+  volumes:
+    - app-storage:/var/www/html/storage
+
+services:
+  app:
+    <<: *app
+
+  queue:
+    <<: *app
+    command: php artisan queue:work redis --tries=3 --timeout=90
+
+  scheduler:
+    <<: *app
+    command: php artisan schedule:work
+
+  reverb:
+    <<: *app
+    command: php artisan reverb:start --host=0.0.0.0 --port=8081
+
+  web:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - frontend-dist:/srv/frontend:ro
+    depends_on:
+      app:
+        condition: service_started
+      frontend:
+        condition: service_completed_successfully
+
+  # Builds the SPA and drops the bundle into the volume Caddy serves.
+  frontend:
+    build: ./frontend
+    command: sh -c "rm -rf /out/* && cp -r /dist/. /out/"
+    volumes:
+      - frontend-dist:/out
+
+  bot:
+    build: ./bot
+    env_file: .env
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://web
+      BOT_API_TOKEN: ${STARMAKER_BOT_API_TOKEN}
+      HOME_GUILD_ID: ${STARMAKER_HOME_GUILD_ID}
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-starmaker}
+      POSTGRES_USER: ${DB_USERNAME:-starmaker}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-starmaker} -d ${DB_DATABASE:-starmaker}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+
+  # Nightly logical backups of the database, kept for 14 days.
+  backup:
+    image: prodrigestivill/postgres-backup-local:17
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${DB_DATABASE:-starmaker}
+      POSTGRES_USER: ${DB_USERNAME:-starmaker}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: "14"
+    volumes:
+      - ./backups:/backups
+
+volumes:
+  db-data:
+  redis-data:
+  app-storage:
+  frontend-dist:

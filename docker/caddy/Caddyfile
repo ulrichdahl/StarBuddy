@@ -1,0 +1,26 @@
+# StarMaker reverse proxy. Plain HTTP on :80 inside the container; put your
+# TLS-terminating proxy in front, or change this to your domain name and
+# publish 443 to let Caddy manage certificates itself.
+:80 {
+	encode gzip
+
+	# Backend paths → PHP-FPM in the app container.
+	@backend path /api/* /sanctum/* /up /broadcasting/*
+	handle @backend {
+		php_fastcgi app:9000 {
+			root /var/www/html/public
+		}
+	}
+
+	# Reverb websockets.
+	handle /app/* {
+		reverse_proxy reverb:8081
+	}
+
+	# Everything else is the SPA.
+	handle {
+		root * /srv/frontend
+		try_files {path} /index.html
+		file_server
+	}
+}

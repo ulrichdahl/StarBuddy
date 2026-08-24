@@ -18,7 +18,22 @@ One deployment serves **one community**: the instance is bound to a single Disco
 
 ## Stack
 
-Laravel + PostgreSQL backend · React (MUI) web frontend · Tauri v2 desktop client (Rust log tailer) · DiscordPHP bot · Docker Compose deployment.
+Laravel + PostgreSQL backend (`backend/`) · React (MUI) SPA (`frontend/`) · Node discord.js bot (`bot/`) · Tauri v2 desktop client (Rust log tailer, upcoming) · Docker Compose deployment · Caddy in front.
+
+## Running your own instance
+
+Prerequisites: Docker with Compose, and a [Discord application](https://discord.com/developers/applications) for your community (OAuth2 redirect `<your-url>/api/auth/discord/callback`, plus a bot invited to your server).
+
+```sh
+git clone https://github.com/ulrichdahl/StarMaker.git && cd StarMaker
+cp .env.example .env        # fill in Discord credentials, guild id, DB password
+docker compose up -d --build
+docker compose exec app php artisan key:generate --force
+docker compose exec app php artisan migrate --seed --force
+docker compose run --rm bot npm run register   # register slash commands
+```
+
+Open `http://localhost:8080` (or your `APP_URL`) and sign in with Discord. Only members of the configured `STARMAKER_HOME_GUILD_ID` can join. Nightly database dumps land in `./backups/`.
 
 ## Fair play
 

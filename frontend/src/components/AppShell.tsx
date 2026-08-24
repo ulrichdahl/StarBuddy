@@ -1,0 +1,140 @@
+import { useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import AppBar from '@mui/material/AppBar'
+import Avatar from '@mui/material/Avatar'
+import Box from '@mui/material/Box'
+import Drawer from '@mui/material/Drawer'
+import IconButton from '@mui/material/IconButton'
+import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
+import ListItemButton from '@mui/material/ListItemButton'
+import ListItemIcon from '@mui/material/ListItemIcon'
+import ListItemText from '@mui/material/ListItemText'
+import Toolbar from '@mui/material/Toolbar'
+import Tooltip from '@mui/material/Tooltip'
+import Typography from '@mui/material/Typography'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
+import MenuIcon from '@mui/icons-material/Menu'
+import DashboardIcon from '@mui/icons-material/Dashboard'
+import DiamondIcon from '@mui/icons-material/Diamond'
+import Inventory2Icon from '@mui/icons-material/Inventory2'
+import SchemaIcon from '@mui/icons-material/Schema'
+import FactoryIcon from '@mui/icons-material/Factory'
+import UploadFileIcon from '@mui/icons-material/UploadFile'
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
+import type { Me } from '../lib/types'
+
+const DRAWER_WIDTH = 232
+
+const NAV_ITEMS = [
+  { label: 'Dashboard', to: '/', icon: <DashboardIcon /> },
+  { label: 'Resources', to: '/resources', icon: <DiamondIcon /> },
+  { label: 'Items', to: '/items', icon: <Inventory2Icon /> },
+  { label: 'Blueprints', to: '/blueprints', icon: <SchemaIcon /> },
+  { label: 'Refinery', to: '/refinery', icon: <FactoryIcon /> },
+  { label: 'Import', to: '/import', icon: <UploadFileIcon /> },
+  { label: 'Admin', to: '/admin', icon: <AdminPanelSettingsIcon /> },
+] as const
+
+interface AppShellProps {
+  me: Me
+}
+
+/**
+ * Application chrome: top AppBar + navigation drawer.
+ * The drawer is permanent on md-and-up and a temporary overlay on mobile.
+ */
+export function AppShell({ me }: AppShellProps) {
+  const theme = useTheme()
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'))
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const { pathname } = useLocation()
+
+  const drawerContent = (
+    <Box role="navigation" aria-label="Main navigation">
+      <Toolbar>
+        <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 700 }}>
+          StarMaker
+        </Typography>
+      </Toolbar>
+      <List>
+        {NAV_ITEMS.map((item) => (
+          <ListItem key={item.to} disablePadding>
+            <ListItemButton
+              component={NavLink}
+              to={item.to}
+              selected={pathname === item.to}
+              onClick={() => setMobileOpen(false)}
+              sx={{
+                '&.Mui-selected': {
+                  borderLeft: 2,
+                  borderColor: 'primary.main',
+                  bgcolor: 'rgba(91, 200, 219, 0.08)',
+                },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 40, color: pathname === item.to ? 'primary.main' : 'inherit' }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+    </Box>
+  )
+
+  return (
+    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
+        <Toolbar sx={{ gap: 1 }}>
+          {!isDesktop && (
+            <IconButton edge="start" aria-label="Open navigation" onClick={() => setMobileOpen(true)}>
+              <MenuIcon />
+            </IconButton>
+          )}
+          <Typography variant="h6" component="h1" sx={{ flexGrow: 1, color: 'primary.main' }}>
+            StarMaker
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
+            {me.handle}
+          </Typography>
+          <Tooltip title={me.discord_username}>
+            <Avatar src={me.avatar_url ?? undefined} alt={me.handle} sx={{ width: 32, height: 32 }}>
+              {me.handle.charAt(0).toUpperCase()}
+            </Avatar>
+          </Tooltip>
+        </Toolbar>
+      </AppBar>
+
+      {isDesktop ? (
+        <Drawer
+          variant="permanent"
+          sx={{
+            width: DRAWER_WIDTH,
+            flexShrink: 0,
+            '& .MuiDrawer-paper': { width: DRAWER_WIDTH, boxSizing: 'border-box' },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+      ) : (
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          ModalProps={{ keepMounted: true }}
+          sx={{ '& .MuiDrawer-paper': { width: DRAWER_WIDTH } }}
+        >
+          {drawerContent}
+        </Drawer>
+      )}
+
+      <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 3 }, minWidth: 0 }}>
+        <Toolbar />
+        <Outlet />
+      </Box>
+    </Box>
+  )
+}
