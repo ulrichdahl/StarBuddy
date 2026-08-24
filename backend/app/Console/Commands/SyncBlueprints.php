@@ -98,7 +98,7 @@ class SyncBlueprints extends Command
     {
         $byClass = Blueprint::whereNotNull('item_class')
             ->pluck('id', 'item_class')
-            ->mapWithKeys(fn ($id, $class) => [Str::lower($class) => $id]);
+            ->mapWithKeys(fn ($id, $class) => [Blueprint::normalizeClass($class) => $id]);
 
         // Names only count as identity when unambiguous.
         $byName = Blueprint::pluck('id', 'name')
@@ -109,7 +109,7 @@ class SyncBlueprints extends Command
         $linked = 0;
         BlueprintOwned::whereNull('blueprint_id')->chunkById(500, function ($rows) use ($byClass, $byName, &$linked) {
             foreach ($rows as $owned) {
-                $id = ($owned->item_class ? $byClass[Str::lower($owned->item_class)] ?? null : null)
+                $id = ($owned->item_class ? $byClass[Blueprint::normalizeClass($owned->item_class)] ?? null : null)
                     ?? $byName[Str::lower($owned->blueprint_name)]
                     ?? $this->matchQuoted($owned->blueprint_name, $byName);
                 if ($id) {

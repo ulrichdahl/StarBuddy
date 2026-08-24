@@ -75,7 +75,12 @@ fn load_localization(live_dir: &Path) -> HashMap<String, String> {
             let Some((key, value)) = line.split_once('=') else { continue };
             let lower = key.to_ascii_lowercase();
             let Some(rest) = lower.strip_prefix("item_name") else { continue };
+            // Some packs decorate keys with glyph suffixes after a comma
+            // (`item_Name<class>,P`); the class ends at the comma.
             let class = key[key.len() - rest.len()..]
+                .split(',')
+                .next()
+                .unwrap_or_default()
                 .trim_start_matches('_')
                 .trim_end_matches("_SCItem")
                 .to_string();

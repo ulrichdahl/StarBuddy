@@ -43,7 +43,7 @@ class IngestController extends Controller
         // item_class the stored row lacks — backfill instead of discarding.
         $byClass = \App\Models\Blueprint::whereNotNull('item_class')
             ->pluck('id', 'item_class')
-            ->mapWithKeys(fn ($id, $class) => [strtolower($class) => $id]);
+            ->mapWithKeys(fn ($id, $class) => [\App\Models\Blueprint::normalizeClass($class) => $id]);
 
         foreach ($events->diffKeys($fresh) as $e) {
             if ($e['kind'] !== 'blueprint' || empty($e['item_class'])) {
@@ -56,7 +56,7 @@ class IngestController extends Controller
             if ($row) {
                 $row->update([
                     'item_class' => $e['item_class'],
-                    'blueprint_id' => $row->blueprint_id ?? $byClass[strtolower($e['item_class'])] ?? null,
+                    'blueprint_id' => $row->blueprint_id ?? $byClass[\App\Models\Blueprint::normalizeClass($e['item_class'])] ?? null,
                 ]);
                 $counts['backfilled']++;
             }
@@ -86,7 +86,7 @@ class IngestController extends Controller
                         'blueprint_name' => $e['detail'],
                         'item_class' => $e['item_class'] ?? null,
                         'blueprint_id' => isset($e['item_class'])
-                            ? $byClass[strtolower($e['item_class'])] ?? null
+                            ? $byClass[\App\Models\Blueprint::normalizeClass($e['item_class'])] ?? null
                             : null,
                         'acquired_at' => $e['timestamp'],
                         'source' => 'log',

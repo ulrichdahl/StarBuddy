@@ -21,4 +21,19 @@ class Blueprint extends Model
             'is_default' => 'boolean',
         ];
     }
+
+    /**
+     * Canonical form for item-class comparison: the wiki's classes carry a
+     * `_scitem` suffix that the localization keys (the client's source)
+     * don't, and casing differs between the two.
+     */
+    public static function normalizeClass(?string $class): ?string
+    {
+        if ($class === null) {
+            return null;
+        }
+        $c = strtolower(trim($class));
+
+        return str_ends_with($c, '_scitem') ? substr($c, 0, -7) : $c;
+    }
 }
