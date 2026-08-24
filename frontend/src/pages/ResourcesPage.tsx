@@ -196,8 +196,8 @@ export function ResourcesPage() {
   const [qualityMax, setQualityMax] = useState('')
   const [filterLocation, setFilterLocation] = useState<Location | null>(null)
   const [filterVisibility, setFilterVisibility] = useState('')
-  const [sort, setSort] = useState<SortField>('updated_at')
-  const [dir, setDir] = useState<'asc' | 'desc'>('desc')
+  const [sort, setSort] = useState<SortField>('resource')
+  const [dir, setDir] = useState<'asc' | 'desc'>('asc')
 
   const { data: locations = [] } = useQuery({
     queryKey: ['locations'],
