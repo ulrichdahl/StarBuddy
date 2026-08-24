@@ -6,7 +6,7 @@ A self-hostable companion platform for Star Citizen communities: track your org'
 
 ## What it does
 
-- **Log watcher** — tails each player's `Game.log` (Windows and Linux/Wine) and automatically captures blueprint acquisitions, refinery work-order completions, and shop transactions. Verified against real Alpha 4.6–4.9 logs.
+- **Log watcher** — tails each player's `Game.log` (Windows and Linux/Wine) and automatically captures blueprint acquisitions, refinery work-order completions, and shop transactions. On first run it imports the entire `logbackups/` history, so your blueprint library and event timeline are reconstructed from every past session still on disk — no starting from zero. Verified against real Alpha 4.6–4.9 logs.
 - **Org ledger** — per-member, per-location stashes of resources with exact per-crate quality numbers, quantities in 0.001 SCU crate increments (or pieces for gems). Fast keyboard-first manual entry; screenshot OCR planned.
 - **Craftability engine** — joins the ledger with per-patch recipe data (Star Citizen Wiki API) to list everything the org can craft now and rank the nearest misses; filterable by blueprint tags.
 - **Discord-native** — login via Discord OAuth gated to your community's server, org/role mapping from guild roles, bot slash commands and channel notifications.
