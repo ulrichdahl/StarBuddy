@@ -17,6 +17,106 @@ use Illuminate\Support\Str;
  */
 class CraftabilityController extends Controller
 {
+    /**
+     * Craft detail: item lore/stats (lazily cached from the wiki), which org
+     * members hold the blueprint, and who has each ingredient where.
+     */
+    public function show(Request $request, Blueprint $blueprint)
+    {
+        $this->enrichFromWiki($blueprint);
+        $user = $request->user();
+
+        $orgUserIds = $user->orgs()->with('members:users.id')->get()
+            ->flatMap(fn ($org) => $org->members->pluck('id'))
+            ->push($user->id)
+            ->unique();
+
+        $owners = BlueprintOwned::where('blueprint_id', $blueprint->id)
+            ->whereIn('user_id', $orgUserIds)
+            ->with('user:id,name,handle')
+            ->get()
+            ->map(fn ($r) => $r->user->handle ?? $r->user->name)
+            ->unique()
+            ->values();
+
+        $ingredients = collect($blueprint->ingredients ?? [])->map(function ($ing) use ($user) {
+            $need = $ing['quantity_mscu'] ?? $ing['quantity_pieces'] ?? 0;
+            $unit = isset($ing['quantity_mscu']) ? 'mscu' : 'pieces';
+
+            $holdings = ResourceStack::visibleTo($user)
+                ->whereHas('resourceType', fn ($q) => $q->whereLike('name', $ing['name'], caseSensitive: false))
+                ->where(fn ($q) => $unit === 'mscu' ? $q->where('quality', '>=', 1) : $q)
+                ->with(['user:id,name,handle', 'location:id,name,system'])
+                ->orderByDesc('quality')
+                ->get()
+                ->map(fn ($s) => [
+                    'member' => $s->user->handle ?? $s->user->name,
+                    'location' => $s->location->name,
+                    'system' => $s->location->system,
+                    'quality' => $s->quality,
+                    'quantity' => $s->quantity,
+                ]);
+
+            return [
+                'name' => $ing['name'],
+                'kind' => $ing['kind'] ?? null,
+                'need' => $need,
+                'unit' => $unit,
+                'available' => $holdings->sum('quantity'),
+                'holdings' => $holdings,
+            ];
+        });
+
+        return [
+            'blueprint' => $blueprint->only([
+                'id', 'name', 'item_class', 'type', 'sub_type', 'grade', 'tags',
+                'craft_time_seconds', 'is_default', 'description', 'image_url',
+                'manufacturer', 'item_meta', 'game_version',
+            ]),
+            'owners' => $owners,
+            'ingredients' => $ingredients,
+        ];
+    }
+
+    // One-time fetch of the output item's lore from the wiki, cached on the
+    // row ('' marks "fetched, nothing there" so we never refetch in a loop).
+    private function enrichFromWiki(Blueprint $blueprint): void
+    {
+        if ($blueprint->description !== null || ! $blueprint->uuid) {
+            return;
+        }
+
+        $data = ['description' => ''];
+        try {
+            $bp = \Illuminate\Support\Facades\Http::acceptJson()->timeout(15)
+                ->get("https://api.star-citizen.wiki/api/v2/blueprints/{$blueprint->uuid}")
+                ->json('data');
+
+            if ($itemUuid = $bp['output_item_uuid'] ?? null) {
+                $item = \Illuminate\Support\Facades\Http::acceptJson()->timeout(15)
+                    ->get("https://api.star-citizen.wiki/api/v2/items/{$itemUuid}")
+                    ->json('data');
+
+                $data = [
+                    'description' => $item['description']['en_EN'] ?? '',
+                    'image_url' => $item['images'][0]['thumbnail_url'] ?? $item['images'][0]['original_url'] ?? null,
+                    'manufacturer' => $item['manufacturer']['name'] ?? null,
+                    'item_meta' => array_filter([
+                        'mass' => $item['mass'] ?? null,
+                        'size' => $item['size'] ?? null,
+                        'item_grade' => $item['grade'] ?? null,
+                        'classification' => $item['classification_label'] ?? null,
+                    ]),
+                ];
+            }
+        } catch (\Throwable) {
+            // Offline or wiki hiccup — leave description null to retry later.
+            return;
+        }
+
+        $blueprint->update($data);
+    }
+
     public function __invoke(Request $request)
     {
         $user = $request->user();

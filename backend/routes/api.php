@@ -21,6 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('dashboard', DashboardController::class);
     Route::get('craftability', \App\Http\Controllers\CraftabilityController::class);
+    Route::get('craftability/{blueprint}', [\App\Http\Controllers\CraftabilityController::class, 'show']);
 
     Route::get('resource-types', [ResourceTypeController::class, 'index']);
     Route::apiResource('locations', LocationController::class)->only(['index', 'store', 'update', 'destroy']);

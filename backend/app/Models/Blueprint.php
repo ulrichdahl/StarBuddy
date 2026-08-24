@@ -10,6 +10,7 @@ class Blueprint extends Model
         'name', 'item_class', 'tier', 'tags', 'game_version',
         'uuid', 'key', 'type', 'sub_type', 'grade', 'is_default',
         'craft_time_seconds', 'ingredients', 'dismantle_returns',
+        'description', 'image_url', 'manufacturer', 'item_meta',
     ];
 
     protected function casts(): array
@@ -19,6 +20,7 @@ class Blueprint extends Model
             'ingredients' => 'array',
             'dismantle_returns' => 'array',
             'is_default' => 'boolean',
+            'item_meta' => 'array',
         ];
     }
 

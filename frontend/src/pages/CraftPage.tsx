@@ -18,6 +18,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { api } from '../lib/api'
 import { PageHeader } from '../components/PageHeader'
+import { CraftDetailDialog } from '../components/CraftDetailDialog'
 
 interface CraftResult {
   id: number
@@ -50,6 +51,7 @@ export function CraftPage() {
   const [type, setType] = useState('')
   const [craftableOnly, setCraftableOnly] = useState(false)
   const [includeUnowned, setIncludeUnowned] = useState(false)
+  const [detailId, setDetailId] = useState<number | null>(null)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['craftability', search, type, craftableOnly, includeUnowned],
@@ -122,7 +124,7 @@ export function CraftPage() {
             </TableHead>
             <TableBody>
               {(data?.results ?? []).map((r) => (
-                <TableRow key={r.id} hover>
+                <TableRow key={r.id} hover onClick={() => setDetailId(r.id)} sx={{ cursor: 'pointer' }}>
                   <TableCell>
                     {r.name}
                     {r.craftable && (
@@ -177,6 +179,7 @@ export function CraftPage() {
           </Table>
         </TableContainer>
       </Paper>
+      {detailId !== null && <CraftDetailDialog blueprintId={detailId} onClose={() => setDetailId(null)} />}
     </Box>
   )
 }
