@@ -92,6 +92,10 @@ return new class extends Migration
             // Raw name as it appeared in the log/UI; kept even when unresolved
             // against the blueprint database.
             $table->string('blueprint_name');
+            // Canonical item class resolved client-side from the player's
+            // localization file — display names differ per player (custom
+            // global.ini packs), the item class never does.
+            $table->string('item_class')->nullable()->index();
             $table->timestamp('acquired_at')->nullable();
             $table->string('source')->default('manual'); // log | manual | import
             $table->timestamps();

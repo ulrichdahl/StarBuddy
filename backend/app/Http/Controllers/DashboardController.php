@@ -16,8 +16,11 @@ class DashboardController extends Controller
         $visible = ResourceStack::visibleTo($user)
             ->join('resource_types', 'resource_types.id', '=', 'resource_stacks.resource_type_id');
 
+        $totalMscu = (int) (clone $visible)->where('resource_types.unit', 'mscu')->sum('quantity');
+
         return [
-            'total_mscu' => (int) (clone $visible)->where('resource_types.unit', 'mscu')->sum('quantity'),
+            'total_mscu' => $totalMscu,
+            'total_resources_scu' => round($totalMscu / 1000, 3),
             'total_pieces' => (int) (clone $visible)->where('resource_types.unit', 'pieces')->sum('quantity'),
             'stack_count' => ResourceStack::visibleTo($user)->count(),
             'blueprint_count' => BlueprintOwned::where('user_id', $user->id)->count(),

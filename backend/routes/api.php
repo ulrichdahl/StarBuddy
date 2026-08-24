@@ -4,7 +4,9 @@ use App\Http\Controllers\AdminInventoryController;
 use App\Http\Controllers\BlueprintController;
 use App\Http\Controllers\BotController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\IngestController;
 use App\Http\Controllers\ItemStackController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\RefineryOrderController;
@@ -38,7 +40,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // P1.1 — bulk clear of org inventory by type/category
     Route::delete('admin/inventory', [AdminInventoryController::class, 'clear']);
+
+    // Desktop client pairing (code generated in the web UI) + device management
+    Route::post('devices/pairing-code', [DeviceController::class, 'pairingCode']);
+    Route::get('devices', [DeviceController::class, 'index']);
+    Route::delete('devices/{tokenId}', [DeviceController::class, 'destroy']);
+
+    // Game.log event ingestion from paired desktop clients (idempotent)
+    Route::post('ingest/events', [IngestController::class, 'store']);
 });
+
+// The desktop client exchanges a short-lived pairing code for its device token.
+Route::post('devices/pair', [DeviceController::class, 'pair'])->middleware('throttle:10,1');
 
 // Internal service API for the Discord bot (token-authenticated, not exposed publicly).
 Route::prefix('bot')->middleware('bot')->group(function () {

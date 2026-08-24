@@ -1,0 +1,95 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\BlueprintOwned;
+use App\Models\RefineryOrder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Batch ingestion of Game.log events from the desktop client. Idempotent:
+ * every event is fingerprinted per user, so rescans and re-syncs are no-ops.
+ */
+class IngestController extends Controller
+{
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'events' => ['required', 'array', 'max:5000'],
+            'events.*.kind' => ['required', 'in:blueprint,refinery_completed'],
+            'events.*.timestamp' => ['required', 'date'],
+            'events.*.detail' => ['required', 'string', 'max:255'],
+            'events.*.item_class' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $user = $request->user();
+
+        $events = collect($data['events'])->map(fn ($e) => [
+            ...$e,
+            'fingerprint' => sha1("{$e['kind']}|{$e['timestamp']}|{$e['detail']}"),
+        ])->unique('fingerprint');
+
+        $existing = DB::table('ingest_events')
+            ->where('user_id', $user->id)
+            ->whereIn('fingerprint', $events->pluck('fingerprint'))
+            ->pluck('fingerprint')
+            ->all();
+
+        $fresh = $events->reject(fn ($e) => in_array($e['fingerprint'], $existing, true));
+        $counts = ['accepted' => 0, 'duplicates' => $events->count() - $fresh->count(), 'blueprints_added' => 0, 'refinery_completed' => 0];
+
+        DB::transaction(function () use ($fresh, $user, &$counts) {
+            foreach ($fresh as $e) {
+                DB::table('ingest_events')->insert([
+                    'user_id' => $user->id,
+                    'event_type' => $e['kind'],
+                    'payload' => json_encode(['detail' => $e['detail'], 'item_class' => $e['item_class'] ?? null]),
+                    'log_timestamp' => $e['timestamp'],
+                    'fingerprint' => $e['fingerprint'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $counts['accepted']++;
+
+                if ($e['kind'] === 'blueprint') {
+                    // Identity is the item class when the client resolved one;
+                    // the localized display name is only a fallback key.
+                    $keys = ($e['item_class'] ?? null)
+                        ? ['user_id' => $user->id, 'item_class' => $e['item_class']]
+                        : ['user_id' => $user->id, 'blueprint_name' => $e['detail']];
+
+                    $owned = BlueprintOwned::firstOrCreate($keys, [
+                        'blueprint_name' => $e['detail'],
+                        'item_class' => $e['item_class'] ?? null,
+                        'acquired_at' => $e['timestamp'],
+                        'source' => 'log',
+                    ]);
+                    if ($owned->wasRecentlyCreated) {
+                        $counts['blueprints_added']++;
+                    }
+                } else {
+                    $open = RefineryOrder::where('user_id', $user->id)
+                        ->where('station', $e['detail'])
+                        ->whereNull('completed_at')
+                        ->oldest('placed_at')
+                        ->first();
+
+                    if ($open) {
+                        $open->update(['completed_at' => $e['timestamp']]);
+                    } else {
+                        RefineryOrder::create([
+                            'user_id' => $user->id,
+                            'station' => $e['detail'],
+                            'completed_at' => $e['timestamp'],
+                            'source' => 'log',
+                        ]);
+                    }
+                    $counts['refinery_completed']++;
+                }
+            }
+        });
+
+        return $counts;
+    }
+}

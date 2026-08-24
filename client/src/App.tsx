@@ -23,6 +23,19 @@ interface ScanResult {
   events: LogEvent[];
 }
 
+interface ConnectionView {
+  paired: boolean;
+  server_url: string;
+  user_name: string;
+}
+
+interface SyncSummary {
+  accepted: number;
+  duplicates: number;
+  blueprints_added: number;
+  refinery_completed: number;
+}
+
 function App() {
   const [liveDir, setLiveDir] = useState<string | null>(null);
   const [customDir, setCustomDir] = useState("");
@@ -31,10 +44,46 @@ function App() {
   const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "blueprint" | "refinery_completed">("all");
+  const [connection, setConnection] = useState<ConnectionView | null>(null);
+  const [serverUrl, setServerUrl] = useState("");
+  const [pairCode, setPairCode] = useState("");
+  const [pairing, setPairing] = useState(false);
+  const [pairError, setPairError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncSummary | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
     invoke<string | null>("detect_game_log").then(setLiveDir);
+    invoke<ConnectionView>("get_connection").then(setConnection);
   }, []);
+
+  const pair = async () => {
+    setPairing(true);
+    setPairError(null);
+    try {
+      setConnection(await invoke<ConnectionView>("pair_device", { serverUrl, code: pairCode }));
+      setPairCode("");
+    } catch (e) {
+      setPairError(String(e));
+    } finally {
+      setPairing(false);
+    }
+  };
+
+  const sync = async () => {
+    if (!result) return;
+    setSyncing(true);
+    setSyncError(null);
+    setSyncResult(null);
+    try {
+      setSyncResult(await invoke<SyncSummary>("sync_events", { events: result.events }));
+    } catch (e) {
+      setSyncError(String(e));
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const scan = async (dir: string) => {
     setScanning(true);
@@ -60,6 +109,47 @@ function App() {
     <main className="container">
       <h1>StarMaker</h1>
       <p className="tagline">Game.log watcher — P1 scaffold</p>
+
+      <section className="panel">
+        <h2>Server</h2>
+        {connection?.paired ? (
+          <div className="row">
+            <p style={{ flex: 1 }}>
+              Paired as <strong>{connection.user_name}</strong> ·{" "}
+              <code>{connection.server_url}</code>
+            </p>
+            <button onClick={() => invoke<ConnectionView>("unpair").then(setConnection)}>
+              Unpair
+            </button>
+          </div>
+        ) : (
+          <>
+            <p className="hint">
+              Sign in to your community's StarMaker website, generate a pairing code on the
+              dashboard, and enter it here.
+            </p>
+            <div className="row">
+              <input
+                type="text"
+                placeholder="https://starmaker.example.org"
+                value={serverUrl}
+                onChange={(e) => setServerUrl(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Pairing code"
+                style={{ maxWidth: 160, flex: "0 1 auto" }}
+                value={pairCode}
+                onChange={(e) => setPairCode(e.target.value.toUpperCase())}
+              />
+              <button disabled={pairing || !serverUrl || !pairCode} onClick={pair}>
+                {pairing ? "Pairing…" : "Pair"}
+              </button>
+            </div>
+            {pairError && <p className="error">{pairError}</p>}
+          </>
+        )}
+      </section>
 
       <section className="panel">
         <h2>Star Citizen installation</h2>
@@ -148,10 +238,25 @@ function App() {
               ))}
             </tbody>
           </table>
-          <p className="hint">
-            Server sync arrives with the backend connection settings — this scaffold proves the
-            local log pipeline.
-          </p>
+          <div className="row" style={{ marginTop: 12 }}>
+            <button
+              disabled={!connection?.paired || syncing || result.events.length === 0}
+              onClick={sync}
+            >
+              {syncing
+                ? `Syncing ${result.events.length} events…`
+                : `Sync ${result.events.length} events to server`}
+            </button>
+            {!connection?.paired && <p className="hint">Pair with a server above to sync.</p>}
+          </div>
+          {syncResult && (
+            <p className="hint">
+              Server accepted {syncResult.accepted} new events ({syncResult.duplicates} already
+              known): {syncResult.blueprints_added} blueprints added, {syncResult.refinery_completed}{" "}
+              refinery completions recorded.
+            </p>
+          )}
+          {syncError && <p className="error">{syncError}</p>}
         </section>
       )}
     </main>

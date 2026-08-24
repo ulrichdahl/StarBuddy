@@ -9,6 +9,7 @@ import FactoryIcon from '@mui/icons-material/Factory'
 import { api } from '../lib/api'
 import type { DashboardStats, Me } from '../lib/types'
 import { PageHeader } from '../components/PageHeader'
+import { PairDeviceCard } from '../components/PairDeviceCard'
 import type { ReactNode } from 'react'
 
 interface StatCardProps {
@@ -84,6 +85,9 @@ export function DashboardPage({ me }: { me: Me }) {
           icon={<FactoryIcon fontSize="large" />}
           loading={isLoading}
         />
+      </Box>
+      <Box sx={{ mt: 2, maxWidth: 560 }}>
+        <PairDeviceCard />
       </Box>
     </Box>
   )

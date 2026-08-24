@@ -9,7 +9,7 @@ class BlueprintOwned extends Model
 {
     protected $table = 'blueprint_owned';
 
-    protected $fillable = ['user_id', 'blueprint_id', 'blueprint_name', 'acquired_at', 'source'];
+    protected $fillable = ['user_id', 'blueprint_id', 'blueprint_name', 'item_class', 'acquired_at', 'source'];
 
     protected function casts(): array
     {
