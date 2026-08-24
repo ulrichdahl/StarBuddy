@@ -101,13 +101,12 @@ export function ResourceEntryForm() {
   // Arrows step 0.001 SCU (native `step`), Ctrl+arrows 0.01, Shift+arrows
   // 0.1 — for gems: 1 / 10 / 100 pieces.
   const handleQuantityKeys = (event: KeyboardEvent<HTMLInputElement>) => {
-    const dir = event.key === 'ArrowUp' || event.key === 'PageUp' ? 1
-      : event.key === 'ArrowDown' || event.key === 'PageDown' ? -1 : 0
+    const dir = event.key === 'ArrowUp' ? 1 : event.key === 'ArrowDown' ? -1 : 0
     if (dir === 0) return
 
     let step: number | null = null
     if (event.shiftKey) step = isPieces ? 100 : 0.1
-    else if (event.ctrlKey || event.key === 'PageUp' || event.key === 'PageDown') step = isPieces ? 10 : 0.01
+    else if (event.ctrlKey) step = isPieces ? 10 : 0.01
     if (step === null) return // plain arrows: native 0.001 / 1 step
 
     event.preventDefault()
@@ -204,8 +203,8 @@ export function ResourceEntryForm() {
           }}
           helperText={
             isPieces
-              ? '↑↓ = 1 piece · PgUp/PgDn = 10 — Enter saves'
-              : '↑↓ = 0.001 SCU (1 crate) · PgUp/PgDn = 0.01 SCU — Enter saves'
+              ? '↑↓ = 1 · Ctrl+↑↓ = 10 · Shift+↑↓ = 100 pieces — Enter saves'
+              : '↑↓ = 0.001 · Ctrl+↑↓ = 0.01 · Shift+↑↓ = 0.1 SCU — Enter saves'
           }
         />
 
