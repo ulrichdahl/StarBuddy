@@ -426,46 +426,48 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
               })}
             </Stack>
 
-            {craft.isSuccess && (
-              <Alert
-                severity="success"
-                sx={{ mt: 2 }}
-                action={
-                  <Button
-                    color="inherit"
-                    size="small"
-                    disabled={undo.isPending}
-                    onClick={() =>
-                      undo.mutate(craft.data.craft_id, { onSuccess: () => craft.reset() })
-                    }
-                  >
-                    {undo.isPending ? 'Undoing…' : 'Undo'}
-                  </Button>
-                }
-              >
-                Crafted {craft.data.quantity > 1 ? `${craft.data.quantity}× ` : ''}
-                {craft.data.crafted}
-                {craft.data.quality !== null ? ` at quality ${craft.data.quality}` : ''} — materials
-                deducted, item added to your Items ledger.
-              </Alert>
-            )}
-            {undo.isSuccess && !craft.isSuccess && (
-              <Alert severity="info" sx={{ mt: 2 }}>
-                Craft undone — the materials are back in the ledger, the crafted item was removed,
-                and the blueprint use was rolled back.
-              </Alert>
-            )}
-            {craft.isError && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                Could not record the craft — materials may have changed. Reopen to refresh.
-              </Alert>
-            )}
-            {undo.isError && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                Could not undo the craft.
-              </Alert>
-            )}
           </DialogContent>
+          {/* Outside the scroll area so the outcome is never scrolled out of view. */}
+          {(craft.isSuccess || craft.isError || undo.isSuccess || undo.isError) && (
+            <Box sx={{ px: 3, pt: 1 }}>
+              {craft.isSuccess && (
+                <Alert
+                  severity="success"
+                  action={
+                    <Button
+                      color="inherit"
+                      size="small"
+                      disabled={undo.isPending}
+                      onClick={() =>
+                        undo.mutate(craft.data.craft_id, { onSuccess: () => craft.reset() })
+                      }
+                    >
+                      {undo.isPending ? 'Undoing…' : 'Undo'}
+                    </Button>
+                  }
+                >
+                  Crafted {craft.data.quantity > 1 ? `${craft.data.quantity}× ` : ''}
+                  {craft.data.crafted}
+                  {craft.data.quality !== null ? ` at quality ${craft.data.quality}` : ''} — materials
+                  deducted, item added to your Items ledger.
+                </Alert>
+              )}
+              {undo.isSuccess && !craft.isSuccess && (
+                <Alert severity="info">
+                  Craft undone — the materials are back in the ledger, the crafted item was removed,
+                  and the blueprint use was rolled back.
+                </Alert>
+              )}
+              {craft.isError && (
+                <Alert severity="error">
+                  Could not record the craft — materials may have changed. Reopen to refresh.
+                </Alert>
+              )}
+              {undo.isError && (
+                <Alert severity="error">Could not undo the craft.</Alert>
+              )}
+            </Box>
+          )}
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={onClose}>Close</Button>
             <Button
