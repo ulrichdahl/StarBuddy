@@ -62,6 +62,11 @@ $COMPOSE build --pull --quiet
 log "rolling the stack"
 $COMPOSE up -d --remove-orphans
 
+# Bind-mounted configs (the Caddyfile) can change without any diff in the
+# container definition, which `up -d` won't restart — bounce web so Caddy
+# re-reads its config. Cheap: ~1s, static assets only.
+$COMPOSE restart web >/dev/null 2>&1 || true
+
 log "running migrations"
 $COMPOSE exec -T app php artisan migrate --force
 
