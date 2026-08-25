@@ -98,6 +98,24 @@ export function CraftPage() {
   const [detailId, setDetailId] = useState<number | null>(null)
   const [page, setPage] = useState(0)
   const rowsPerPage = 50
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['craftability', search, type, craftableOnly, includeUnowned],
+    queryFn: async () =>
+      (
+        await api.get<CraftabilityResponse>('/api/craftability', {
+          params: {
+            search: search || undefined,
+            type: type && !type.startsWith('group:') ? type : undefined,
+            group: type.startsWith('group:') ? type.slice(6) : undefined,
+            craftable: craftableOnly ? 1 : undefined,
+            all: includeUnowned ? 1 : undefined,
+          },
+        })
+      ).data,
+    placeholderData: (prev) => prev,
+  })
+
   // Column sort; 'relevance' is the engine's order (craftable, coverage, quality).
   type SortField = 'relevance' | 'name' | 'type' | 'coverage' | 'quality'
   const [sort, setSort] = useState<SortField>('relevance')
@@ -140,23 +158,6 @@ export function CraftPage() {
       </TableSortLabel>
     </TableCell>
   )
-
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['craftability', search, type, craftableOnly, includeUnowned],
-    queryFn: async () =>
-      (
-        await api.get<CraftabilityResponse>('/api/craftability', {
-          params: {
-            search: search || undefined,
-            type: type && !type.startsWith('group:') ? type : undefined,
-            group: type.startsWith('group:') ? type.slice(6) : undefined,
-            craftable: craftableOnly ? 1 : undefined,
-            all: includeUnowned ? 1 : undefined,
-          },
-        })
-      ).data,
-    placeholderData: (prev) => prev,
-  })
 
   // Back to the first page whenever a filter changes the result set.
   useEffect(() => {
