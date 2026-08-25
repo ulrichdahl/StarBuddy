@@ -116,6 +116,13 @@ class IngestController extends Controller
             }
         });
 
+        // Name-only rows (client couldn't resolve an item class) get the
+        // full linker pass right away instead of waiting for the nightly
+        // recipe sync.
+        if ($counts['blueprints_added'] > 0 || $counts['backfilled'] > 0) {
+            $counts['linked'] = \App\Support\BlueprintLinker::linkUnlinked($user->id);
+        }
+
         return $counts;
     }
 }
