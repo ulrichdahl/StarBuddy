@@ -36,8 +36,14 @@ class CraftabilityController extends Controller
             ->whereIn('user_id', $orgUserIds)
             ->with('user:id,name,handle')
             ->get()
-            ->map(fn ($r) => $r->user->handle ?? $r->user->name)
-            ->unique()
+            ->unique('user_id')
+            ->map(fn ($r) => [
+                'id' => $r->id,
+                'member' => $r->user->handle ?? $r->user->name,
+                'mine' => $r->user_id === $user->id,
+                'uses_personal' => $r->uses_personal,
+                'uses_org' => $r->uses_org,
+            ])
             ->values();
 
         $ingredients = collect($blueprint->ingredients ?? [])->map(function ($ing) use ($user) {
@@ -51,7 +57,9 @@ class CraftabilityController extends Controller
                 ->orderByDesc('quality')
                 ->get()
                 ->map(fn ($s) => [
+                    'id' => $s->id,
                     'member' => $s->user->handle ?? $s->user->name,
+                    'mine' => $s->user_id === $user->id,
                     'location' => $s->location->name,
                     'system' => $s->location->system,
                     'quality' => $s->quality,
@@ -114,36 +122,49 @@ class CraftabilityController extends Controller
     }
 
     /**
-     * Record a completed craft: consume the ingredients from the stacks the
-     * member can use (best quality first — the same order the estimate
-     * shows) and add the crafted item to their item ledger.
+     * Record completed crafts: consume the ingredients (from the specific
+     * stacks the member picked, or best quality first when none were),
+     * mark a use on the blueprint copy that was used, and add the crafted
+     * items to the member's item ledger.
      */
     public function craft(Request $request, Blueprint $blueprint)
     {
-        $data = $request->validate(['location_id' => ['nullable', 'exists:locations,id']]);
+        $data = $request->validate([
+            'quantity' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'use_type' => ['nullable', 'in:personal,org'],
+            'owned_id' => ['nullable', 'integer', 'exists:blueprint_owned,id'],
+            'stack_ids' => ['nullable', 'array'],
+            'stack_ids.*' => ['integer'],
+            'location_id' => ['nullable', 'exists:locations,id'],
+        ]);
         $user = $request->user();
+        $quantity = $data['quantity'] ?? 1;
+        $stackIds = $data['stack_ids'] ?? null;
 
-        return DB::transaction(function () use ($blueprint, $user, $data) {
+        return DB::transaction(function () use ($blueprint, $user, $data, $quantity, $stackIds) {
             $consumed = [];
             $qualityWeighted = 0;
             $qualityWeight = 0;
             $fallbackLocation = null;
 
             foreach ($blueprint->ingredients ?? [] as $ing) {
-                $need = $ing['quantity_mscu'] ?? $ing['quantity_pieces'] ?? 0;
-                if ($need <= 0) {
+                $perCraft = $ing['quantity_mscu'] ?? $ing['quantity_pieces'] ?? 0;
+                if ($perCraft <= 0) {
                     continue;
                 }
+                $need = $perCraft * $quantity;
                 $isMscu = isset($ing['quantity_mscu']);
 
                 $stacks = ResourceStack::visibleTo($user)
                     ->whereHas('resourceType', fn ($q) => $q->whereLike('name', $ing['name'], caseSensitive: false))
                     ->when($isMscu, fn ($q) => $q->where('quality', '>=', 1))
+                    ->when($stackIds !== null, fn ($q) => $q->whereIn('id', $stackIds))
                     ->orderByDesc('quality')
                     ->lockForUpdate()
                     ->get();
 
-                abort_if($stacks->sum('quantity') < $need, 422, "Not enough {$ing['name']} on hand.");
+                abort_if($stacks->sum('quantity') < $need, 422,
+                    "Not enough {$ing['name']}".($stackIds !== null ? ' in the selected stacks' : ' on hand').'.');
 
                 $left = $need;
                 foreach ($stacks as $stack) {
@@ -168,6 +189,14 @@ class CraftabilityController extends Controller
 
             abort_if(empty($consumed), 422, 'This blueprint has no recorded ingredients.');
 
+            // The blueprint itself is never consumed — count the use on the
+            // copy that was used (the chosen one, or the crafter's own).
+            $useType = $data['use_type'] ?? 'personal';
+            $owned = isset($data['owned_id'])
+                ? BlueprintOwned::where('id', $data['owned_id'])->where('blueprint_id', $blueprint->id)->first()
+                : BlueprintOwned::where('blueprint_id', $blueprint->id)->where('user_id', $user->id)->first();
+            $owned?->increment($useType === 'org' ? 'uses_org' : 'uses_personal', $quantity);
+
             $quality = $qualityWeight > 0 ? (int) round($qualityWeighted / $qualityWeight) : null;
             $item = \App\Models\ItemStack::create([
                 'user_id' => $user->id,
@@ -175,7 +204,7 @@ class CraftabilityController extends Controller
                 'location_id' => $data['location_id'] ?? $fallbackLocation,
                 'item_class' => $blueprint->item_class ?? $blueprint->name,
                 'item_name' => $blueprint->name.($quality !== null ? " (Q{$quality})" : ''),
-                'quantity' => 1,
+                'quantity' => $quantity,
                 'visibility' => 'private',
                 'source' => 'manual',
             ]);
@@ -184,11 +213,19 @@ class CraftabilityController extends Controller
                 'user_id' => $user->id,
                 'org_id' => $user->orgs()->value('orgs.id'),
                 'action' => 'craft.completed',
-                'details' => ['blueprint' => $blueprint->name, 'quality' => $quality, 'consumed' => $consumed],
+                'details' => [
+                    'blueprint' => $blueprint->name,
+                    'quantity' => $quantity,
+                    'use_type' => $useType,
+                    'blueprint_owner' => $owned?->user_id,
+                    'quality' => $quality,
+                    'consumed' => $consumed,
+                ],
             ]);
 
             return [
                 'crafted' => $blueprint->name,
+                'quantity' => $quantity,
                 'quality' => $quality,
                 'consumed' => $consumed,
                 'item_stack_id' => $item->id,
@@ -196,11 +233,30 @@ class CraftabilityController extends Controller
         });
     }
 
-    // One-time fetch of the output item's lore from the wiki, cached on the
-    // row ('' marks "fetched, nothing there" so we never refetch in a loop).
+    /**
+     * Item stat blocks worth caching from the wiki item payload, per type.
+     * Unknown keys are simply absent from a given item.
+     */
+    private const STAT_BLOCKS = [
+        'personal_weapon', 'vehicle_weapon', 'clothing', 'shield',
+        'power_plant', 'cooler', 'quantum_drive', 'radar', 'tractor_beam',
+        'mining_laser', 'salvage_modifier', 'weapon_attachment', 'melee',
+        'temperature_resistance', 'radiation_resistance', 'inventory',
+        'durability',
+    ];
+
+    // Bump when the captured shape changes — rows with an older (or no)
+    // marker re-fetch on next open.
+    private const STATS_VERSION = 1;
+
+    // One-time fetch of the output item's lore and stat blocks from the
+    // wiki, cached on the row ('' description marks "fetched, nothing
+    // there" so we never refetch in a loop).
     private function enrichFromWiki(Blueprint $blueprint): void
     {
-        if ($blueprint->description !== null || ! $blueprint->uuid) {
+        $upToDate = $blueprint->description !== null
+            && ($blueprint->item_meta['stats_v'] ?? 0) >= self::STATS_VERSION;
+        if ($upToDate || ! $blueprint->uuid) {
             return;
         }
 
@@ -215,6 +271,13 @@ class CraftabilityController extends Controller
                     ->get("https://api.star-citizen.wiki/api/v2/items/{$itemUuid}")
                     ->json('data');
 
+                $stats = [];
+                foreach (self::STAT_BLOCKS as $key) {
+                    if (! empty($item[$key]) && is_array($item[$key])) {
+                        $stats[$key] = self::pruneStats($item[$key]);
+                    }
+                }
+
                 $data = [
                     'description' => $item['description']['en_EN'] ?? '',
                     'image_url' => $item['images'][0]['thumbnail_url'] ?? $item['images'][0]['original_url'] ?? null,
@@ -224,7 +287,8 @@ class CraftabilityController extends Controller
                         'size' => $item['size'] ?? null,
                         'item_grade' => $item['grade'] ?? null,
                         'classification' => $item['classification_label'] ?? null,
-                    ]),
+                        'stats' => $stats ?: null,
+                    ]) + ['stats_v' => self::STATS_VERSION],
                 ];
             }
         } catch (\Throwable) {
@@ -233,6 +297,59 @@ class CraftabilityController extends Controller
         }
 
         $blueprint->update($data);
+    }
+
+    /**
+     * The wiki blocks carry dozens of nulls and some huge sub-trees the UI
+     * never shows — drop those, and boil ammunition down to what matters.
+     */
+    private static function pruneStats(array $block): array
+    {
+        unset($block['damages'], $block['magazine_volume'], $block['ads_spread'],
+            $block['damage_resistance'], $block['protected_body_parts'],
+            $block['spline_jump'], $block['standard_jump']);
+
+        if (isset($block['ammunition']) && is_array($block['ammunition'])) {
+            $ammo = $block['ammunition'];
+            $block['ammunition'] = array_filter([
+                'speed' => $ammo['speed'] ?? null,
+                'range' => $ammo['range'] ?? null,
+                'size' => $ammo['size'] ?? null,
+            ], fn ($v) => $v !== null);
+        }
+
+        // Fire / jump modes: keep only what the stats panel renders.
+        if (isset($block['modes']) && is_array($block['modes'])) {
+            $keep = array_flip([
+                'mode', 'localised', 'type', 'rpm', 'ammo_per_shot',
+                'pellets_per_shot', 'damage_per_second', 'shot_count',
+                'drive_speed_formatted', 'cooldown_time', 'spool_up_time',
+            ]);
+            $block['modes'] = array_values(array_map(
+                fn ($m) => is_array($m) ? array_intersect_key($m, $keep) : $m,
+                $block['modes'],
+            ));
+        }
+
+        return self::pruneNulls($block);
+    }
+
+    private static function pruneNulls(array $arr): array
+    {
+        $out = [];
+        foreach ($arr as $k => $v) {
+            if (is_array($v)) {
+                $v = self::pruneNulls($v);
+                if ($v === []) {
+                    continue;
+                }
+            }
+            if ($v !== null) {
+                $out[$k] = $v;
+            }
+        }
+
+        return $out;
     }
 
     public function __invoke(Request $request)

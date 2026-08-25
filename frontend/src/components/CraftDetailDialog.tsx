@@ -1,7 +1,9 @@
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
@@ -15,12 +17,18 @@ import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
+import TextField from '@mui/material/TextField'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import { api } from '../lib/api'
 import { gradeLabel } from '../pages/CraftPage'
+import { ProductStats } from './ProductStats'
 
 interface Holding {
+  id: number
   member: string
+  mine: boolean
   location: string
   system: string | null
   quality: number
@@ -36,6 +44,14 @@ interface IngredientDetail {
   holdings: Holding[]
 }
 
+interface Owner {
+  id: number
+  member: string
+  mine: boolean
+  uses_personal: number
+  uses_org: number
+}
+
 interface CraftDetail {
   blueprint: {
     id: number
@@ -49,10 +65,17 @@ interface CraftDetail {
     description: string | null
     image_url: string | null
     manufacturer: string | null
-    item_meta: { mass?: number; size?: number; item_grade?: string; classification?: string } | null
+    item_meta: {
+      mass?: number
+      size?: number
+      item_grade?: string
+      classification?: string
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      stats?: Record<string, any>
+    } | null
     game_version: string | null
   }
-  owners: string[]
+  owners: Owner[]
   ingredients: IngredientDetail[]
   craftable: boolean
   est_output_quality: number | null
@@ -82,8 +105,72 @@ function craftTime(seconds: number | null): string | null {
 
 interface CraftResultResponse {
   crafted: string
+  quantity: number
   quality: number | null
   consumed: { name: string; quantity: number; unit: 'mscu' | 'pieces' }[]
+}
+
+type Selection = Record<string, Set<number>>
+
+/** Pick the best-quality stacks per ingredient until the need is covered. */
+function defaultSelection(ingredients: IngredientDetail[], qty: number): Selection {
+  const sel: Selection = {}
+  for (const ing of ingredients) {
+    const picked = new Set<number>()
+    let left = ing.need * qty
+    for (const h of ing.holdings) {
+      // already sorted best quality first
+      if (left <= 0) break
+      picked.add(h.id)
+      left -= h.quantity
+    }
+    sel[ing.name] = picked
+  }
+  return sel
+}
+
+interface Plan {
+  perIngredient: Record<string, { need: number; selected: number; covered: boolean }>
+  craftable: boolean
+  estQuality: number | null
+  modifierPercent: number | null
+}
+
+/** Simulate consumption of the selected stacks the way the backend will. */
+function planCraft(ingredients: IngredientDetail[], sel: Selection, qty: number): Plan {
+  const perIngredient: Plan['perIngredient'] = {}
+  let craftable = true
+  let weighted = 0
+  let consumedMscu = 0
+
+  for (const ing of ingredients) {
+    const need = ing.need * qty
+    const chosen = sel[ing.name] ?? new Set()
+    let left = need
+    let selectedTotal = 0
+    for (const h of ing.holdings) {
+      if (!chosen.has(h.id)) continue
+      selectedTotal += h.quantity
+      if (left <= 0) continue
+      const use = Math.min(left, h.quantity)
+      left -= use
+      if (ing.unit === 'mscu') {
+        weighted += use * h.quality
+        consumedMscu += use
+      }
+    }
+    const covered = need <= 0 || left <= 0
+    if (!covered) craftable = false
+    perIngredient[ing.name] = { need, selected: selectedTotal, covered }
+  }
+
+  const estQuality = consumedMscu > 0 ? Math.round(weighted / consumedMscu) : null
+  return {
+    perIngredient,
+    craftable,
+    estQuality,
+    modifierPercent: estQuality !== null ? Math.round((estQuality - 500) * 1.5) / 100 : null,
+  }
 }
 
 export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: number; onClose: () => void }) {
@@ -93,9 +180,36 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
     queryFn: async () => (await api.get<CraftDetail>(`/api/craftability/${blueprintId}`)).data,
   })
 
+  const [qty, setQty] = useState(1)
+  const [useType, setUseType] = useState<'personal' | 'org'>('personal')
+  const [ownedId, setOwnedId] = useState<number | null>(null)
+  const [selection, setSelection] = useState<Selection>({})
+
+  // Re-plan defaults whenever the data or the craft count changes.
+  useEffect(() => {
+    if (!data) return
+    setSelection(defaultSelection(data.ingredients, qty))
+    setOwnedId((prev) => {
+      if (prev !== null && data.owners.some((o) => o.id === prev)) return prev
+      return (data.owners.find((o) => o.mine) ?? data.owners[0])?.id ?? null
+    })
+  }, [data, qty])
+
+  const plan = useMemo(
+    () => (data ? planCraft(data.ingredients, selection, qty) : null),
+    [data, selection, qty],
+  )
+
   const craft = useMutation({
     mutationFn: async () =>
-      (await api.post<CraftResultResponse>(`/api/craftability/${blueprintId}/craft`)).data,
+      (
+        await api.post<CraftResultResponse>(`/api/craftability/${blueprintId}/craft`, {
+          quantity: qty,
+          use_type: useType,
+          owned_id: ownedId,
+          stack_ids: Object.values(selection).flatMap((s) => [...s]),
+        })
+      ).data,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['craft-detail', blueprintId] })
       queryClient.invalidateQueries({ queryKey: ['craftability'] })
@@ -104,13 +218,24 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
     },
   })
 
+  const toggleStack = (ingredient: string, id: number) => {
+    setSelection((prev) => {
+      const next = { ...prev }
+      const set = new Set(next[ingredient] ?? [])
+      if (set.has(id)) set.delete(id)
+      else set.add(id)
+      next[ingredient] = set
+      return next
+    })
+  }
+
   const bp = data?.blueprint
 
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="md">
       {isLoading && <LinearProgress />}
       {isError && <Alert severity="error">Could not load the blueprint details.</Alert>}
-      {bp && (
+      {bp && plan && (
         <>
           <DialogTitle sx={{ pb: 0.5 }}>
             {bp.name}
@@ -139,41 +264,35 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
               </Typography>
             </Box>
 
-            {data.est_output_quality !== null && (
+            {bp.item_meta?.stats && (
               <>
                 <Divider sx={{ my: 2 }} />
-                <Box sx={{ display: 'flex', gap: 2, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                  <Typography variant="subtitle2">Best craft with current materials</Typography>
-                  <Typography
-                    variant="h5"
-                    sx={{ color: qualityTierColor(data.est_output_quality), fontVariantNumeric: 'tabular-nums' }}
-                  >
-                    {data.est_output_quality}
-                  </Typography>
-                  {data.est_stat_modifier_percent !== null && (
-                    <Typography variant="body2" color="text.secondary">
-                      ≈ {data.est_stat_modifier_percent > 0 ? '+' : ''}
-                      {data.est_stat_modifier_percent}% stats vs. shop baseline
-                      <Typography component="span" variant="caption" sx={{ ml: 0.5 }}>
-                        (community-measured estimate)
-                      </Typography>
-                    </Typography>
-                  )}
-                  {!data.craftable && (
-                    <Chip size="small" label="Materials incomplete" color="secondary" variant="outlined" />
-                  )}
-                </Box>
+                <ProductStats
+                  stats={bp.item_meta.stats}
+                  mass={bp.item_meta.mass}
+                  modifierPercent={plan.modifierPercent ?? data.est_stat_modifier_percent}
+                />
               </>
             )}
 
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
               Blueprint holders
+              <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                blueprints are never consumed — pick whose copy this craft counts against
+              </Typography>
             </Typography>
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
               {bp.is_default && <Chip size="small" label="Everyone (default blueprint)" color="primary" variant="outlined" />}
               {(data?.owners ?? []).map((o) => (
-                <Chip key={o} size="small" label={o} />
+                <Chip
+                  key={o.id}
+                  size="small"
+                  label={`${o.member} · ${o.uses_personal}× personal / ${o.uses_org}× org`}
+                  color={ownedId === o.id ? 'primary' : 'default'}
+                  variant={ownedId === o.id ? 'filled' : 'outlined'}
+                  onClick={() => setOwnedId(o.id)}
+                />
               ))}
               {!bp.is_default && (data?.owners ?? []).length === 0 && (
                 <Typography variant="body2" color="text.secondary">
@@ -183,27 +302,69 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
             </Stack>
 
             <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Materials
+            <Stack direction="row" spacing={2} sx={{ mb: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+              <Typography variant="subtitle2">Craft</Typography>
+              <TextField
+                type="number"
+                size="small"
+                label="How many"
+                value={qty}
+                onChange={(e) => setQty(Math.max(1, Math.min(100, Number(e.target.value) || 1)))}
+                slotProps={{ htmlInput: { min: 1, max: 100 } }}
+                sx={{ width: 100 }}
+              />
+              <ToggleButtonGroup
+                size="small"
+                exclusive
+                value={useType}
+                onChange={(_, v) => v && setUseType(v)}
+              >
+                <ToggleButton value="personal">Personal use</ToggleButton>
+                <ToggleButton value="org">Org use</ToggleButton>
+              </ToggleButtonGroup>
+              {plan.estQuality !== null && (
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'baseline' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Output quality
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{ color: qualityTierColor(plan.estQuality), fontVariantNumeric: 'tabular-nums' }}
+                  >
+                    {plan.estQuality}
+                  </Typography>
+                </Stack>
+              )}
+            </Stack>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+              Tick the stacks the craft should draw from — the best qualities are pre-selected. Amounts
+              beyond what is needed stay untouched.
             </Typography>
+
             <Stack spacing={2}>
               {(data?.ingredients ?? []).map((ing) => {
-                const enough = ing.available >= ing.need
+                const p = plan.perIngredient[ing.name]
+                const chosen = selection[ing.name] ?? new Set()
                 return (
                   <Box key={ing.name}>
                     <Stack direction="row" spacing={1} sx={{ mb: 0.5, alignItems: 'baseline' }}>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {ing.name}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: enough ? 'primary.main' : 'text.secondary' }}>
-                        {amount(ing.available, ing.unit)} of {amount(ing.need, ing.unit)} needed
+                      <Typography variant="caption" sx={{ color: p?.covered ? 'primary.main' : 'error.main' }}>
+                        {amount(p?.selected ?? 0, ing.unit)} selected of {amount(p?.need ?? 0, ing.unit)} needed
                       </Typography>
-                      {enough && <Chip size="small" label="Covered" color="primary" variant="outlined" />}
+                      {p?.covered ? (
+                        <Chip size="small" label="Covered" color="primary" variant="outlined" />
+                      ) : (
+                        <Chip size="small" label="Not enough selected" color="error" variant="outlined" />
+                      )}
                     </Stack>
                     {ing.holdings.length > 0 ? (
                       <Table size="small">
                         <TableHead>
                           <TableRow>
+                            <TableCell padding="checkbox">Use</TableCell>
                             <TableCell>Member</TableCell>
                             <TableCell>Location</TableCell>
                             <TableCell align="right">Quality</TableCell>
@@ -211,9 +372,25 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {ing.holdings.map((h, i) => (
-                            <TableRow key={i}>
-                              <TableCell>{h.member}</TableCell>
+                          {ing.holdings.map((h) => (
+                            <TableRow
+                              key={h.id}
+                              hover
+                              onClick={() => toggleStack(ing.name, h.id)}
+                              sx={{ cursor: 'pointer' }}
+                              selected={chosen.has(h.id)}
+                            >
+                              <TableCell padding="checkbox">
+                                <Checkbox size="small" checked={chosen.has(h.id)} />
+                              </TableCell>
+                              <TableCell>
+                                {h.member}
+                                {h.mine && (
+                                  <Typography component="span" variant="caption" color="primary.main" sx={{ ml: 0.5 }}>
+                                    (you)
+                                  </Typography>
+                                )}
+                              </TableCell>
                               <TableCell>
                                 {h.location}
                                 {h.system && (
@@ -240,7 +417,8 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
 
             {craft.isSuccess && (
               <Alert severity="success" sx={{ mt: 2 }}>
-                Crafted {craft.data.crafted}
+                Crafted {craft.data.quantity > 1 ? `${craft.data.quantity}× ` : ''}
+                {craft.data.crafted}
                 {craft.data.quality !== null ? ` at quality ${craft.data.quality}` : ''} — materials
                 deducted, item added to your Items ledger.
               </Alert>
@@ -255,14 +433,22 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
             <Button onClick={onClose}>Close</Button>
             <Button
               variant="contained"
-              disabled={!data?.craftable || craft.isPending || craft.isSuccess}
+              disabled={!plan.craftable || craft.isPending || craft.isSuccess}
               onClick={() => {
-                if (window.confirm(`Record crafting ${bp.name}? The listed materials will be deducted from the ledger.`)) {
+                if (
+                  window.confirm(
+                    `Record crafting ${qty > 1 ? `${qty}× ` : ''}${bp.name}? The selected materials will be deducted from the ledger.`,
+                  )
+                ) {
                   craft.mutate()
                 }
               }}
             >
-              {craft.isPending ? 'Recording…' : craft.isSuccess ? 'Crafted' : 'I crafted this'}
+              {craft.isPending
+                ? 'Recording…'
+                : craft.isSuccess
+                  ? 'Crafted'
+                  : `I crafted this${qty > 1 ? ` ×${qty}` : ''}`}
             </Button>
           </DialogActions>
         </>
