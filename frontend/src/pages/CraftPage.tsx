@@ -326,7 +326,6 @@ export function CraftPage() {
                           minWidth: 36,
                           textAlign: 'right',
                           fontVariantNumeric: 'tabular-nums',
-                          color: r.coverage >= 1 ? COMPLETE_GREEN : undefined,
                         }}
                       >
                         {Math.round(r.coverage * 100)}%
