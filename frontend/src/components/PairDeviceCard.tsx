@@ -5,8 +5,10 @@ import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
+import Link from '@mui/material/Link'
 import DeleteIcon from '@mui/icons-material/Delete'
 import DevicesIcon from '@mui/icons-material/Devices'
+import DownloadIcon from '@mui/icons-material/Download'
 import { api } from '../lib/api'
 
 interface PairingCode {
@@ -46,10 +48,34 @@ export function PairDeviceCard() {
         <DevicesIcon color="primary" />
         <Typography variant="h6">Desktop client</Typography>
       </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
         Pair the StarMaker desktop app to sync blueprints and refinery events from your Game.log.
         Generate a code, then enter it in the app's Server panel within 10 minutes.
       </Typography>
+      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<DownloadIcon />}
+          component="a"
+          href="https://github.com/ulrichdahl/StarMaker/releases/latest"
+          target="_blank"
+          rel="noopener"
+        >
+          Download the desktop app
+        </Button>
+        <Typography variant="caption" color="text.secondary">
+          Windows installer · Linux AppImage/deb/rpm —{' '}
+          <Link
+            href="https://github.com/ulrichdahl/StarMaker/releases/tag/dev"
+            target="_blank"
+            rel="noopener"
+            color="inherit"
+          >
+            dev builds
+          </Link>
+        </Typography>
+      </Box>
 
       {code ? (
         <Box sx={{ mb: 2 }}>
