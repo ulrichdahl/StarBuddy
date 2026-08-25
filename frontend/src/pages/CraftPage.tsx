@@ -43,8 +43,8 @@ interface CraftResult {
   is_default: boolean
   craftable: boolean
   coverage: number
-  // Share coverable from the viewer's own stacks (≤ coverage); the rest is org material.
-  coverage_own: number
+  // Share coverable from the viewer's private stacks (≤ coverage); the rest is org-shared material.
+  coverage_private: number
   size: number | null
   missing: { name: string; missing: number; unit: 'mscu' | 'pieces' }[]
   est_output_quality: number | null
@@ -289,25 +289,37 @@ export function CraftPage() {
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {/* Own material in green, org-mates' share in gold; dark gold = still missing. */}
-                      <Box
-                        sx={{
-                          flex: 1,
-                          height: 6,
-                          borderRadius: 3,
-                          overflow: 'hidden',
-                          display: 'flex',
-                          bgcolor: 'rgba(232, 180, 90, 0.22)',
-                        }}
+                      {/* Private material in green, org-shared in gold; dark gold = still missing. */}
+                      <Tooltip
+                        title={
+                          <Box component="span" sx={{ whiteSpace: 'pre-line' }}>
+                            {[
+                              t('craft.barPrivate', { pct: Math.round(r.coverage_private * 100) }),
+                              t('craft.barOrg', { pct: Math.round((r.coverage - r.coverage_private) * 100) }),
+                              t('craft.barMissing', { pct: Math.round((1 - r.coverage) * 100) }),
+                            ].join('\n')}
+                          </Box>
+                        }
                       >
-                        <Box sx={{ width: `${Math.round(r.coverage_own * 100)}%`, bgcolor: COMPLETE_GREEN }} />
                         <Box
                           sx={{
-                            width: `${Math.round((r.coverage - r.coverage_own) * 100)}%`,
-                            bgcolor: 'secondary.main',
+                            flex: 1,
+                            height: 6,
+                            borderRadius: 3,
+                            overflow: 'hidden',
+                            display: 'flex',
+                            bgcolor: 'rgba(232, 180, 90, 0.22)',
                           }}
-                        />
-                      </Box>
+                        >
+                          <Box sx={{ width: `${Math.round(r.coverage_private * 100)}%`, bgcolor: COMPLETE_GREEN }} />
+                          <Box
+                            sx={{
+                              width: `${Math.round((r.coverage - r.coverage_private) * 100)}%`,
+                              bgcolor: 'secondary.main',
+                            }}
+                          />
+                        </Box>
+                      </Tooltip>
                       <Typography
                         variant="caption"
                         sx={{

@@ -136,8 +136,9 @@ class Craftability
                 $key = Str::lower($s->resourceType->name);
                 $availability[$key]['unit'] = $s->resourceType->unit;
                 $availability[$key]['total'] = ($availability[$key]['total'] ?? 0) + $s->quantity;
-                if ($s->user_id === $user->id) {
-                    $availability[$key]['own'] = ($availability[$key]['own'] ?? 0) + $s->quantity;
+                // Private = only you can use it; everything else visible here is org-shared.
+                if ($s->user_id === $user->id && $s->visibility === 'private') {
+                    $availability[$key]['private'] = ($availability[$key]['private'] ?? 0) + $s->quantity;
                 }
                 $availability[$key]['stacks'][] = ['quality' => $s->quality, 'quantity' => $s->quantity];
             });
@@ -174,7 +175,7 @@ class Craftability
 
         $results = $query->get()->map(function (Blueprint $bp) use ($availability, $owners, $user) {
             $coverage = 1.0;
-            $coverageOwn = 1.0; // what the member could cover from their own stacks alone
+            $coveragePrivate = 1.0; // coverable from the member's private stacks alone
             $missing = [];
             $qualityWeighted = 0;
             $qualityWeight = 0;
@@ -187,7 +188,7 @@ class Craftability
                 $have = $availability[Str::lower($ing['name'])] ?? null;
                 $ratio = min(1.0, ($have['total'] ?? 0) / $need);
                 $coverage = min($coverage, $ratio);
-                $coverageOwn = min($coverageOwn, min(1.0, ($have['own'] ?? 0) / $need));
+                $coveragePrivate = min($coveragePrivate, min(1.0, ($have['private'] ?? 0) / $need));
 
                 if ($ratio < 1.0) {
                     $missing[] = [
@@ -236,7 +237,7 @@ class Craftability
                 'owned_by_me' => ($owners[$bp->id] ?? collect())->contains($user->id),
                 'craftable' => $coverage >= 1.0,
                 'coverage' => round($coverage, 3),
-                'coverage_own' => round($coverageOwn, 3),
+                'coverage_private' => round($coveragePrivate, 3),
                 // Size matters for ship parts: components and vehicle weapons.
                 'size' => in_array(BlueprintKind::group($bp->type), ['vehicle_components', 'vehicle_weapons'], true)
                     ? ($bp->item_meta['size'] ?? null)

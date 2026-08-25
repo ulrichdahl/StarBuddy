@@ -160,7 +160,10 @@
     "recording": "Recording…",
     "crafted": "Crafted",
     "iCraftedThis": "I crafted this",
-    "iCraftedThisTimes": "I crafted this ×{{count}}"
+    "iCraftedThisTimes": "I crafted this ×{{count}}",
+    "barPrivate": "Green — your private materials: {{pct}}%",
+    "barOrg": "Gold — what the org can supply: {{pct}}%",
+    "barMissing": "Dark gold — still missing: {{pct}}%"
   },
   "stats": {
     "heading": "Product stats",

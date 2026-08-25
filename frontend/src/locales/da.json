@@ -160,7 +160,10 @@
     "recording": "Registrerer…",
     "crafted": "Fremstillet",
     "iCraftedThis": "Jeg har fremstillet denne",
-    "iCraftedThisTimes": "Jeg har fremstillet denne ×{{count}}"
+    "iCraftedThisTimes": "Jeg har fremstillet denne ×{{count}}",
+    "barPrivate": "Grøn — dine private materialer: {{pct}}%",
+    "barOrg": "Guld — hvad orgen kan levere: {{pct}}%",
+    "barMissing": "Mørk guld — mangler stadig: {{pct}}%"
   },
   "stats": {
     "heading": "Produkt-stats",
