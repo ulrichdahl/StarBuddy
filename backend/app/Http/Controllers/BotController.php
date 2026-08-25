@@ -8,7 +8,7 @@ class BotController extends Controller
 {
     public function health()
     {
-        return ['status' => 'ok', 'time' => now()->toIso8601String()];
+        return ['ok' => true, 'status' => 'ok', 'time' => now()->toIso8601String()];
     }
 
     public function member(string $discordId)

@@ -1,4 +1,4 @@
-import { backend } from "../lib/backend.js";
+import { backend, isHealthy } from "../lib/backend.js";
 import type { Subcommand } from "./command.js";
 
 export const ping: Subcommand = {
@@ -13,7 +13,7 @@ export const ping: Subcommand = {
     let backendStatus: string;
     try {
       const health = await backend.health();
-      backendStatus = health.ok ? "healthy" : "unhealthy";
+      backendStatus = isHealthy(health) ? "healthy" : "unhealthy";
     } catch (error) {
       backendStatus = `unreachable (${error instanceof Error ? error.message : String(error)})`;
     }

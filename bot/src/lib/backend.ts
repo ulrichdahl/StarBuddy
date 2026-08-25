@@ -2,9 +2,13 @@ import { config } from "../config.js";
 
 /** Response of GET /api/bot/health */
 export interface HealthResponse {
-  ok: boolean;
+  ok?: boolean;
+  status?: string;
+  time?: string;
   version?: string;
 }
+
+export const isHealthy = (h: HealthResponse): boolean => h.ok === true || h.status === "ok";
 
 /** Response of GET /api/bot/member/:discordId */
 export interface MemberLookupResponse {
