@@ -1,11 +1,25 @@
 name: starmaker
 
-# StarMaker community instance. Copy .env.example to .env, fill in your
-# Discord application + guild, then:
+# StarMaker community instance — base definition. No ports are published
+# here: local development gets its port from docker-compose.override.yml
+# (auto-loaded), production attaches the web container to your reverse
+# proxy's network via docker-compose.prod.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Persistent data lives under ${STARMAKER_DATA_DIR:-./data} as plain host
+# directories (postgres/, backups/) so you control placement and backup.
+#
+# First start:
+#   cp .env.example .env   # fill in Discord credentials, APP_KEY, DB password
 #   docker compose up -d --build
-#   docker compose exec app php artisan key:generate --force
 #   docker compose exec app php artisan migrate --seed --force
-#   docker compose run --rm bot npm run register   # register slash commands
+#   docker compose exec app php artisan starmaker:sync-blueprints
+#   docker compose exec app php artisan starmaker:sync-resource-types
+#   docker compose exec app php artisan starmaker:sync-locations
+#   docker compose exec app php artisan starmaker:sync-quality-bands
+#   docker compose exec app php artisan starmaker:sync-rarity
+#   docker compose run --rm bot node dist/register-commands.js
 
 x-app: &app
   build: ./backend
@@ -38,8 +52,6 @@ services:
   web:
     image: caddy:2-alpine
     restart: unless-stopped
-    ports:
-      - "${HTTP_PORT:-8080}:80"
     volumes:
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - frontend-dist:/srv/frontend:ro
@@ -77,7 +89,7 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-starmaker}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - ${STARMAKER_DATA_DIR:-./data}/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-starmaker} -d ${DB_DATABASE:-starmaker}"]
       interval: 5s
@@ -105,10 +117,9 @@ services:
       SCHEDULE: "@daily"
       BACKUP_KEEP_DAYS: "14"
     volumes:
-      - ./backups:/backups
+      - ${STARMAKER_DATA_DIR:-./data}/backups:/backups
 
 volumes:
-  db-data:
   redis-data:
   app-storage:
   frontend-dist:

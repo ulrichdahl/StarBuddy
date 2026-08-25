@@ -1,0 +1,20 @@
+# Production overlay: no host ports; the web container joins your reverse
+# proxy's external network instead. Create the network once on the host
+# (or reuse your proxy's):  docker network create proxy
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Point your nginx/SSL proxy at http://starmaker-web:80 on that network.
+# Remember to set APP_URL, DISCORD_REDIRECT_URI, SESSION_DOMAIN and
+# SANCTUM_STATEFUL_DOMAINS in .env to your public https domain.
+services:
+  web:
+    networks:
+      default: {}
+      proxy:
+        aliases:
+          - starmaker-web
+
+networks:
+  proxy:
+    external: true

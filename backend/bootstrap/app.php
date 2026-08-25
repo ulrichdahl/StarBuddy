@@ -13,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // The instance always sits behind a reverse proxy (Caddy in compose,
+        // plus the operator's SSL proxy in production) — trust forwarded
+        // scheme/host headers so https APP_URLs and OAuth redirects work.
+        $middleware->trustProxies(at: '*');
         $middleware->statefulApi();
         $middleware->alias([
             'bot' => \App\Http\Middleware\BotToken::class,

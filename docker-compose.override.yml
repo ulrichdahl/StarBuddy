@@ -1,0 +1,7 @@
+# Local development override — auto-loaded by `docker compose up`.
+# Publishes the web port on localhost. Production does NOT load this file;
+# it uses docker-compose.prod.yml instead (see docker-compose.yml header).
+services:
+  web:
+    ports:
+      - "${HTTP_PORT:-8080}:80"

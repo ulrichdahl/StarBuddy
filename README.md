@@ -44,6 +44,24 @@ If the default port 8080 is taken, change `HTTP_PORT` — and keep `APP_URL`,
 `DISCORD_REDIRECT_URI`, `SANCTUM_STATEFUL_DOMAINS`, and the redirect URL in the
 Discord developer portal in sync with it.
 
+### Production (behind your own SSL proxy)
+
+The base compose file publishes **no ports**. In production, attach the web
+container to your reverse proxy's external Docker network instead:
+
+```sh
+docker network create proxy        # once, or reuse your proxy's network
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+Point your nginx/SSL proxy at `http://starmaker-web:80` on that network, and
+set `APP_URL`, `DISCORD_REDIRECT_URI`, `SESSION_DOMAIN`, and
+`SANCTUM_STATEFUL_DOMAINS` in `.env` to your public https domain.
+
+Persistent data lives under `STARMAKER_DATA_DIR` (default `./data`):
+`postgres/` is the database, `backups/` receives nightly dumps kept 14 days.
+Point it at an absolute path on servers and include it in your backups.
+
 Open `http://localhost:8080` (or your `APP_URL`) and sign in with Discord. Only members of the configured `STARMAKER_HOME_GUILD_ID` can join. Nightly database dumps land in `./backups/`.
 
 ## Fair play

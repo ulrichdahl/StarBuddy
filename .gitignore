@@ -10,3 +10,4 @@ backups/
 !backend/storage/logs/.gitignore
 .DS_Store
 Thumbs.db
+data/
