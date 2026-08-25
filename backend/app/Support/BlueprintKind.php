@@ -55,6 +55,44 @@ class BlueprintKind
         return $category;
     }
 
+    /**
+     * Resolve a free-text term ("shield", "powerplant", "undersuit",
+     * "quantum drive") to the blueprint type codes it covers. Matches the
+     * category, the armor/clothing slot, or the raw type code — case,
+     * spaces, hyphens and a plural s are ignored. Null when it isn't one.
+     *
+     * @return array{label: string, types: list<string>}|null
+     */
+    public static function matchCategory(string $term, iterable $types): ?array
+    {
+        $norm = fn (string $s) => rtrim(preg_replace('/[^a-z0-9]/', '', strtolower($s)), 's');
+        $q = $norm($term);
+        if ($q === '') {
+            return null;
+        }
+
+        $byCategory = [];
+        $bySlot = [];
+        foreach ($types as $type) {
+            $category = self::category($type) ?? '';
+            $byCategory[$norm($category)][] = $type;
+            $byCategory[$norm($type)][] = $type;
+            $label = self::typeLabel($type);
+            if ($label !== $category) {
+                $bySlot[$norm(Str::afterLast($label, '·'))] = ['label' => $label, 'types' => [$type]];
+                $byCategory[$norm($label)][] = $type;
+            }
+        }
+
+        if (isset($byCategory[$q])) {
+            $matched = array_values(array_unique($byCategory[$q]));
+
+            return ['label' => self::category($matched[0]) ?? $term, 'types' => $matched];
+        }
+
+        return $bySlot[$q] ?? null;
+    }
+
     public static function kind(Blueprint $bp): ?string
     {
         $type = $bp->type ?? '';

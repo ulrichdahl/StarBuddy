@@ -30,12 +30,34 @@ export const need: Subcommand = {
     const item = interaction.options.getString("item", true);
 
     try {
-      const { results } = await backend.need(interaction.user.id, item);
-      if (results.length === 0) {
+      const response = await backend.need(interaction.user.id, item);
+      if (response.results.length === 0) {
         await interaction.editReply(t(locale, "need.noMatch", { item }));
         return;
       }
-      const blocks = results.map((r) => {
+
+      if (response.mode === "category") {
+        const lines = response.results.map((r) =>
+          t(locale, r.craftable ? "need.categoryLineCraftable" : "need.categoryLine", {
+            name: r.name,
+            type: r.type_display ?? "",
+            quality: r.est_output_quality ?? "—",
+            coverage: Math.round(r.coverage * 100),
+            holders: r.is_default
+              ? t(locale, "craftable.everyone")
+              : t(locale, "craftable.holders", { count: r.owner_count + (r.owned_by_me ? 1 : 0) }),
+          }),
+        );
+        const header = t(locale, "need.categoryHeader", { count: response.total, category: response.category });
+        const more =
+          response.total > response.results.length
+            ? `\n${t(locale, "need.categoryMore", { count: response.total - response.results.length })}`
+            : "";
+        await interaction.editReply(`${header}\n${lines.join("\n")}${more}`.slice(0, 1900));
+        return;
+      }
+
+      const blocks = response.results.map((r) => {
         const holders = r.blueprint.is_default
           ? t(locale, "need.everyone")
           : r.owners.length > 0

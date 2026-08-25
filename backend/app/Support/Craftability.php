@@ -119,7 +119,7 @@ class Craftability
     /**
      * Evaluate every recipe the member's orgs own (or all, with `all`):
      * craftable now, coverage, missing materials, best output quality.
-     * Filters: search, type, grade, all, craftable.
+     * Filters: search, type, types (list), grade, material (ingredient name), all, craftable.
      */
     public static function evaluate(User $user, array $filters = []): array
     {
@@ -158,6 +158,9 @@ class Craftability
         $query = Blueprint::whereNotNull('ingredients')
             ->when(($filters['search'] ?? null), fn ($q, $s) => $q->whereLike('name', "%{$s}%", caseSensitive: false))
             ->when(($filters['type'] ?? null), fn ($q, $t) => $q->where('type', $t))
+            ->when(($filters['types'] ?? null), fn ($q, $ts) => $q->whereIn('type', $ts))
+            // Recipes consuming a material: ingredients is JSON, match its text.
+            ->when(($filters['material'] ?? null), fn ($q, $m) => $q->whereRaw('ingredients::text ILIKE ?', ['%"name":"%'.str_replace(['%', '_'], ['\\%', '\\_'], $m).'%"%']))
             ->when(($filters['grade'] ?? null), fn ($q, $g) => $q->where('grade', $g));
 
         if (! ! empty($filters['all'])) {

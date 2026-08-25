@@ -14,8 +14,8 @@ export const craftable: Subcommand = {
       .addStringOption((option) =>
         option
           .setName("search")
-          .setDescription(t("en", "commands.optionSearch"))
-          .setDescriptionLocalizations(descriptions("commands.optionSearch")),
+          .setDescription(t("en", "commands.optionCraftableSearch"))
+          .setDescriptionLocalizations(descriptions("commands.optionCraftableSearch")),
       ),
 
   async execute(interaction) {
@@ -24,9 +24,10 @@ export const craftable: Subcommand = {
     const search = interaction.options.getString("search") ?? undefined;
 
     try {
-      const { total, results } = await backend.craftable(interaction.user.id, search, 10);
+      const { mode, material, total, results } = await backend.craftable(interaction.user.id, search, 10);
       if (results.length === 0) {
-        await interaction.editReply(t(locale, search ? "craftable.noneMatching" : "craftable.none", { search: search ?? "" }));
+        const key = mode === "material" ? "craftable.noneWithMaterial" : search ? "craftable.noneMatching" : "craftable.none";
+        await interaction.editReply(t(locale, key, { search: search ?? "", material: material ?? "" }));
         return;
       }
       const lines = results.map((r) =>
@@ -37,7 +38,10 @@ export const craftable: Subcommand = {
           holders: r.is_default ? t(locale, "craftable.everyone") : t(locale, "craftable.holders", { count: r.owner_count + (r.owned_by_me ? 1 : 0) }),
         }),
       );
-      const header = t(locale, "craftable.header", { count: total });
+      const header =
+        mode === "material"
+          ? t(locale, "craftable.headerMaterial", { count: total, material: material ?? "" })
+          : t(locale, "craftable.header", { count: total });
       const more = total > results.length ? `\n${t(locale, "craftable.more", { count: total - results.length })}` : "";
       await interaction.editReply(`${header}\n${lines.join("\n")}${more}`);
     } catch (error) {

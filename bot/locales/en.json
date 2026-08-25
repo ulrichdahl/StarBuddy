@@ -13,10 +13,11 @@
     "optionOrg": "Name of the org",
     "optionUser": "The Discord member",
     "optionRemove": "Remove the manager role instead of granting it",
-    "craftable": "What your org can craft right now",
-    "need": "Who has the blueprint and the best materials for an item",
+    "craftable": "What your org can craft right now — optionally only recipes using a material",
+    "need": "Who has the blueprint and materials — by item name or category (shield, powerplant, undersuit…)",
     "optionSearch": "Only recipes whose name contains this",
-    "optionItem": "Item or blueprint name"
+    "optionItem": "Item or blueprint name, or a category like shield / powerplant / undersuit",
+    "optionCraftableSearch": "A material you have (lists recipes that use it) or part of a recipe name"
   },
   "common": {
     "error": "Something went wrong while running that command.",
@@ -62,7 +63,10 @@
     "more_one": "…and {{count}} more — see the Craft page.",
     "more_other": "…and {{count}} more — see the Craft page.",
     "none": "Nothing is craftable right now — add materials to the ledger.",
-    "noneMatching": "Nothing matching \"{{search}}\" is craftable right now."
+    "noneMatching": "Nothing matching \"{{search}}\" is craftable right now.",
+    "headerMaterial_one": "**{{count}}** recipe using **{{material}}** craftable right now:",
+    "headerMaterial_other": "**{{count}}** recipes using **{{material}}** craftable right now:",
+    "noneWithMaterial": "No recipe using **{{material}}** is craftable right now."
   },
   "need": {
     "noMatch": "No recipe matches \"{{item}}\".",
@@ -73,6 +77,12 @@
     "missing": "nobody has any",
     "craftable": "craftable now (Q{{quality}})",
     "notCraftable": "materials incomplete",
-    "pieces": "pcs"
+    "pieces": "pcs",
+    "categoryHeader_one": "**{{count}}** {{category}} recipe — craftable first:",
+    "categoryHeader_other": "**{{count}}** {{category}} recipes — craftable first:",
+    "categoryLineCraftable": "• ✅ **{{name}}** · {{type}} — Q{{quality}} · {{holders}}",
+    "categoryLine": "• **{{name}}** · {{type}} — {{coverage}}% of materials · {{holders}}",
+    "categoryMore_one": "…and {{count}} more — search a name for details.",
+    "categoryMore_other": "…and {{count}} more — search a name for details."
   }
 }

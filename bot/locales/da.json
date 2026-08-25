@@ -13,10 +13,11 @@
     "optionOrg": "Orgens navn",
     "optionUser": "Discord-medlemmet",
     "optionRemove": "Fjern manager-rollen i stedet for at tildele den",
-    "craftable": "Hvad din org kan fremstille lige nu",
-    "need": "Hvem har blueprintet og de bedste materialer til en genstand",
+    "craftable": "Hvad din org kan fremstille lige nu — evt. kun recepter der bruger et materiale",
+    "need": "Hvem har blueprintet og materialerne — efter navn eller kategori (shield, powerplant, undersuit…)",
     "optionSearch": "Kun recepter hvis navn indeholder dette",
-    "optionItem": "Genstand eller blueprint-navn"
+    "optionItem": "Genstand eller blueprint-navn, eller en kategori som shield / powerplant / undersuit",
+    "optionCraftableSearch": "Et materiale du har (viser recepter der bruger det) eller en del af et receptnavn"
   },
   "common": {
     "error": "Noget gik galt under kommandoen.",
@@ -62,7 +63,10 @@
     "more_one": "…og {{count}} mere — se Fremstil-siden.",
     "more_other": "…og {{count}} flere — se Fremstil-siden.",
     "none": "Intet kan fremstilles lige nu — tilføj materialer til lageret.",
-    "noneMatching": "Intet der matcher \"{{search}}\" kan fremstilles lige nu."
+    "noneMatching": "Intet der matcher \"{{search}}\" kan fremstilles lige nu.",
+    "headerMaterial_one": "**{{count}}** recept med **{{material}}** kan fremstilles lige nu:",
+    "headerMaterial_other": "**{{count}}** recepter med **{{material}}** kan fremstilles lige nu:",
+    "noneWithMaterial": "Ingen recept med **{{material}}** kan fremstilles lige nu."
   },
   "need": {
     "noMatch": "Ingen recept matcher \"{{item}}\".",
@@ -73,6 +77,12 @@
     "missing": "ingen har noget",
     "craftable": "kan fremstilles nu (Q{{quality}})",
     "notCraftable": "materialer mangler",
-    "pieces": "stk."
+    "pieces": "stk.",
+    "categoryHeader_one": "**{{count}}** {{category}}-recept — fremstillelige først:",
+    "categoryHeader_other": "**{{count}}** {{category}}-recepter — fremstillelige først:",
+    "categoryLineCraftable": "• ✅ **{{name}}** · {{type}} — Q{{quality}} · {{holders}}",
+    "categoryLine": "• **{{name}}** · {{type}} — {{coverage}}% af materialerne · {{holders}}",
+    "categoryMore_one": "…og {{count}} mere — søg på et navn for detaljer.",
+    "categoryMore_other": "…og {{count}} flere — søg på et navn for detaljer."
   }
 }

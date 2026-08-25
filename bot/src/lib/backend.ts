@@ -51,6 +51,7 @@ export interface CraftableRow {
   type_display: string | null;
   grade: string | null;
   est_output_quality: number | null;
+  craftable: boolean;
   coverage: number;
   owner_count: number;
   owned_by_me: boolean;
@@ -58,6 +59,9 @@ export interface CraftableRow {
 }
 
 export interface CraftableResponse {
+  /** "material": recipes consuming the matched material; "name": name filter. */
+  mode: "material" | "name";
+  material: string | null;
   total: number;
   results: CraftableRow[];
 }
@@ -78,9 +82,10 @@ export interface NeedResult {
   est_output_quality: number | null;
 }
 
-export interface NeedResponse {
-  results: NeedResult[];
-}
+export type NeedResponse =
+  | { mode: "name"; results: NeedResult[] }
+  /** The term was a category/slot: the whole family, craftable first. */
+  | { mode: "category"; category: string; total: number; results: CraftableRow[] };
 
 export class BackendError extends Error {
   constructor(

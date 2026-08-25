@@ -12,8 +12,8 @@ All commands live under one root command:
 
 - `/starbuddy ping` — latency + backend health.
 - `/starbuddy whoami` — your StarBuddy registration status (ephemeral).
-- `/starbuddy craftable [search]` — what your org can craft right now, best output quality first (ephemeral).
-- `/starbuddy need <item>` — who holds the blueprint and the best materials for an item, and where (ephemeral).
+- `/starbuddy craftable [search]` — what your org can craft right now, best output quality first. Give a material you have (e.g. `lindinium`) to list only craftable recipes that consume it; anything else filters by recipe name (ephemeral).
+- `/starbuddy need <item>` — a category or slot (`shield`, `powerplant`, `undersuit`, `quantum drive`…) lists that whole family craftable-first; a name shows who holds the blueprint and the best materials, and where (ephemeral).
 - `/starbuddy stash` — placeholder for the ledger browser.
 - `/starbuddy org list|create|delete|manager` — org administration (requires Manage Server).
 

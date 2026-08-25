@@ -35,13 +35,23 @@ class BotController extends Controller
     public function craftable(\Illuminate\Http\Request $request, string $discordId)
     {
         $user = User::where('discord_id', $discordId)->firstOrFail();
-        $result = \App\Support\Craftability::evaluate($user, [
-            'search' => $request->query('search'),
-            'craftable' => true,
-        ]);
+        $search = trim((string) $request->query('search'));
         $limit = max(1, min(25, (int) $request->query('limit', 10)));
 
+        // A material name lists the craftable recipes that consume it;
+        // anything else filters recipes by name.
+        $material = $search !== ''
+            ? \App\Models\ResourceType::whereLike('name', $search, caseSensitive: false)->value('name')
+                ?? \App\Models\ResourceType::whereLike('name', "%{$search}%", caseSensitive: false)->orderByRaw('length(name)')->value('name')
+            : null;
+
+        $result = \App\Support\Craftability::evaluate($user, $material
+            ? ['material' => $material, 'craftable' => true]
+            : ['search' => $search ?: null, 'craftable' => true]);
+
         return [
+            'mode' => $material ? 'material' : 'name',
+            'material' => $material,
             'total' => count($result['results']),
             'results' => collect($result['results'])->take($limit)->values(),
         ];
@@ -57,6 +67,20 @@ class BotController extends Controller
         $q = trim((string) $request->query('q'));
         abort_if($q === '', 422, 'Missing query.');
 
+        // A category or slot ("shield", "powerplant", "undersuit") lists that
+        // whole family, craftable first; anything else is a name search.
+        $types = \App\Models\Blueprint::whereNotNull('ingredients')->whereNotNull('type')->distinct()->pluck('type');
+        if ($category = \App\Support\BlueprintKind::matchCategory($q, $types)) {
+            $result = \App\Support\Craftability::evaluate($user, ['types' => $category['types'], 'all' => true]);
+
+            return [
+                'mode' => 'category',
+                'category' => $category['label'],
+                'total' => count($result['results']),
+                'results' => collect($result['results'])->take(15)->values(),
+            ];
+        }
+
         $matches = \App\Models\Blueprint::whereNotNull('ingredients')
             ->whereLike('name', "%{$q}%", caseSensitive: false)
             ->orderByRaw('CASE WHEN lower(name) = lower(?) THEN 0 ELSE 1 END, name', [$q])
@@ -64,6 +88,7 @@ class BotController extends Controller
             ->get();
 
         return [
+            'mode' => 'name',
             'results' => $matches->map(fn ($bp) => \App\Support\Craftability::detail($user, $bp) + ['type_display' => \App\Support\BlueprintKind::label($bp)]),
         ];
     }
