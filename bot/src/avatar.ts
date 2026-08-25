@@ -9,7 +9,10 @@ import type { Client } from "discord.js";
  * couple per hour; a failure here is logged, never fatal.)
  */
 export async function ensureAvatar(client: Client<true>): Promise<void> {
-  if (client.user.avatar !== null) return;
+  if (client.user.avatar !== null) {
+    console.log("Bot avatar already set — keeping it.");
+    return;
+  }
   try {
     const png = await readFile(new URL("../assets/avatar.png", import.meta.url));
     await client.user.setAvatar(png);
