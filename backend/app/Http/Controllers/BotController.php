@@ -52,7 +52,7 @@ class BotController extends Controller
         return [
             'mode' => $material ? 'material' : 'name',
             'material' => $material,
-            'total' => count($result['results']),
+            'total' => $result['total'],
             'results' => collect($result['results'])->take($limit)->values(),
         ];
     }
@@ -76,7 +76,7 @@ class BotController extends Controller
             return [
                 'mode' => 'category',
                 'category' => $category['label'],
-                'total' => count($result['results']),
+                'total' => $result['total'],
                 'results' => collect($result['results'])->take(15)->values(),
             ];
         }

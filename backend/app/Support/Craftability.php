@@ -119,7 +119,7 @@ class Craftability
     /**
      * Evaluate every recipe the member's orgs own (or all, with `all`):
      * craftable now, coverage, missing materials, best output quality.
-     * Filters: search, type, types (list), grade, material (ingredient name), all, craftable.
+     * Filters: search, type, types (list), group (BlueprintKind group key), grade, material (ingredient name), all, craftable.
      */
     public static function evaluate(User $user, array $filters = []): array
     {
@@ -159,6 +159,8 @@ class Craftability
             ->when(($filters['search'] ?? null), fn ($q, $s) => $q->whereLike('name', "%{$s}%", caseSensitive: false))
             ->when(($filters['type'] ?? null), fn ($q, $t) => $q->where('type', $t))
             ->when(($filters['types'] ?? null), fn ($q, $ts) => $q->whereIn('type', $ts))
+            ->when(($filters['group'] ?? null), fn ($q, $g) => $q->whereIn('type',
+                Blueprint::whereNotNull('type')->distinct()->pluck('type')->filter(fn ($t) => BlueprintKind::group($t) === $g)->values()))
             // Recipes consuming a material: ingredients is JSON, match its text.
             ->when(($filters['material'] ?? null), fn ($q, $m) => $q->whereRaw('ingredients::text ILIKE ?', ['%"name":"%'.str_replace(['%', '_'], ['\\%', '\\_'], $m).'%"%']))
             ->when(($filters['grade'] ?? null), fn ($q, $g) => $q->where('grade', $g));
@@ -239,10 +241,11 @@ class Craftability
         }
 
         return [
-            'types' => Blueprint::whereNotNull('type')->distinct()->pluck('type')
-                ->map(fn ($type) => ['value' => $type, 'label' => \App\Support\BlueprintKind::typeLabel($type)])
-                ->sortBy('label')
-                ->values(),
+            // Grouped for the filter dropdown: vehicle components, character
+            // armor, … each with its member types.
+            'types' => BlueprintKind::groupedTypes(Blueprint::whereNotNull('type')->whereNotNull('ingredients')->distinct()->pluck('type')),
+            // Real count before the cap, so callers can say "…and N more".
+            'total' => $results->count(),
             'results' => $results
                 ->sortBy([['craftable', 'desc'], ['coverage', 'desc'], ['est_output_quality', 'desc']])
                 ->values()

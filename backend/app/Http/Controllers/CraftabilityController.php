@@ -269,6 +269,7 @@ class CraftabilityController extends Controller
         return \App\Support\Craftability::evaluate($request->user(), [
             'search' => $request->query('search'),
             'type' => $request->query('type'),
+            'group' => $request->query('group'),
             'grade' => $request->query('grade'),
             'all' => $request->boolean('all'),
             'craftable' => $request->boolean('craftable'),

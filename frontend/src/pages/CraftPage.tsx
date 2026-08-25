@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import type { TFunction } from 'i18next'
@@ -18,6 +18,7 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
+import TableSortLabel from '@mui/material/TableSortLabel'
 import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
@@ -46,7 +47,8 @@ interface CraftResult {
 }
 
 interface CraftabilityResponse {
-  types: { value: string; label: string }[]
+  // Grouped: a group row is selectable (all its types), members listed beneath.
+  types: { key: string; label: string; types: { value: string; label: string }[] }[]
   results: CraftResult[]
 }
 
@@ -96,6 +98,48 @@ export function CraftPage() {
   const [detailId, setDetailId] = useState<number | null>(null)
   const [page, setPage] = useState(0)
   const rowsPerPage = 50
+  // Column sort; 'relevance' is the engine's order (craftable, coverage, quality).
+  type SortField = 'relevance' | 'name' | 'type' | 'coverage' | 'quality'
+  const [sort, setSort] = useState<SortField>('relevance')
+  const [dir, setDir] = useState<'asc' | 'desc'>('asc')
+  const sortBy = (field: SortField) => {
+    if (sort === field) {
+      setDir(dir === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSort(field)
+      setDir(field === 'coverage' || field === 'quality' ? 'desc' : 'asc')
+    }
+    setPage(0)
+  }
+  const sorted = useMemo(() => {
+    const rows = data?.results ?? []
+    if (sort === 'relevance') return rows
+    const collator = new Intl.Collator(i18n.language)
+    const cmp = (a: CraftResult, b: CraftResult): number => {
+      switch (sort) {
+        case 'name':
+          return collator.compare(a.name, b.name)
+        case 'type':
+          return (
+            collator.compare(a.type_display ?? a.type ?? '', b.type_display ?? b.type ?? '') ||
+            collator.compare(a.grade ?? '', b.grade ?? '')
+          )
+        case 'coverage':
+          return a.coverage - b.coverage
+        case 'quality':
+          return (a.est_output_quality ?? -1) - (b.est_output_quality ?? -1)
+      }
+      return 0
+    }
+    return [...rows].sort((a, b) => (dir === 'asc' ? cmp(a, b) : cmp(b, a)))
+  }, [data, sort, dir, i18n.language])
+  const header = (label: string, field: SortField, align?: 'right') => (
+    <TableCell align={align} sortDirection={sort === field ? dir : false}>
+      <TableSortLabel active={sort === field} direction={sort === field ? dir : 'asc'} onClick={() => sortBy(field)}>
+        {label}
+      </TableSortLabel>
+    </TableCell>
+  )
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['craftability', search, type, craftableOnly, includeUnowned],
@@ -104,7 +148,8 @@ export function CraftPage() {
         await api.get<CraftabilityResponse>('/api/craftability', {
           params: {
             search: search || undefined,
-            type: type || undefined,
+            type: type && !type.startsWith('group:') ? type : undefined,
+            group: type.startsWith('group:') ? type.slice(6) : undefined,
             craftable: craftableOnly ? 1 : undefined,
             all: includeUnowned ? 1 : undefined,
           },
@@ -141,11 +186,20 @@ export function CraftPage() {
           sx={{ minWidth: 180 }}
         >
           <MenuItem value="">{t('craft.allTypes')}</MenuItem>
-          {(data?.types ?? []).map((opt) => (
-            <MenuItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </MenuItem>
-          ))}
+          {(data?.types ?? []).flatMap((group) => [
+            <MenuItem
+              key={`group:${group.key}`}
+              value={`group:${group.key}`}
+              sx={{ fontWeight: 700, color: 'primary.main', borderTop: 1, borderColor: 'divider', mt: 0.5 }}
+            >
+              {group.label}
+            </MenuItem>,
+            ...group.types.map((opt) => (
+              <MenuItem key={opt.value} value={opt.value} sx={{ pl: 4 }}>
+                {opt.label}
+              </MenuItem>
+            )),
+          ])}
         </TextField>
         <FormControlLabel
           control={<Switch checked={craftableOnly} onChange={(e) => setCraftableOnly(e.target.checked)} />}
@@ -171,16 +225,20 @@ export function CraftPage() {
           <Table size="small" aria-label={t('craft.tableAria')}>
             <TableHead>
               <TableRow>
-                <TableCell>{t('craft.colBlueprint')}</TableCell>
-                <TableCell>{t('craft.colTypeGrade')}</TableCell>
+                {header(t('craft.colBlueprint'), 'name')}
+                {header(t('craft.colTypeGrade'), 'type')}
                 <TableCell align="center">{t('craft.colHolders')}</TableCell>
-                <TableCell sx={{ minWidth: 160 }}>{t('craft.colMaterials')}</TableCell>
+                <TableCell sx={{ minWidth: 160 }} sortDirection={sort === 'coverage' ? dir : false}>
+                  <TableSortLabel active={sort === 'coverage'} direction={sort === 'coverage' ? dir : 'desc'} onClick={() => sortBy('coverage')}>
+                    {t('craft.colMaterials')}
+                  </TableSortLabel>
+                </TableCell>
                 <TableCell>{t('craft.colMissing')}</TableCell>
-                <TableCell align="right">{t('craft.colEstQuality')}</TableCell>
+                {header(t('craft.colEstQuality'), 'quality', 'right')}
               </TableRow>
             </TableHead>
             <TableBody>
-              {(data?.results ?? []).slice(page * rowsPerPage, (page + 1) * rowsPerPage).map((r) => (
+              {sorted.slice(page * rowsPerPage, (page + 1) * rowsPerPage).map((r) => (
                 <TableRow key={r.id} hover onClick={() => setDetailId(r.id)} sx={{ cursor: 'pointer' }}>
                   {/* Craftable-now reads as a thick primary edge, not a pill. */}
                   <TableCell

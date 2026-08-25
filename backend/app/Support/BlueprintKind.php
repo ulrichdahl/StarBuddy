@@ -27,6 +27,56 @@ class BlueprintKind
         'DockingCollar' => 'Docking Collar',
     ];
 
+    /** Type-code prefixes / codes → filter group. Order here is display order. */
+    private const GROUPS = [
+        'vehicle_components' => ['label' => 'Vehicle components', 'types' => ['PowerPlant', 'Cooler', 'Shield', 'QuantumDrive', 'Radar', 'DockingCollar', 'Cargo']],
+        'vehicle_weapons' => ['label' => 'Vehicle weapons & tools', 'types' => ['WeaponGun', 'WeaponMining', 'TractorBeam', 'SalvageHead', 'SalvageModifier']],
+        'character_armor' => ['label' => 'Character armor', 'prefix' => 'Char_Armor_'],
+        'character_clothing' => ['label' => 'Character clothing', 'prefix' => 'Char_Clothing_'],
+        'character_weapons' => ['label' => 'Character weapons', 'types' => ['WeaponPersonal', 'WeaponAttachment']],
+        'other' => ['label' => 'Other', 'types' => []],
+    ];
+
+    /** Group key for a type code ("PowerPlant" → "vehicle_components"). */
+    public static function group(?string $type): string
+    {
+        foreach (self::GROUPS as $key => $g) {
+            if (isset($g['prefix']) && $type !== null && str_starts_with($type, $g['prefix'])) {
+                return $key;
+            }
+            if (in_array($type, $g['types'] ?? [], true)) {
+                return $key;
+            }
+        }
+
+        return 'other';
+    }
+
+    public static function groupLabel(string $key): string
+    {
+        return self::GROUPS[$key]['label'] ?? Str::headline($key);
+    }
+
+    /**
+     * The type filter as groups: [{key, label, types: [{value, label}]}],
+     * groups in display order, types sorted by label; empty groups omitted.
+     */
+    public static function groupedTypes(iterable $types): array
+    {
+        $out = [];
+        foreach (self::GROUPS as $key => $g) {
+            $out[$key] = ['key' => $key, 'label' => $g['label'], 'types' => []];
+        }
+        foreach ($types as $type) {
+            $out[self::group($type)]['types'][] = ['value' => $type, 'label' => self::typeLabel($type)];
+        }
+        foreach ($out as &$g) {
+            usort($g['types'], fn ($a, $b) => strcmp($a['label'], $b['label']));
+        }
+
+        return array_values(array_filter($out, fn ($g) => $g['types'] !== []));
+    }
+
     public static function category(?string $type): ?string
     {
         if ($type === null) {
@@ -89,8 +139,22 @@ class BlueprintKind
 
             return ['label' => self::category($matched[0]) ?? $term, 'types' => $matched];
         }
+        if (isset($bySlot[$q])) {
+            return $bySlot[$q];
+        }
 
-        return $bySlot[$q] ?? null;
+        // Whole groups: "vehicle components" / "components", "character weapons" …
+        $all = is_array($types) ? $types : iterator_to_array($types);
+        foreach (self::GROUPS as $key => $g) {
+            $names = [$norm($g['label']), $norm($key), $norm(Str::after($g['label'], ' '))];
+            if (in_array($q, $names, true)) {
+                $members = array_values(array_filter($all, fn ($t) => self::group($t) === $key));
+
+                return $members ? ['label' => $g['label'], 'types' => $members] : null;
+            }
+        }
+
+        return null;
     }
 
     public static function kind(Blueprint $bp): ?string
