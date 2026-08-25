@@ -28,6 +28,7 @@ import PublicIcon from '@mui/icons-material/Public'
 import { api } from '../lib/api'
 import { PageHeader } from '../components/PageHeader'
 import { CraftDetailDialog } from '../components/CraftDetailDialog'
+import { COMPLETE_GREEN } from '../lib/rarity'
 
 interface CraftResult {
   id: number
@@ -42,6 +43,9 @@ interface CraftResult {
   is_default: boolean
   craftable: boolean
   coverage: number
+  // Share coverable from the viewer's own stacks (≤ coverage); the rest is org material.
+  coverage_own: number
+  size: number | null
   missing: { name: string; missing: number; unit: 'mscu' | 'pieces' }[]
   est_output_quality: number | null
 }
@@ -241,18 +245,11 @@ export function CraftPage() {
             <TableBody>
               {sorted.slice(page * rowsPerPage, (page + 1) * rowsPerPage).map((r) => (
                 <TableRow key={r.id} hover onClick={() => setDetailId(r.id)} sx={{ cursor: 'pointer' }}>
-                  {/* Craftable-now reads as a thick primary edge, not a pill. */}
-                  <TableCell
-                    sx={{
-                      borderLeft: 4,
-                      borderLeftColor: r.craftable ? 'primary.main' : 'transparent',
-                    }}
-                  >
-                    {r.name}
-                  </TableCell>
+                  <TableCell>{r.name}</TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
                       {r.type_display ?? [r.type, r.sub_type].filter(Boolean).join(' · ')}
+                      {r.size !== null ? ` · S${r.size}` : ''}
                       {r.grade ? ` · ${t('craft.grade', { grade: gradeLabel(r.grade) })}` : ''}
                     </Typography>
                   </TableCell>
@@ -292,13 +289,34 @@ export function CraftPage() {
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <LinearProgress
-                        variant="determinate"
-                        value={r.coverage * 100}
-                        color={r.craftable ? 'primary' : 'secondary'}
-                        sx={{ flex: 1, height: 6, borderRadius: 3 }}
-                      />
-                      <Typography variant="caption" sx={{ minWidth: 36, textAlign: 'right' }}>
+                      {/* Own material in green, org-mates' share in gold; dark gold = still missing. */}
+                      <Box
+                        sx={{
+                          flex: 1,
+                          height: 6,
+                          borderRadius: 3,
+                          overflow: 'hidden',
+                          display: 'flex',
+                          bgcolor: 'rgba(232, 180, 90, 0.22)',
+                        }}
+                      >
+                        <Box sx={{ width: `${Math.round(r.coverage_own * 100)}%`, bgcolor: COMPLETE_GREEN }} />
+                        <Box
+                          sx={{
+                            width: `${Math.round((r.coverage - r.coverage_own) * 100)}%`,
+                            bgcolor: 'secondary.main',
+                          }}
+                        />
+                      </Box>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          minWidth: 36,
+                          textAlign: 'right',
+                          fontVariantNumeric: 'tabular-nums',
+                          color: r.coverage >= 1 ? COMPLETE_GREEN : undefined,
+                        }}
+                      >
                         {Math.round(r.coverage * 100)}%
                       </Typography>
                     </Box>

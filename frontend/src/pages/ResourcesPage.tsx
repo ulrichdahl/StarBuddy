@@ -33,6 +33,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import DiamondIcon from '@mui/icons-material/Diamond'
 import EditIcon from '@mui/icons-material/Edit'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
+import { qualityColor, rarityColor as resourceRarityColor } from '../lib/rarity'
 import { api, unwrapList } from '../lib/api'
 import type { Location, ResourceStack, Visibility } from '../lib/types'
 import { usePaginatedList } from '../lib/usePaginatedList'
@@ -40,30 +41,8 @@ import { PageHeader } from '../components/PageHeader'
 import { ResourceEntryForm } from '../components/ResourceEntryForm'
 
 /** Desaturated WoW ladder, shared by both rarity axes. */
-const TIER_COLORS = {
-  poor: '#8f8f8f',
-  common: '#c9d1d9',
-  uncommon: '#58a862',
-  rare: '#4f8fce',
-  epic: '#9a6bc9',
-  legendary: '#c98a3d',
-} as const
 
 /** Quality value → tier color (per-stack quality axis). */
-function qualityColor(quality: number | null): string {
-  if (quality === null) return 'transparent'
-  if (quality >= 900) return TIER_COLORS.legendary
-  if (quality >= 800) return TIER_COLORS.epic
-  if (quality >= 700) return TIER_COLORS.rare
-  if (quality >= 600) return TIER_COLORS.uncommon
-  if (quality >= 400) return TIER_COLORS.common
-  return TIER_COLORS.poor
-}
-
-/** Resource rarity (spawn-rate derived) → tier color (row border axis). */
-function resourceRarityColor(rarity: string | null | undefined): string {
-  return TIER_COLORS[rarity as keyof typeof TIER_COLORS] ?? 'transparent'
-}
 
 function CategoryIcon({ category }: { category: string }) {
   return category === 'gem' ? (

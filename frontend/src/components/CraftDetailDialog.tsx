@@ -27,6 +27,7 @@ import Typography from '@mui/material/Typography'
 import { api } from '../lib/api'
 import { gradeLabel } from '../pages/CraftPage'
 import { ProductStats } from './ProductStats'
+import { qualityColor as qualityTierColor } from '../lib/rarity'
 
 interface Holding {
   id: number
@@ -86,14 +87,6 @@ interface CraftDetail {
   est_stat_modifier_percent: number | null
 }
 
-function qualityTierColor(q: number): string {
-  if (q >= 900) return '#c98a3d'
-  if (q >= 800) return '#9a6bc9'
-  if (q >= 700) return '#4f8fce'
-  if (q >= 600) return '#58a862'
-  if (q >= 400) return '#c9d1d9'
-  return '#8f8f8f'
-}
 
 function amount(value: number, unit: 'mscu' | 'pieces', t: TFunction, locale: string): string {
   return unit === 'mscu'
