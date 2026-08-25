@@ -112,15 +112,35 @@ interface CraftResultResponse {
 }
 
 type Selection = Record<string, Set<number>>
+type QualityPref = 'low' | 'mid' | 'high'
+const LIST_STEP = 5
 
-/** Pick the best-quality stacks per ingredient until the need is covered. */
-function defaultSelection(ingredients: IngredientDetail[], qty: number): Selection {
+/** Order holdings by the member's quality preference for this material. */
+function sortHoldings(holdings: Holding[], pref: QualityPref): Holding[] {
+  const sorted = [...holdings]
+  if (pref === 'low') {
+    sorted.sort((a, b) => a.quality - b.quality)
+  } else if (pref === 'mid') {
+    const qs = holdings.map((h) => h.quality)
+    const mid = (Math.min(...qs) + Math.max(...qs)) / 2
+    sorted.sort((a, b) => Math.abs(a.quality - mid) - Math.abs(b.quality - mid))
+  } else {
+    sorted.sort((a, b) => b.quality - a.quality)
+  }
+  return sorted
+}
+
+/** Pick stacks per ingredient, in preference order, until the need is covered. */
+function defaultSelection(
+  ingredients: IngredientDetail[],
+  qty: number,
+  prefs: Record<string, QualityPref>,
+): Selection {
   const sel: Selection = {}
   for (const ing of ingredients) {
     const picked = new Set<number>()
     let left = ing.need * qty
-    for (const h of ing.holdings) {
-      // already sorted best quality first
+    for (const h of sortHoldings(ing.holdings, prefs[ing.name] ?? 'high')) {
       if (left <= 0) break
       picked.add(h.id)
       left -= h.quantity
@@ -185,16 +205,27 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
   const [useType, setUseType] = useState<'personal' | 'org'>('personal')
   const [ownedId, setOwnedId] = useState<number | null>(null)
   const [selection, setSelection] = useState<Selection>({})
+  const [prefs, setPrefs] = useState<Record<string, QualityPref>>({})
+  const [visible, setVisible] = useState<Record<string, number>>({})
 
-  // Re-plan defaults whenever the data or the craft count changes.
+  // Re-plan defaults whenever the data, craft count, or a quality
+  // preference changes; the lists grow to show everything pre-selected.
   useEffect(() => {
     if (!data) return
-    setSelection(defaultSelection(data.ingredients, qty))
+    const sel = defaultSelection(data.ingredients, qty, prefs)
+    setSelection(sel)
+    setVisible((prev) => {
+      const next = { ...prev }
+      for (const ing of data.ingredients) {
+        next[ing.name] = Math.max(prev[ing.name] ?? LIST_STEP, sel[ing.name]?.size ?? 0, LIST_STEP)
+      }
+      return next
+    })
     setOwnedId((prev) => {
       if (prev !== null && data.owners.some((o) => o.id === prev)) return prev
       return (data.owners.find((o) => o.mine) ?? data.owners[0])?.id ?? null
     })
-  }, [data, qty])
+  }, [data, qty, prefs])
 
   const plan = useMemo(
     () => (data ? planCraft(data.ingredients, selection, qty) : null),
@@ -348,74 +379,106 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
               )}
             </Stack>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-              Tick the stacks the craft should draw from — the best qualities are pre-selected. Amounts
-              beyond what is needed stay untouched.
+              Tick the stacks the craft should draw from — pre-selected per material by the quality
+              preference. Amounts beyond what is needed stay untouched.
             </Typography>
 
             <Stack spacing={2}>
               {(data?.ingredients ?? []).map((ing) => {
                 const p = plan.perIngredient[ing.name]
                 const chosen = selection[ing.name] ?? new Set()
+                const pref = prefs[ing.name] ?? 'high'
+                const rows = sortHoldings(ing.holdings, pref)
+                const shown = visible[ing.name] ?? LIST_STEP
+                const hidden = Math.max(0, rows.length - shown)
                 return (
                   <Box key={ing.name}>
-                    <Stack direction="row" spacing={1} sx={{ mb: 0.5, alignItems: 'baseline' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5, flexWrap: 'wrap' }}>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {ing.name}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: p?.covered ? 'primary.main' : 'error.main' }}>
+                      {ing.holdings.length > 1 && (
+                        <ToggleButtonGroup
+                          size="small"
+                          exclusive
+                          value={pref}
+                          onChange={(_, v) => v && setPrefs((prev) => ({ ...prev, [ing.name]: v }))}
+                          sx={{ '& .MuiToggleButton-root': { py: 0, px: 1, fontSize: 11 } }}
+                        >
+                          <ToggleButton value="low">Low</ToggleButton>
+                          <ToggleButton value="mid">Mid</ToggleButton>
+                          <ToggleButton value="high">High</ToggleButton>
+                        </ToggleButtonGroup>
+                      )}
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          ml: 'auto',
+                          fontVariantNumeric: 'tabular-nums',
+                          color: p?.covered ? 'primary.main' : 'error.main',
+                        }}
+                      >
                         {amount(p?.selected ?? 0, ing.unit)} selected of {amount(p?.need ?? 0, ing.unit)} needed
                       </Typography>
-                      {p?.covered ? (
-                        <Chip size="small" label="Covered" color="primary" variant="outlined" />
-                      ) : (
-                        <Chip size="small" label="Not enough selected" color="error" variant="outlined" />
-                      )}
-                    </Stack>
-                    {ing.holdings.length > 0 ? (
-                      <Table size="small">
-                        <TableHead>
-                          <TableRow>
-                            <TableCell padding="checkbox">Use</TableCell>
-                            <TableCell>Member</TableCell>
-                            <TableCell>Location</TableCell>
-                            <TableCell align="right">Quality</TableCell>
-                            <TableCell align="right">Quantity</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {ing.holdings.map((h) => (
-                            <TableRow
-                              key={h.id}
-                              hover
-                              onClick={() => toggleStack(ing.name, h.id)}
-                              sx={{ cursor: 'pointer' }}
-                              selected={chosen.has(h.id)}
-                            >
-                              <TableCell padding="checkbox">
-                                <Checkbox size="small" checked={chosen.has(h.id)} />
-                              </TableCell>
-                              <TableCell>
-                                {h.member}
-                                {h.mine && (
-                                  <Typography component="span" variant="caption" color="primary.main" sx={{ ml: 0.5 }}>
-                                    (you)
-                                  </Typography>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {h.location}
-                                {h.system && (
-                                  <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
-                                    ({h.system})
-                                  </Typography>
-                                )}
-                              </TableCell>
-                              <TableCell align="right">{h.quality}</TableCell>
-                              <TableCell align="right">{amount(h.quantity, ing.unit)}</TableCell>
+                    </Box>
+                    {rows.length > 0 ? (
+                      <>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              <TableCell padding="checkbox">Use</TableCell>
+                              <TableCell>Member</TableCell>
+                              <TableCell>Location</TableCell>
+                              <TableCell align="right">Quality</TableCell>
+                              <TableCell align="right">Quantity</TableCell>
                             </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                          </TableHead>
+                          <TableBody>
+                            {rows.slice(0, shown).map((h) => (
+                              <TableRow
+                                key={h.id}
+                                hover
+                                onClick={() => toggleStack(ing.name, h.id)}
+                                sx={{ cursor: 'pointer' }}
+                                selected={chosen.has(h.id)}
+                              >
+                                <TableCell padding="checkbox">
+                                  <Checkbox size="small" checked={chosen.has(h.id)} />
+                                </TableCell>
+                                <TableCell>
+                                  {h.member}
+                                  {h.mine && (
+                                    <Typography component="span" variant="caption" color="primary.main" sx={{ ml: 0.5 }}>
+                                      (you)
+                                    </Typography>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {h.location}
+                                  {h.system && (
+                                    <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                                      ({h.system})
+                                    </Typography>
+                                  )}
+                                </TableCell>
+                                <TableCell align="right">{h.quality}</TableCell>
+                                <TableCell align="right">{amount(h.quantity, ing.unit)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                        {hidden > 0 && (
+                          <Button
+                            size="small"
+                            sx={{ mt: 0.5 }}
+                            onClick={() =>
+                              setVisible((prev) => ({ ...prev, [ing.name]: shown + LIST_STEP }))
+                            }
+                          >
+                            Show {Math.min(LIST_STEP, hidden)} more ({hidden} hidden)
+                          </Button>
+                        )}
+                      </>
                     ) : (
                       <Typography variant="caption" color="text.secondary">
                         Nobody has any — this is the missing piece.

@@ -31,7 +31,7 @@ const DRAWER_WIDTH = 232
 const NAV_ITEMS = [
   { label: 'Dashboard', to: '/', icon: <DashboardIcon /> },
   { label: 'Craft', to: '/craft', icon: <BuildIcon /> },
-  { label: 'Resources', to: '/resources', icon: <DiamondIcon /> },
+  { label: 'Materials', to: '/resources', icon: <DiamondIcon /> },
   { label: 'Items', to: '/items', icon: <Inventory2Icon /> },
   { label: 'Blueprints', to: '/blueprints', icon: <SchemaIcon /> },
   { label: 'Refinery', to: '/refinery', icon: <FactoryIcon /> },

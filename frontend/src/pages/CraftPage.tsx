@@ -144,11 +144,14 @@ export function CraftPage() {
             <TableBody>
               {(data?.results ?? []).slice(page * rowsPerPage, (page + 1) * rowsPerPage).map((r) => (
                 <TableRow key={r.id} hover onClick={() => setDetailId(r.id)} sx={{ cursor: 'pointer' }}>
-                  <TableCell>
+                  {/* Craftable-now reads as a thick primary edge, not a pill. */}
+                  <TableCell
+                    sx={{
+                      borderLeft: 4,
+                      borderLeftColor: r.craftable ? 'primary.main' : 'transparent',
+                    }}
+                  >
                     {r.name}
-                    {r.craftable && (
-                      <Chip label="Craftable" color="primary" size="small" variant="outlined" sx={{ ml: 1 }} />
-                    )}
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">

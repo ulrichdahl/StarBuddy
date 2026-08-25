@@ -146,7 +146,7 @@ export function ResourceEntryForm() {
             <TextField
               {...params}
               inputRef={resourceInputRef}
-              label="Resource"
+              label="Material"
               autoFocus
               required
               placeholder="Search refined materials and gems…"

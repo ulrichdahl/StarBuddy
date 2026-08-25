@@ -234,11 +234,11 @@ export function ResourcesPage() {
 
   return (
     <Box>
-      <PageHeader title="Resources" subtitle="Raw and refined resource stacks across your locations" />
+      <PageHeader title="Materials" subtitle="Raw and refined material stacks across your locations" />
       <Paper sx={{ p: 1.5, mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
         <TextField
           size="small"
-          label="Search resource"
+          label="Search material"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{ minWidth: 180 }}
@@ -295,12 +295,12 @@ export function ResourcesPage() {
       >
         <Paper>
           {isLoading && <LinearProgress />}
-          {isError && <Alert severity="error">Failed to load resource stacks.</Alert>}
+          {isError && <Alert severity="error">Failed to load material stacks.</Alert>}
           <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table size="small" aria-label="Resource stacks">
+            <Table size="small" aria-label="Material stacks">
               <TableHead>
                 <TableRow>
-                  {header('Resource', 'resource')}
+                  {header('Material', 'resource')}
                   <TableCell align="center" sx={{ width: 40 }} aria-label="Category" />
                   {header('Quality', 'quality', 'right')}
                   {header('Quantity', 'quantity', 'right')}

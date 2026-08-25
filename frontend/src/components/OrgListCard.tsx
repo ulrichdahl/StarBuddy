@@ -67,7 +67,7 @@ export function OrgListCard({ me }: { me: Me }) {
         <Typography variant="h6">Organizations</Typography>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        Join an org to pool resources, items and blueprints with your org mates.
+        Join an org to pool materials, items and blueprints with your org mates.
       </Typography>
 
       {orgsQuery.isLoading && (

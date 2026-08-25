@@ -59,7 +59,7 @@ export function ItemsPage() {
           {isError && <Alert severity="error">Failed to load item stacks.</Alert>}
           {undo.isSuccess && (
             <Alert severity="info" onClose={() => undo.reset()}>
-              Craft undone — the materials are back in the resource ledger and the blueprint use was
+              Craft undone — the materials are back in the materials ledger and the blueprint use was
               rolled back.
             </Alert>
           )}

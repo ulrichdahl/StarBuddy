@@ -69,7 +69,7 @@ export function DashboardPage({ me }: { me: Me }) {
         }}
       >
         <StatCard
-          label="Total resources"
+          label="Total materials"
           value={data?.total_resources_scu}
           unit="SCU"
           icon={<DiamondIcon fontSize="large" />}
