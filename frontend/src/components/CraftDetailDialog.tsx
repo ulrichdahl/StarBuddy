@@ -326,7 +326,6 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
               />
               <ToggleButtonGroup
                 size="small"
-                color="primary"
                 exclusive
                 value={useType}
                 onChange={(_, v) => v && setUseType(v)}

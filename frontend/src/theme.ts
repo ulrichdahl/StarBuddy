@@ -34,6 +34,10 @@ export const theme = createTheme({
     button: { textTransform: 'none', fontWeight: 600 },
   },
   components: {
+    // Active toggle selections read in the primary blue everywhere.
+    MuiToggleButtonGroup: {
+      defaultProps: { color: 'primary' },
+    },
     MuiPaper: {
       defaultProps: { elevation: 0 },
       styleOverrides: {
