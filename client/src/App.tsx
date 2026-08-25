@@ -145,8 +145,13 @@ function App() {
 
   return (
     <main className="container">
-      <h1>StarBuddy</h1>
-      <p className="tagline">Game.log watcher — P1 scaffold</p>
+      <div className="brand">
+        <img src="/logo.svg" alt="" aria-hidden width="40" height="40" />
+        <div>
+          <h1>StarBuddy</h1>
+          <p className="tagline">Game.log watcher</p>
+        </div>
+      </div>
 
       <section className="panel">
         <h2>Server</h2>
@@ -326,6 +331,24 @@ function App() {
           {syncError && <p className="error">{syncError}</p>}
         </section>
       )}
+
+      <footer className="fansite">
+        <a href="https://robertsspaceindustries.com/" target="_blank" rel="noopener" aria-label="Star Citizen — Made by the Community">
+          <img src="/made-by-the-community.svg" alt="Star Citizen — Made by the Community" width="64" height="64" />
+        </a>
+        <div>
+          <p>
+            This is an unofficial Star Citizen fan application, not affiliated with the Cloud
+            Imperium group of companies. All content not authored by its host or users is property
+            of its respective owners.{" "}
+            <a href="https://robertsspaceindustries.com/" target="_blank" rel="noopener">robertsspaceindustries.com</a>
+          </p>
+          <p className="hint">
+            Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of
+            Cloud Imperium Rights LLC. StarBuddy is free software (AGPL-3.0).
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }

@@ -135,3 +135,37 @@ th {
   color: var(--muted);
   font-size: 13px;
 }
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fansite {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.fansite img {
+  display: block;
+  opacity: 0.85;
+}
+
+.fansite a:hover img {
+  opacity: 1;
+}
+
+.fansite p {
+  margin: 0 0 4px;
+}
+
+.fansite a {
+  color: var(--accent);
+}

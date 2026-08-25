@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#16222E"/>
+      <stop offset="1" stop-color="#0A0F15"/>
+    </linearGradient>
+    <linearGradient id="star" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9BE4F0"/>
+      <stop offset="1" stop-color="#3FB2C8"/>
+    </linearGradient>
+    <linearGradient id="buddy" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F5D28A"/>
+      <stop offset="1" stop-color="#D99A3A"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.44" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#5BC8DB" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#5BC8DB" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#bg)"/>
+  <rect x="24" y="24" width="976" height="976" rx="208" fill="none" stroke="#5BC8DB" stroke-opacity="0.18" stroke-width="6"/>
+  <rect width="1024" height="1024" rx="224" fill="url(#glow)"/>
+  <g transform="translate(128 128) scale(3)">
+    <path d="M 44 176 A 92 92 0 0 1 176 44" fill="none" stroke="#5BC8DB" stroke-opacity="0.45" stroke-width="6" stroke-linecap="round"/>
+    <path d="M 196 60 A 92 92 0 0 1 212 108" fill="none" stroke="#5BC8DB" stroke-opacity="0.25" stroke-width="6" stroke-linecap="round"/>
+    <path d="M112 28 Q120 118 202 128 Q120 138 112 228 Q104 138 22 128 Q104 118 112 28 Z" fill="url(#star)"/>
+    <path d="M190 148 Q193 185 232 190 Q193 195 190 232 Q187 195 148 190 Q187 185 190 148 Z" fill="url(#buddy)"/>
+  </g>
+</svg>

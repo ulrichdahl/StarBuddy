@@ -76,4 +76,6 @@ StarBuddy never injects into the game, reads game memory, automates inputs, or s
 
 [AGPL-3.0-or-later](LICENSE). You are free to run, study, modify, and share this software — but if you host a modified version, you must make your modified source available to its users.
 
-Not affiliated with Cloud Imperium Games. Star Citizen® is a registered trademark of Cloud Imperium Rights LLC.
+## Fan project notice
+
+This is an unofficial Star Citizen fan project, not affiliated with the Cloud Imperium group of companies. All content not authored by its host or users is property of its respective owners. Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. The "Made by the Community" logo is used under the [Star Citizen Fan Kit](https://robertsspaceindustries.com/fankit) terms — it may only be resized, never altered. Official site: <https://robertsspaceindustries.com/>.

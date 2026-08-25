@@ -25,6 +25,8 @@ import FactoryIcon from '@mui/icons-material/Factory'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import type { Me } from '../lib/types'
+import { BrandMark } from './BrandMark'
+import { FanSiteFooter } from './FanSiteFooter'
 
 const DRAWER_WIDTH = 232
 
@@ -56,9 +58,7 @@ export function AppShell({ me }: AppShellProps) {
   const drawerContent = (
     <Box role="navigation" aria-label="Main navigation">
       <Toolbar>
-        <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 700 }}>
-          StarBuddy
-        </Typography>
+        <BrandMark />
       </Toolbar>
       <List>
         {NAV_ITEMS.map((item) => (
@@ -96,9 +96,9 @@ export function AppShell({ me }: AppShellProps) {
               <MenuIcon />
             </IconButton>
           )}
-          <Typography variant="h6" component="h1" sx={{ flexGrow: 1, color: 'primary.main' }}>
-            StarBuddy
-          </Typography>
+          <Box component="h1" sx={{ flexGrow: 1, m: 0, display: 'flex', alignItems: 'center' }}>
+            <BrandMark wordmark={!isDesktop} />
+          </Box>
           <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
             {me.handle ?? me.discord_username}
           </Typography>
@@ -137,9 +137,15 @@ export function AppShell({ me }: AppShellProps) {
         </Drawer>
       )}
 
-      <Box component="main" sx={{ flexGrow: 1, p: { xs: 2, md: 3 }, minWidth: 0 }}>
+      <Box
+        component="main"
+        sx={{ flexGrow: 1, p: { xs: 2, md: 3 }, minWidth: 0, display: 'flex', flexDirection: 'column' }}
+      >
         <Toolbar />
-        <Outlet />
+        <Box sx={{ flex: 1 }}>
+          <Outlet />
+        </Box>
+        <FanSiteFooter />
       </Box>
     </Box>
   )
