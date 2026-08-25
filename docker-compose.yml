@@ -17,6 +17,7 @@ name: starmaker
 #   docker compose up -d --build
 #   docker compose exec app php artisan migrate --seed --force
 #   docker compose exec app php artisan starbuddy:sync-blueprints
+#   docker compose exec app php artisan starbuddy:sync-items
 #   docker compose exec app php artisan starbuddy:sync-resource-types
 #   docker compose exec app php artisan starbuddy:sync-locations
 #   docker compose exec app php artisan starbuddy:sync-quality-bands

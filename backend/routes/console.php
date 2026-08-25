@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Schedule;
 
 // Keep the recipe database current; game patches change blueprints.
 Schedule::command('starbuddy:sync-blueprints')->dailyAt('05:00');
+Schedule::command('starbuddy:sync-items')->dailyAt('05:10');
 Schedule::command('starbuddy:sync-resource-types')->dailyAt('05:15');
 Schedule::command('starbuddy:sync-locations')->dailyAt('05:30');
 Schedule::command('starbuddy:sync-quality-bands')->dailyAt('05:40');

@@ -118,6 +118,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 alias sm='docker compose -f docker-compose.yml -f docker-compose.prod.yml'
 sm exec app php artisan migrate --seed --force
 sm exec app php artisan starbuddy:sync-blueprints
+sm exec app php artisan starbuddy:sync-items          # item classes/stats, ~1 min
 sm exec app php artisan starbuddy:sync-resource-types
 sm exec app php artisan starbuddy:sync-locations
 sm exec app php artisan starbuddy:sync-quality-bands

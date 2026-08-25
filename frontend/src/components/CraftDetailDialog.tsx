@@ -66,6 +66,7 @@ interface CraftDetail {
     description: string | null
     image_url: string | null
     manufacturer: string | null
+    type_display: string | null
     item_meta: {
       mass?: number
       size?: number
@@ -285,7 +286,9 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
             {bp.name}
             <Stack direction="row" spacing={1} sx={{ mt: 0.5, flexWrap: 'wrap' }}>
               {bp.manufacturer && <Chip size="small" label={bp.manufacturer} variant="outlined" />}
-              {bp.type && <Chip size="small" label={bp.sub_type ? `${bp.type} · ${bp.sub_type}` : bp.type} variant="outlined" />}
+              {(bp.type_display ?? bp.type) && (
+                <Chip size="small" label={bp.type_display ?? bp.type} variant="outlined" />
+              )}
               {bp.grade && <Chip size="small" label={`Grade ${gradeLabel(bp.grade)}`} variant="outlined" />}
               {bp.item_meta?.size !== undefined && <Chip size="small" label={`Size ${bp.item_meta.size}`} variant="outlined" />}
               {craftTime(bp.craft_time_seconds) && (

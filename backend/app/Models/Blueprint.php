@@ -11,6 +11,7 @@ class Blueprint extends Model
         'uuid', 'key', 'type', 'sub_type', 'grade', 'is_default',
         'craft_time_seconds', 'ingredients', 'dismantle_returns',
         'description', 'image_url', 'manufacturer', 'item_meta',
+        'item_uuid', 'type_label', 'sub_type_label', 'classification', 'component_class',
     ];
 
     protected function casts(): array

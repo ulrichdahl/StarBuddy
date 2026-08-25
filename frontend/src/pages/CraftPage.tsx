@@ -32,6 +32,7 @@ interface CraftResult {
   type: string | null
   sub_type: string | null
   grade: string | null
+  type_display: string | null
   owner_count: number
   owned_by_me: boolean
   is_default: boolean
@@ -42,7 +43,7 @@ interface CraftResult {
 }
 
 interface CraftabilityResponse {
-  types: string[]
+  types: { value: string; label: string }[]
   results: CraftResult[]
 }
 
@@ -112,8 +113,8 @@ export function CraftPage() {
         >
           <MenuItem value="">All types</MenuItem>
           {(data?.types ?? []).map((t) => (
-            <MenuItem key={t} value={t}>
-              {t}
+            <MenuItem key={t.value} value={t.value}>
+              {t.label}
             </MenuItem>
           ))}
         </TextField>
@@ -155,7 +156,7 @@ export function CraftPage() {
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {[r.type, r.sub_type].filter(Boolean).join(' · ')}
+                      {r.type_display ?? [r.type, r.sub_type].filter(Boolean).join(' · ')}
                       {r.grade ? ` · Grade ${gradeLabel(r.grade)}` : ''}
                     </Typography>
                   </TableCell>

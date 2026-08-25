@@ -58,6 +58,8 @@ class SyncBlueprints extends Command
                             ?? 'Unknown blueprint',
                         'key' => $bp['key'] ?? null,
                         'item_class' => $bp['output_class'] ?? null,
+                        'item_uuid' => $bp['output_item_uuid'] ?? null,
+                        'type_label' => $bp['output']['type_label'] ?? null,
                         'type' => $bp['output']['type'] ?? null,
                         'sub_type' => $bp['output']['sub_type'] ?? null,
                         'grade' => $bp['output']['grade'] ?? null,
