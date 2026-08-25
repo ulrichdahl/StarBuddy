@@ -1,6 +1,6 @@
 [package]
 name = "starmaker-client"
-version = "0.1.1"
+version = "0.1.2"
 description = "StarBuddy desktop client — Star Citizen Game.log watcher and org ledger companion"
 authors = ["Ulrich Dahl <ulrich.dahl@gmail.com>"]
 license = "AGPL-3.0-or-later"
