@@ -291,7 +291,7 @@
 <div class="wrap">
 
 <header class="masthead">
-  <p class="eyebrow">Project Specification · Draft 0.4 · v0.1.2 in production</p>
+  <p class="eyebrow">Project Specification · Draft 0.5 · P2 complete</p>
   <h1>StarBuddy <span class="thin">/ Org Forge Ledger</span></h1>
   <p class="subtitle">A cross-platform companion tool that gives a Star Citizen org one shared answer to three questions: what resources do we hold, who can craft what, and what should we craft next.</p>
   <div class="meta">
@@ -426,14 +426,14 @@
       <p>Keyboard-first flow: autocomplete resource → type the exact quality number off the crate label (known values for that resource offered as one-key chips) → amount in crates (0.001 SCU steps) or pieces for raw/gems → storage location. The form is sticky: location, visibility, and last quality carry over to the next line, so bulk-entering a hangar full of containers means changing only what differs. Target: under 5 seconds per line. Refinery-completion events pop a pre-filled "what was in this order?" prompt.</p></div>
     <div class="card"><h4><span class="fid">F3</span> Org ledger <span class="pill good">shipped</span></h4>
       <p>Per-member, per-location stashes of resources (exact quality), general items (no quality — crafted items and their buffs come later), blueprints, and pending refinery orders. Everything is <strong>private by default</strong>; members opt stashes into org visibility. Transfer + consumption bookkeeping.</p></div>
-    <div class="card"><h4><span class="fid">F4</span> Blueprint coverage matrix <span class="pill warn">partial</span></h4>
-      <p>Shipped as the craft list (holders count, "you have it") plus the modal's holder list with per-copy personal/org use counts; the full member × blueprint grid view is still to come. Answers "who can craft X" instantly; highlights coverage gaps worth grinding for. Log import only reaches as far back as logbackups on disk, so members can also mark blueprints owned manually — starter-set blueprints and pre-install acquisitions come in this way.</p></div>
+    <div class="card"><h4><span class="fid">F4</span> Blueprint coverage matrix <span class="pill good">shipped</span></h4>
+      <p>Shipped as the craft list (holders count, "you have it"), the modal's holder list with per-copy personal/org use counts, and the member × blueprint matrix view on the Blueprints page. Answers "who can craft X" instantly; highlights coverage gaps worth grinding for. Log import only reaches as far back as logbackups on disk, so members can also mark blueprints owned manually — starter-set blueprints and pre-install acquisitions come in this way.</p></div>
     <div class="card"><h4><span class="fid">F5</span> Craftability engine <span class="pill good">shipped</span></h4>
       <p>Joins ledger × recipes: everything craftable right now (with best achievable output quality), then nearest-misses ranked by least missing material. Filters on blueprint tags: type, resource, grade, size, tier.</p></div>
-    <div class="card"><h4><span class="fid">F6</span> Need-driven search <span class="pill warn">partial</span></h4>
-      <p>Search for an item → blueprint holders + best-quality ingredient sources across the org, with locations and the quality math for expected output stats. The craft modal answers this today for any recipe; a dedicated search entry point and the bot's <code>/starbuddy need</code> are pending.</p></div>
-    <div class="card"><h4><span class="fid">F7</span> Discord integration <span class="pill warn">partial</span></h4>
-      <p>Discord OAuth is the only login; org membership via guild roles. Bot slash commands, all under one <code>/starbuddy</code> root (<code>/starbuddy stash</code>, <code>/starbuddy blueprint have</code>, <code>/starbuddy craftable</code>, <code>/starbuddy need</code>) and channel notifications for refinery completions and transfers.</p></div>
+    <div class="card"><h4><span class="fid">F6</span> Need-driven search <span class="pill good">shipped</span></h4>
+      <p>Search for an item → blueprint holders + best-quality ingredient sources across the org, with locations and the quality math for expected output stats. Entry points: the "Find an item" search in the top bar (lands on the craft list with unowned recipes included), the craft modal, and <code>/starbuddy need</code> in Discord.</p></div>
+    <div class="card"><h4><span class="fid">F7</span> Discord integration <span class="pill good">shipped</span></h4>
+      <p>Discord OAuth is the only login; org membership via guild roles. Bot slash commands, all under one <code>/starbuddy</code> root (<code>/starbuddy craftable</code>, <code>/starbuddy need</code>, <code>/starbuddy whoami</code>, <code>/starbuddy org …</code>; <code>/starbuddy stash</code> is still a placeholder) and channel notifications for refinery completions (transfers later). Replies follow the member's language.</p></div>
     <div class="card"><h4><span class="fid">F8</span> OCR capture <span class="pill info">P3</span></h4>
       <p>Opt-in screenshot capture of refinery and inventory screens. Local PaddleOCR (ONNX) + fuzzy matching against the known resource vocabulary — the proven, open-source Regolith recipe. User confirms parsed values before sync. Strictly local: screenshots never leave the player's machine.</p></div>
     <div class="card"><h4><span class="fid">F9</span> Overlay <span class="pill info">P4</span></h4>
@@ -590,10 +590,10 @@
   <div class="phase">
     <div class="pnum">P2<small>Brain</small></div>
     <div>
-      <h4>Craftability engine + bot <span class="pill warn">mostly done · v0.1.2</span></h4>
+      <h4>Craftability engine + bot <span class="pill good">done · v0.1.4</span></h4>
       <ul>
-        <li>Done: recipe and item-classification sync from the Wiki API; craft-now and nearest-miss lists with filters; craft modal with product stats, stack selection, batch crafts, blueprint uses and undo; org administration via <code>/starbuddy org</code>; localized bot replies.</li>
-        <li>Open: <code>/starbuddy craftable</code> and <code>/starbuddy need</code>, refinery-completion channel notifications, a dedicated need-driven search page, the member × blueprint matrix view.</li>
+        <li>Recipe and item-classification sync from the Wiki API; craft-now and nearest-miss lists with filters; craft modal with product stats, stack selection, batch crafts, blueprint uses and undo; org administration via <code>/starbuddy org</code>; localized bot replies.</li>
+        <li><code>/starbuddy craftable</code> and <code>/starbuddy need</code> on a shared craftability service; refinery-completion pings to a configurable channel (live events only); "Find an item" search in the top bar; member × blueprint matrix view.</li>
       </ul>
     </div>
   </div>

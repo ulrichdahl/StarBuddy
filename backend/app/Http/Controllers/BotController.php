@@ -28,6 +28,46 @@ class BotController extends Controller
         ];
     }
 
+    /**
+     * What the member's orgs can craft right now, best first — for
+     * /starbuddy craftable. 404 when the Discord user isn't registered.
+     */
+    public function craftable(\Illuminate\Http\Request $request, string $discordId)
+    {
+        $user = User::where('discord_id', $discordId)->firstOrFail();
+        $result = \App\Support\Craftability::evaluate($user, [
+            'search' => $request->query('search'),
+            'craftable' => true,
+        ]);
+        $limit = max(1, min(25, (int) $request->query('limit', 10)));
+
+        return [
+            'total' => count($result['results']),
+            'results' => collect($result['results'])->take($limit)->values(),
+        ];
+    }
+
+    /**
+     * Need-driven search for /starbuddy need: recipes matching the query
+     * with blueprint holders and best material sources.
+     */
+    public function need(\Illuminate\Http\Request $request, string $discordId)
+    {
+        $user = User::where('discord_id', $discordId)->firstOrFail();
+        $q = trim((string) $request->query('q'));
+        abort_if($q === '', 422, 'Missing query.');
+
+        $matches = \App\Models\Blueprint::whereNotNull('ingredients')
+            ->whereLike('name', "%{$q}%", caseSensitive: false)
+            ->orderByRaw('CASE WHEN lower(name) = lower(?) THEN 0 ELSE 1 END, name', [$q])
+            ->limit(3)
+            ->get();
+
+        return [
+            'results' => $matches->map(fn ($bp) => \App\Support\Craftability::detail($user, $bp) + ['type_display' => \App\Support\BlueprintKind::label($bp)]),
+        ];
+    }
+
     // ── Org administration, driven by Discord server admins via the bot. ──
     // The bot verifies the invoking Discord member has ManageGuild before
     // calling any of these.

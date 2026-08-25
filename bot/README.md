@@ -12,7 +12,9 @@ All commands live under one root command:
 
 - `/starbuddy ping` — latency + backend health.
 - `/starbuddy whoami` — your StarBuddy registration status (ephemeral).
-- `/starbuddy stash` — placeholder, coming in P2.
+- `/starbuddy craftable [search]` — what your org can craft right now, best output quality first (ephemeral).
+- `/starbuddy need <item>` — who holds the blueprint and the best materials for an item, and where (ephemeral).
+- `/starbuddy stash` — placeholder for the ledger browser.
 - `/starbuddy org list|create|delete|manager` — org administration (requires Manage Server).
 
 ## Setup

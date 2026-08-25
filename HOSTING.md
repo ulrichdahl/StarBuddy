@@ -74,6 +74,11 @@ DB_PASSWORD=                  # openssl rand -hex 24
 
 Plus the four Discord credentials from step 1.
 
+Optional: `STARMAKER_REFINERY_CHANNEL_ID=<channel id>` makes the bot post a
+ping to that channel whenever a member's refinery work order completes (live
+events only — a first-run history import never floods it). The bot needs
+*View Channel* and *Send Messages* there.
+
 ## 3. Reverse proxy
 
 The production compose publishes **no ports**; the `web` container joins an

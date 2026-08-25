@@ -11,6 +11,11 @@ return [
     // Where the backend delivers Discord notifications (the bot's notify endpoint).
     'bot_notify_url' => env('STARMAKER_BOT_NOTIFY_URL', 'http://bot:3000/notify'),
 
+    // Optional Discord channel that receives refinery-completion pings
+    // (only for events fresher than a few minutes, so a first-run history
+    // import never floods it). Empty = notifications off.
+    'refinery_channel_id' => env('STARMAKER_REFINERY_CHANNEL_ID'),
+
     // Discord role id => org name. Members holding the role are attached to
     // the org on login. Format: JSON object, e.g. {"123456789":"Stellar Forge"}
     'role_org_map' => json_decode(env('STARMAKER_ROLE_ORG_MAP', '{}'), true) ?: [],

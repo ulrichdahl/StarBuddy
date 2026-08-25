@@ -112,6 +112,7 @@ class IngestController extends Controller
                         ]);
                     }
                     $counts['refinery_completed']++;
+                    $this->notifyRefineryCompletion($user, $e['detail'], $e['timestamp']);
                 }
             }
         });
@@ -124,5 +125,26 @@ class IngestController extends Controller
         }
 
         return $counts;
+    }
+
+    // Refinery pings go to the configured channel, and only for live events:
+    // a first-run logbackups import replays months of completions.
+    private function notifyRefineryCompletion($user, string $station, string $timestamp): void
+    {
+        $channel = config('starmaker.refinery_channel_id');
+        if (! $channel) {
+            return;
+        }
+        $at = \Carbon\Carbon::parse($timestamp);
+        if ($at->lt(now()->subMinutes(15))) {
+            return;
+        }
+        \App\Jobs\NotifyDiscord::dispatch($channel, [
+            'title' => 'Refinery order complete',
+            'description' => sprintf('**%s** — work order at **%s** is ready for pickup.', $user->handle ?? $user->name, $station),
+            'color' => 0x5BC8DB,
+            'timestamp' => $at->toIso8601String(),
+            'footer' => ['text' => 'StarBuddy'],
+        ]);
     }
 }

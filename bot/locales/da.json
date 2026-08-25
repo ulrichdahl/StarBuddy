@@ -12,13 +12,18 @@
     "optionName": "Orgens navn",
     "optionOrg": "Orgens navn",
     "optionUser": "Discord-medlemmet",
-    "optionRemove": "Fjern manager-rollen i stedet for at tildele den"
+    "optionRemove": "Fjern manager-rollen i stedet for at tildele den",
+    "craftable": "Hvad din org kan fremstille lige nu",
+    "need": "Hvem har blueprintet og de bedste materialer til en genstand",
+    "optionSearch": "Kun recepter hvis navn indeholder dette",
+    "optionItem": "Genstand eller blueprint-navn"
   },
   "common": {
     "error": "Noget gik galt under kommandoen.",
     "unreachable": "StarBuddy-backenden kan ikke nås.",
     "backendError": "Noget gik galt i kontakten med StarBuddy-backenden. Prøv igen senere.",
-    "unknownSubcommand": "Ukendt underkommando."
+    "unknownSubcommand": "Ukendt underkommando.",
+    "notRegistered": "Du er ikke registreret i StarBuddy endnu. Log ind på hjemmesiden først."
   },
   "ping": {
     "reply": "Pong! Svartid: {{latency}} ms | WS: {{ws}} ms | Backend: {{backend}}",
@@ -45,5 +50,29 @@
     "deleted": "Orgen **{{name}}** er slettet.",
     "managerGranted": "**{{member}}** er nu manager i **{{org}}** (rolle: {{role}}).",
     "managerRevoked": "**{{member}}** er ikke længere manager i **{{org}}** (rolle: {{role}})."
+  },
+  "craftable": {
+    "header_one": "**{{count}}** recept kan fremstilles lige nu:",
+    "header_other": "**{{count}}** recepter kan fremstilles lige nu:",
+    "line": "• **{{name}}** · {{type}} — Q{{quality}} · {{holders}}",
+    "noQuality": "—",
+    "everyone": "alle",
+    "holders_one": "{{count}} ejer",
+    "holders_other": "{{count}} ejere",
+    "more_one": "…og {{count}} mere — se Fremstil-siden.",
+    "more_other": "…og {{count}} flere — se Fremstil-siden.",
+    "none": "Intet kan fremstilles lige nu — tilføj materialer til lageret.",
+    "noneMatching": "Intet der matcher \"{{search}}\" kan fremstilles lige nu."
+  },
+  "need": {
+    "noMatch": "Ingen recept matcher \"{{item}}\".",
+    "holders": "Blueprint",
+    "everyone": "alle (standard-blueprint)",
+    "nobody": "ingen i orgen",
+    "source": "bedst: {{member}} @ {{location}}{{quality}}",
+    "missing": "ingen har noget",
+    "craftable": "kan fremstilles nu (Q{{quality}})",
+    "notCraftable": "materialer mangler",
+    "pieces": "stk."
   }
 }

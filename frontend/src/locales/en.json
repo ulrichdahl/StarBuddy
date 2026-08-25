@@ -19,7 +19,9 @@
     "import": "Import",
     "admin": "Admin",
     "openNavigation": "Open navigation",
-    "mainNavigation": "Main navigation"
+    "mainNavigation": "Main navigation",
+    "findItem": "Find an item",
+    "findItemPlaceholder": "Find an item…"
   },
   "login": {
     "tagline": "Org materials and blueprint tracking for Star Citizen. Sign in with the Discord account linked to your org.",
@@ -310,6 +312,18 @@
       "searchPlaceholder": "Search blueprints…",
       "failed": "Could not mark the blueprint as owned.",
       "confirm": "Mark owned"
+    },
+    "view": {
+      "aria": "View",
+      "list": "List",
+      "matrix": "Matrix"
+    },
+    "matrix": {
+      "tableAria": "Blueprint ownership by member",
+      "loadFailed": "Failed to load the blueprint matrix.",
+      "empty": "No blueprints to show yet.",
+      "youTooltip": "{{handle}} (you)",
+      "ownedBy": "Owned by {{member}}"
     }
   },
   "refinery": {

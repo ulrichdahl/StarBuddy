@@ -171,3 +171,27 @@ export interface BulkClearRequest {
   member_id?: number
   location_id?: number
 }
+
+/** One row of GET /api/blueprints/matrix: a blueprint and which members own it. */
+export interface BlueprintMatrixRow {
+  blueprint_id: number
+  name: string
+  type_display: string | null
+  owner_ids: number[]
+}
+
+/** Active org-mate (incl. the viewer) — one column in the blueprint matrix. */
+export interface BlueprintMatrixMember {
+  id: number
+  handle: string
+}
+
+/** Laravel paginator envelope plus a top-level `members` list. */
+export interface BlueprintMatrixResponse {
+  data: BlueprintMatrixRow[]
+  members: BlueprintMatrixMember[]
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+}

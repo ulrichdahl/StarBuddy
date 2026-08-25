@@ -31,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('item-stacks', ItemStackController::class)->only(['index', 'store', 'update', 'destroy']);
 
     Route::get('blueprints', [BlueprintController::class, 'index']);
+    Route::get('blueprints/matrix', [BlueprintController::class, 'matrix']);
     Route::get('blueprints-owned', [BlueprintController::class, 'owned']);
     Route::post('blueprints-owned', [BlueprintController::class, 'storeOwned']);
     Route::delete('blueprints-owned/{blueprintOwned}', [BlueprintController::class, 'destroyOwned']);
@@ -70,6 +71,8 @@ Route::post('devices/pair', [DeviceController::class, 'pair'])->middleware('thro
 Route::prefix('bot')->middleware('bot')->group(function () {
     Route::get('health', [BotController::class, 'health']);
     Route::get('member/{discordId}', [BotController::class, 'member']);
+    Route::get('craftable/{discordId}', [BotController::class, 'craftable']);
+    Route::get('need/{discordId}', [BotController::class, 'need']);
     // Org administration — the bot enforces Discord ManageGuild first.
     Route::get('orgs', [BotController::class, 'listOrgs']);
     Route::post('orgs', [BotController::class, 'createOrg']);

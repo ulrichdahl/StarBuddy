@@ -1,22 +1,25 @@
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import AppBar from '@mui/material/AppBar'
 import Avatar from '@mui/material/Avatar'
 import Box from '@mui/material/Box'
 import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
+import InputAdornment from '@mui/material/InputAdornment'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import ListItemButton from '@mui/material/ListItemButton'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import ListItemText from '@mui/material/ListItemText'
+import TextField from '@mui/material/TextField'
 import Toolbar from '@mui/material/Toolbar'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import MenuIcon from '@mui/icons-material/Menu'
+import SearchIcon from '@mui/icons-material/Search'
 import BuildIcon from '@mui/icons-material/Build'
 import DashboardIcon from '@mui/icons-material/Dashboard'
 import DiamondIcon from '@mui/icons-material/Diamond'
@@ -57,7 +60,17 @@ export function AppShell({ me }: AppShellProps) {
   const theme = useTheme()
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'))
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [itemQuery, setItemQuery] = useState('')
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+
+  // Global "find an item": jump to Craft with the term, including unowned blueprints.
+  const submitItemSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const term = itemQuery.trim()
+    if (!term) return
+    navigate({ pathname: '/craft', search: `?${new URLSearchParams({ search: term, all: '1' })}` })
+  }
 
   const drawerContent = (
     <Box role="navigation" aria-label={t('nav.mainNavigation')}>
@@ -100,8 +113,32 @@ export function AppShell({ me }: AppShellProps) {
               <MenuIcon />
             </IconButton>
           )}
-          <Box component="h1" sx={{ flexGrow: 1, m: 0, display: 'flex', alignItems: 'center' }}>
+          <Box component="h1" sx={{ m: 0, display: 'flex', alignItems: 'center' }}>
             <BrandMark />
+          </Box>
+          <Box
+            component="form"
+            role="search"
+            onSubmit={submitItemSearch}
+            sx={{ flexGrow: 1, display: { xs: 'none', sm: 'flex' }, justifyContent: 'center', px: 2 }}
+          >
+            <TextField
+              size="small"
+              value={itemQuery}
+              onChange={(e) => setItemQuery(e.target.value)}
+              placeholder={t('nav.findItemPlaceholder')}
+              slotProps={{
+                input: {
+                  'aria-label': t('nav.findItem'),
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+              sx={{ width: '100%', maxWidth: 320 }}
+            />
           </Box>
           <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
             {me.handle ?? me.discord_username}

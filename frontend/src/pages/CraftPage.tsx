@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
@@ -66,10 +67,32 @@ function missingLabel(m: CraftResult['missing'][number], t: TFunction, locale: s
 
 export function CraftPage() {
   const { t, i18n } = useTranslation()
-  const [search, setSearch] = useState('')
+  // `search` and `all` live in the URL too, so the global item search can deep-link here.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [search, setSearch] = useState(searchParams.get('search') ?? '')
   const [type, setType] = useState('')
   const [craftableOnly, setCraftableOnly] = useState(false)
-  const [includeUnowned, setIncludeUnowned] = useState(false)
+  const [includeUnowned, setIncludeUnowned] = useState(searchParams.get('all') === '1')
+
+  // A new navigation (e.g. another AppBar search while already here) re-seeds the filters.
+  useEffect(() => {
+    setSearch(searchParams.get('search') ?? '')
+    setIncludeUnowned(searchParams.get('all') === '1')
+  }, [searchParams])
+
+  const syncUrl = (nextSearch: string, nextAll: boolean) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        if (nextSearch) next.set('search', nextSearch)
+        else next.delete('search')
+        if (nextAll) next.set('all', '1')
+        else next.delete('all')
+        return next
+      },
+      { replace: true },
+    )
+  }
   const [detailId, setDetailId] = useState<number | null>(null)
   const [page, setPage] = useState(0)
   const rowsPerPage = 50
@@ -103,7 +126,10 @@ export function CraftPage() {
           size="small"
           label={t('craft.search')}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            syncUrl(e.target.value, includeUnowned)
+          }}
           sx={{ minWidth: 200 }}
         />
         <TextField
@@ -126,7 +152,15 @@ export function CraftPage() {
           label={t('craft.craftableNow')}
         />
         <FormControlLabel
-          control={<Switch checked={includeUnowned} onChange={(e) => setIncludeUnowned(e.target.checked)} />}
+          control={
+            <Switch
+              checked={includeUnowned}
+              onChange={(e) => {
+                setIncludeUnowned(e.target.checked)
+                syncUrl(search, e.target.checked)
+              }}
+            />
+          }
           label={t('craft.includeUnowned')}
         />
       </Paper>

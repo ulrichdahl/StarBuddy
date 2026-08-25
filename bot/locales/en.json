@@ -12,13 +12,18 @@
     "optionName": "Name of the org",
     "optionOrg": "Name of the org",
     "optionUser": "The Discord member",
-    "optionRemove": "Remove the manager role instead of granting it"
+    "optionRemove": "Remove the manager role instead of granting it",
+    "craftable": "What your org can craft right now",
+    "need": "Who has the blueprint and the best materials for an item",
+    "optionSearch": "Only recipes whose name contains this",
+    "optionItem": "Item or blueprint name"
   },
   "common": {
     "error": "Something went wrong while running that command.",
     "unreachable": "The StarBuddy backend is unreachable.",
     "backendError": "Something went wrong talking to the StarBuddy backend. Please try again later.",
-    "unknownSubcommand": "Unknown subcommand."
+    "unknownSubcommand": "Unknown subcommand.",
+    "notRegistered": "You are not registered with StarBuddy yet. Sign in on the website first."
   },
   "ping": {
     "reply": "Pong! Latency: {{latency}}ms | WS: {{ws}}ms | Backend: {{backend}}",
@@ -45,5 +50,29 @@
     "deleted": "Org **{{name}}** has been deleted.",
     "managerGranted": "**{{member}}** is now a manager of **{{org}}** (role: {{role}}).",
     "managerRevoked": "**{{member}}** is no longer a manager of **{{org}}** (role: {{role}})."
+  },
+  "craftable": {
+    "header_one": "**{{count}}** recipe craftable right now:",
+    "header_other": "**{{count}}** recipes craftable right now:",
+    "line": "• **{{name}}** · {{type}} — Q{{quality}} · {{holders}}",
+    "noQuality": "—",
+    "everyone": "everyone",
+    "holders_one": "{{count}} holder",
+    "holders_other": "{{count}} holders",
+    "more_one": "…and {{count}} more — see the Craft page.",
+    "more_other": "…and {{count}} more — see the Craft page.",
+    "none": "Nothing is craftable right now — add materials to the ledger.",
+    "noneMatching": "Nothing matching \"{{search}}\" is craftable right now."
+  },
+  "need": {
+    "noMatch": "No recipe matches \"{{item}}\".",
+    "holders": "Blueprint",
+    "everyone": "everyone (default blueprint)",
+    "nobody": "nobody in the org",
+    "source": "best: {{member}} @ {{location}}{{quality}}",
+    "missing": "nobody has any",
+    "craftable": "craftable now (Q{{quality}})",
+    "notCraftable": "materials incomplete",
+    "pieces": "pcs"
   }
 }

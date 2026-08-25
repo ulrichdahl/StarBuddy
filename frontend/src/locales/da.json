@@ -19,7 +19,9 @@
     "import": "Import",
     "admin": "Admin",
     "openNavigation": "Åbn navigation",
-    "mainNavigation": "Hovednavigation"
+    "mainNavigation": "Hovednavigation",
+    "findItem": "Find en genstand",
+    "findItemPlaceholder": "Find en genstand…"
   },
   "login": {
     "tagline": "Materiale- og blueprint-styring for din org i Star Citizen. Log ind med den Discord-konto, der er knyttet til din org.",
@@ -310,6 +312,18 @@
       "searchPlaceholder": "Søg efter blueprints…",
       "failed": "Kunne ikke markere blueprintet som ejet.",
       "confirm": "Markér som ejet"
+    },
+    "view": {
+      "aria": "Visning",
+      "list": "Liste",
+      "matrix": "Matrix"
+    },
+    "matrix": {
+      "tableAria": "Blueprint-ejerskab pr. medlem",
+      "loadFailed": "Kunne ikke hente blueprint-matrixen.",
+      "empty": "Ingen blueprints at vise endnu.",
+      "youTooltip": "{{handle}} (dig)",
+      "ownedBy": "Ejes af {{member}}"
     }
   },
   "refinery": {

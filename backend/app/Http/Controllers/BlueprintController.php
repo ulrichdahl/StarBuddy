@@ -33,6 +33,43 @@ class BlueprintController extends Controller
             ->paginate(100);
     }
 
+    /**
+     * Member × blueprint matrix: one row per recipe anyone in the member's
+     * orgs owns, with the owning member ids; `members` lists the columns.
+     */
+    public function matrix(Request $request)
+    {
+        $me = $request->user();
+        $members = $me->orgs()->with('members:users.id,users.name,users.handle')->get()
+            ->flatMap(fn ($org) => $org->members)
+            ->push($me)
+            ->unique('id')
+            ->sortBy(fn ($u) => strtolower($u->handle ?? $u->name))
+            ->values();
+        $memberIds = $members->pluck('id');
+
+        $page = Blueprint::whereIn('id', BlueprintOwned::select('blueprint_id')->whereIn('user_id', $memberIds)->whereNotNull('blueprint_id'))
+            ->orderBy('name')
+            ->paginate(50);
+
+        $owners = BlueprintOwned::whereIn('user_id', $memberIds)
+            ->whereIn('blueprint_id', $page->pluck('id'))
+            ->get(['blueprint_id', 'user_id'])
+            ->groupBy('blueprint_id')
+            ->map(fn ($rows) => $rows->pluck('user_id')->unique()->values());
+
+        $page->setCollection($page->getCollection()->map(fn (Blueprint $b) => [
+            'blueprint_id' => $b->id,
+            'name' => $b->name,
+            'type_display' => \App\Support\BlueprintKind::label($b),
+            'owner_ids' => $owners[$b->id] ?? [],
+        ]));
+
+        return $page->toArray() + [
+            'members' => $members->map(fn ($u) => ['id' => $u->id, 'handle' => $u->handle ?? $u->name])->values(),
+        ];
+    }
+
     public function storeOwned(Request $request)
     {
         $data = $request->validate([

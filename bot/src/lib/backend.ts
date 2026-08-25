@@ -44,6 +44,44 @@ export interface OrgManagerResponse {
   role: string;
 }
 
+/** One row of GET /api/bot/craftable/:discordId */
+export interface CraftableRow {
+  id: number;
+  name: string;
+  type_display: string | null;
+  grade: string | null;
+  est_output_quality: number | null;
+  coverage: number;
+  owner_count: number;
+  owned_by_me: boolean;
+  is_default: boolean;
+}
+
+export interface CraftableResponse {
+  total: number;
+  results: CraftableRow[];
+}
+
+/** One recipe of GET /api/bot/need/:discordId?q= */
+export interface NeedResult {
+  blueprint: { id: number; name: string; is_default: boolean };
+  type_display: string | null;
+  owners: { member: string; uses_personal: number; uses_org: number }[];
+  ingredients: {
+    name: string;
+    need: number;
+    unit: "mscu" | "pieces";
+    available: number;
+    holdings: { member: string; location: string; system: string | null; quality: number; quantity: number }[];
+  }[];
+  craftable: boolean;
+  est_output_quality: number | null;
+}
+
+export interface NeedResponse {
+  results: NeedResult[];
+}
+
 export class BackendError extends Error {
   constructor(
     message: string,
@@ -96,6 +134,12 @@ export const backend = {
   health: () => request<HealthResponse>("/api/bot/health"),
   member: (discordId: string) =>
     request<MemberLookupResponse>(`/api/bot/member/${encodeURIComponent(discordId)}`),
+  craftable: (discordId: string, search?: string, limit = 10) =>
+    request<CraftableResponse>(
+      `/api/bot/craftable/${encodeURIComponent(discordId)}?limit=${limit}${search ? `&search=${encodeURIComponent(search)}` : ""}`,
+    ),
+  need: (discordId: string, q: string) =>
+    request<NeedResponse>(`/api/bot/need/${encodeURIComponent(discordId)}?q=${encodeURIComponent(q)}`),
   orgs: () => request<OrgSummary[]>("/api/bot/orgs"),
   createOrg: (name: string) =>
     request<OrgCreateResponse>("/api/bot/orgs", { method: "POST", body: { name } }),
