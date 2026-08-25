@@ -1,5 +1,5 @@
 import { Client, Events, GatewayIntentBits, MessageFlags } from "discord.js";
-import { commands } from "./commands/index.js";
+import { resolve } from "./commands/index.js";
 import { config } from "./config.js";
 import { startNotifyServer } from "./notify.js";
 
@@ -12,16 +12,16 @@ client.once(Events.ClientReady, (readyClient) => {
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  const command = commands.get(interaction.commandName);
+  const command = resolve(interaction);
   if (!command) {
-    console.warn(`Unknown command: /${interaction.commandName}`);
+    console.warn(`Unknown command: /${interaction.commandName} ${interaction.options.getSubcommandGroup(false) ?? ""} ${interaction.options.getSubcommand(false) ?? ""}`);
     return;
   }
 
   try {
     await command.execute(interaction);
   } catch (error) {
-    console.error(`Error executing /${interaction.commandName}:`, error);
+    console.error(`Error executing /${interaction.commandName} ${command.name}:`, error);
     const message = "Something went wrong while running that command.";
     try {
       if (interaction.deferred || interaction.replied) {

@@ -128,10 +128,10 @@ sm run --rm bot node dist/register-commands.js
 
 **Verify:** `curl https://YOUR-DOMAIN/up` → 200, then sign in with Discord in
 a browser (this proves the whole OAuth + proxy-header chain). In Discord,
-`/ping` should answer with backend health.
+`/starbuddy ping` should answer with backend health.
 
-**Set up your orgs:** a Discord *server admin* runs `/org create name:…` and
-`/org manager user:@someone org:…`. Members request to join on the website
+**Set up your orgs:** a Discord *server admin* runs `/starbuddy org create name:…` and
+`/starbuddy org manager user:@someone org:…`. Members request to join on the website
 dashboard; managers accept there.
 
 ## 5. Maintenance
@@ -149,7 +149,7 @@ dashboard; managers accept there.
 - **Game data syncs** run automatically (daily 05:00–05:50, rarity weekly).
   After a big game patch you can run the sync commands from §4 manually.
 - **Health** — `https://YOUR-DOMAIN/up` is an uptime-check endpoint;
-  `/ping` in Discord checks bot ↔ backend.
+  `/starbuddy ping` in Discord checks bot ↔ backend.
 
 ## 6. Updating
 

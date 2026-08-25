@@ -4,9 +4,12 @@ Discord companion for StarBuddy, the self-hostable Star Citizen org resource tra
 
 ## Commands
 
-- `/ping` — latency + backend health.
-- `/whoami` — your StarBuddy registration status (ephemeral).
-- `/stash` — placeholder, coming in P2.
+All commands live under one root command:
+
+- `/starbuddy ping` — latency + backend health.
+- `/starbuddy whoami` — your StarBuddy registration status (ephemeral).
+- `/starbuddy stash` — placeholder, coming in P2.
+- `/starbuddy org list|create|delete|manager` — org administration (requires Manage Server).
 
 ## Setup
 

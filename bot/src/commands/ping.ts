@@ -1,12 +1,9 @@
-import { SlashCommandBuilder } from "discord.js";
 import { backend } from "../lib/backend.js";
-import type { Command } from "./command.js";
+import type { Subcommand } from "./command.js";
 
-export const ping: Command = {
-  data: new SlashCommandBuilder()
-    .setName("ping")
-    .setDescription("Check bot latency and backend health")
-    .toJSON(),
+export const ping: Subcommand = {
+  name: "ping",
+  define: (sub) => sub.setName("ping").setDescription("Check bot latency and backend health"),
 
   async execute(interaction) {
     await interaction.deferReply();

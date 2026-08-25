@@ -1,6 +1,6 @@
-import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { MessageFlags, PermissionFlagsBits } from "discord.js";
 import { backend, BackendError } from "../lib/backend.js";
-import type { Command } from "./command.js";
+import type { SubcommandGroup } from "./command.js";
 
 function failureMessage(error: unknown): string {
   if (error instanceof BackendError && error.status === undefined) {
@@ -9,11 +9,13 @@ function failureMessage(error: unknown): string {
   return "Something went wrong talking to the StarBuddy backend. Please try again later.";
 }
 
-export const org: Command = {
-  data: new SlashCommandBuilder()
+// Admin-only at runtime (Manage Server): a default-permission gate would
+// hide the whole /starbuddy command from regular members.
+export const org: SubcommandGroup = {
+  name: "org",
+  define: (group) => group
     .setName("org")
-    .setDescription("Manage StarBuddy orgs")
-    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDescription("Manage StarBuddy orgs (server admins)")
     .addSubcommand((sub) => sub.setName("list").setDescription("List all orgs"))
     .addSubcommand((sub) =>
       sub
@@ -46,8 +48,7 @@ export const org: Command = {
             .setName("remove")
             .setDescription("Remove the manager role instead of granting it"),
         ),
-    )
-    .toJSON(),
+    ),
 
   async execute(interaction) {
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {

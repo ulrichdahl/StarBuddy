@@ -1,12 +1,10 @@
-import { MessageFlags, SlashCommandBuilder } from "discord.js";
+import { MessageFlags } from "discord.js";
 import { backend } from "../lib/backend.js";
-import type { Command } from "./command.js";
+import type { Subcommand } from "./command.js";
 
-export const whoami: Command = {
-  data: new SlashCommandBuilder()
-    .setName("whoami")
-    .setDescription("Check your StarBuddy registration status")
-    .toJSON(),
+export const whoami: Subcommand = {
+  name: "whoami",
+  define: (sub) => sub.setName("whoami").setDescription("Check your StarBuddy registration status"),
 
   async execute(interaction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });

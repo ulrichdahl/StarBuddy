@@ -1,11 +1,9 @@
-import { MessageFlags, SlashCommandBuilder } from "discord.js";
-import type { Command } from "./command.js";
+import { MessageFlags } from "discord.js";
+import type { Subcommand } from "./command.js";
 
-export const stash: Command = {
-  data: new SlashCommandBuilder()
-    .setName("stash")
-    .setDescription("Browse the org's resource ledger")
-    .toJSON(),
+export const stash: Subcommand = {
+  name: "stash",
+  define: (sub) => sub.setName("stash").setDescription("Browse the org's materials ledger"),
 
   async execute(interaction) {
     await interaction.reply({
