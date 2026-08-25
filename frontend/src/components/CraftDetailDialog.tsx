@@ -18,6 +18,7 @@ import TableCell from '@mui/material/TableCell'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
+import Tooltip from '@mui/material/Tooltip'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
@@ -207,6 +208,7 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
   const [selection, setSelection] = useState<Selection>({})
   const [prefs, setPrefs] = useState<Record<string, QualityPref>>({})
   const [visible, setVisible] = useState<Record<string, number>>({})
+  const [imageZoom, setImageZoom] = useState(false)
 
   // Re-plan defaults whenever the data, craft count, or a quality
   // preference changes; the lists grow to show everything pre-selected.
@@ -294,12 +296,23 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
           <DialogContent>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mt: 1.5, flexWrap: 'wrap' }}>
               {bp.image_url && (
-                <Box
-                  component="img"
-                  src={bp.image_url}
-                  alt={bp.name}
-                  sx={{ width: 220, maxWidth: '40%', borderRadius: 1, border: 1, borderColor: 'divider' }}
-                />
+                <Tooltip title="Click to zoom">
+                  <Box
+                    component="img"
+                    src={bp.image_url}
+                    alt={bp.name}
+                    onClick={() => setImageZoom(true)}
+                    sx={{
+                      maxWidth: { xs: '40%', sm: 220 },
+                      maxHeight: 180,
+                      objectFit: 'contain',
+                      borderRadius: 1,
+                      border: 1,
+                      borderColor: 'divider',
+                      cursor: 'zoom-in',
+                    }}
+                  />
+                </Tooltip>
               )}
               <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 240 }}>
                 {bp.description || 'No description available.'}
@@ -545,6 +558,18 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
                   : `I crafted this${qty > 1 ? ` ×${qty}` : ''}`}
             </Button>
           </DialogActions>
+
+          {imageZoom && bp.image_url && (
+            <Dialog open onClose={() => setImageZoom(false)} maxWidth={false}>
+              <Box
+                component="img"
+                src={bp.image_url}
+                alt={bp.name}
+                onClick={() => setImageZoom(false)}
+                sx={{ maxWidth: '90vw', maxHeight: '85vh', display: 'block', cursor: 'zoom-out' }}
+              />
+            </Dialog>
+          )}
         </>
       )}
     </Dialog>
