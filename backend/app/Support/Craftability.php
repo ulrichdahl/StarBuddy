@@ -128,7 +128,7 @@ class Craftability
         ResourceStack::visibleTo($user)
             ->with('resourceType:id,name,unit')
             ->get()
-            ->each(function ($s) use (&$availability) {
+            ->each(function ($s) use (&$availability, $user) {
                 // Quality 0 stock cannot be crafted with; gems are exempt.
                 if ($s->resourceType->unit === 'mscu' && $s->quality < 1) {
                     return;
