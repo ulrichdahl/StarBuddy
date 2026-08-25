@@ -1,4 +1,5 @@
 import { Client, Events, GatewayIntentBits, MessageFlags } from "discord.js";
+import { ensureAvatar } from "./avatar.js";
 import { resolve } from "./commands/index.js";
 import { config } from "./config.js";
 import { startNotifyServer } from "./notify.js";
@@ -7,6 +8,7 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.once(Events.ClientReady, (readyClient) => {
   console.log(`Ready as ${readyClient.user.tag}`);
+  void ensureAvatar(readyClient);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {

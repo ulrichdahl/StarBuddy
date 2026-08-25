@@ -4,6 +4,8 @@ Discord companion for StarBuddy, the self-hostable Star Citizen org resource tra
 
 ## Commands
 
+On first start the bot sets its own avatar to the StarBuddy icon if it still has Discord's default one (an avatar you set in the Developer Portal is left alone).
+
 All commands live under one root command:
 
 - `/starbuddy ping` — latency + backend health.
