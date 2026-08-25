@@ -29,6 +29,10 @@ The desktop client (Game.log watcher) is built automatically for Windows and Lin
 
 ## Running your own instance
 
+**Full operator guide: [HOSTING.md](HOSTING.md)** — production setup behind an
+SSL proxy, backups, cron auto-updates, troubleshooting. The quickstart below
+covers local/evaluation use.
+
 Prerequisites: Docker with Compose, and a [Discord application](https://discord.com/developers/applications) for your community (OAuth2 redirect `<your-url>/api/auth/discord/callback`, plus a bot invited to your server).
 
 ```sh
