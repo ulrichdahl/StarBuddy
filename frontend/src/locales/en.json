@@ -401,7 +401,7 @@
       "saveError": "Could not save the change. Try again."
     },
     "entry": {
-      "title": "Quick entry",
+      "title": "Add material",
       "materialPlaceholder": "Search refined materials and gems…",
       "qualityBandsHelp": "This resource's quality bands",
       "qualityNoBandsHelp": "No bands known for this resource yet — type the number off the crate",
