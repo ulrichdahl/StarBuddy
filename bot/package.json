@@ -1,6 +1,6 @@
 {
   "name": "starmaker-bot",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Discord bot for StarMaker — self-hostable Star Citizen org resource tracker",
   "type": "module",
