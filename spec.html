@@ -146,6 +146,7 @@
   .pill.bad { color: var(--bad); background: var(--bad-bg); border: 1px solid var(--bad); }
   .pill.warn { color: var(--amber); background: var(--amber-bg); border: 1px solid var(--amber); }
   .pill.info { color: var(--accent); background: var(--accent-bg); border: 1px solid var(--accent); }
+  h4 .pill { margin-left: 8px; vertical-align: middle; font-size: 10.5px; }
 
   .tablewrap { overflow-x: auto; margin: 0 0 20px; border: 1px solid var(--line); border-radius: 6px; }
   table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
@@ -290,11 +291,11 @@
 <div class="wrap">
 
 <header class="masthead">
-  <p class="eyebrow">Project Specification · Draft 0.3</p>
+  <p class="eyebrow">Project Specification · Draft 0.4 · v0.1.2 in production</p>
   <h1>StarBuddy <span class="thin">/ Org Forge Ledger</span></h1>
   <p class="subtitle">A cross-platform companion tool that gives a Star Citizen org one shared answer to three questions: what resources do we hold, who can craft what, and what should we craft next.</p>
   <div class="meta">
-    <span>DATE <b>2026-08-24</b></span>
+    <span>DATE <b>2026-08-25</b></span>
     <span>AUTHOR <b>ulrich.dahl@gmail.com + Claude</b></span>
     <span>GAME <b>Alpha 4.9 LIVE (4.10 PTU)</b></span>
     <span>TARGETS <b>Windows 10/11 · Linux</b></span>
@@ -414,26 +415,30 @@
 <section id="features">
   <p class="sec-label">04 · Features</p>
   <h2>Feature set</h2>
+  <div class="callout cyan">
+    <div class="callout-title">Shipped as of v0.1.2 (2026-08-25) — production at one community, self-hostable by others</div>
+    <p><strong>Web app:</strong> Discord login gated to the home server; dashboard with org join/leave and pooled stats; materials ledger with exact per-resource quality bands, spawn-derived rarity, keyboard-first sticky entry, filters, sorting, pagination; items ledger; blueprints with canonical item-class identity across localization packs; refinery orders; CSV bulk import and audited bulk clear; craft list with holders count and human-readable item types; craft modal with product stats (base vs. quality-modified), per-material Low/Mid/High stack selection, batch crafting, personal/org blueprint-use tracking, and undo (modal and Items page). <strong>Desktop client (Windows/Linux):</strong> logbackups import, live Game.log watcher with auto-sync, pairing codes, dev and tagged releases. <strong>Bot:</strong> <code>/starbuddy ping|whoami|stash|org …</code>, org administration by server admins, self-branding avatar. <strong>Platform:</strong> Docker Compose production behind an external proxy, cron auto-updater, nightly wiki syncs (recipes, item classification and stats, resource types, quality bands, rarity, locations), English/Danish localization across web, client and bot, CIG fan-kit compliant footers.</p>
+  </div>
   <div class="cardgrid">
-    <div class="card"><h4><span class="fid">F1</span> Log watcher</h4>
+    <div class="card"><h4><span class="fid">F1</span> Log watcher <span class="pill good">shipped</span></h4>
       <p>Tails Game.log live and ingests logbackups history. Captures blueprint acquisitions, refinery completions, shop transactions, session/patch context. Version-gated regexes; Wine-prefix path autodetection on Linux.</p></div>
-    <div class="card"><h4><span class="fid">F2</span> Quick resource entry</h4>
+    <div class="card"><h4><span class="fid">F2</span> Quick resource entry <span class="pill good">shipped</span></h4>
       <p>Keyboard-first flow: autocomplete resource → type the exact quality number off the crate label (known values for that resource offered as one-key chips) → amount in crates (0.001 SCU steps) or pieces for raw/gems → storage location. The form is sticky: location, visibility, and last quality carry over to the next line, so bulk-entering a hangar full of containers means changing only what differs. Target: under 5 seconds per line. Refinery-completion events pop a pre-filled "what was in this order?" prompt.</p></div>
-    <div class="card"><h4><span class="fid">F3</span> Org ledger</h4>
+    <div class="card"><h4><span class="fid">F3</span> Org ledger <span class="pill good">shipped</span></h4>
       <p>Per-member, per-location stashes of resources (exact quality), general items (no quality — crafted items and their buffs come later), blueprints, and pending refinery orders. Everything is <strong>private by default</strong>; members opt stashes into org visibility. Transfer + consumption bookkeeping.</p></div>
-    <div class="card"><h4><span class="fid">F4</span> Blueprint coverage matrix</h4>
-      <p>Member × blueprint grid with tier info. Answers "who can craft X" instantly; highlights coverage gaps worth grinding for. Log import only reaches as far back as logbackups on disk, so members can also mark blueprints owned manually — starter-set blueprints and pre-install acquisitions come in this way.</p></div>
-    <div class="card"><h4><span class="fid">F5</span> Craftability engine</h4>
+    <div class="card"><h4><span class="fid">F4</span> Blueprint coverage matrix <span class="pill warn">partial</span></h4>
+      <p>Shipped as the craft list (holders count, "you have it") plus the modal's holder list with per-copy personal/org use counts; the full member × blueprint grid view is still to come. Answers "who can craft X" instantly; highlights coverage gaps worth grinding for. Log import only reaches as far back as logbackups on disk, so members can also mark blueprints owned manually — starter-set blueprints and pre-install acquisitions come in this way.</p></div>
+    <div class="card"><h4><span class="fid">F5</span> Craftability engine <span class="pill good">shipped</span></h4>
       <p>Joins ledger × recipes: everything craftable right now (with best achievable output quality), then nearest-misses ranked by least missing material. Filters on blueprint tags: type, resource, grade, size, tier.</p></div>
-    <div class="card"><h4><span class="fid">F6</span> Need-driven search</h4>
-      <p>Search for an item → blueprint holders + best-quality ingredient sources across the org, with locations and the quality math for expected output stats.</p></div>
-    <div class="card"><h4><span class="fid">F7</span> Discord integration</h4>
+    <div class="card"><h4><span class="fid">F6</span> Need-driven search <span class="pill warn">partial</span></h4>
+      <p>Search for an item → blueprint holders + best-quality ingredient sources across the org, with locations and the quality math for expected output stats. The craft modal answers this today for any recipe; a dedicated search entry point and the bot's <code>/starbuddy need</code> are pending.</p></div>
+    <div class="card"><h4><span class="fid">F7</span> Discord integration <span class="pill warn">partial</span></h4>
       <p>Discord OAuth is the only login; org membership via guild roles. Bot slash commands, all under one <code>/starbuddy</code> root (<code>/starbuddy stash</code>, <code>/starbuddy blueprint have</code>, <code>/starbuddy craftable</code>, <code>/starbuddy need</code>) and channel notifications for refinery completions and transfers.</p></div>
-    <div class="card"><h4><span class="fid">F8</span> OCR capture</h4>
+    <div class="card"><h4><span class="fid">F8</span> OCR capture <span class="pill info">P3</span></h4>
       <p>Opt-in screenshot capture of refinery and inventory screens. Local PaddleOCR (ONNX) + fuzzy matching against the known resource vocabulary — the proven, open-source Regolith recipe. User confirms parsed values before sync. Strictly local: screenshots never leave the player's machine.</p></div>
-    <div class="card"><h4><span class="fid">F9</span> Overlay</h4>
+    <div class="card"><h4><span class="fid">F9</span> Overlay <span class="pill info">P4</span></h4>
       <p>Hotkey-toggled transparent always-on-top window over the game. Tiered by platform (see §06); the web UI on a second screen/phone is the universal fallback and ships first.</p></div>
-    <div class="card"><h4><span class="fid">F10</span> Website</h4>
+    <div class="card"><h4><span class="fid">F10</span> Website <span class="pill good">shipped</span></h4>
       <p>Same backend, browser UI for members without the desktop client: ledger browsing, craftability lists, entry forms, org admin.</p></div>
   </div>
 </section>
@@ -563,7 +568,7 @@
   <div class="phase">
     <div class="pnum">P1<small>MVP</small></div>
     <div>
-      <h4>Ledger + log watcher + web</h4>
+      <h4>Ledger + log watcher + web <span class="pill good">done · v0.1.0</span></h4>
       <ul>
         <li>Backend, Discord OAuth, org/member/location/stash schema.</li>
         <li>Desktop client: log watcher (blueprints, refinery completions, shop sales) + quick resource entry; historical logbackups import on first run.</li>
@@ -575,7 +580,7 @@
   <div class="phase">
     <div class="pnum">P1.1<small>Bulk</small></div>
     <div>
-      <h4>Bulk import &amp; clear</h4>
+      <h4>Bulk import &amp; clear <span class="pill good">done · v0.1.0</span></h4>
       <ul>
         <li>CSV import of existing org resources: template download; columns for member handle, location, resource, quality, quantity, unit; per-row validation with a preview step before anything is committed; row-level error report.</li>
         <li>Bulk clear of org inventory by resource type or category, scopable to member or location, with confirmation and an audit-log entry recording what was cleared and by whom.</li>
@@ -585,20 +590,31 @@
   <div class="phase">
     <div class="pnum">P2<small>Brain</small></div>
     <div>
-      <h4>Craftability engine + bot</h4>
+      <h4>Craftability engine + bot <span class="pill warn">mostly done · v0.1.2</span></h4>
       <ul>
-        <li>Recipe sync from Wiki API; craft-now and nearest-miss lists with tag filters; need-driven search with quality math.</li>
-        <li>Discord bot slash commands replacing webhooks; role-gated write access.</li>
+        <li>Done: recipe and item-classification sync from the Wiki API; craft-now and nearest-miss lists with filters; craft modal with product stats, stack selection, batch crafts, blueprint uses and undo; org administration via <code>/starbuddy org</code>; localized bot replies.</li>
+        <li>Open: <code>/starbuddy craftable</code> and <code>/starbuddy need</code>, refinery-completion channel notifications, a dedicated need-driven search page, the member × blueprint matrix view.</li>
       </ul>
     </div>
   </div>
   <div class="phase">
-    <div class="pnum">P3<small>Eyes</small></div>
+    <div class="pnum">P3a<small>Eyes</small></div>
     <div>
-      <h4>OCR capture</h4>
+      <h4>Basic OCR — scan signature detection</h4>
       <ul>
-        <li>Refinery screen capture (order contents, yields, ETAs) — restores what Regolith did.</li>
-        <li>Inventory screen capture for bulk resource intake; confirm-before-sync UI.</li>
+        <li>Local capture pipeline (PaddleOCR/ONNX, on-device only) with a fast <em>signature detector</em>: recognise which game screen is on display (refinery terminal, inventory, mining scan result) from its stable UI landmarks before spending a full OCR pass.</li>
+        <li>When a known signature is found, the client shows an info popup in overlay mode — the first, minimal overlay surface (a toast-sized always-on-top window), pulled forward from P4 so P3 has somewhere to speak.</li>
+        <li>Everything opt-in, hotkey- or toggle-driven; screenshots never leave the machine.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="pnum">P3b<small>Refinery</small></div>
+    <div>
+      <h4>Refinery OCR — Regolith functionality</h4>
+      <ul>
+        <li>Read a refinery work order off the terminal: station, method, materials in, expected yields, processing time.</li>
+        <li>Popup offers <strong>save to refinery orders</strong> and <strong>start timer</strong>; the order lands in the member's ledger with its ETA, the timer surfaces in client, web and (optionally) a Discord ping on completion — matched against the Game.log completion event we already capture.</li>
       </ul>
     </div>
   </div>
@@ -607,7 +623,17 @@
     <div>
       <h4>Overlay</h4>
       <ul>
-        <li>Windows layered window first, then Linux layer-shell/X11 backends; hotkey chain per platform; craft-now list and quick entry in-overlay.</li>
+        <li>Windows layered window first, then Linux layer-shell/X11 backends; hotkey chain per platform; craft-now list and quick entry in-overlay. Grows out of the P3a popup surface.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="pnum">P5<small>Research</small></div>
+    <div>
+      <h4>Later versions — needs research first</h4>
+      <ul>
+        <li><strong>Materials OCR.</strong> Watch the inventory screen while the mouse hovers over a material and grab type, quality, crate size and quantity, auto-syncing to the ledger. Treat those four values as a crate's unique identifier — this cannot work for gems, which carry no quality. Open questions: hover detection cost, false positives on similar crates, and whether continuous scanning is acceptable at all — the likely answer is a hotkey that scans only while pressed, then a popup confirming "saved" or warning of a possible duplicate and asking what to do.</li>
+        <li><strong>Rock OCR.</strong> Read a scanned rock's difficulty and composition; the popup suggests the minimum mining-laser setup (laser, modules, gadgets) able to crack it, and when the member's own setup can't, offers to look for other online org members to call in. Needs a curated laser/module capability table and a definition of "online" (Discord presence or client heartbeat).</li>
       </ul>
     </div>
   </div>
@@ -620,8 +646,12 @@
     <div class="callout-title">Decided 2026-08-24</div>
     <p><strong>Stack:</strong> Laravel + PostgreSQL, React SPA, Docker Compose deployment. <strong>Tenancy:</strong> self-hostable community instance — one deployment per community, join-gated to members of that community's Discord server, multiple orgs per instance; other communities run their own instance with their own Discord app/bot. <strong>License:</strong> AGPL-3.0-or-later, public repository at <a href="https://github.com/ulrichdahl/StarBuddy">github.com/ulrichdahl/StarBuddy</a>.</p>
   </div>
+  <div class="callout cyan">
+    <div class="callout-title">Decided 2026-08-25</div>
+    <p><strong>Renamed StarMaker → StarBuddy</strong> (repo, UI, client, bot; internal identifiers keep the old name for upgrade compatibility). <strong>Blueprints are never consumed by crafting</strong> — each craft counts a personal or org use on the owner's copy. <strong>Every craft is undoable</strong>, from the modal or the Items ledger. <strong>Item types come from the wiki item classification</strong> ("Armor · Undersuit", "Radar · Industrial"), synced in bulk nightly. <strong>Localization:</strong> English default, Danish first; one JSON file per language per app; browser/OS/Discord language on first use, then remembered per member; game data is never translated. <strong>Bot commands live under one <code>/starbuddy</code> root.</strong> <strong>CIG fan-kit compliance:</strong> the Made-by-the-Community badge and required notice in every footer.</p>
+  </div>
   <ol class="qlist">
-    <li><b>Name: StarBuddy.</b> Keeping it — repo, Discord application, and any domain register under this name.</li>
+    <li><b>Name: StarBuddy</b> (renamed from StarMaker on 2026-08-25) — repo, Discord application, and any domain register under this name.</li>
     <li><b>Item scope: everything is enterable, only resources carry quality.</b> The ledger accepts any game item (weapons, components, commodities) as quantity-only stacks; resources additionally carry the exact quality number. Crafted items and their quality-derived buffs are a later extension.</li>
     <li><b>Privacy: private by default,</b> opt-in to org visibility per stash. The entry form is sticky — location, visibility, and last quality carry over between lines, so bulk entry never repeats settings container by container.</li>
     <li><b>OCR: local only, no cloud.</b> PaddleOCR on-device; screenshots never leave the player's machine. No LLM-vision fallback.</li>
