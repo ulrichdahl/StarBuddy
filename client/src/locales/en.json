@@ -62,6 +62,15 @@
     "syncBackfilled_one": ", {{count}} blueprint identity backfilled",
     "syncBackfilled_other": ", {{count}} blueprint identities backfilled"
   },
+  "update": {
+    "available": "StarBuddy v{{latest}} is available (you have v{{current}}).",
+    "download": "Download update",
+    "dismiss": "Dismiss",
+    "check": "Check for updates",
+    "checking": "Checking…",
+    "upToDate": "You're up to date (v{{current}}).",
+    "failed": "Could not check for updates."
+  },
   "footer": {
     "disclaimer": "This is an unofficial Star Citizen fan application, not affiliated with the Cloud Imperium group of companies. All content not authored by its host or users is property of its respective owners.",
     "trademark": "Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. StarBuddy is free software (AGPL-3.0) —",

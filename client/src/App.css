@@ -142,6 +142,64 @@ th {
   gap: 12px;
 }
 
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: rgba(91, 200, 219, 0.08);
+  font-size: 14px;
+}
+
+.update-banner p {
+  flex: 1;
+  margin: 0;
+}
+
+.update-banner button {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.update-banner .dismiss {
+  border-color: transparent;
+  color: var(--muted);
+  padding: 4px 8px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.update-banner .dismiss:hover,
+.update-banner .dismiss:focus-visible {
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link-button:disabled {
+  text-decoration: none;
+}
+
+.update-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  margin-top: 8px;
+}
+
 .locale-select {
   margin-left: auto;
   background: var(--bg);

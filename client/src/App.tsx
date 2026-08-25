@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { useTranslation } from "react-i18next";
 import { LOCALE_NAMES, SUPPORTED_LOCALES, setLocale, type Locale } from "./i18n";
 import "./App.css";
@@ -40,6 +41,15 @@ interface SyncSummary {
   backfilled?: number;
 }
 
+interface UpdateCheck {
+  current: string;
+  latest: string;
+  url: string;
+  update_available: boolean;
+}
+
+type UpdateStatus = "idle" | "checking" | "upToDate" | "failed";
+
 function App() {
   const { t, i18n } = useTranslation();
   const [liveDir, setLiveDir] = useState<string | null>(null);
@@ -64,10 +74,17 @@ function App() {
   const [liveSynced, setLiveSynced] = useState(0);
   const liveSyncedRef = useRef(0);
 
+  const [update, setUpdate] = useState<UpdateCheck | null>(null);
+  const [updateDismissed, setUpdateDismissed] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
+  const updateStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     invoke<string | null>("detect_game_log").then(setLiveDir);
     invoke<ConnectionView>("get_connection").then(setConnection);
     invoke<boolean>("watcher_status").then(setWatching);
+    // Errors (offline, rate-limited, odd tag) mean "no update info", never an update.
+    invoke<UpdateCheck>("check_for_update").then(setUpdate).catch(() => {});
 
     const subs = [
       listen<LogEvent>("watcher-event", (e) =>
@@ -82,8 +99,32 @@ function App() {
     ];
     return () => {
       subs.forEach((p) => p.then((un) => un()));
+      if (updateStatusTimer.current) clearTimeout(updateStatusTimer.current);
     };
   }, []);
+
+  const checkForUpdate = async () => {
+    if (updateStatusTimer.current) clearTimeout(updateStatusTimer.current);
+    setUpdateStatus("checking");
+    try {
+      const info = await invoke<UpdateCheck>("check_for_update");
+      setUpdate(info);
+      if (info.update_available) {
+        setUpdateDismissed(false);
+        setUpdateStatus("idle");
+        return;
+      }
+      setUpdateStatus("upToDate");
+    } catch {
+      setUpdateStatus("failed");
+    }
+    updateStatusTimer.current = setTimeout(() => setUpdateStatus("idle"), 5000);
+  };
+
+  const openReleasePage = () => {
+    const url = update?.url || "https://github.com/ulrichdahl/StarBuddy/releases/latest";
+    openUrl(url).catch(() => {});
+  };
 
   const toggleWatcher = async () => {
     setWatcherError(null);
@@ -171,6 +212,21 @@ function App() {
           ))}
         </select>
       </div>
+
+      {update?.update_available && !updateDismissed && (
+        <div className="update-banner" role="status">
+          <p>{t("update.available", { latest: update.latest, current: update.current })}</p>
+          <button onClick={openReleasePage}>{t("update.download")}</button>
+          <button
+            className="dismiss"
+            onClick={() => setUpdateDismissed(true)}
+            aria-label={t("update.dismiss")}
+            title={t("update.dismiss")}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <section className="panel">
         <h2>{t("server.title")}</h2>
@@ -374,6 +430,19 @@ function App() {
           <p className="hint">
             {t("footer.trademark")}{" "}
             <a href="https://github.com/ulrichdahl/StarBuddy" target="_blank" rel="noopener">{t("footer.source")}</a>.
+          </p>
+          <p className="hint update-row">
+            <button
+              className="link-button"
+              onClick={checkForUpdate}
+              disabled={updateStatus === "checking"}
+            >
+              {updateStatus === "checking" ? t("update.checking") : t("update.check")}
+            </button>
+            {updateStatus === "upToDate" && update && (
+              <span role="status">{t("update.upToDate", { current: update.current })}</span>
+            )}
+            {updateStatus === "failed" && <span role="status">{t("update.failed")}</span>}
           </p>
         </div>
       </footer>

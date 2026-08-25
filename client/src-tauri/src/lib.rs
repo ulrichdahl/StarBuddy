@@ -551,9 +551,104 @@ async fn tokio_sleep() {
         .ok();
 }
 
+// ── Update check ───────────────────────────────────────────────────────────
+// Asks GitHub for the latest release and compares its tag with the version
+// compiled into this binary. Any failure is an Err — the UI treats that as
+// "no update information", never as an available update.
+
+const RELEASES_API_URL: &str = "https://api.github.com/repos/ulrichdahl/StarBuddy/releases/latest";
+const RELEASES_PAGE_URL: &str = "https://github.com/ulrichdahl/StarBuddy/releases/latest";
+
+#[derive(Serialize, Clone)]
+pub struct UpdateCheck {
+    pub current: String,
+    pub latest: String,
+    pub url: String,
+    pub update_available: bool,
+}
+
+/// Parse "v1.2.3", "1.2.3-beta.1" or "v1.2" into a (major, minor, patch)
+/// triple. A leading `v` is stripped, anything after `-` (prerelease) or `+`
+/// (build metadata) is ignored, and missing minor/patch default to 0.
+fn parse_semver(s: &str) -> Option<(u64, u64, u64)> {
+    let core = s.trim().trim_start_matches(['v', 'V']);
+    let core = core.split(['-', '+']).next()?;
+    let mut parts = core.split('.');
+    let major = parts.next()?.trim().parse().ok()?;
+    let minor = parts.next().unwrap_or("0").trim().parse().ok()?;
+    let patch = parts.next().unwrap_or("0").trim().parse().ok()?;
+    if parts.next().is_some() {
+        return None;
+    }
+    Some((major, minor, patch))
+}
+
+#[tauri::command]
+async fn check_for_update() -> Result<UpdateCheck, String> {
+    let current = env!("CARGO_PKG_VERSION");
+    let current_v = parse_semver(current).ok_or_else(|| format!("Unparseable own version: {current}"))?;
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let resp = client
+        .get(RELEASES_API_URL)
+        .header("User-Agent", format!("StarBuddy/{current}"))
+        .header("Accept", "application/vnd.github+json")
+        .send()
+        .await
+        .map_err(|e| format!("Could not reach GitHub: {e}"))?;
+
+    if !resp.status().is_success() {
+        return Err(format!("GitHub said {}", resp.status()));
+    }
+
+    #[derive(Deserialize)]
+    struct Release {
+        tag_name: String,
+        html_url: Option<String>,
+    }
+
+    let release: Release = resp.json().await.map_err(|e| e.to_string())?;
+    let latest_v = parse_semver(&release.tag_name)
+        .ok_or_else(|| format!("Unparseable release tag: {}", release.tag_name))?;
+
+    Ok(UpdateCheck {
+        current: current.to_string(),
+        latest: release.tag_name.trim().trim_start_matches(['v', 'V']).to_string(),
+        url: release
+            .html_url
+            .filter(|u| !u.trim().is_empty())
+            .unwrap_or_else(|| RELEASES_PAGE_URL.to_string()),
+        update_available: latest_v > current_v,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn semver_parsing_and_ordering() {
+        assert_eq!(parse_semver("v0.1.4"), Some((0, 1, 4)));
+        assert_eq!(parse_semver("0.1.4"), Some((0, 1, 4)));
+        assert_eq!(parse_semver("v1.2"), Some((1, 2, 0)));
+        assert_eq!(parse_semver("v0.2.0-beta.1"), Some((0, 2, 0)));
+        assert_eq!(parse_semver("v0.2.0+build.7"), Some((0, 2, 0)));
+        assert_eq!(parse_semver("nightly"), None);
+        assert_eq!(parse_semver("v1.2.3.4"), None);
+        assert_eq!(parse_semver(""), None);
+
+        let current = parse_semver("0.1.4").unwrap();
+        assert!(parse_semver("v0.1.4").unwrap() == current); // equal → no update
+        assert!(parse_semver("v0.1.3").unwrap() < current); // older → no update
+        assert!(parse_semver("v0.1.5").unwrap() > current); // newer patch
+        assert!(parse_semver("v0.2.0").unwrap() > current); // newer minor
+        assert!(parse_semver("v1.0.0").unwrap() > current); // newer major
+        assert!(parse_semver("v0.1.4-rc.1").unwrap() == current); // prerelease of same → no update
+        assert!(parse_semver("v0.1.5-rc.1").unwrap() > current); // prerelease of newer → update
+    }
 
     // Runs against a real installation when STARMAKER_TEST_LIVE_DIR is set;
     // skips silently otherwise so CI stays green without game files.
@@ -599,7 +694,8 @@ pub fn run() {
             sync_events,
             start_watcher,
             stop_watcher,
-            watcher_status
+            watcher_status,
+            check_for_update
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -62,6 +62,15 @@
     "syncBackfilled_one": ", {{count}} blueprint-identitet efterudfyldt",
     "syncBackfilled_other": ", {{count}} blueprint-identiteter efterudfyldt"
   },
+  "update": {
+    "available": "StarBuddy v{{latest}} er tilgængelig (du har v{{current}}).",
+    "download": "Hent opdatering",
+    "dismiss": "Skjul",
+    "check": "Søg efter opdateringer",
+    "checking": "Søger…",
+    "upToDate": "Du har den nyeste version (v{{current}}).",
+    "failed": "Kunne ikke søge efter opdateringer."
+  },
   "footer": {
     "disclaimer": "Dette er en uofficiel Star Citizen-fanapplikation uden tilknytning til Cloud Imperium-koncernen. Alt indhold, der ikke er skabt af værten eller brugerne, tilhører de respektive ejere.",
     "trademark": "Star Citizen®, Roberts Space Industries® og Cloud Imperium® er registrerede varemærker tilhørende Cloud Imperium Rights LLC. StarBuddy er fri software (AGPL-3.0) —",
