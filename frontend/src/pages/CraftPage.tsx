@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -13,6 +13,7 @@ import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
+import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
@@ -63,6 +64,8 @@ export function CraftPage() {
   const [craftableOnly, setCraftableOnly] = useState(false)
   const [includeUnowned, setIncludeUnowned] = useState(false)
   const [detailId, setDetailId] = useState<number | null>(null)
+  const [page, setPage] = useState(0)
+  const rowsPerPage = 50
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['craftability', search, type, craftableOnly, includeUnowned],
@@ -79,6 +82,11 @@ export function CraftPage() {
       ).data,
     placeholderData: (prev) => prev,
   })
+
+  // Back to the first page whenever a filter changes the result set.
+  useEffect(() => {
+    setPage(0)
+  }, [search, type, craftableOnly, includeUnowned])
 
   return (
     <Box>
@@ -134,7 +142,7 @@ export function CraftPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {(data?.results ?? []).map((r) => (
+              {(data?.results ?? []).slice(page * rowsPerPage, (page + 1) * rowsPerPage).map((r) => (
                 <TableRow key={r.id} hover onClick={() => setDetailId(r.id)} sx={{ cursor: 'pointer' }}>
                   <TableCell>
                     {r.name}
@@ -216,6 +224,16 @@ export function CraftPage() {
             </TableBody>
           </Table>
         </TableContainer>
+        {(data?.results ?? []).length > rowsPerPage && (
+          <TablePagination
+            component="div"
+            count={data?.results.length ?? 0}
+            page={page}
+            onPageChange={(_, p) => setPage(p)}
+            rowsPerPage={rowsPerPage}
+            rowsPerPageOptions={[rowsPerPage]}
+          />
+        )}
       </Paper>
       {detailId !== null && <CraftDetailDialog blueprintId={detailId} onClose={() => setDetailId(null)} />}
     </Box>
