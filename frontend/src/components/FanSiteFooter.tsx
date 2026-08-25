@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
@@ -9,6 +10,7 @@ import Typography from '@mui/material/Typography'
  * https://support.robertsspaceindustries.com/hc/en-us/articles/360006895793
  */
 export function FanSiteFooter() {
+  const { t } = useTranslation()
   return (
     <Box
       component="footer"
@@ -28,30 +30,27 @@ export function FanSiteFooter() {
         href="https://robertsspaceindustries.com/"
         target="_blank"
         rel="noopener"
-        aria-label="Star Citizen — Made by the Community"
+        aria-label={t('footer.badgeAlt')}
         sx={{ display: 'inline-flex', flexShrink: 0, opacity: 0.85, '&:hover': { opacity: 1 } }}
       >
         <Box
           component="img"
           src="/made-by-the-community.svg"
-          alt="Star Citizen — Made by the Community"
+          alt={t('footer.badgeAlt')}
           sx={{ height: 72, width: 72 }}
         />
       </Box>
       <Box sx={{ flex: 1, minWidth: 260 }}>
         <Typography variant="body2" color="text.secondary">
-          This is an unofficial{' '}
+          {t('footer.notice')}{' '}
           <Link href="https://robertsspaceindustries.com/" target="_blank" rel="noopener" color="inherit">
-            Star Citizen
-          </Link>{' '}
-          fan site, not affiliated with the Cloud Imperium group of companies. All content on this
-          site not authored by its host or users are property of their respective owners.
+            robertsspaceindustries.com
+          </Link>
         </Typography>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-          Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of
-          Cloud Imperium Rights LLC. StarBuddy is free software (AGPL-3.0) —{' '}
+          {t('footer.trademarks')} {t('footer.freeSoftware')}{' '}
           <Link href="https://github.com/ulrichdahl/StarBuddy" target="_blank" rel="noopener" color="inherit">
-            source on GitHub
+            {t('footer.source')}
           </Link>
           .
         </Typography>

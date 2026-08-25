@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -27,6 +28,7 @@ import { PageHeader } from '../components/PageHeader'
  * validation), then commit with the token the preview returned.
  */
 export function ImportPage() {
+  const { t } = useTranslation()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [fileName, setFileName] = useState<string | null>(null)
   const [preview, setPreview] = useState<ImportPreview | null>(null)
@@ -54,17 +56,18 @@ export function ImportPage() {
     previewMutation.mutate(file)
   }
 
+  // CSV column names are the backend's import contract — shown verbatim.
   const columns = preview?.rows[0] ? Object.keys(preview.rows[0].data) : []
 
   return (
     <Box>
       <PageHeader
-        title="Import"
-        subtitle="Bulk-import resource stacks from CSV"
+        title={t('import.title')}
+        subtitle={t('import.subtitle')}
         action={
           <Link href="/api/import/resources/template" download underline="none">
             <Button variant="outlined" startIcon={<DownloadIcon />}>
-              Download CSV template
+              {t('import.downloadTemplate')}
             </Button>
           </Link>
         }
@@ -85,7 +88,7 @@ export function ImportPage() {
             onClick={() => fileInputRef.current?.click()}
             disabled={previewMutation.isPending}
           >
-            {previewMutation.isPending ? 'Uploading…' : 'Choose CSV file'}
+            {previewMutation.isPending ? t('import.uploading') : t('import.chooseFile')}
           </Button>
           {fileName && (
             <Typography variant="body2" color="text.secondary">
@@ -95,7 +98,7 @@ export function ImportPage() {
         </Stack>
         {previewMutation.isError && (
           <Alert severity="error" sx={{ mt: 2 }}>
-            Could not preview the file. Check that it is a valid CSV.
+            {t('import.previewFailed')}
           </Alert>
         )}
       </Paper>
@@ -104,18 +107,18 @@ export function ImportPage() {
         <Paper sx={{ p: 3 }}>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
-              Preview
+              {t('import.preview')}
             </Typography>
             <Chip
               icon={<CheckCircleIcon />}
-              label={`${preview.valid_count} valid`}
+              label={t('import.validCount', { count: preview.valid_count })}
               color="primary"
               variant="outlined"
               size="small"
             />
             <Chip
               icon={<ErrorOutlinedIcon />}
-              label={`${preview.error_count} with errors`}
+              label={t('import.errorCount', { count: preview.error_count })}
               color={preview.error_count > 0 ? 'error' : 'default'}
               variant="outlined"
               size="small"
@@ -123,14 +126,14 @@ export function ImportPage() {
           </Stack>
 
           <TableContainer sx={{ overflowX: 'auto', mb: 2 }}>
-            <Table size="small" aria-label="Import preview">
+            <Table size="small" aria-label={t('import.previewTable')}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Line</TableCell>
+                  <TableCell>{t('import.line')}</TableCell>
                   {columns.map((col) => (
                     <TableCell key={col}>{col}</TableCell>
                   ))}
-                  <TableCell>Errors</TableCell>
+                  <TableCell>{t('import.errors')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -149,7 +152,7 @@ export function ImportPage() {
                           {row.errors.join('; ')}
                         </Typography>
                       ) : (
-                        '—'
+                        t('common.none')
                       )}
                     </TableCell>
                   </TableRow>
@@ -159,7 +162,7 @@ export function ImportPage() {
           </TableContainer>
 
           {commitMutation.isSuccess ? (
-            <Alert severity="success">Import committed successfully.</Alert>
+            <Alert severity="success">{t('import.committed')}</Alert>
           ) : (
             <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
               <Button
@@ -168,18 +171,20 @@ export function ImportPage() {
                 disabled={preview.valid_count === 0 || commitMutation.isPending}
                 onClick={() => commitMutation.mutate(preview.token)}
               >
-                {commitMutation.isPending ? 'Importing…' : `Commit import (${preview.valid_count} rows)`}
+                {commitMutation.isPending
+                  ? t('import.importing')
+                  : t('import.commitImport', { count: preview.valid_count })}
               </Button>
               {preview.error_count > 0 && (
                 <Typography variant="body2" color="text.secondary">
-                  Rows with errors will be skipped.
+                  {t('import.errorRowsSkipped')}
                 </Typography>
               )}
             </Stack>
           )}
           {commitMutation.isError && (
             <Alert severity="error" sx={{ mt: 2 }}>
-              Commit failed. Re-upload the file and try again.
+              {t('import.commitFailed')}
             </Alert>
           )}
         </Paper>

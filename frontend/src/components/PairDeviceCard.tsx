@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
@@ -24,6 +25,7 @@ interface Device {
 }
 
 export function PairDeviceCard() {
+  const { t, i18n } = useTranslation()
   const [code, setCode] = useState<PairingCode | null>(null)
   const queryClient = useQueryClient()
 
@@ -46,11 +48,10 @@ export function PairDeviceCard() {
     <Paper sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
         <DevicesIcon color="primary" />
-        <Typography variant="h6">Desktop client</Typography>
+        <Typography variant="h6">{t('pair.title')}</Typography>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-        Pair the StarBuddy desktop app to sync blueprints and refinery events from your Game.log.
-        Generate a code, then enter it in the app's Server panel within 10 minutes.
+        {t('pair.help')}
       </Typography>
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
         <Button
@@ -62,17 +63,17 @@ export function PairDeviceCard() {
           target="_blank"
           rel="noopener"
         >
-          Download the desktop app
+          {t('pair.download')}
         </Button>
         <Typography variant="caption" color="text.secondary">
-          Windows installer · Linux AppImage/deb/rpm —{' '}
+          {t('pair.platforms')}{' '}
           <Link
             href="https://github.com/ulrichdahl/StarBuddy/releases/tag/dev"
             target="_blank"
             rel="noopener"
             color="inherit"
           >
-            dev builds
+            {t('pair.devBuilds')}
           </Link>
         </Typography>
       </Box>
@@ -86,19 +87,21 @@ export function PairDeviceCard() {
             {code.code}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Single use · expires {new Date(code.expires_at).toLocaleTimeString()}
+            {t('pair.singleUseExpires', {
+              time: new Date(code.expires_at).toLocaleTimeString(i18n.language),
+            })}
           </Typography>
         </Box>
       ) : null}
 
       <Button variant="outlined" onClick={() => generate.mutate()} disabled={generate.isPending}>
-        {generate.isPending ? 'Generating…' : code ? 'Generate new code' : 'Generate pairing code'}
+        {generate.isPending ? t('pair.generating') : code ? t('pair.generateNew') : t('pair.generate')}
       </Button>
 
       {devices && devices.length > 0 && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-            Paired devices
+            {t('pair.pairedDevices')}
           </Typography>
           {devices.map((d) => (
             <Box key={d.id} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -106,13 +109,13 @@ export function PairDeviceCard() {
                 {d.name}
                 <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
                   {d.last_used_at
-                    ? `last sync ${new Date(d.last_used_at).toLocaleString()}`
-                    : 'never used'}
+                    ? t('pair.lastSync', { time: new Date(d.last_used_at).toLocaleString(i18n.language) })
+                    : t('pair.neverUsed')}
                 </Typography>
               </Typography>
               <IconButton
                 size="small"
-                aria-label={`Revoke ${d.name}`}
+                aria-label={t('pair.revoke', { name: d.name })}
                 onClick={() => revoke.mutate(d.id)}
               >
                 <DeleteIcon fontSize="small" />

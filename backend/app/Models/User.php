@@ -14,7 +14,7 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'discord_id', 'discord_username', 'avatar_url', 'handle',
+        'name', 'email', 'discord_id', 'discord_username', 'avatar_url', 'handle', 'locale',
     ];
 
     protected $hidden = ['password', 'remember_token'];

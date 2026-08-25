@@ -6,6 +6,8 @@ Discord companion for StarBuddy, the self-hostable Star Citizen org resource tra
 
 On first start the bot sets its own avatar to the StarBuddy icon if it still has Discord's default one (an avatar you set in the Developer Portal is left alone).
 
+Replies are localized (English, Danish — one JSON file per language in `locales/`): a registered member gets the language chosen on the website, anyone else the language of their Discord client. Command descriptions carry Danish localizations too. Game data (org names, handles) is never translated.
+
 All commands live under one root command:
 
 - `/starbuddy ping` — latency + backend health.

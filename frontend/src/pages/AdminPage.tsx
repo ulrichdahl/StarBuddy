@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Trans, useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
@@ -23,12 +24,16 @@ import { PageHeader } from '../components/PageHeader'
 
 type ScopeMode = 'category' | 'type'
 
+/** The word the admin must type to confirm a bulk clear. Not localized on purpose. */
+const CONFIRM_WORD = 'CLEAR'
+
 /**
  * Admin: bulk-clear org inventory. Scope by resource category OR a
  * specific resource type, optionally narrowed to a member and/or
  * location. Destructive, so committing requires typing CLEAR.
  */
 export function AdminPage() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
 
   const [mode, setMode] = useState<ScopeMode>('category')
@@ -70,23 +75,28 @@ export function AdminPage() {
     ...(locationId !== '' ? { location_id: locationId } : {}),
   })
 
+  // Category, resource and location names are game data — interpolated verbatim.
   const scopeSummary = [
-    mode === 'category' ? `category "${category}"` : `resource "${resourceType?.name}"`,
-    memberId !== '' ? `member #${memberId}` : 'all members',
-    locationId !== '' ? `location "${locations.find((l) => l.id === locationId)?.name}"` : 'all locations',
+    mode === 'category'
+      ? t('admin.scopeCategory', { name: category })
+      : t('admin.scopeResource', { name: resourceType?.name }),
+    memberId !== '' ? t('admin.scopeMember', { id: memberId }) : t('admin.scopeAllMembers'),
+    locationId !== ''
+      ? t('admin.scopeLocation', { name: locations.find((l) => l.id === locationId)?.name })
+      : t('admin.scopeAllLocations'),
   ].join(', ')
 
   return (
     <Box>
-      <PageHeader title="Admin" subtitle="Org administration tools" />
+      <PageHeader title={t('admin.title')} subtitle={t('admin.subtitle')} />
 
       <Paper sx={{ p: 3, maxWidth: 560, borderColor: 'rgba(232, 180, 90, 0.35)' }}>
         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2 }}>
           <WarningAmberIcon color="secondary" />
-          <Typography variant="h6">Bulk-clear inventory</Typography>
+          <Typography variant="h6">{t('admin.bulkClearTitle')}</Typography>
         </Stack>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Permanently removes matching resource stacks from the org inventory. This cannot be undone.
+          {t('admin.bulkClearDescription')}
         </Typography>
 
         <Stack spacing={2}>
@@ -96,16 +106,16 @@ export function AdminPage() {
             size="small"
             value={mode}
             onChange={(_, value: ScopeMode | null) => value && setMode(value)}
-            aria-label="Clear by"
+            aria-label={t('admin.clearBy')}
           >
-            <ToggleButton value="category">By category</ToggleButton>
-            <ToggleButton value="type">By resource type</ToggleButton>
+            <ToggleButton value="category">{t('admin.byCategory')}</ToggleButton>
+            <ToggleButton value="type">{t('admin.byResourceType')}</ToggleButton>
           </ToggleButtonGroup>
 
           {mode === 'category' ? (
             <TextField
               select
-              label="Resource category"
+              label={t('admin.resourceCategory')}
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
@@ -123,25 +133,25 @@ export function AdminPage() {
               getOptionLabel={(option) => option.name}
               isOptionEqualToValue={(a, b) => a.id === b.id}
               groupBy={(option) => option.category}
-              renderInput={(params) => <TextField {...params} label="Resource type" />}
+              renderInput={(params) => <TextField {...params} label={t('admin.resourceType')} />}
             />
           )}
 
           <TextField
-            label="Member ID (optional)"
+            label={t('admin.memberIdOptional')}
             type="number"
             value={memberId}
             onChange={(e) => setMemberId(e.target.value)}
-            helperText="Leave empty to clear across all members"
+            helperText={t('admin.memberIdHelp')}
           />
 
           <TextField
             select
-            label="Location (optional)"
+            label={t('admin.locationOptional')}
             value={locationId}
             onChange={(e) => setLocationId(e.target.value === '' ? '' : Number(e.target.value))}
           >
-            <MenuItem value="">All locations</MenuItem>
+            <MenuItem value="">{t('admin.allLocations')}</MenuItem>
             {locations.map((loc) => (
               <MenuItem key={loc.id} value={loc.id}>
                 {loc.name}
@@ -149,8 +159,8 @@ export function AdminPage() {
             ))}
           </TextField>
 
-          {clearInventory.isSuccess && <Alert severity="success">Inventory cleared.</Alert>}
-          {clearInventory.isError && <Alert severity="error">Clear failed. Check your permissions.</Alert>}
+          {clearInventory.isSuccess && <Alert severity="success">{t('admin.cleared')}</Alert>}
+          {clearInventory.isError && <Alert severity="error">{t('admin.clearFailed')}</Alert>}
 
           <Button
             variant="contained"
@@ -158,35 +168,38 @@ export function AdminPage() {
             disabled={!hasTarget}
             onClick={() => setConfirmOpen(true)}
           >
-            Clear inventory…
+            {t('admin.clearInventoryEllipsis')}
           </Button>
         </Stack>
       </Paper>
 
       <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Confirm bulk clear</DialogTitle>
+        <DialogTitle>{t('admin.confirmTitle')}</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
-            You are about to delete all stacks matching: {scopeSummary}. Type <strong>CLEAR</strong> to
-            confirm.
+            <Trans
+              i18nKey="admin.confirmBody"
+              values={{ scope: scopeSummary, word: CONFIRM_WORD }}
+              components={{ strong: <strong /> }}
+            />
           </DialogContentText>
           <TextField
             fullWidth
             autoFocus
-            label="Type CLEAR"
+            label={t('admin.typeWord', { word: CONFIRM_WORD })}
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+          <Button onClick={() => setConfirmOpen(false)}>{t('common.cancel')}</Button>
           <Button
             color="error"
             variant="contained"
-            disabled={confirmText !== 'CLEAR' || clearInventory.isPending}
+            disabled={confirmText !== CONFIRM_WORD || clearInventory.isPending}
             onClick={() => clearInventory.mutate(buildRequest())}
           >
-            {clearInventory.isPending ? 'Clearing…' : 'Clear inventory'}
+            {clearInventory.isPending ? t('admin.clearing') : t('admin.clearInventory')}
           </Button>
         </DialogActions>
       </Dialog>

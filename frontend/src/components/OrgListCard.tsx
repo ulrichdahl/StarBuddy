@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -17,13 +19,13 @@ import type { Me, OrgSummary } from '../lib/types'
 import { OrgMembersDialog } from './OrgMembersDialog'
 
 /** Compact "12,340 SCU · 87 pcs · 5 blueprints" line for one org's pooled stats. */
-function orgStats(org: OrgSummary): string {
+function orgStats(org: OrgSummary, t: TFunction): string {
   const parts = [
-    `${org.member_count.toLocaleString()} ${org.member_count === 1 ? 'member' : 'members'}`,
-    `${org.total_scu.toLocaleString()} SCU`,
+    t('org.members', { count: org.member_count }),
+    t('org.scu', { count: org.total_scu }),
   ]
-  if (org.total_pieces > 0) parts.push(`${org.total_pieces.toLocaleString()} pcs`)
-  parts.push(`${org.blueprint_count.toLocaleString()} blueprints`)
+  if (org.total_pieces > 0) parts.push(t('org.pieces', { count: org.total_pieces }))
+  parts.push(t('org.blueprints', { count: org.blueprint_count }))
   return parts.join(' · ')
 }
 
@@ -33,6 +35,7 @@ function orgStats(org: OrgSummary): string {
  * and (for managers/admins) open the member-moderation dialog.
  */
 export function OrgListCard({ me }: { me: Me }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [manageOrg, setManageOrg] = useState<OrgSummary | null>(null)
 
@@ -64,10 +67,10 @@ export function OrgListCard({ me }: { me: Me }) {
     <Paper sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
         <GroupsIcon color="primary" />
-        <Typography variant="h6">Organizations</Typography>
+        <Typography variant="h6">{t('org.title')}</Typography>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        Join an org to pool materials, items and blueprints with your org mates.
+        {t('org.help')}
       </Typography>
 
       {orgsQuery.isLoading && (
@@ -77,10 +80,10 @@ export function OrgListCard({ me }: { me: Me }) {
           ))}
         </Box>
       )}
-      {orgsQuery.isError && <Alert severity="error">Could not load organizations.</Alert>}
+      {orgsQuery.isError && <Alert severity="error">{t('org.loadError')}</Alert>}
       {orgsQuery.isSuccess && orgsQuery.data.length === 0 && (
         <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-          No organizations registered yet.
+          {t('org.empty')}
         </Typography>
       )}
 
@@ -94,7 +97,7 @@ export function OrgListCard({ me }: { me: Me }) {
               <ListItem key={org.id} divider disableGutters sx={{ flexWrap: 'wrap', gap: 1 }}>
                 <ListItemText
                   primary={org.name}
-                  secondary={orgStats(org)}
+                  secondary={orgStats(org, t)}
                   sx={{ minWidth: 200, mr: 1 }}
                 />
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
@@ -105,19 +108,19 @@ export function OrgListCard({ me }: { me: Me }) {
                       disabled={busy}
                       onClick={() => join.mutate(org.id)}
                     >
-                      Request to join
+                      {t('org.requestJoin')}
                     </Button>
                   )}
                   {membership?.status === 'pending' && (
                     <>
-                      <Chip size="small" label="Pending approval" color="warning" disabled />
+                      <Chip size="small" label={t('org.pendingApproval')} color="warning" disabled />
                       <Button
                         size="small"
                         color="inherit"
                         disabled={busy}
                         onClick={() => leave.mutate(org.id)}
                       >
-                        Cancel
+                        {t('common.cancel')}
                       </Button>
                     </>
                   )}
@@ -125,7 +128,7 @@ export function OrgListCard({ me }: { me: Me }) {
                     <>
                       <Chip
                         size="small"
-                        label={membership.role}
+                        label={t(`org.role.${membership.role}`)}
                         color={membership.role === 'manager' ? 'secondary' : 'default'}
                         variant="outlined"
                       />
@@ -135,7 +138,7 @@ export function OrgListCard({ me }: { me: Me }) {
                           startIcon={<ManageAccountsIcon />}
                           onClick={() => setManageOrg(org)}
                         >
-                          Manage members
+                          {t('org.manageMembers')}
                         </Button>
                       )}
                       <Button
@@ -143,10 +146,10 @@ export function OrgListCard({ me }: { me: Me }) {
                         color="error"
                         disabled={busy}
                         onClick={() => {
-                          if (window.confirm(`Leave ${org.name}?`)) leave.mutate(org.id)
+                          if (window.confirm(t('org.leaveConfirm', { org: org.name }))) leave.mutate(org.id)
                         }}
                       >
-                        Leave
+                        {t('org.leave')}
                       </Button>
                     </>
                   )}

@@ -1,0 +1,73 @@
+{
+  "header": {
+    "tagline": "Game.log watcher",
+    "language": "Language"
+  },
+  "server": {
+    "title": "Server",
+    "pairedAs": "Paired as",
+    "unpair": "Unpair",
+    "hint": "Sign in to your community's StarBuddy website, generate a pairing code on the dashboard, and enter it here.",
+    "pairingCodePlaceholder": "Pairing code",
+    "pair": "Pair",
+    "pairing": "Pairing…"
+  },
+  "scan": {
+    "title": "Star Citizen installation",
+    "detected": "Detected:",
+    "notDetected": "No installation auto-detected. Enter your LIVE folder path:",
+    "dirPlaceholder": "…/StarCitizen/LIVE",
+    "scanButton": "Scan log history",
+    "scanning": "Scanning…",
+    "progress": "Scanning file {{current}} of {{total}} — {{file}}",
+    "preparing": "Preparing scan…"
+  },
+  "watcher": {
+    "title": "Live watcher",
+    "watching": "Watching Game.log — new blueprints and refinery completions sync automatically{{synced}}.",
+    "syncedThisSession": " ({{count}} synced this session)",
+    "notWatching": "Not watching. Start the watcher while playing to sync events as they happen.",
+    "start": "Start watching",
+    "stop": "Stop watching"
+  },
+  "events": {
+    "logFiles_one": "{{count}} log file",
+    "logFiles_other": "{{count}} log files",
+    "blueprints_one": "{{count}} blueprint",
+    "blueprints_other": "{{count}} blueprints",
+    "refineryCompletions_one": "{{count}} refinery completion",
+    "refineryCompletions_other": "{{count}} refinery completions",
+    "filterAll": "All",
+    "filterBlueprints": "Blueprints",
+    "filterRefinery": "Refinery",
+    "colTime": "Time (UTC)",
+    "colEvent": "Event",
+    "colDetail": "Detail",
+    "kindBlueprint": "Blueprint",
+    "kindRefineryDone": "Refinery done",
+    "syncButton_one": "Sync {{count}} event to server",
+    "syncButton_other": "Sync {{count}} events to server",
+    "syncing_one": "Syncing {{count}} event…",
+    "syncing_other": "Syncing {{count}} events…",
+    "pairToSync": "Pair with a server above to sync.",
+    "syncResult": "{{accepted}} ({{duplicates}}): {{blueprints}}, {{refinery}}{{backfilled}}.",
+    "syncAccepted_one": "Server accepted {{count}} new event",
+    "syncAccepted_other": "Server accepted {{count}} new events",
+    "syncDuplicates_one": "{{count}} already known",
+    "syncDuplicates_other": "{{count}} already known",
+    "syncBlueprintsAdded_one": "{{count}} blueprint added",
+    "syncBlueprintsAdded_other": "{{count}} blueprints added",
+    "syncRefineryRecorded_one": "{{count}} refinery completion recorded",
+    "syncRefineryRecorded_other": "{{count}} refinery completions recorded",
+    "syncBackfilled_one": ", {{count}} blueprint identity backfilled",
+    "syncBackfilled_other": ", {{count}} blueprint identities backfilled"
+  },
+  "footer": {
+    "disclaimer": "This is an unofficial Star Citizen fan application, not affiliated with the Cloud Imperium group of companies. All content not authored by its host or users is property of its respective owners.",
+    "trademark": "Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. StarBuddy is free software (AGPL-3.0) —",
+    "source": "source on GitHub"
+  },
+  "common": {
+    "separator": " · "
+  }
+}

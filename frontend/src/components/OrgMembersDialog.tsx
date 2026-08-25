@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { alpha } from '@mui/material/styles'
 import Alert from '@mui/material/Alert'
 import Avatar from '@mui/material/Avatar'
@@ -40,6 +41,7 @@ const membersKey = (orgId: number) => ['orgs', orgId, 'members'] as const
  * manager+ role server-side; a 403 is surfaced as an inline alert.
  */
 export function OrgMembersDialog({ orgId, orgName, selfId, open, onClose }: OrgMembersDialogProps) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
 
   const membersQuery = useQuery({
@@ -68,7 +70,7 @@ export function OrgMembersDialog({ orgId, orgName, selfId, open, onClose }: OrgM
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" aria-labelledby="org-members-title">
-      <DialogTitle id="org-members-title">{orgName} — members</DialogTitle>
+      <DialogTitle id="org-members-title">{t('org.membersTitle', { org: orgName })}</DialogTitle>
       <DialogContent dividers sx={{ p: 0 }}>
         {membersQuery.isLoading && (
           <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
@@ -82,17 +84,17 @@ export function OrgMembersDialog({ orgId, orgName, selfId, open, onClose }: OrgM
         )}
         {membersQuery.isError && (
           <Alert severity="error" sx={{ m: 2 }}>
-            Could not load the member list — you need a manager role in this org.
+            {t('org.membersLoadError')}
           </Alert>
         )}
         {mutationFailed && (
           <Alert severity="error" sx={{ m: 2, mb: 0 }}>
-            That action failed — the roster may have changed. It has been refreshed.
+            {t('org.actionFailed')}
           </Alert>
         )}
         {membersQuery.isSuccess && membersQuery.data.length === 0 && (
           <Typography color="text.secondary" sx={{ p: 3, textAlign: 'center' }}>
-            No members yet.
+            {t('org.noMembers')}
           </Typography>
         )}
         {membersQuery.isSuccess && membersQuery.data.length > 0 && (
@@ -100,6 +102,7 @@ export function OrgMembersDialog({ orgId, orgName, selfId, open, onClose }: OrgM
             {membersQuery.data.map((member) => {
               const pending = member.status === 'pending'
               const displayName = member.handle ?? member.name
+              const kickLabel = t('org.kick', { name: displayName })
               return (
                 <ListItem
                   key={member.id}
@@ -114,7 +117,7 @@ export function OrgMembersDialog({ orgId, orgName, selfId, open, onClose }: OrgM
                           disabled={busy}
                           onClick={() => accept.mutate(member.id)}
                         >
-                          Accept
+                          {t('org.accept')}
                         </Button>
                         <Button
                           size="small"
@@ -122,19 +125,19 @@ export function OrgMembersDialog({ orgId, orgName, selfId, open, onClose }: OrgM
                           disabled={busy}
                           onClick={() => kick.mutate(member.id)}
                         >
-                          Decline
+                          {t('org.decline')}
                         </Button>
                       </Box>
                     ) : member.id !== selfId ? (
-                      <Tooltip title={`Kick ${displayName}`}>
+                      <Tooltip title={kickLabel}>
                         <span>
                           <IconButton
                             edge="end"
                             color="error"
                             disabled={busy}
-                            aria-label={`Kick ${displayName}`}
+                            aria-label={kickLabel}
                             onClick={() => {
-                              if (window.confirm(`Kick ${displayName} from ${orgName}?`)) {
+                              if (window.confirm(t('org.kickConfirm', { name: displayName, org: orgName }))) {
                                 kick.mutate(member.id)
                               }
                             }}
@@ -158,14 +161,14 @@ export function OrgMembersDialog({ orgId, orgName, selfId, open, onClose }: OrgM
                         <Chip
                           component="span"
                           size="small"
-                          label={member.role}
+                          label={t(`org.role.${member.role}`)}
                           color={member.role === 'manager' ? 'secondary' : 'default'}
                           variant="outlined"
                         />
                         <Chip
                           component="span"
                           size="small"
-                          label={pending ? 'pending' : 'active'}
+                          label={t(`org.status.${member.status}`)}
                           color={pending ? 'warning' : 'default'}
                           variant={pending ? 'filled' : 'outlined'}
                         />
@@ -180,7 +183,7 @@ export function OrgMembersDialog({ orgId, orgName, selfId, open, onClose }: OrgM
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose}>{t('common.close')}</Button>
       </DialogActions>
     </Dialog>
   )

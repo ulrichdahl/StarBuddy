@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
@@ -27,6 +28,7 @@ import { PageHeader } from '../components/PageHeader'
 
 /** Dialog for marking a blueprint as owned, with server-side search. */
 function MarkOwnedDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Blueprint | null>(null)
@@ -51,7 +53,7 @@ function MarkOwnedDialog({ open, onClose }: { open: boolean; onClose: () => void
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Mark blueprint as owned</DialogTitle>
+      <DialogTitle>{t('blueprints.dialog.title')}</DialogTitle>
       <DialogContent>
         <Autocomplete
           sx={{ mt: 1 }}
@@ -65,23 +67,28 @@ function MarkOwnedDialog({ open, onClose }: { open: boolean; onClose: () => void
           loading={isFetching}
           filterOptions={(x) => x}
           renderInput={(params) => (
-            <TextField {...params} label="Blueprint" autoFocus placeholder="Search blueprints…" />
+            <TextField
+              {...params}
+              label={t('blueprints.dialog.blueprint')}
+              autoFocus
+              placeholder={t('blueprints.dialog.searchPlaceholder')}
+            />
           )}
         />
         {markOwned.isError && (
           <Alert severity="error" sx={{ mt: 2 }}>
-            Could not mark the blueprint as owned.
+            {t('blueprints.dialog.failed')}
           </Alert>
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t('common.cancel')}</Button>
         <Button
           variant="contained"
           disabled={!selected || markOwned.isPending}
           onClick={() => selected && markOwned.mutate(selected)}
         >
-          {markOwned.isPending ? 'Saving…' : 'Mark owned'}
+          {markOwned.isPending ? t('common.saving') : t('blueprints.dialog.confirm')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -89,6 +96,7 @@ function MarkOwnedDialog({ open, onClose }: { open: boolean; onClose: () => void
 }
 
 export function BlueprintsPage() {
+  const { t, i18n } = useTranslation()
   const [dialogOpen, setDialogOpen] = useState(false)
   const { rows: owned, total, page, setPage, rowsPerPage, isLoading, isError } =
     usePaginatedList<OwnedBlueprint>('blueprints-owned', '/api/blueprints-owned', 100)
@@ -96,25 +104,25 @@ export function BlueprintsPage() {
   return (
     <Box>
       <PageHeader
-        title="Blueprints"
-        subtitle="Blueprints owned across the org"
+        title={t('blueprints.title')}
+        subtitle={t('blueprints.subtitle')}
         action={
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setDialogOpen(true)}>
-            Mark blueprint owned
+            {t('blueprints.markOwnedAction')}
           </Button>
         }
       />
       <Paper>
         {isLoading && <LinearProgress />}
-        {isError && <Alert severity="error">Failed to load owned blueprints.</Alert>}
+        {isError && <Alert severity="error">{t('blueprints.loadFailed')}</Alert>}
         <TableContainer sx={{ overflowX: 'auto' }}>
-          <Table size="small" aria-label="Owned blueprints">
+          <Table size="small" aria-label={t('blueprints.tableAria')}>
             <TableHead>
               <TableRow>
-                <TableCell>Blueprint</TableCell>
-                <TableCell>Item class</TableCell>
-                <TableCell>Owner</TableCell>
-                <TableCell>Acquired</TableCell>
+                <TableCell>{t('blueprints.columns.blueprint')}</TableCell>
+                <TableCell>{t('blueprints.columns.itemClass')}</TableCell>
+                <TableCell>{t('blueprints.columns.owner')}</TableCell>
+                <TableCell>{t('blueprints.columns.acquired')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -123,12 +131,14 @@ export function BlueprintsPage() {
                   <TableCell>{entry.blueprint?.name ?? entry.blueprint_name}</TableCell>
                   <TableCell>
                     <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
-                      {entry.item_class ?? '—'}
+                      {entry.item_class ?? t('common.none')}
                     </Typography>
                   </TableCell>
-                  <TableCell>{entry.user?.handle ?? entry.user?.name ?? '—'}</TableCell>
+                  <TableCell>{entry.user?.handle ?? entry.user?.name ?? t('common.none')}</TableCell>
                   <TableCell>
-                    {entry.acquired_at ? new Date(entry.acquired_at).toLocaleDateString() : '—'}
+                    {entry.acquired_at
+                      ? new Date(entry.acquired_at).toLocaleDateString(i18n.language)
+                      : t('common.none')}
                   </TableCell>
                 </TableRow>
               ))}
@@ -136,7 +146,7 @@ export function BlueprintsPage() {
                 <TableRow>
                   <TableCell colSpan={4}>
                     <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                      No blueprints marked as owned yet.
+                      {t('blueprints.empty')}
                     </Typography>
                   </TableCell>
                 </TableRow>

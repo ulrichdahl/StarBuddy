@@ -13,6 +13,8 @@ export interface Me {
   handle: string | null
   discord_username: string
   avatar_url: string | null
+  // UI language ('en' | 'da'); null until first login stores the browser's.
+  locale: string | null
   orgs: Org[]
 }
 

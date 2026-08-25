@@ -15,6 +15,8 @@ export interface MemberLookupResponse {
   registered: boolean;
   /** The member's Star Citizen handle, when registered. */
   handle?: string | null;
+  /** UI language chosen on the website ('en' | 'da'), when registered. */
+  locale?: string | null;
 }
 
 /** One entry of GET /api/bot/orgs */

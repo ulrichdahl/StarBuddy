@@ -1,5 +1,6 @@
 import { Client, Events, GatewayIntentBits, MessageFlags } from "discord.js";
 import { ensureAvatar } from "./avatar.js";
+import { normalizeLocale, t } from "./i18n.js";
 import { resolve } from "./commands/index.js";
 import { config } from "./config.js";
 import { startNotifyServer } from "./notify.js";
@@ -24,7 +25,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     await command.execute(interaction);
   } catch (error) {
     console.error(`Error executing /${interaction.commandName} ${command.name}:`, error);
-    const message = "Something went wrong while running that command.";
+    const message = t(normalizeLocale(interaction.locale), "common.error");
     try {
       if (interaction.deferred || interaction.replied) {
         await interaction.editReply(message);

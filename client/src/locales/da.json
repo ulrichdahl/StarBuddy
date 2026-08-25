@@ -1,0 +1,73 @@
+{
+  "header": {
+    "tagline": "Game.log-overvågning",
+    "language": "Sprog"
+  },
+  "server": {
+    "title": "Server",
+    "pairedAs": "Parret som",
+    "unpair": "Ophæv parring",
+    "hint": "Log ind på dit communitys StarBuddy-hjemmeside, generér en parringskode på dashboardet, og indtast den her.",
+    "pairingCodePlaceholder": "Parringskode",
+    "pair": "Par",
+    "pairing": "Parrer…"
+  },
+  "scan": {
+    "title": "Star Citizen-installation",
+    "detected": "Fundet:",
+    "notDetected": "Ingen installation fundet automatisk. Indtast stien til din LIVE-mappe:",
+    "dirPlaceholder": "…/StarCitizen/LIVE",
+    "scanButton": "Scan loghistorik",
+    "scanning": "Scanner…",
+    "progress": "Scanner fil {{current}} af {{total}} — {{file}}",
+    "preparing": "Forbereder scanning…"
+  },
+  "watcher": {
+    "title": "Live-overvågning",
+    "watching": "Overvåger Game.log — nye blueprints og færdige raffineringer synkroniseres automatisk{{synced}}.",
+    "syncedThisSession": " ({{count}} synkroniseret i denne session)",
+    "notWatching": "Overvåger ikke. Start overvågningen, mens du spiller, for at synkronisere hændelser, efterhånden som de sker.",
+    "start": "Start overvågning",
+    "stop": "Stop overvågning"
+  },
+  "events": {
+    "logFiles_one": "{{count}} logfil",
+    "logFiles_other": "{{count}} logfiler",
+    "blueprints_one": "{{count}} blueprint",
+    "blueprints_other": "{{count}} blueprints",
+    "refineryCompletions_one": "{{count}} færdig raffinering",
+    "refineryCompletions_other": "{{count}} færdige raffineringer",
+    "filterAll": "Alle",
+    "filterBlueprints": "Blueprints",
+    "filterRefinery": "Raffinering",
+    "colTime": "Tid (UTC)",
+    "colEvent": "Hændelse",
+    "colDetail": "Detaljer",
+    "kindBlueprint": "Blueprint",
+    "kindRefineryDone": "Raffinering færdig",
+    "syncButton_one": "Synkronisér {{count}} hændelse til serveren",
+    "syncButton_other": "Synkronisér {{count}} hændelser til serveren",
+    "syncing_one": "Synkroniserer {{count}} hændelse…",
+    "syncing_other": "Synkroniserer {{count}} hændelser…",
+    "pairToSync": "Par med en server ovenfor for at synkronisere.",
+    "syncResult": "{{accepted}} ({{duplicates}}): {{blueprints}}, {{refinery}}{{backfilled}}.",
+    "syncAccepted_one": "Serveren modtog {{count}} ny hændelse",
+    "syncAccepted_other": "Serveren modtog {{count}} nye hændelser",
+    "syncDuplicates_one": "{{count}} allerede kendt",
+    "syncDuplicates_other": "{{count}} allerede kendte",
+    "syncBlueprintsAdded_one": "{{count}} blueprint tilføjet",
+    "syncBlueprintsAdded_other": "{{count}} blueprints tilføjet",
+    "syncRefineryRecorded_one": "{{count}} færdig raffinering registreret",
+    "syncRefineryRecorded_other": "{{count}} færdige raffineringer registreret",
+    "syncBackfilled_one": ", {{count}} blueprint-identitet efterudfyldt",
+    "syncBackfilled_other": ", {{count}} blueprint-identiteter efterudfyldt"
+  },
+  "footer": {
+    "disclaimer": "Dette er en uofficiel Star Citizen-fanapplikation uden tilknytning til Cloud Imperium-koncernen. Alt indhold, der ikke er skabt af værten eller brugerne, tilhører de respektive ejere.",
+    "trademark": "Star Citizen®, Roberts Space Industries® og Cloud Imperium® er registrerede varemærker tilhørende Cloud Imperium Rights LLC. StarBuddy er fri software (AGPL-3.0) —",
+    "source": "kildekode på GitHub"
+  },
+  "common": {
+    "separator": " · "
+  }
+}

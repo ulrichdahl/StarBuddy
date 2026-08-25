@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
@@ -13,11 +14,6 @@ import Typography from '@mui/material/Typography'
 import { api, unwrapList } from '../lib/api'
 import type { CreateResourceStack, Location, ResourceType, Visibility } from '../lib/types'
 
-const CATEGORY_LABEL: Record<string, string> = {
-  refined: 'Refined',
-  gem: 'Gems',
-}
-
 /**
  * Sticky quick-entry form for resource stacks, tuned for keyboard-only
  * bulk entry: resource → quality → quantity → Enter, and focus jumps
@@ -25,6 +21,7 @@ const CATEGORY_LABEL: Record<string, string> = {
  * quality stay; resource + quantity clear; focus returns to resource.
  */
 export function ResourceEntryForm() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const resourceInputRef = useRef<HTMLInputElement>(null)
   const qualityInputRef = useRef<HTMLInputElement>(null)
@@ -117,7 +114,7 @@ export function ResourceEntryForm() {
   return (
     <Paper component="form" onSubmit={handleSubmit} sx={{ p: 2.5 }}>
       <Typography variant="h6" sx={{ mb: 2 }}>
-        Quick entry
+        {t('materials.entry.title')}
       </Typography>
       <Stack spacing={2}>
         <Autocomplete
@@ -137,7 +134,8 @@ export function ResourceEntryForm() {
           onInputChange={(_, value) => setResourceSearch(value)}
           getOptionLabel={(option) => option.name}
           isOptionEqualToValue={(a, b) => a.id === b.id}
-          groupBy={(option) => CATEGORY_LABEL[option.category] ?? option.category}
+          // Category group headers are UI labels; unknown categories shown verbatim.
+          groupBy={(option) => t(`materials.category.${option.category}`, { defaultValue: option.category })}
           loading={searching}
           autoHighlight
           openOnFocus
@@ -146,10 +144,10 @@ export function ResourceEntryForm() {
             <TextField
               {...params}
               inputRef={resourceInputRef}
-              label="Material"
+              label={t('materials.fields.material')}
               autoFocus
               required
-              placeholder="Search refined materials and gems…"
+              placeholder={t('materials.entry.materialPlaceholder')}
             />
           )}
         />
@@ -169,29 +167,29 @@ export function ResourceEntryForm() {
               <TextField
                 {...params}
                 inputRef={qualityInputRef}
-                label="Quality"
+                label={t('materials.fields.quality')}
                 required
-                helperText="This resource's quality bands"
+                helperText={t('materials.entry.qualityBandsHelp')}
               />
             )}
           />
         ) : (
           <TextField
-            label="Quality"
+            label={t('materials.fields.quality')}
             type="number"
             required
             inputRef={qualityInputRef}
             value={quality}
             onChange={(e) => setQuality(e.target.value)}
             slotProps={{ htmlInput: { min: 0, max: 1000, step: 1 } }}
-            helperText="No bands known for this resource yet — type the number off the crate"
+            helperText={t('materials.entry.qualityNoBandsHelp')}
           />
         )}
       </Stack>
       <Stack spacing={2} sx={{ mt: 2 }}>
 
         <TextField
-          label="Quantity"
+          label={t('materials.fields.quantity')}
           type="number"
           required
           inputRef={quantityInputRef}
@@ -202,15 +200,13 @@ export function ResourceEntryForm() {
             htmlInput: { min: 0, step: isPieces ? 1 : 0.001 },
             input: {
               endAdornment: (
-                <InputAdornment position="end">{isPieces ? 'pcs' : 'SCU'}</InputAdornment>
+                <InputAdornment position="end">
+                  {isPieces ? t('materials.units.pcs') : t('materials.units.scu')}
+                </InputAdornment>
               ),
             },
           }}
-          helperText={
-            isPieces
-              ? '↑↓ = 1 · Ctrl+↑↓ = 10 · Shift+↑↓ = 100 pieces — Enter saves'
-              : '↑↓ = 0.001 · Ctrl+↑↓ = 0.01 · Shift+↑↓ = 0.1 SCU — Enter saves'
-          }
+          helperText={isPieces ? t('materials.entry.quantityHintPieces') : t('materials.entry.quantityHintScu')}
         />
 
         <Autocomplete
@@ -219,11 +215,16 @@ export function ResourceEntryForm() {
           onChange={(_, value) => setLocation(value)}
           getOptionLabel={(option) => option.name}
           isOptionEqualToValue={(a, b) => a.id === b.id}
-          groupBy={(option) => option.system ?? 'Personal'}
+          groupBy={(option) => option.system ?? t('materials.locationGroupPersonal')}
           autoHighlight
           openOnFocus
           renderInput={(params) => (
-            <TextField {...params} label="Location" required helperText="Kept between entries" />
+            <TextField
+              {...params}
+              label={t('materials.fields.location')}
+              required
+              helperText={t('materials.entry.locationKept')}
+            />
           )}
         />
 
@@ -240,16 +241,16 @@ export function ResourceEntryForm() {
               setVisibility(visibility === 'private' ? 'org' : 'private')
             }
           }}
-          aria-label="Visibility"
+          aria-label={t('materials.fields.visibility')}
         >
-          <ToggleButton value="private">Private</ToggleButton>
-          <ToggleButton value="org">Org-visible</ToggleButton>
+          <ToggleButton value="private">{t('materials.visibility.private')}</ToggleButton>
+          <ToggleButton value="org">{t('materials.visibility.org')}</ToggleButton>
         </ToggleButtonGroup>
 
-        {createStack.isError && <Alert severity="error">Could not save the stack. Try again.</Alert>}
+        {createStack.isError && <Alert severity="error">{t('materials.entry.saveError')}</Alert>}
 
         <Button type="submit" variant="contained" disabled={!canSubmit || createStack.isPending}>
-          {createStack.isPending ? 'Saving…' : 'Add stack'}
+          {createStack.isPending ? t('common.saving') : t('materials.entry.addStack')}
         </Button>
       </Stack>
     </Paper>

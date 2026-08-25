@@ -1,13 +1,19 @@
 import { MessageFlags } from "discord.js";
+import { descriptions, resolveLocale, t } from "../i18n.js";
 import type { Subcommand } from "./command.js";
 
 export const stash: Subcommand = {
   name: "stash",
-  define: (sub) => sub.setName("stash").setDescription("Browse the org's materials ledger"),
+  define: (sub) =>
+    sub
+      .setName("stash")
+      .setDescription(t("en", "commands.stash"))
+      .setDescriptionLocalizations(descriptions("commands.stash")),
 
   async execute(interaction) {
+    const locale = await resolveLocale(interaction);
     await interaction.reply({
-      content: "Coming in P2 — browse the ledger at the website.",
+      content: t(locale, "stash.comingSoon"),
       flags: MessageFlags.Ephemeral,
     });
   },

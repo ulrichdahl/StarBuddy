@@ -12,6 +12,10 @@ A self-hostable companion platform for Star Citizen communities: track your org'
 - **Discord-native** — login via Discord OAuth gated to your community's server, org/role mapping from guild roles, bot slash commands and channel notifications.
 - **Overlay** — hotkey-toggled in-game overlay on Windows and Linux (layer-shell on KDE/Hyprland/Sway, X11 backend, web-on-second-screen fallback).
 
+## Languages
+
+The web app, desktop client and Discord bot are localized — English (default) and Danish. The browser's language is used on first login and the member can change it any time (remembered on the profile); the bot follows that choice, or the Discord client's language for unregistered users. Each language is one JSON file (`frontend/src/locales/`, `client/src/locales/`, `bot/locales/`) — copy `en.json` to add a language. Game data (item, material, blueprint and location names) is never translated.
+
 ## Hosting model
 
 One deployment serves **one community**: the instance is bound to a single Discord server and only its members can join; multiple orgs can live inside one instance. Other communities run their own instance (Docker Compose) with their own Discord application and bot.

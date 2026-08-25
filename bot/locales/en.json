@@ -1,0 +1,49 @@
+{
+  "commands": {
+    "root": "StarBuddy — org materials, blueprints and crafting",
+    "ping": "Check bot latency and backend health",
+    "whoami": "Check your StarBuddy registration status",
+    "stash": "Browse the org's materials ledger",
+    "org": "Manage StarBuddy orgs (server admins)",
+    "orgList": "List all orgs",
+    "orgCreate": "Create an org",
+    "orgDelete": "Delete an org",
+    "orgManager": "Grant or revoke an org's manager role",
+    "optionName": "Name of the org",
+    "optionOrg": "Name of the org",
+    "optionUser": "The Discord member",
+    "optionRemove": "Remove the manager role instead of granting it"
+  },
+  "common": {
+    "error": "Something went wrong while running that command.",
+    "unreachable": "The StarBuddy backend is unreachable.",
+    "backendError": "Something went wrong talking to the StarBuddy backend. Please try again later.",
+    "unknownSubcommand": "Unknown subcommand."
+  },
+  "ping": {
+    "reply": "Pong! Latency: {{latency}}ms | WS: {{ws}}ms | Backend: {{backend}}",
+    "healthy": "healthy",
+    "unhealthy": "unhealthy",
+    "unreachable": "unreachable ({{error}})"
+  },
+  "whoami": {
+    "registered": "You are registered with StarBuddy as **{{handle}}**.",
+    "unknownHandle": "unknown handle",
+    "notRegistered": "You are not registered with StarBuddy yet. Link your Discord account on the website to get started.",
+    "unreachable": "Could not reach the StarBuddy backend. Please try again later."
+  },
+  "stash": {
+    "comingSoon": "Coming in P2 — browse the ledger at the website."
+  },
+  "org": {
+    "requiresManageServer": "Requires the Manage Server permission.",
+    "none": "No orgs yet.",
+    "listHeader": "Orgs:",
+    "listLine_one": "• **{{name}}** — {{count}} member",
+    "listLine_other": "• **{{name}}** — {{count}} members",
+    "created": "Org **{{name}}** is ready.",
+    "deleted": "Org **{{name}}** has been deleted.",
+    "managerGranted": "**{{member}}** is now a manager of **{{org}}** (role: {{role}}).",
+    "managerRevoked": "**{{member}}** is no longer a manager of **{{org}}** (role: {{role}})."
+  }
+}

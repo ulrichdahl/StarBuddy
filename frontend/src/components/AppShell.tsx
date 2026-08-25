@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import AppBar from '@mui/material/AppBar'
 import Avatar from '@mui/material/Avatar'
@@ -27,18 +28,20 @@ import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import type { Me } from '../lib/types'
 import { BrandMark } from './BrandMark'
 import { FanSiteFooter } from './FanSiteFooter'
+import { LanguageSwitcher } from './LanguageSwitcher'
 
 const DRAWER_WIDTH = 232
 
+// Labels are translation keys under nav.*
 const NAV_ITEMS = [
-  { label: 'Dashboard', to: '/', icon: <DashboardIcon /> },
-  { label: 'Craft', to: '/craft', icon: <BuildIcon /> },
-  { label: 'Materials', to: '/resources', icon: <DiamondIcon /> },
-  { label: 'Items', to: '/items', icon: <Inventory2Icon /> },
-  { label: 'Blueprints', to: '/blueprints', icon: <SchemaIcon /> },
-  { label: 'Refinery', to: '/refinery', icon: <FactoryIcon /> },
-  { label: 'Import', to: '/import', icon: <UploadFileIcon /> },
-  { label: 'Admin', to: '/admin', icon: <AdminPanelSettingsIcon /> },
+  { key: 'dashboard', to: '/', icon: <DashboardIcon /> },
+  { key: 'craft', to: '/craft', icon: <BuildIcon /> },
+  { key: 'materials', to: '/resources', icon: <DiamondIcon /> },
+  { key: 'items', to: '/items', icon: <Inventory2Icon /> },
+  { key: 'blueprints', to: '/blueprints', icon: <SchemaIcon /> },
+  { key: 'refinery', to: '/refinery', icon: <FactoryIcon /> },
+  { key: 'import', to: '/import', icon: <UploadFileIcon /> },
+  { key: 'admin', to: '/admin', icon: <AdminPanelSettingsIcon /> },
 ] as const
 
 interface AppShellProps {
@@ -50,13 +53,14 @@ interface AppShellProps {
  * The drawer is permanent on md-and-up and a temporary overlay on mobile.
  */
 export function AppShell({ me }: AppShellProps) {
+  const { t } = useTranslation()
   const theme = useTheme()
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'))
   const [mobileOpen, setMobileOpen] = useState(false)
   const { pathname } = useLocation()
 
   const drawerContent = (
-    <Box role="navigation" aria-label="Main navigation">
+    <Box role="navigation" aria-label={t('nav.mainNavigation')}>
       <Toolbar>
         <BrandMark />
       </Toolbar>
@@ -79,7 +83,7 @@ export function AppShell({ me }: AppShellProps) {
               <ListItemIcon sx={{ minWidth: 40, color: pathname === item.to ? 'primary.main' : 'inherit' }}>
                 {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.label} />
+              <ListItemText primary={t(`nav.${item.key}`)} />
             </ListItemButton>
           </ListItem>
         ))}
@@ -92,7 +96,7 @@ export function AppShell({ me }: AppShellProps) {
       <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
         <Toolbar sx={{ gap: 1 }}>
           {!isDesktop && (
-            <IconButton edge="start" aria-label="Open navigation" onClick={() => setMobileOpen(true)}>
+            <IconButton edge="start" aria-label={t('nav.openNavigation')} onClick={() => setMobileOpen(true)}>
               <MenuIcon />
             </IconButton>
           )}
@@ -102,6 +106,7 @@ export function AppShell({ me }: AppShellProps) {
           <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
             {me.handle ?? me.discord_username}
           </Typography>
+          <LanguageSwitcher signedIn />
           <Tooltip title={me.discord_username}>
             <Avatar
               src={me.avatar_url ?? undefined}

@@ -4,6 +4,7 @@ import type {
   RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from "discord.js";
 import type { Subcommand, SubcommandGroup } from "./command.js";
+import { descriptions, t } from "../i18n.js";
 import { org } from "./org.js";
 import { ping } from "./ping.js";
 import { stash } from "./stash.js";
@@ -20,7 +21,8 @@ const groups: SubcommandGroup[] = [org];
 export function buildRootCommand(): RESTPostAPIChatInputApplicationCommandsJSONBody {
   const root = new SlashCommandBuilder()
     .setName(ROOT)
-    .setDescription("StarBuddy — org materials, blueprints and crafting");
+    .setDescription(t("en", "commands.root"))
+    .setDescriptionLocalizations(descriptions("commands.root"));
   for (const sub of subcommands) root.addSubcommand((b) => sub.define(b));
   for (const group of groups) root.addSubcommandGroup((b) => group.define(b));
   return root.toJSON();

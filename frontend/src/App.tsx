@@ -1,7 +1,11 @@
+import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 import { useMe } from './lib/auth'
+import { api } from './lib/api'
+import { browserLocale, isLocale, setLocale } from './i18n'
+import type { Me } from './lib/types'
 import { AppShell } from './components/AppShell'
 import { LoginPage } from './pages/LoginPage'
 import { CraftPage } from './pages/CraftPage'
@@ -13,8 +17,26 @@ import { RefineryPage } from './pages/RefineryPage'
 import { ImportPage } from './pages/ImportPage'
 import { AdminPage } from './pages/AdminPage'
 
+/**
+ * Profile locale wins once it exists; on first login (locale null) the
+ * browser's language is stored so it follows the member to other devices.
+ */
+function useLocaleSync(me: Me | null) {
+  useEffect(() => {
+    if (!me) return
+    if (isLocale(me.locale)) {
+      setLocale(me.locale)
+    } else if (me.locale === null) {
+      const detected = browserLocale()
+      setLocale(detected)
+      void api.patch('/api/me', { locale: detected }).catch(() => undefined)
+    }
+  }, [me])
+}
+
 export default function App() {
   const { me, isLoading } = useMe()
+  useLocaleSync(me)
 
   if (isLoading) {
     return (

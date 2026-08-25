@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
@@ -71,14 +73,20 @@ function CategoryIcon({ category }: { category: string }) {
   )
 }
 
-function formatQuantity(stack: ResourceStack): string {
+/** UI label for a resource category (ore / refined / gem); unknown values shown verbatim. */
+function categoryLabel(t: TFunction, category: string): string {
+  return t(`materials.category.${category}`, { defaultValue: category })
+}
+
+function formatQuantity(stack: ResourceStack, t: TFunction, lang: string): string {
   if (stack.resource_type.unit === 'pieces') {
-    return `${(stack.quantity_pieces ?? 0).toLocaleString()} pcs`
+    return `${(stack.quantity_pieces ?? 0).toLocaleString(lang)} ${t('materials.units.pcs')}`
   }
-  return `${((stack.quantity_mscu ?? 0) / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} SCU`
+  return `${((stack.quantity_mscu ?? 0) / 1000).toLocaleString(lang, { maximumFractionDigits: 3 })} ${t('materials.units.scu')}`
 }
 
 function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: () => void }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const isPieces = stack.resource_type.unit === 'pieces'
   const [quality, setQuality] = useState(String(stack.quality ?? ''))
@@ -122,25 +130,27 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
       <DialogTitle>
         {stack.resource_type.name}
         <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-          edit stack
+          {t('materials.edit.title')}
         </Typography>
       </DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           <TextField
-            label="Quality"
+            label={t('materials.fields.quality')}
             type="number"
             value={quality}
             onChange={(e) => setQuality(e.target.value)}
             slotProps={{ htmlInput: { min: 0, max: 1000, step: 1 } }}
           />
           <TextField
-            label={isPieces ? 'Quantity (pcs)' : 'Quantity (SCU)'}
+            label={t('materials.fields.quantityWithUnit', {
+              unit: isPieces ? t('materials.units.pcs') : t('materials.units.scu'),
+            })}
             type="number"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             slotProps={{ htmlInput: { min: 0, step: isPieces ? 1 : 0.001 } }}
-            helperText="Set to 0 to consume the stack"
+            helperText={t('materials.edit.zeroConsumes')}
           />
           <Autocomplete
             options={locations}
@@ -148,8 +158,8 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
             onChange={(_, value) => setLocation(value)}
             getOptionLabel={(o) => o.name}
             isOptionEqualToValue={(a, b) => a.id === b.id}
-            groupBy={(o) => o.system ?? 'Personal'}
-            renderInput={(params) => <TextField {...params} label="Location" />}
+            groupBy={(o) => o.system ?? t('materials.locationGroupPersonal')}
+            renderInput={(params) => <TextField {...params} label={t('materials.fields.location')} />}
           />
           <ToggleButtonGroup
             exclusive
@@ -164,22 +174,22 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
               }
             }}
           >
-            <ToggleButton value="private">Private</ToggleButton>
-            <ToggleButton value="org">Org-visible</ToggleButton>
+            <ToggleButton value="private">{t('materials.visibility.private')}</ToggleButton>
+            <ToggleButton value="org">{t('materials.visibility.org')}</ToggleButton>
           </ToggleButtonGroup>
           {(save.isError || remove.isError) && (
-            <Alert severity="error">Could not save the change. Try again.</Alert>
+            <Alert severity="error">{t('materials.edit.saveError')}</Alert>
           )}
         </Stack>
       </DialogContent>
       <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>
         <Button color="error" startIcon={<DeleteIcon />} onClick={() => remove.mutate()} disabled={remove.isPending}>
-          Delete
+          {t('common.delete')}
         </Button>
         <Box>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t('common.cancel')}</Button>
           <Button variant="contained" onClick={() => save.mutate()} disabled={save.isPending || !location}>
-            {save.isPending ? 'Saving…' : 'Save'}
+            {save.isPending ? t('common.saving') : t('common.save')}
           </Button>
         </Box>
       </DialogActions>
@@ -190,6 +200,7 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
 type SortField = 'resource' | 'quality' | 'quantity' | 'location' | 'visibility' | 'updated_at'
 
 export function ResourcesPage() {
+  const { t, i18n } = useTranslation()
   const [editing, setEditing] = useState<ResourceStack | null>(null)
   const [search, setSearch] = useState('')
   const [qualityMin, setQualityMin] = useState('')
@@ -234,18 +245,18 @@ export function ResourcesPage() {
 
   return (
     <Box>
-      <PageHeader title="Materials" subtitle="Raw and refined material stacks across your locations" />
+      <PageHeader title={t('materials.title')} subtitle={t('materials.subtitle')} />
       <Paper sx={{ p: 1.5, mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
         <TextField
           size="small"
-          label="Search material"
+          label={t('materials.filters.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{ minWidth: 180 }}
         />
         <TextField
           size="small"
-          label="Quality min"
+          label={t('materials.filters.qualityMin')}
           type="number"
           value={qualityMin}
           onChange={(e) => setQualityMin(e.target.value)}
@@ -254,7 +265,7 @@ export function ResourcesPage() {
         />
         <TextField
           size="small"
-          label="Quality max"
+          label={t('materials.filters.qualityMax')}
           type="number"
           value={qualityMax}
           onChange={(e) => setQualityMax(e.target.value)}
@@ -268,21 +279,21 @@ export function ResourcesPage() {
           onChange={(_, v) => setFilterLocation(v)}
           getOptionLabel={(o) => o.name}
           isOptionEqualToValue={(a, b) => a.id === b.id}
-          groupBy={(o) => o.system ?? 'Personal'}
+          groupBy={(o) => o.system ?? t('materials.locationGroupPersonal')}
           sx={{ minWidth: 200 }}
-          renderInput={(p) => <TextField {...p} label="Location" />}
+          renderInput={(p) => <TextField {...p} label={t('materials.fields.location')} />}
         />
         <TextField
           size="small"
           select
-          label="Visibility"
+          label={t('materials.fields.visibility')}
           value={filterVisibility}
           onChange={(e) => setFilterVisibility(e.target.value)}
           sx={{ width: 130 }}
         >
-          <MenuItem value="">All</MenuItem>
-          <MenuItem value="private">Private</MenuItem>
-          <MenuItem value="org">Org-visible</MenuItem>
+          <MenuItem value="">{t('materials.filters.all')}</MenuItem>
+          <MenuItem value="private">{t('materials.visibility.private')}</MenuItem>
+          <MenuItem value="org">{t('materials.visibility.org')}</MenuItem>
         </TextField>
       </Paper>
       <Box
@@ -295,17 +306,17 @@ export function ResourcesPage() {
       >
         <Paper>
           {isLoading && <LinearProgress />}
-          {isError && <Alert severity="error">Failed to load material stacks.</Alert>}
+          {isError && <Alert severity="error">{t('materials.loadError')}</Alert>}
           <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table size="small" aria-label="Material stacks">
+            <Table size="small" aria-label={t('materials.tableLabel')}>
               <TableHead>
                 <TableRow>
-                  {header('Material', 'resource')}
-                  <TableCell align="center" sx={{ width: 40 }} aria-label="Category" />
-                  {header('Quality', 'quality', 'right')}
-                  {header('Quantity', 'quantity', 'right')}
-                  {header('Location', 'location')}
-                  {header('Visibility', 'visibility')}
+                  {header(t('materials.columns.material'), 'resource')}
+                  <TableCell align="center" sx={{ width: 40 }} aria-label={t('materials.columns.category')} />
+                  {header(t('materials.fields.quality'), 'quality', 'right')}
+                  {header(t('materials.fields.quantity'), 'quantity', 'right')}
+                  {header(t('materials.fields.location'), 'location')}
+                  {header(t('materials.fields.visibility'), 'visibility')}
                   <TableCell sx={{ width: 40 }} />
                 </TableRow>
               </TableHead>
@@ -323,7 +334,7 @@ export function ResourcesPage() {
                   >
                     <TableCell>{stack.resource_type.name}</TableCell>
                     <TableCell align="center">
-                      <Tooltip title={stack.resource_type.category}>
+                      <Tooltip title={categoryLabel(t, stack.resource_type.category)}>
                         <Box component="span" sx={{ display: 'inline-flex', verticalAlign: 'middle' }}>
                           <CategoryIcon category={stack.resource_type.category} />
                         </Box>
@@ -333,19 +344,19 @@ export function ResourcesPage() {
                       {stack.quality ?? '—'}
                     </TableCell>
                     <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {formatQuantity(stack)}
+                      {formatQuantity(stack, t, i18n.language)}
                     </TableCell>
                     <TableCell>{stack.location.name}</TableCell>
                     <TableCell>
                       <Chip
                         size="small"
-                        label={stack.visibility}
+                        label={t(`materials.visibilityChip.${stack.visibility}`)}
                         color={stack.visibility === 'org' ? 'secondary' : 'default'}
                         variant="outlined"
                       />
                     </TableCell>
                     <TableCell>
-                      <IconButton size="small" aria-label="Edit stack" onClick={() => setEditing(stack)}>
+                      <IconButton size="small" aria-label={t('materials.editStack')} onClick={() => setEditing(stack)}>
                         <EditIcon fontSize="inherit" />
                       </IconButton>
                     </TableCell>
@@ -355,7 +366,7 @@ export function ResourcesPage() {
                   <TableRow>
                     <TableCell colSpan={7}>
                       <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                        No stacks yet — add your first one with the quick-entry form.
+                        {t('materials.empty')}
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -371,6 +382,14 @@ export function ResourcesPage() {
               onPageChange={(_, p) => setPage(p)}
               rowsPerPage={rowsPerPage}
               rowsPerPageOptions={[rowsPerPage]}
+              labelDisplayedRows={({ from, to, count }) =>
+                t('materials.pagination.displayedRows', {
+                  from: from.toLocaleString(i18n.language),
+                  to: to.toLocaleString(i18n.language),
+                  total: count.toLocaleString(i18n.language),
+                })
+              }
+              getItemAriaLabel={(type) => t(`materials.pagination.${type}Page`)}
             />
           )}
         </Paper>

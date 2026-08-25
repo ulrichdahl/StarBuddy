@@ -14,6 +14,8 @@ class ProfileController extends Controller
                 'nullable', 'string', 'max:60',
                 Rule::unique('users', 'handle')->ignore($request->user()->id),
             ],
+            // UI language; the list mirrors frontend/src/locales/*.json.
+            'locale' => ['sometimes', 'string', Rule::in(['en', 'da'])],
         ]);
 
         $request->user()->update($data);

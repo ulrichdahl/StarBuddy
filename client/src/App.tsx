@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { useTranslation } from "react-i18next";
+import { LOCALE_NAMES, SUPPORTED_LOCALES, setLocale, type Locale } from "./i18n";
 import "./App.css";
 
 interface ScanProgress {
@@ -39,6 +41,7 @@ interface SyncSummary {
 }
 
 function App() {
+  const { t, i18n } = useTranslation();
   const [liveDir, setLiveDir] = useState<string | null>(null);
   const [customDir, setCustomDir] = useState("");
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -143,34 +146,47 @@ function App() {
   const blueprintCount = result?.events.filter((e) => e.kind === "blueprint").length ?? 0;
   const refineryCount = (result?.events.length ?? 0) - blueprintCount;
 
+  const kindLabel = (kind: LogEvent["kind"]) =>
+    kind === "blueprint" ? t("events.kindBlueprint") : t("events.kindRefineryDone");
+
   return (
     <main className="container">
       <div className="brand">
         <img src="/logo.svg" alt="" aria-hidden width="40" height="40" />
         <div>
           <h1>StarBuddy</h1>
-          <p className="tagline">Game.log watcher</p>
+          <p className="tagline">{t("header.tagline")}</p>
         </div>
+        <select
+          className="locale-select"
+          aria-label={t("header.language")}
+          title={t("header.language")}
+          value={i18n.language}
+          onChange={(e) => setLocale(e.target.value as Locale)}
+        >
+          {SUPPORTED_LOCALES.map((code) => (
+            <option key={code} value={code}>
+              {LOCALE_NAMES[code]}
+            </option>
+          ))}
+        </select>
       </div>
 
       <section className="panel">
-        <h2>Server</h2>
+        <h2>{t("server.title")}</h2>
         {connection?.paired ? (
           <div className="row">
             <p style={{ flex: 1 }}>
-              Paired as <strong>{connection.user_name}</strong> ·{" "}
+              {t("server.pairedAs")} <strong>{connection.user_name}</strong> ·{" "}
               <code>{connection.server_url}</code>
             </p>
             <button onClick={() => invoke<ConnectionView>("unpair").then(setConnection)}>
-              Unpair
+              {t("server.unpair")}
             </button>
           </div>
         ) : (
           <>
-            <p className="hint">
-              Sign in to your community's StarBuddy website, generate a pairing code on the
-              dashboard, and enter it here.
-            </p>
+            <p className="hint">{t("server.hint")}</p>
             <div className="row">
               <input
                 type="text"
@@ -180,13 +196,13 @@ function App() {
               />
               <input
                 type="text"
-                placeholder="Pairing code"
+                placeholder={t("server.pairingCodePlaceholder")}
                 style={{ maxWidth: 160, flex: "0 1 auto" }}
                 value={pairCode}
                 onChange={(e) => setPairCode(e.target.value.toUpperCase())}
               />
               <button disabled={pairing || !serverUrl || !pairCode} onClick={pair}>
-                {pairing ? "Pairing…" : "Pair"}
+                {pairing ? t("server.pairing") : t("server.pair")}
               </button>
             </div>
             {pairError && <p className="error">{pairError}</p>}
@@ -195,18 +211,18 @@ function App() {
       </section>
 
       <section className="panel">
-        <h2>Star Citizen installation</h2>
+        <h2>{t("scan.title")}</h2>
         {liveDir ? (
           <p>
-            Detected: <code>{liveDir}</code>
+            {t("scan.detected")} <code>{liveDir}</code>
           </p>
         ) : (
-          <p>No installation auto-detected. Enter your LIVE folder path:</p>
+          <p>{t("scan.notDetected")}</p>
         )}
         <div className="row">
           <input
             type="text"
-            placeholder="…/StarCitizen/LIVE"
+            placeholder={t("scan.dirPlaceholder")}
             value={customDir}
             onChange={(e) => setCustomDir(e.target.value)}
           />
@@ -214,7 +230,7 @@ function App() {
             disabled={scanning || (!customDir && !liveDir)}
             onClick={() => scan(customDir || liveDir!)}
           >
-            {scanning ? "Scanning…" : "Scan log history"}
+            {scanning ? t("scan.scanning") : t("scan.scanButton")}
           </button>
         </div>
         {scanning && (
@@ -229,8 +245,12 @@ function App() {
             </div>
             <p className="hint mono">
               {progress
-                ? `Scanning file ${progress.current} of ${progress.total} — ${progress.file}`
-                : "Preparing scan…"}
+                ? t("scan.progress", {
+                    current: progress.current,
+                    total: progress.total,
+                    file: progress.file,
+                  })
+                : t("scan.preparing")}
             </p>
           </div>
         )}
@@ -238,15 +258,17 @@ function App() {
       </section>
 
       <section className="panel">
-        <h2>Live watcher</h2>
+        <h2>{t("watcher.title")}</h2>
         <div className="row">
           <p style={{ flex: 1, margin: 0 }} className={watching ? "" : "hint"}>
             {watching
-              ? `Watching Game.log — new blueprints and refinery completions sync automatically${liveSynced ? ` (${liveSynced} synced this session)` : ""}.`
-              : "Not watching. Start the watcher while playing to sync events as they happen."}
+              ? t("watcher.watching", {
+                  synced: liveSynced ? t("watcher.syncedThisSession", { count: liveSynced }) : "",
+                })
+              : t("watcher.notWatching")}
           </p>
           <button disabled={!liveDir && !customDir} onClick={toggleWatcher}>
-            {watching ? "Stop watching" : "Start watching"}
+            {watching ? t("watcher.stop") : t("watcher.start")}
           </button>
         </div>
         {watcherError && <p className="error">{watcherError}</p>}
@@ -256,7 +278,7 @@ function App() {
               {liveEvents.map((e, i) => (
                 <tr key={`${e.timestamp}-${i}`}>
                   <td className="mono">{e.timestamp.replace("T", " ").slice(11, 19)}</td>
-                  <td>{e.kind === "blueprint" ? "Blueprint" : "Refinery done"}</td>
+                  <td>{kindLabel(e.kind)}</td>
                   <td>{e.detail}</td>
                 </tr>
               ))}
@@ -268,39 +290,42 @@ function App() {
       {result && (
         <section className="panel">
           <h2>
-            {result.files_scanned} log files · {blueprintCount} blueprints ·{" "}
-            {refineryCount} refinery completions
+            {[
+              t("events.logFiles", { count: result.files_scanned }),
+              t("events.blueprints", { count: blueprintCount }),
+              t("events.refineryCompletions", { count: refineryCount }),
+            ].join(t("common.separator"))}
           </h2>
           <div className="row">
             <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>
-              All
+              {t("events.filterAll")}
             </button>
             <button
               className={filter === "blueprint" ? "active" : ""}
               onClick={() => setFilter("blueprint")}
             >
-              Blueprints
+              {t("events.filterBlueprints")}
             </button>
             <button
               className={filter === "refinery_completed" ? "active" : ""}
               onClick={() => setFilter("refinery_completed")}
             >
-              Refinery
+              {t("events.filterRefinery")}
             </button>
           </div>
           <table>
             <thead>
               <tr>
-                <th>Time (UTC)</th>
-                <th>Event</th>
-                <th>Detail</th>
+                <th>{t("events.colTime")}</th>
+                <th>{t("events.colEvent")}</th>
+                <th>{t("events.colDetail")}</th>
               </tr>
             </thead>
             <tbody>
               {events.map((e, i) => (
                 <tr key={i}>
                   <td className="mono">{e.timestamp.replace("T", " ").slice(0, 19)}</td>
-                  <td>{e.kind === "blueprint" ? "Blueprint" : "Refinery done"}</td>
+                  <td>{kindLabel(e.kind)}</td>
                   <td>
                     {e.detail}
                     {e.item_class && <span className="hint mono"> · {e.item_class}</span>}
@@ -315,17 +340,22 @@ function App() {
               onClick={sync}
             >
               {syncing
-                ? `Syncing ${result.events.length} events…`
-                : `Sync ${result.events.length} events to server`}
+                ? t("events.syncing", { count: result.events.length })
+                : t("events.syncButton", { count: result.events.length })}
             </button>
-            {!connection?.paired && <p className="hint">Pair with a server above to sync.</p>}
+            {!connection?.paired && <p className="hint">{t("events.pairToSync")}</p>}
           </div>
           {syncResult && (
             <p className="hint">
-              Server accepted {syncResult.accepted} new events ({syncResult.duplicates} already
-              known): {syncResult.blueprints_added} blueprints added, {syncResult.refinery_completed}{" "}
-              refinery completions recorded
-              {syncResult.backfilled ? `, ${syncResult.backfilled} blueprint identities backfilled` : ""}.
+              {t("events.syncResult", {
+                accepted: t("events.syncAccepted", { count: syncResult.accepted }),
+                duplicates: t("events.syncDuplicates", { count: syncResult.duplicates }),
+                blueprints: t("events.syncBlueprintsAdded", { count: syncResult.blueprints_added }),
+                refinery: t("events.syncRefineryRecorded", { count: syncResult.refinery_completed }),
+                backfilled: syncResult.backfilled
+                  ? t("events.syncBackfilled", { count: syncResult.backfilled })
+                  : "",
+              })}
             </p>
           )}
           {syncError && <p className="error">{syncError}</p>}
@@ -338,15 +368,12 @@ function App() {
         </a>
         <div>
           <p>
-            This is an unofficial Star Citizen fan application, not affiliated with the Cloud
-            Imperium group of companies. All content not authored by its host or users is property
-            of its respective owners.{" "}
+            {t("footer.disclaimer")}{" "}
             <a href="https://robertsspaceindustries.com/" target="_blank" rel="noopener">robertsspaceindustries.com</a>
           </p>
           <p className="hint">
-            Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of
-            Cloud Imperium Rights LLC. StarBuddy is free software (AGPL-3.0) —{" "}
-            <a href="https://github.com/ulrichdahl/StarBuddy" target="_blank" rel="noopener">source on GitHub</a>.
+            {t("footer.trademark")}{" "}
+            <a href="https://github.com/ulrichdahl/StarBuddy" target="_blank" rel="noopener">{t("footer.source")}</a>.
           </p>
         </div>
       </footer>

@@ -142,6 +142,25 @@ th {
   gap: 12px;
 }
 
+.locale-select {
+  margin-left: auto;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.locale-select:hover,
+.locale-select:focus-visible {
+  border-color: var(--accent);
+  color: var(--ink);
+  outline: none;
+}
+
 .fansite {
   display: flex;
   gap: 20px;

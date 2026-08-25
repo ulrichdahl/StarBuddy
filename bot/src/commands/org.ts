@@ -1,13 +1,19 @@
 import { MessageFlags, PermissionFlagsBits } from "discord.js";
 import { backend, BackendError } from "../lib/backend.js";
+import { descriptions, resolveLocale, t } from "../i18n.js";
 import type { SubcommandGroup } from "./command.js";
 
-function failureMessage(error: unknown): string {
+function failureMessage(locale: string, error: unknown): string {
   if (error instanceof BackendError && error.status === undefined) {
-    return "StarBuddy backend is unreachable.";
+    return t(locale, "common.unreachable");
   }
-  return "Something went wrong talking to the StarBuddy backend. Please try again later.";
+  return t(locale, "common.backendError");
 }
+
+const described = <B extends { setDescription(d: string): B; setDescriptionLocalizations(l: Record<string, string>): B }>(
+  builder: B,
+  key: string,
+): B => builder.setDescription(t("en", key)).setDescriptionLocalizations(descriptions(key));
 
 // Admin-only at runtime (Manage Server): a default-permission gate would
 // hide the whole /starbuddy command from regular members.
@@ -15,45 +21,31 @@ export const org: SubcommandGroup = {
   name: "org",
   define: (group) => group
     .setName("org")
-    .setDescription("Manage StarBuddy orgs (server admins)")
-    .addSubcommand((sub) => sub.setName("list").setDescription("List all orgs"))
+    .setDescription(t("en", "commands.org"))
+    .setDescriptionLocalizations(descriptions("commands.org"))
+    .addSubcommand((sub) => described(sub.setName("list"), "commands.orgList"))
     .addSubcommand((sub) =>
-      sub
-        .setName("create")
-        .setDescription("Create an org")
-        .addStringOption((option) =>
-          option.setName("name").setDescription("Name of the org").setRequired(true),
-        ),
+      described(sub.setName("create"), "commands.orgCreate").addStringOption((option) =>
+        described(option.setName("name"), "commands.optionName").setRequired(true),
+      ),
     )
     .addSubcommand((sub) =>
-      sub
-        .setName("delete")
-        .setDescription("Delete an org")
-        .addStringOption((option) =>
-          option.setName("name").setDescription("Name of the org").setRequired(true),
-        ),
+      described(sub.setName("delete"), "commands.orgDelete").addStringOption((option) =>
+        described(option.setName("name"), "commands.optionName").setRequired(true),
+      ),
     )
     .addSubcommand((sub) =>
-      sub
-        .setName("manager")
-        .setDescription("Grant or revoke an org's manager role")
-        .addUserOption((option) =>
-          option.setName("user").setDescription("The Discord member").setRequired(true),
-        )
-        .addStringOption((option) =>
-          option.setName("org").setDescription("Name of the org").setRequired(true),
-        )
-        .addBooleanOption((option) =>
-          option
-            .setName("remove")
-            .setDescription("Remove the manager role instead of granting it"),
-        ),
+      described(sub.setName("manager"), "commands.orgManager")
+        .addUserOption((option) => described(option.setName("user"), "commands.optionUser").setRequired(true))
+        .addStringOption((option) => described(option.setName("org"), "commands.optionOrg").setRequired(true))
+        .addBooleanOption((option) => described(option.setName("remove"), "commands.optionRemove")),
     ),
 
   async execute(interaction) {
+    const locale = await resolveLocale(interaction);
     if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
       await interaction.reply({
-        content: "Requires the Manage Server permission.",
+        content: t(locale, "org.requiresManageServer"),
         flags: MessageFlags.Ephemeral,
       });
       return;
@@ -66,21 +58,20 @@ export const org: SubcommandGroup = {
         case "list": {
           const orgs = await backend.orgs();
           if (orgs.length === 0) {
-            await interaction.editReply("No orgs yet.");
+            await interaction.editReply(t(locale, "org.none"));
             return;
           }
-          const lines = orgs.map(
-            (entry) =>
-              `• **${entry.name}** — ${entry.members_count} member${entry.members_count === 1 ? "" : "s"}`,
+          const lines = orgs.map((entry) =>
+            t(locale, "org.listLine", { name: entry.name, count: entry.members_count }),
           );
-          await interaction.editReply(`Orgs:\n${lines.join("\n")}`);
+          await interaction.editReply(`${t(locale, "org.listHeader")}\n${lines.join("\n")}`);
           return;
         }
 
         case "create": {
           const name = interaction.options.getString("name", true);
           const created = await backend.createOrg(name);
-          await interaction.editReply(`Org **${created.name}** is ready.`);
+          await interaction.editReply(t(locale, "org.created", { name: created.name }));
           return;
         }
 
@@ -88,7 +79,7 @@ export const org: SubcommandGroup = {
           const name = interaction.options.getString("name", true);
           try {
             await backend.deleteOrg(name);
-            await interaction.editReply(`Org **${name}** has been deleted.`);
+            await interaction.editReply(t(locale, "org.deleted", { name }));
           } catch (error) {
             if (error instanceof BackendError && error.status === 404) {
               await interaction.editReply(error.message);
@@ -106,9 +97,11 @@ export const org: SubcommandGroup = {
           try {
             const result = await backend.setOrgManager(orgName, user.id, !remove);
             await interaction.editReply(
-              remove
-                ? `**${result.member}** is no longer a manager of **${result.org}** (role: ${result.role}).`
-                : `**${result.member}** is now a manager of **${result.org}** (role: ${result.role}).`,
+              t(locale, remove ? "org.managerRevoked" : "org.managerGranted", {
+                member: result.member,
+                org: result.org,
+                role: result.role,
+              }),
             );
           } catch (error) {
             if (error instanceof BackendError && error.status === 404) {
@@ -121,11 +114,11 @@ export const org: SubcommandGroup = {
         }
 
         default:
-          await interaction.editReply("Unknown subcommand.");
+          await interaction.editReply(t(locale, "common.unknownSubcommand"));
           return;
       }
     } catch (error) {
-      await interaction.editReply(failureMessage(error));
+      await interaction.editReply(failureMessage(locale, error));
     }
   },
 };

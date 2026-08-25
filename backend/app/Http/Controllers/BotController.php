@@ -23,6 +23,7 @@ class BotController extends Controller
             'registered' => true,
             'name' => $user->name,
             'handle' => $user->handle,
+            'locale' => $user->locale,
             'orgs' => $user->orgs->pluck('name'),
         ];
     }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -25,6 +26,7 @@ import { PageHeader } from '../components/PageHeader'
 import { ItemEntryForm } from '../components/ItemEntryForm'
 
 export function ItemsPage() {
+  const { t, i18n } = useTranslation()
   const { rows: stacks, total, page, setPage, rowsPerPage, isLoading, isError } =
     usePaginatedList<ItemStack>('item-stacks', '/api/item-stacks')
   const { me } = useMe()
@@ -45,7 +47,7 @@ export function ItemsPage() {
 
   return (
     <Box>
-      <PageHeader title="Items" subtitle="Components, weapons and other tracked items" />
+      <PageHeader title={t('items.title')} subtitle={t('items.subtitle')} />
       <Box
         sx={{
           display: 'grid',
@@ -56,27 +58,26 @@ export function ItemsPage() {
       >
         <Paper>
           {isLoading && <LinearProgress />}
-          {isError && <Alert severity="error">Failed to load item stacks.</Alert>}
+          {isError && <Alert severity="error">{t('items.loadFailed')}</Alert>}
           {undo.isSuccess && (
             <Alert severity="info" onClose={() => undo.reset()}>
-              Craft undone — the materials are back in the materials ledger and the blueprint use was
-              rolled back.
+              {t('items.undoSuccess')}
             </Alert>
           )}
           {undo.isError && (
             <Alert severity="error" onClose={() => undo.reset()}>
-              Could not undo the craft.
+              {t('items.undoFailed')}
             </Alert>
           )}
           <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table size="small" aria-label="Item stacks">
+            <Table size="small" aria-label={t('items.tableAria')}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Item</TableCell>
-                  <TableCell align="right">Quantity</TableCell>
-                  <TableCell>Location</TableCell>
-                  <TableCell>Visibility</TableCell>
-                  <TableCell>Updated</TableCell>
+                  <TableCell>{t('items.columns.item')}</TableCell>
+                  <TableCell align="right">{t('items.columns.quantity')}</TableCell>
+                  <TableCell>{t('items.columns.location')}</TableCell>
+                  <TableCell>{t('items.columns.visibility')}</TableCell>
+                  <TableCell>{t('items.columns.updated')}</TableCell>
                   <TableCell align="right" />
                 </TableRow>
               </TableHead>
@@ -86,20 +87,26 @@ export function ItemsPage() {
                     <TableCell>
                       {stack.item_name ?? stack.item_class}
                       {stack.source === 'craft' && (
-                        <Chip size="small" label="crafted" variant="outlined" color="secondary" sx={{ ml: 1 }} />
+                        <Chip
+                          size="small"
+                          label={t('items.crafted')}
+                          variant="outlined"
+                          color="secondary"
+                          sx={{ ml: 1 }}
+                        />
                       )}
                     </TableCell>
-                    <TableCell align="right">{stack.quantity.toLocaleString()}</TableCell>
+                    <TableCell align="right">{stack.quantity.toLocaleString(i18n.language)}</TableCell>
                     <TableCell>{stack.location.name}</TableCell>
                     <TableCell>
                       <Chip
                         size="small"
-                        label={stack.visibility}
+                        label={t(`items.visibility.${stack.visibility}`)}
                         color={stack.visibility === 'org' ? 'secondary' : 'default'}
                         variant="outlined"
                       />
                     </TableCell>
-                    <TableCell>{new Date(stack.updated_at).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(stack.updated_at).toLocaleDateString(i18n.language)}</TableCell>
                     <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                       {stack.craft_id !== null &&
                         me?.id === stack.user_id &&
@@ -112,10 +119,10 @@ export function ItemsPage() {
                             onClick={() => undo.mutate(stack.craft_id!)}
                             onMouseLeave={() => setArmedId(null)}
                           >
-                            {undo.isPending ? 'Undoing…' : 'Undo craft?'}
+                            {undo.isPending ? t('items.undoing') : t('items.undoConfirm')}
                           </Button>
                         ) : (
-                          <Tooltip title="Undo this craft — remove the item and restore the materials">
+                          <Tooltip title={t('items.undoTooltip')}>
                             <IconButton size="small" onClick={() => setArmedId(stack.id)}>
                               <UndoIcon fontSize="small" />
                             </IconButton>
@@ -128,7 +135,7 @@ export function ItemsPage() {
                   <TableRow>
                     <TableCell colSpan={6}>
                       <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                        No item stacks yet.
+                        {t('items.empty')}
                       </Typography>
                     </TableCell>
                   </TableRow>

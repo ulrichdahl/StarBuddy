@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { TFunction } from 'i18next'
+import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -93,16 +95,16 @@ function qualityTierColor(q: number): string {
   return '#8f8f8f'
 }
 
-function amount(value: number, unit: 'mscu' | 'pieces'): string {
+function amount(value: number, unit: 'mscu' | 'pieces', t: TFunction, locale: string): string {
   return unit === 'mscu'
-    ? `${(value / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} SCU`
-    : `${value.toLocaleString()} pcs`
+    ? t('craft.amountScu', { amount: (value / 1000).toLocaleString(locale, { maximumFractionDigits: 3 }) })
+    : t('craft.amountPcs', { amount: value.toLocaleString(locale) })
 }
 
-function craftTime(seconds: number | null): string | null {
+function craftTime(seconds: number | null, t: TFunction, locale: string): string | null {
   if (!seconds) return null
-  if (seconds < 3600) return `${Math.round(seconds / 60)} min`
-  return `${(seconds / 3600).toLocaleString(undefined, { maximumFractionDigits: 1 })} h`
+  if (seconds < 3600) return t('craft.minutes', { count: Math.round(seconds / 60) })
+  return t('craft.hours', { hours: (seconds / 3600).toLocaleString(locale, { maximumFractionDigits: 1 }) })
 }
 
 interface CraftResultResponse {
@@ -197,6 +199,8 @@ function planCraft(ingredients: IngredientDetail[], sel: Selection, qty: number)
 }
 
 export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: number; onClose: () => void }) {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language
   const queryClient = useQueryClient()
   const { data, isLoading, isError } = useQuery({
     queryKey: ['craft-detail', blueprintId],
@@ -275,11 +279,12 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
   }
 
   const bp = data?.blueprint
+  const craftTimeLabel = bp ? craftTime(bp.craft_time_seconds, t, locale) : null
 
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="md">
       {isLoading && <LinearProgress />}
-      {isError && <Alert severity="error">Could not load the blueprint details.</Alert>}
+      {isError && <Alert severity="error">{t('craft.detailLoadError')}</Alert>}
       {bp && plan && (
         <>
           <DialogTitle sx={{ pb: 0.5 }}>
@@ -289,17 +294,26 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
               {(bp.type_display ?? bp.type) && (
                 <Chip size="small" label={bp.type_display ?? bp.type} variant="outlined" />
               )}
-              {bp.grade && <Chip size="small" label={`Grade ${gradeLabel(bp.grade)}`} variant="outlined" />}
-              {bp.item_meta?.size !== undefined && <Chip size="small" label={`Size ${bp.item_meta.size}`} variant="outlined" />}
-              {craftTime(bp.craft_time_seconds) && (
-                <Chip size="small" color="secondary" variant="outlined" label={`Craft time ${craftTime(bp.craft_time_seconds)}`} />
+              {bp.grade && (
+                <Chip size="small" label={t('craft.grade', { grade: gradeLabel(bp.grade) })} variant="outlined" />
+              )}
+              {bp.item_meta?.size !== undefined && (
+                <Chip size="small" label={t('craft.size', { size: bp.item_meta.size })} variant="outlined" />
+              )}
+              {craftTimeLabel && (
+                <Chip
+                  size="small"
+                  color="secondary"
+                  variant="outlined"
+                  label={t('craft.craftTime', { time: craftTimeLabel })}
+                />
               )}
             </Stack>
           </DialogTitle>
           <DialogContent>
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mt: 1.5, flexWrap: 'wrap' }}>
               {bp.image_url && (
-                <Tooltip title="Click to zoom">
+                <Tooltip title={t('craft.clickToZoom')}>
                   <Box
                     component="img"
                     src={bp.image_url}
@@ -318,7 +332,7 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
                 </Tooltip>
               )}
               <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 240 }}>
-                {bp.description || 'No description available.'}
+                {bp.description || t('craft.noDescription')}
               </Typography>
             </Box>
 
@@ -335,18 +349,20 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
 
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Blueprint holders
+              {t('craft.holdersTitle')}
               <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                blueprints are never consumed — pick whose copy this craft counts against
+                {t('craft.holdersHint')}
               </Typography>
             </Typography>
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-              {bp.is_default && <Chip size="small" label="Everyone (default blueprint)" color="primary" variant="outlined" />}
+              {bp.is_default && (
+                <Chip size="small" label={t('craft.everyoneDefault')} color="primary" variant="outlined" />
+              )}
               {(data?.owners ?? []).map((o) => (
                 <Chip
                   key={o.id}
                   size="small"
-                  label={`${o.member} · ${o.uses_personal}× personal / ${o.uses_org}× org`}
+                  label={t('craft.ownerUses', { member: o.member, personal: o.uses_personal, org: o.uses_org })}
                   color={ownedId === o.id ? 'primary' : 'default'}
                   variant={ownedId === o.id ? 'filled' : 'outlined'}
                   onClick={() => setOwnedId(o.id)}
@@ -354,18 +370,18 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
               ))}
               {!bp.is_default && (data?.owners ?? []).length === 0 && (
                 <Typography variant="body2" color="text.secondary">
-                  Nobody in the org owns this blueprint yet.
+                  {t('craft.nobodyOwns')}
                 </Typography>
               )}
             </Stack>
 
             <Divider sx={{ my: 2 }} />
             <Stack direction="row" spacing={2} sx={{ mb: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Typography variant="subtitle2">Craft</Typography>
+              <Typography variant="subtitle2">{t('craft.title')}</Typography>
               <TextField
                 type="number"
                 size="small"
-                label="How many"
+                label={t('craft.howMany')}
                 value={qty}
                 onChange={(e) => setQty(Math.max(1, Math.min(100, Number(e.target.value) || 1)))}
                 slotProps={{ htmlInput: { min: 1, max: 100 } }}
@@ -377,13 +393,13 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
                 value={useType}
                 onChange={(_, v) => v && setUseType(v)}
               >
-                <ToggleButton value="personal">Personal use</ToggleButton>
-                <ToggleButton value="org">Org use</ToggleButton>
+                <ToggleButton value="personal">{t('craft.personalUse')}</ToggleButton>
+                <ToggleButton value="org">{t('craft.orgUse')}</ToggleButton>
               </ToggleButtonGroup>
               {plan.estQuality !== null && (
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'baseline' }}>
                   <Typography variant="body2" color="text.secondary">
-                    Output quality
+                    {t('craft.outputQuality')}
                   </Typography>
                   <Typography
                     variant="h6"
@@ -395,8 +411,7 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
               )}
             </Stack>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-              Tick the stacks the craft should draw from — pre-selected per material by the quality
-              preference. Amounts beyond what is needed stay untouched.
+              {t('craft.stacksHint')}
             </Typography>
 
             <Stack spacing={2}>
@@ -421,9 +436,9 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
                           onChange={(_, v) => v && setPrefs((prev) => ({ ...prev, [ing.name]: v }))}
                           sx={{ '& .MuiToggleButton-root': { py: 0, px: 1, fontSize: 11 } }}
                         >
-                          <ToggleButton value="low">Low</ToggleButton>
-                          <ToggleButton value="mid">Mid</ToggleButton>
-                          <ToggleButton value="high">High</ToggleButton>
+                          <ToggleButton value="low">{t('craft.prefLow')}</ToggleButton>
+                          <ToggleButton value="mid">{t('craft.prefMid')}</ToggleButton>
+                          <ToggleButton value="high">{t('craft.prefHigh')}</ToggleButton>
                         </ToggleButtonGroup>
                       )}
                       <Typography
@@ -434,7 +449,10 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
                           color: p?.covered ? 'primary.main' : 'error.main',
                         }}
                       >
-                        {amount(p?.selected ?? 0, ing.unit)} selected of {amount(p?.need ?? 0, ing.unit)} needed
+                        {t('craft.selectedOfNeeded', {
+                          selected: amount(p?.selected ?? 0, ing.unit, t, locale),
+                          need: amount(p?.need ?? 0, ing.unit, t, locale),
+                        })}
                       </Typography>
                     </Box>
                     {rows.length > 0 ? (
@@ -442,11 +460,11 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
                         <Table size="small">
                           <TableHead>
                             <TableRow>
-                              <TableCell padding="checkbox">Use</TableCell>
-                              <TableCell>Member</TableCell>
-                              <TableCell>Location</TableCell>
-                              <TableCell align="right">Quality</TableCell>
-                              <TableCell align="right">Quantity</TableCell>
+                              <TableCell padding="checkbox">{t('craft.colUse')}</TableCell>
+                              <TableCell>{t('craft.colMember')}</TableCell>
+                              <TableCell>{t('craft.colLocation')}</TableCell>
+                              <TableCell align="right">{t('craft.colQuality')}</TableCell>
+                              <TableCell align="right">{t('craft.colQuantity')}</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
@@ -465,7 +483,7 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
                                   {h.member}
                                   {h.mine && (
                                     <Typography component="span" variant="caption" color="primary.main" sx={{ ml: 0.5 }}>
-                                      (you)
+                                      {t('craft.you')}
                                     </Typography>
                                   )}
                                 </TableCell>
@@ -478,7 +496,7 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
                                   )}
                                 </TableCell>
                                 <TableCell align="right">{h.quality}</TableCell>
-                                <TableCell align="right">{amount(h.quantity, ing.unit)}</TableCell>
+                                <TableCell align="right">{amount(h.quantity, ing.unit, t, locale)}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -491,13 +509,13 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
                               setVisible((prev) => ({ ...prev, [ing.name]: shown + LIST_STEP }))
                             }
                           >
-                            Show {Math.min(LIST_STEP, hidden)} more ({hidden} hidden)
+                            {t('craft.showMore', { count: Math.min(LIST_STEP, hidden), hidden })}
                           </Button>
                         )}
                       </>
                     ) : (
                       <Typography variant="caption" color="text.secondary">
-                        Nobody has any — this is the missing piece.
+                        {t('craft.nobodyHasAny')}
                       </Typography>
                     )}
                   </Box>
@@ -521,44 +539,40 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
                         undo.mutate(craft.data.craft_id, { onSuccess: () => craft.reset() })
                       }
                     >
-                      {undo.isPending ? 'Undoing…' : 'Undo'}
+                      {undo.isPending ? t('craft.undoing') : t('craft.undo')}
                     </Button>
                   }
                 >
-                  Crafted {craft.data.quantity > 1 ? `${craft.data.quantity}× ` : ''}
-                  {craft.data.crafted}
-                  {craft.data.quality !== null ? ` at quality ${craft.data.quality}` : ''} — materials
-                  deducted, item added to your Items ledger.
+                  {t(craft.data.quality !== null ? 'craft.craftedAlertQuality' : 'craft.craftedAlert', {
+                    item:
+                      craft.data.quantity > 1
+                        ? t('craft.quantityTimes', { count: craft.data.quantity, name: craft.data.crafted })
+                        : craft.data.crafted,
+                    quality: craft.data.quality,
+                  })}
                 </Alert>
               )}
               {undo.isSuccess && !craft.isSuccess && (
-                <Alert severity="info">
-                  Craft undone — the materials are back in the ledger, the crafted item was removed,
-                  and the blueprint use was rolled back.
-                </Alert>
+                <Alert severity="info">{t('craft.undoneAlert')}</Alert>
               )}
-              {craft.isError && (
-                <Alert severity="error">
-                  Could not record the craft — materials may have changed. Reopen to refresh.
-                </Alert>
-              )}
-              {undo.isError && (
-                <Alert severity="error">Could not undo the craft.</Alert>
-              )}
+              {craft.isError && <Alert severity="error">{t('craft.craftError')}</Alert>}
+              {undo.isError && <Alert severity="error">{t('craft.undoError')}</Alert>}
             </Box>
           )}
           <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={onClose}>Close</Button>
+            <Button onClick={onClose}>{t('common.close')}</Button>
             <Button
               variant="contained"
               disabled={!plan.craftable || craft.isPending || craft.isSuccess}
               onClick={() => craft.mutate()}
             >
               {craft.isPending
-                ? 'Recording…'
+                ? t('craft.recording')
                 : craft.isSuccess
-                  ? 'Crafted'
-                  : `I crafted this${qty > 1 ? ` ×${qty}` : ''}`}
+                  ? t('craft.crafted')
+                  : qty > 1
+                    ? t('craft.iCraftedThisTimes', { count: qty })
+                    : t('craft.iCraftedThis')}
             </Button>
           </DialogActions>
 

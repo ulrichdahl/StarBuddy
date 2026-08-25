@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
 import Skeleton from '@mui/material/Skeleton'
@@ -23,6 +24,7 @@ interface StatCardProps {
 }
 
 function StatCard({ label, value, unit, icon, loading }: StatCardProps) {
+  const { i18n } = useTranslation()
   return (
     <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
       <Box sx={{ color: 'primary.main', display: 'flex' }} aria-hidden>
@@ -36,7 +38,7 @@ function StatCard({ label, value, unit, icon, loading }: StatCardProps) {
           <Skeleton width={80} height={36} />
         ) : (
           <Typography variant="h5">
-            {(value ?? 0).toLocaleString()}
+            {(value ?? 0).toLocaleString(i18n.language)}
             {unit && (
               <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
                 {unit}
@@ -50,6 +52,7 @@ function StatCard({ label, value, unit, icon, loading }: StatCardProps) {
 }
 
 export function DashboardPage({ me }: { me: Me }) {
+  const { t } = useTranslation()
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: async () => (await api.get<DashboardStats>('/api/dashboard')).data,
@@ -58,8 +61,12 @@ export function DashboardPage({ me }: { me: Me }) {
   return (
     <Box>
       <PageHeader
-        title={`Welcome back, ${me.handle ?? me.discord_username}`}
-        subtitle={me.orgs.length > 0 ? `Tracking for ${me.orgs.map((o) => o.name).join(', ')}` : 'No org membership yet'}
+        title={t('dashboard.welcome', { name: me.handle ?? me.discord_username })}
+        subtitle={
+          me.orgs.length > 0
+            ? t('dashboard.trackingFor', { orgs: me.orgs.map((o) => o.name).join(', ') })
+            : t('dashboard.noOrgYet')
+        }
       />
       <Box
         sx={{
@@ -69,20 +76,20 @@ export function DashboardPage({ me }: { me: Me }) {
         }}
       >
         <StatCard
-          label="Total materials"
+          label={t('dashboard.totalMaterials')}
           value={data?.total_resources_scu}
           unit="SCU"
           icon={<DiamondIcon fontSize="large" />}
           loading={isLoading}
         />
         <StatCard
-          label="Blueprints owned"
+          label={t('dashboard.blueprintsOwned')}
           value={data?.blueprint_count}
           icon={<SchemaIcon fontSize="large" />}
           loading={isLoading}
         />
         <StatCard
-          label="Open refinery orders"
+          label={t('dashboard.openRefineryOrders')}
           value={data?.open_refinery_orders}
           icon={<FactoryIcon fontSize="large" />}
           loading={isLoading}

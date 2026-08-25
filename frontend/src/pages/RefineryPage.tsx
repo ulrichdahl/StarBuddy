@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
@@ -15,54 +16,63 @@ import type { RefineryOrder } from '../lib/types'
 import { usePaginatedList } from '../lib/usePaginatedList'
 import { PageHeader } from '../components/PageHeader'
 
-function status(order: RefineryOrder): { label: string; color: 'primary' | 'secondary' } {
+/** Status chip for an order: the translation key for its label plus the chip color. */
+function status(order: RefineryOrder): { labelKey: string; color: 'primary' | 'secondary' } {
   return order.completed_at
-    ? { label: 'Completed', color: 'primary' }
-    : { label: 'In progress', color: 'secondary' }
+    ? { labelKey: 'refinery.status.completed', color: 'primary' }
+    : { labelKey: 'refinery.status.inProgress', color: 'secondary' }
 }
 
 export function RefineryPage() {
+  const { t, i18n } = useTranslation()
   const { rows: orders, total, page, setPage, rowsPerPage, isLoading, isError } =
     usePaginatedList<RefineryOrder>('refinery-orders', '/api/refinery-orders')
 
   return (
     <Box>
-      <PageHeader title="Refinery" subtitle="Refinery work orders across the org" />
+      <PageHeader title={t('refinery.title')} subtitle={t('refinery.subtitle')} />
       <Paper>
         {isLoading && <LinearProgress />}
-        {isError && <Alert severity="error">Failed to load refinery orders.</Alert>}
+        {isError && <Alert severity="error">{t('refinery.loadFailed')}</Alert>}
         <TableContainer sx={{ overflowX: 'auto' }}>
-          <Table size="small" aria-label="Refinery orders">
+          <Table size="small" aria-label={t('refinery.tableAria')}>
             <TableHead>
               <TableRow>
-                <TableCell>Station</TableCell>
-                <TableCell>Method</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Completed</TableCell>
-                <TableCell>ETA</TableCell>
-                <TableCell>Source</TableCell>
+                <TableCell>{t('refinery.columns.station')}</TableCell>
+                <TableCell>{t('refinery.columns.method')}</TableCell>
+                <TableCell>{t('refinery.columns.status')}</TableCell>
+                <TableCell>{t('refinery.columns.completed')}</TableCell>
+                <TableCell>{t('refinery.columns.eta')}</TableCell>
+                <TableCell>{t('refinery.columns.source')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {orders.map((order) => (
-                <TableRow key={order.id} hover>
-                  <TableCell>{order.station}</TableCell>
-                  <TableCell>{order.method ?? '—'}</TableCell>
-                  <TableCell>
-                    <Chip size="small" {...status(order)} variant="outlined" />
-                  </TableCell>
-                  <TableCell>
-                    {order.completed_at ? new Date(order.completed_at).toLocaleString() : '—'}
-                  </TableCell>
-                  <TableCell>{order.eta ? new Date(order.eta).toLocaleString() : '—'}</TableCell>
-                  <TableCell>{order.source}</TableCell>
-                </TableRow>
-              ))}
+              {orders.map((order) => {
+                const { labelKey, color } = status(order)
+                return (
+                  <TableRow key={order.id} hover>
+                    <TableCell>{order.station}</TableCell>
+                    <TableCell>{order.method ?? t('common.none')}</TableCell>
+                    <TableCell>
+                      <Chip size="small" label={t(labelKey)} color={color} variant="outlined" />
+                    </TableCell>
+                    <TableCell>
+                      {order.completed_at
+                        ? new Date(order.completed_at).toLocaleString(i18n.language)
+                        : t('common.none')}
+                    </TableCell>
+                    <TableCell>
+                      {order.eta ? new Date(order.eta).toLocaleString(i18n.language) : t('common.none')}
+                    </TableCell>
+                    <TableCell>{order.source}</TableCell>
+                  </TableRow>
+                )
+              })}
               {!isLoading && orders.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6}>
                     <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                      No refinery orders.
+                      {t('refinery.empty')}
                     </Typography>
                   </TableCell>
                 </TableRow>

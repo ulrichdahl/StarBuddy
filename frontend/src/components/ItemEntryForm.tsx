@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
 import MenuItem from '@mui/material/MenuItem'
@@ -18,6 +19,7 @@ import type { CreateItemStack, Location, Visibility } from '../lib/types'
  * item + quantity clear, focus returns to the item field.
  */
 export function ItemEntryForm() {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const itemInputRef = useRef<HTMLInputElement>(null)
 
@@ -57,20 +59,20 @@ export function ItemEntryForm() {
   return (
     <Paper component="form" onSubmit={handleSubmit} sx={{ p: 2.5 }}>
       <Typography variant="h6" sx={{ mb: 2 }}>
-        Quick entry
+        {t('items.entry.title')}
       </Typography>
       <Stack spacing={2}>
         <TextField
-          label="Item class"
+          label={t('items.entry.itemClass')}
           required
           autoFocus
           inputRef={itemInputRef}
           value={itemClass}
           onChange={(e) => setItemClass(e.target.value)}
-          placeholder="e.g. Quantum Drive — Atlas"
+          placeholder={t('items.entry.itemClassPlaceholder')}
         />
         <TextField
-          label="Quantity"
+          label={t('items.entry.quantity')}
           type="number"
           required
           value={quantity}
@@ -79,7 +81,7 @@ export function ItemEntryForm() {
         />
         <TextField
           select
-          label="Location"
+          label={t('items.entry.location')}
           required
           value={location}
           onChange={(e) => setLocation(e.target.value === '' ? '' : Number(e.target.value))}
@@ -96,16 +98,16 @@ export function ItemEntryForm() {
           size="small"
           value={visibility}
           onChange={(_, value: Visibility | null) => value && setVisibility(value)}
-          aria-label="Visibility"
+          aria-label={t('items.entry.visibilityAria')}
         >
-          <ToggleButton value="private">Private</ToggleButton>
-          <ToggleButton value="org">Org-visible</ToggleButton>
+          <ToggleButton value="private">{t('items.entry.private')}</ToggleButton>
+          <ToggleButton value="org">{t('items.entry.orgVisible')}</ToggleButton>
         </ToggleButtonGroup>
 
-        {createStack.isError && <Alert severity="error">Could not save the item stack. Try again.</Alert>}
+        {createStack.isError && <Alert severity="error">{t('items.entry.saveFailed')}</Alert>}
 
         <Button type="submit" variant="contained" disabled={!canSubmit || createStack.isPending}>
-          {createStack.isPending ? 'Saving…' : 'Add stack'}
+          {createStack.isPending ? t('common.saving') : t('items.entry.submit')}
         </Button>
       </Stack>
     </Paper>

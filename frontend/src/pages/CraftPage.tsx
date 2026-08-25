@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import type { TFunction } from 'i18next'
+import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
@@ -47,19 +49,23 @@ interface CraftabilityResponse {
   results: CraftResult[]
 }
 
-/** Numeric blueprint grades map to letters: 1=A, 2=B, 3=C, 4=D. */
+/** Numeric blueprint grades map to letters: 1=A, 2=B, 3=C, 4=D (game data, not localized). */
 export function gradeLabel(grade: string | null): string | null {
   if (grade === null) return null
   return { '1': 'A', '2': 'B', '3': 'C', '4': 'D' }[grade] ?? grade
 }
 
-function missingLabel(m: CraftResult['missing'][number]): string {
+function missingLabel(m: CraftResult['missing'][number], t: TFunction, locale: string): string {
   return m.unit === 'mscu'
-    ? `${(m.missing / 1000).toLocaleString(undefined, { maximumFractionDigits: 3 })} SCU ${m.name}`
-    : `${m.missing} × ${m.name}`
+    ? t('craft.missingScu', {
+        amount: (m.missing / 1000).toLocaleString(locale, { maximumFractionDigits: 3 }),
+        name: m.name,
+      })
+    : t('craft.missingPieces', { count: m.missing, name: m.name })
 }
 
 export function CraftPage() {
+  const { t, i18n } = useTranslation()
   const [search, setSearch] = useState('')
   const [type, setType] = useState('')
   const [craftableOnly, setCraftableOnly] = useState(false)
@@ -91,14 +97,11 @@ export function CraftPage() {
 
   return (
     <Box>
-      <PageHeader
-        title="Craft"
-        subtitle="What the org can craft with the resources on hand — best options first, nearest misses after"
-      />
+      <PageHeader title={t('craft.title')} subtitle={t('craft.subtitle')} />
       <Paper sx={{ p: 2, mb: 2, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
         <TextField
           size="small"
-          label="Search"
+          label={t('craft.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{ minWidth: 200 }}
@@ -106,40 +109,40 @@ export function CraftPage() {
         <TextField
           size="small"
           select
-          label="Type"
+          label={t('craft.type')}
           value={type}
           onChange={(e) => setType(e.target.value)}
           sx={{ minWidth: 180 }}
         >
-          <MenuItem value="">All types</MenuItem>
-          {(data?.types ?? []).map((t) => (
-            <MenuItem key={t.value} value={t.value}>
-              {t.label}
+          <MenuItem value="">{t('craft.allTypes')}</MenuItem>
+          {(data?.types ?? []).map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
             </MenuItem>
           ))}
         </TextField>
         <FormControlLabel
           control={<Switch checked={craftableOnly} onChange={(e) => setCraftableOnly(e.target.checked)} />}
-          label="Craftable now"
+          label={t('craft.craftableNow')}
         />
         <FormControlLabel
           control={<Switch checked={includeUnowned} onChange={(e) => setIncludeUnowned(e.target.checked)} />}
-          label="Include unowned blueprints"
+          label={t('craft.includeUnowned')}
         />
       </Paper>
       <Paper>
         {isLoading && <LinearProgress />}
-        {isError && <Alert severity="error">Could not compute craftability.</Alert>}
+        {isError && <Alert severity="error">{t('craft.loadError')}</Alert>}
         <TableContainer sx={{ overflowX: 'auto' }}>
-          <Table size="small" aria-label="Craftability">
+          <Table size="small" aria-label={t('craft.tableAria')}>
             <TableHead>
               <TableRow>
-                <TableCell>Blueprint</TableCell>
-                <TableCell>Type / grade</TableCell>
-                <TableCell align="center">Holders</TableCell>
-                <TableCell sx={{ minWidth: 160 }}>Materials</TableCell>
-                <TableCell>Missing</TableCell>
-                <TableCell align="right">Est. quality</TableCell>
+                <TableCell>{t('craft.colBlueprint')}</TableCell>
+                <TableCell>{t('craft.colTypeGrade')}</TableCell>
+                <TableCell align="center">{t('craft.colHolders')}</TableCell>
+                <TableCell sx={{ minWidth: 160 }}>{t('craft.colMaterials')}</TableCell>
+                <TableCell>{t('craft.colMissing')}</TableCell>
+                <TableCell align="right">{t('craft.colEstQuality')}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -157,24 +160,26 @@ export function CraftPage() {
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
                       {r.type_display ?? [r.type, r.sub_type].filter(Boolean).join(' · ')}
-                      {r.grade ? ` · Grade ${gradeLabel(r.grade)}` : ''}
+                      {r.grade ? ` · ${t('craft.grade', { grade: gradeLabel(r.grade) })}` : ''}
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
                       {r.is_default && (
-                        <Tooltip title="Default blueprint — everyone has it">
+                        <Tooltip title={t('craft.defaultBlueprintTooltip')}>
                           <PublicIcon fontSize="small" color="disabled" />
                         </Tooltip>
                       )}
                       {r.owned_by_me && (
-                        <Tooltip title="You have this blueprint">
+                        <Tooltip title={t('craft.youHaveTooltip')}>
                           <HowToRegIcon fontSize="small" color="primary" />
                         </Tooltip>
                       )}
                       {r.owner_count > 0 && (
                         <Tooltip
-                          title={`${r.owner_count} ${r.owner_count === 1 ? 'org member' : 'org members'}${r.owned_by_me ? ' besides you' : ''} own${r.owner_count === 1 ? 's' : ''} this blueprint — open the row to see who`}
+                          title={t(r.owned_by_me ? 'craft.ownersBesidesYouTooltip' : 'craft.ownersTooltip', {
+                            count: r.owner_count,
+                          })}
                         >
                           <Chip
                             size="small"
@@ -207,8 +212,11 @@ export function CraftPage() {
                   </TableCell>
                   <TableCell>
                     <Typography variant="caption" color="text.secondary">
-                      {r.missing.slice(0, 3).map(missingLabel).join(', ')}
-                      {r.missing.length > 3 ? ` +${r.missing.length - 3} more` : ''}
+                      {r.missing
+                        .slice(0, 3)
+                        .map((m) => missingLabel(m, t, i18n.language))
+                        .join(', ')}
+                      {r.missing.length > 3 ? ` ${t('craft.moreMissing', { count: r.missing.length - 3 })}` : ''}
                       {r.missing.length === 0 ? '—' : ''}
                     </Typography>
                   </TableCell>
@@ -219,8 +227,7 @@ export function CraftPage() {
                 <TableRow>
                   <TableCell colSpan={6}>
                     <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                      Nothing to show — add resources to the ledger, sync blueprints from the desktop
-                      client, or widen the filters.
+                      {t('craft.emptyState')}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -236,6 +243,8 @@ export function CraftPage() {
             onPageChange={(_, p) => setPage(p)}
             rowsPerPage={rowsPerPage}
             rowsPerPageOptions={[rowsPerPage]}
+            labelDisplayedRows={({ from, to, count }) => t('craft.displayedRows', { from, to, count })}
+            getItemAriaLabel={(kind) => t(`craft.page.${kind}`)}
           />
         )}
       </Paper>
