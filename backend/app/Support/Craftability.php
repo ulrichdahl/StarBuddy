@@ -175,7 +175,10 @@ class Craftability
 
         $results = $query->get()->map(function (Blueprint $bp) use ($availability, $owners, $user) {
             $coverage = 1.0;
-            $coveragePrivate = 1.0; // coverable from the member's private stacks alone
+            // Bar composition: how much of the covered material is private vs
+            // org-shared, summed over ingredients (not a bottleneck like coverage).
+            $coveredSum = 0.0;
+            $privateSum = 0.0;
             $missing = [];
             $qualityWeighted = 0;
             $qualityWeight = 0;
@@ -188,7 +191,8 @@ class Craftability
                 $have = $availability[Str::lower($ing['name'])] ?? null;
                 $ratio = min(1.0, ($have['total'] ?? 0) / $need);
                 $coverage = min($coverage, $ratio);
-                $coveragePrivate = min($coveragePrivate, min(1.0, ($have['private'] ?? 0) / $need));
+                $coveredSum += $ratio;
+                $privateSum += min(1.0, ($have['private'] ?? 0) / $need);
 
                 if ($ratio < 1.0) {
                     $missing[] = [
@@ -237,7 +241,8 @@ class Craftability
                 'owned_by_me' => ($owners[$bp->id] ?? collect())->contains($user->id),
                 'craftable' => $coverage >= 1.0,
                 'coverage' => round($coverage, 3),
-                'coverage_private' => round($coveragePrivate, 3),
+                // Private share of the bar, scaled so private + org = coverage.
+                'coverage_private' => $coveredSum > 0 ? round($coverage * $privateSum / $coveredSum, 3) : 0.0,
                 // Size matters for ship parts: components and vehicle weapons.
                 'size' => in_array(BlueprintKind::group($bp->type), ['vehicle_components', 'vehicle_weapons'], true)
                     ? ($bp->item_meta['size'] ?? null)
