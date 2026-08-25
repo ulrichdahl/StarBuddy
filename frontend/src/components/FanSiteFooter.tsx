@@ -49,7 +49,11 @@ export function FanSiteFooter() {
         </Typography>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
           Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of
-          Cloud Imperium Rights LLC. StarBuddy is free software (AGPL-3.0).
+          Cloud Imperium Rights LLC. StarBuddy is free software (AGPL-3.0) —{' '}
+          <Link href="https://github.com/ulrichdahl/StarBuddy" target="_blank" rel="noopener" color="inherit">
+            source on GitHub
+          </Link>
+          .
         </Typography>
       </Box>
     </Box>

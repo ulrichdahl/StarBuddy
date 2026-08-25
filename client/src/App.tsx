@@ -345,7 +345,8 @@ function App() {
           </p>
           <p className="hint">
             Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of
-            Cloud Imperium Rights LLC. StarBuddy is free software (AGPL-3.0).
+            Cloud Imperium Rights LLC. StarBuddy is free software (AGPL-3.0) —{" "}
+            <a href="https://github.com/ulrichdahl/StarBuddy" target="_blank" rel="noopener">source on GitHub</a>.
           </p>
         </div>
       </footer>
