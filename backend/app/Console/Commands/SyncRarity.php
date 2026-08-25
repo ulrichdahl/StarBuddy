@@ -16,7 +16,10 @@ use Illuminate\Support\Str;
  */
 class SyncRarity extends Command
 {
-    protected $signature = 'starmaker:sync-rarity';
+    protected $signature = 'starbuddy:sync-rarity';
+
+    // Pre-rename name, kept so old habits and scripts keep working.
+    protected $aliases = ['starmaker:sync-rarity'];
 
     protected $description = 'Derive resource rarity from wiki mining spawn probabilities';
 

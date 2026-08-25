@@ -1,7 +1,7 @@
 import { createTheme } from '@mui/material/styles'
 
 /**
- * StarMaker theme — industrial sci-fi, dark by default.
+ * StarBuddy theme — industrial sci-fi, dark by default.
  * Deep space blue-black ground, cyan primary, amber secondary.
  */
 export const theme = createTheme({

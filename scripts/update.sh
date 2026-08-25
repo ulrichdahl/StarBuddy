@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# StarMaker auto-updater — safe to run from cron.
+# StarBuddy auto-updater — safe to run from cron.
 #
 # Pulls the configured branch from GitHub; if nothing changed, exits
 # quietly. Otherwise: dumps the database, pulls, rebuilds images, rolls the
@@ -7,19 +7,19 @@
 # images. All output is timestamped for cron logs.
 #
 #   crontab -e:
-#   17 4 * * *  /srv/starmaker/StarMaker/scripts/update.sh >> /srv/starmaker/update.log 2>&1
+#   17 4 * * *  /srv/starbuddy/StarMaker/scripts/update.sh >> /srv/starbuddy/update.log 2>&1
 #
 # Environment overrides:
-#   STARMAKER_COMPOSE   compose command (default: production file pair)
-#   STARMAKER_BRANCH    branch to track (default: main)
+#   STARBUDDY_COMPOSE   compose command (default: production file pair)
+#   STARBUDDY_BRANCH    branch to track (default: main)
 
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
 
-COMPOSE=${STARMAKER_COMPOSE:-"docker compose -f docker-compose.yml -f docker-compose.prod.yml"}
-BRANCH=${STARMAKER_BRANCH:-main}
+COMPOSE=${STARBUDDY_COMPOSE:-${STARMAKER_COMPOSE:-"docker compose -f docker-compose.yml -f docker-compose.prod.yml"}}
+BRANCH=${STARBUDDY_BRANCH:-${STARMAKER_BRANCH:-main}}
 
 log() { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
 

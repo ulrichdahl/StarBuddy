@@ -1,4 +1,4 @@
-/** Entities exposed by the StarMaker Laravel API. */
+/** Entities exposed by the StarBuddy Laravel API. */
 
 export interface Org {
   id: number

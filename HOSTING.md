@@ -1,6 +1,12 @@
-# Hosting StarMaker
+# Hosting StarBuddy
 
-One StarMaker instance serves **one Discord community**. Members sign in with
+> **Renamed from StarMaker (2026-08-25).** Existing instances need no changes:
+> the `STARMAKER_*` variable names in `.env`, the `starmaker-web` proxy alias,
+> the compose project name, and the `starmaker:*` artisan commands all keep
+> working, and GitHub redirects the old repository URL for `git pull`.
+> New docs use the `starbuddy-*` names.
+
+One StarBuddy instance serves **one Discord community**. Members sign in with
 Discord; only members of your configured server can join. This guide takes an
 operator from empty server to a maintained, auto-updating production instance.
 
@@ -45,10 +51,10 @@ At <https://discord.com/developers/applications> create an application:
 ## 2. Server setup
 
 ```sh
-sudo mkdir -p /srv/starmaker/data
-cd /srv/starmaker
-git clone https://github.com/ulrichdahl/StarMaker.git
-cd StarMaker
+sudo mkdir -p /srv/starbuddy/data
+cd /srv/starbuddy
+git clone https://github.com/ulrichdahl/StarBuddy.git
+cd StarBuddy
 cp .env.example .env
 ```
 
@@ -60,7 +66,7 @@ APP_URL=https://YOUR-DOMAIN
 DISCORD_REDIRECT_URI=https://YOUR-DOMAIN/api/auth/discord/callback
 SESSION_DOMAIN=YOUR-DOMAIN
 SANCTUM_STATEFUL_DOMAINS=YOUR-DOMAIN
-STARMAKER_DATA_DIR=/srv/starmaker/data
+STARMAKER_DATA_DIR=/srv/starbuddy/data
 STARMAKER_HOME_GUILD_ID=      # your server id from step 1.5
 STARMAKER_BOT_API_TOKEN=      # openssl rand -hex 32
 DB_PASSWORD=                  # openssl rand -hex 24
@@ -71,7 +77,7 @@ Plus the four Discord credentials from step 1.
 ## 3. Reverse proxy
 
 The production compose publishes **no ports**; the `web` container joins an
-external Docker network named `proxy` under the alias **`starmaker-web`**.
+external Docker network named `proxy` under the alias **`starbuddy-web`**.
 
 ```sh
 docker network create proxy   # skip if your proxy's network exists; if it
@@ -79,7 +85,7 @@ docker network create proxy   # skip if your proxy's network exists; if it
 ```
 
 Attach your proxy container to that network and point the vhost at
-`http://starmaker-web:80`. Plain nginx example:
+`http://starbuddy-web:80`. Plain nginx example:
 
 ```nginx
 server {
@@ -88,7 +94,7 @@ server {
     # ssl_certificate ...; ssl_certificate_key ...;
 
     location / {
-        proxy_pass http://starmaker-web:80;
+        proxy_pass http://starbuddy-web:80;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -100,7 +106,7 @@ server {
 }
 ```
 
-(Nginx Proxy Manager: new proxy host → forward to `starmaker-web` port `80`,
+(Nginx Proxy Manager: new proxy host → forward to `starbuddy-web` port `80`,
 enable *Websockets Support*.)
 
 ## 4. First start
@@ -111,11 +117,11 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 # initialize (once)
 alias sm='docker compose -f docker-compose.yml -f docker-compose.prod.yml'
 sm exec app php artisan migrate --seed --force
-sm exec app php artisan starmaker:sync-blueprints
-sm exec app php artisan starmaker:sync-resource-types
-sm exec app php artisan starmaker:sync-locations
-sm exec app php artisan starmaker:sync-quality-bands
-sm exec app php artisan starmaker:sync-rarity          # ~2 min
+sm exec app php artisan starbuddy:sync-blueprints
+sm exec app php artisan starbuddy:sync-resource-types
+sm exec app php artisan starbuddy:sync-locations
+sm exec app php artisan starbuddy:sync-quality-bands
+sm exec app php artisan starbuddy:sync-rarity          # ~2 min
 sm run --rm bot node dist/register-commands.js
 ```
 
@@ -134,7 +140,7 @@ dashboard; managers accept there.
   database. Back up the whole directory off-site. Restore a dump:
 
   ```sh
-  gunzip -c data/backups/DUMPFILE.sql.gz | sm exec -T db psql -U starmaker starmaker
+  gunzip -c data/backups/DUMPFILE.sql.gz | sm exec -T db psql -U starbuddy starbuddy   # your DB_USERNAME / DB_DATABASE from .env
   ```
 
 - **Logs** — `sm logs -f app` (Laravel logs to stderr), `sm logs bot`,
@@ -156,13 +162,13 @@ runs. Schedule it:
 ```sh
 crontab -e
 # nightly at 04:17, log kept alongside the data
-17 4 * * * /srv/starmaker/StarMaker/scripts/update.sh >> /srv/starmaker/update.log 2>&1
+17 4 * * * /srv/starbuddy/StarBuddy/scripts/update.sh >> /srv/starbuddy/update.log 2>&1
 ```
 
 ### Manual
 
 ```sh
-cd /srv/starmaker/StarMaker && ./scripts/update.sh
+cd /srv/starbuddy/StarBuddy && ./scripts/update.sh
 ```
 
 ### Rollback
@@ -185,5 +191,5 @@ sm build && sm up -d
 | Desktop client white window (Linux) | Use the current AppImage; older builds had a WebKit/EGL issue |
 
 Client downloads for your members: the
-[dev build](https://github.com/ulrichdahl/StarMaker/releases/tag/dev) and
-[stable releases](https://github.com/ulrichdahl/StarMaker/releases/latest).
+[dev build](https://github.com/ulrichdahl/StarBuddy/releases/tag/dev) and
+[stable releases](https://github.com/ulrichdahl/StarBuddy/releases/latest).

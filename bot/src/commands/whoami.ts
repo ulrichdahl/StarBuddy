@@ -5,7 +5,7 @@ import type { Command } from "./command.js";
 export const whoami: Command = {
   data: new SlashCommandBuilder()
     .setName("whoami")
-    .setDescription("Check your StarMaker registration status")
+    .setDescription("Check your StarBuddy registration status")
     .toJSON(),
 
   async execute(interaction) {
@@ -15,16 +15,16 @@ export const whoami: Command = {
       const member = await backend.member(interaction.user.id);
       if (member.registered) {
         await interaction.editReply(
-          `You are registered with StarMaker as **${member.handle ?? "unknown handle"}**.`,
+          `You are registered with StarBuddy as **${member.handle ?? "unknown handle"}**.`,
         );
       } else {
         await interaction.editReply(
-          "You are not registered with StarMaker yet. Link your Discord account on the website to get started.",
+          "You are not registered with StarBuddy yet. Link your Discord account on the website to get started.",
         );
       }
     } catch {
       await interaction.editReply(
-        "Could not reach the StarMaker backend. Please try again later.",
+        "Could not reach the StarBuddy backend. Please try again later.",
       );
     }
   },

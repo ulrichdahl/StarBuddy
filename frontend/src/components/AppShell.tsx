@@ -57,7 +57,7 @@ export function AppShell({ me }: AppShellProps) {
     <Box role="navigation" aria-label="Main navigation">
       <Toolbar>
         <Typography variant="h6" sx={{ color: 'primary.main', fontWeight: 700 }}>
-          StarMaker
+          StarBuddy
         </Typography>
       </Toolbar>
       <List>
@@ -97,7 +97,7 @@ export function AppShell({ me }: AppShellProps) {
             </IconButton>
           )}
           <Typography variant="h6" component="h1" sx={{ flexGrow: 1, color: 'primary.main' }}>
-            StarMaker
+            StarBuddy
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
             {me.handle ?? me.discord_username}

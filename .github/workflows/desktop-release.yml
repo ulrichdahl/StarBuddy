@@ -85,6 +85,6 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          name: StarMaker ${{ github.ref_name }}
+          name: StarBuddy ${{ github.ref_name }}
           generate_release_notes: true
           files: bundles/**

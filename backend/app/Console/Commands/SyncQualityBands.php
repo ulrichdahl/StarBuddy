@@ -16,7 +16,10 @@ use Illuminate\Support\Str;
  */
 class SyncQualityBands extends Command
 {
-    protected $signature = 'starmaker:sync-quality-bands';
+    protected $signature = 'starbuddy:sync-quality-bands';
+
+    // Pre-rename name, kept so old habits and scripts keep working.
+    protected $aliases = ['starmaker:sync-quality-bands'];
 
     protected $description = 'Seed per-resource quality bands from the Star Citizen Wiki Ore_quality page';
 

@@ -1,6 +1,8 @@
+# Project name stays "starmaker" (pre-rename) so existing deployments keep
+# their containers and volumes across updates. Cosmetic only.
 name: starmaker
 
-# StarMaker community instance — base definition. No ports are published
+# StarBuddy community instance — base definition. No ports are published
 # here: local development gets its port from docker-compose.override.yml
 # (auto-loaded), production attaches the web container to your reverse
 # proxy's network via docker-compose.prod.yml:
@@ -14,11 +16,11 @@ name: starmaker
 #   cp .env.example .env   # fill in Discord credentials, APP_KEY, DB password
 #   docker compose up -d --build
 #   docker compose exec app php artisan migrate --seed --force
-#   docker compose exec app php artisan starmaker:sync-blueprints
-#   docker compose exec app php artisan starmaker:sync-resource-types
-#   docker compose exec app php artisan starmaker:sync-locations
-#   docker compose exec app php artisan starmaker:sync-quality-bands
-#   docker compose exec app php artisan starmaker:sync-rarity
+#   docker compose exec app php artisan starbuddy:sync-blueprints
+#   docker compose exec app php artisan starbuddy:sync-resource-types
+#   docker compose exec app php artisan starbuddy:sync-locations
+#   docker compose exec app php artisan starbuddy:sync-quality-bands
+#   docker compose exec app php artisan starbuddy:sync-rarity
 #   docker compose run --rm bot node dist/register-commands.js
 
 x-app: &app
@@ -40,8 +42,11 @@ services:
       default:
         # Unambiguous name for Caddy: the web container is also attached to
         # the operator's proxy network, where a generic "app" may resolve to
-        # a foreign container (NPM names its own service "app").
+        # a foreign container (NPM names its own service "app"). The old
+        # starmaker-* aliases are kept for deployments from before the
+        # StarBuddy rename.
         aliases:
+          - starbuddy-app
           - starmaker-app
 
   queue:
@@ -58,6 +63,7 @@ services:
     networks:
       default:
         aliases:
+          - starbuddy-reverb
           - starmaker-reverb
 
   web:

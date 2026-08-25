@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>StarMaker</title>
+<title>StarBuddy</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
   :root {
@@ -291,7 +291,7 @@
 
 <header class="masthead">
   <p class="eyebrow">Project Specification · Draft 0.3</p>
-  <h1>StarMaker <span class="thin">/ Org Forge Ledger</span></h1>
+  <h1>StarBuddy <span class="thin">/ Org Forge Ledger</span></h1>
   <p class="subtitle">A cross-platform companion tool that gives a Star Citizen org one shared answer to three questions: what resources do we hold, who can craft what, and what should we craft next.</p>
   <div class="meta">
     <span>DATE <b>2026-08-24</b></span>
@@ -305,7 +305,7 @@
   <p class="sec-label">01 · Vision</p>
   <h2>One ledger for the whole org</h2>
   <p>Crafting went live in Alpha 4.7 (March 2026). Blueprints are account-bound and wipe-proof; resources carry quality that directly drives crafted item stats. That makes an org's real capability the <em>combination</em> of every member's blueprint library and every member's material stash — a combination no player can see in-game, and no existing community tool tracks across an org.</p>
-  <p>StarMaker tracks three asset classes per member and per storage location — <strong>resources</strong> (with quality), <strong>blueprints</strong>, and <strong>refining orders</strong> — filling in automatically from each player's <code>Game.log</code> where possible, and via fast manual entry or screenshot OCR where the log is silent. On top of that ledger it answers:</p>
+  <p>StarBuddy tracks three asset classes per member and per storage location — <strong>resources</strong> (with quality), <strong>blueprints</strong>, and <strong>refining orders</strong> — filling in automatically from each player's <code>Game.log</code> where possible, and via fast manual entry or screenshot OCR where the log is silent. On top of that ledger it answers:</p>
   <ul>
     <li><strong>Craft-now list</strong> — everything the org can craft with materials on hand, best first, then a "nearest miss" list ranked by how little is missing; filterable by blueprint tags (type, resource, grade, size…).</li>
     <li><strong>Need-driven search</strong> — "I need a Tier 3 Arclight" → who holds the blueprint, who holds the best-quality ingredients, and where they're stored.</li>
@@ -444,7 +444,7 @@
   <p>One central backend, three thin faces on it. The desktop client is the only component that touches the player's machine (log file, screenshots, overlay); everything shared lives server-side.</p>
 
   <h3>Tenancy model: the community instance</h3>
-  <p>StarMaker ships as a <strong>self-hostable community platform</strong>, not a public SaaS. One deployment serves one community: it is bound to a single Discord server, and <em>only members of that server can join</em>. Inside an instance there can be <strong>multiple orgs</strong> — org membership and roles map from the community server's Discord roles (with in-app admin override). Another community that wants StarMaker deploys its own instance and configures its own Discord application and bot; nothing is shared between instances.</p>
+  <p>StarBuddy ships as a <strong>self-hostable community platform</strong>, not a public SaaS. One deployment serves one community: it is bound to a single Discord server, and <em>only members of that server can join</em>. Inside an instance there can be <strong>multiple orgs</strong> — org membership and roles map from the community server's Discord roles (with in-app admin override). Another community that wants StarBuddy deploys its own instance and configures its own Discord application and bot; nothing is shared between instances.</p>
   <ul>
     <li><strong>Join gate:</strong> Discord OAuth (<code>identify</code> + <code>guilds</code> scopes) → membership check against the configured home guild ID, cross-verified by the instance's bot, which lives in that guild.</li>
     <li><strong>Instance config:</strong> everything community-specific lives in <code>.env</code> / an admin panel — Discord app credentials, bot token, home guild ID, role→org mappings, notification channels.</li>
@@ -618,10 +618,10 @@
   <h2>Settled decisions</h2>
   <div class="callout cyan">
     <div class="callout-title">Decided 2026-08-24</div>
-    <p><strong>Stack:</strong> Laravel + PostgreSQL, React SPA, Docker Compose deployment. <strong>Tenancy:</strong> self-hostable community instance — one deployment per community, join-gated to members of that community's Discord server, multiple orgs per instance; other communities run their own instance with their own Discord app/bot. <strong>License:</strong> AGPL-3.0-or-later, public repository at <a href="https://github.com/ulrichdahl/StarMaker">github.com/ulrichdahl/StarMaker</a>.</p>
+    <p><strong>Stack:</strong> Laravel + PostgreSQL, React SPA, Docker Compose deployment. <strong>Tenancy:</strong> self-hostable community instance — one deployment per community, join-gated to members of that community's Discord server, multiple orgs per instance; other communities run their own instance with their own Discord app/bot. <strong>License:</strong> AGPL-3.0-or-later, public repository at <a href="https://github.com/ulrichdahl/StarBuddy">github.com/ulrichdahl/StarBuddy</a>.</p>
   </div>
   <ol class="qlist">
-    <li><b>Name: StarMaker.</b> Keeping it — repo, Discord application, and any domain register under this name.</li>
+    <li><b>Name: StarBuddy.</b> Keeping it — repo, Discord application, and any domain register under this name.</li>
     <li><b>Item scope: everything is enterable, only resources carry quality.</b> The ledger accepts any game item (weapons, components, commodities) as quantity-only stacks; resources additionally carry the exact quality number. Crafted items and their quality-derived buffs are a later extension.</li>
     <li><b>Privacy: private by default,</b> opt-in to org visibility per stash. The entry form is sticky — location, visibility, and last quality carry over between lines, so bulk entry never repeats settings container by container.</li>
     <li><b>OCR: local only, no cloud.</b> PaddleOCR on-device; screenshots never leave the player's machine. No LLM-vision fallback.</li>

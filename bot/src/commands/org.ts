@@ -4,15 +4,15 @@ import type { Command } from "./command.js";
 
 function failureMessage(error: unknown): string {
   if (error instanceof BackendError && error.status === undefined) {
-    return "StarMaker backend is unreachable.";
+    return "StarBuddy backend is unreachable.";
   }
-  return "Something went wrong talking to the StarMaker backend. Please try again later.";
+  return "Something went wrong talking to the StarBuddy backend. Please try again later.";
 }
 
 export const org: Command = {
   data: new SlashCommandBuilder()
     .setName("org")
-    .setDescription("Manage StarMaker orgs")
+    .setDescription("Manage StarBuddy orgs")
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
     .addSubcommand((sub) => sub.setName("list").setDescription("List all orgs"))
     .addSubcommand((sub) =>

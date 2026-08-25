@@ -22,7 +22,7 @@ export function LoginPage() {
     >
       <Paper sx={{ p: 5, maxWidth: 420, width: '100%', textAlign: 'center' }}>
         <Typography variant="h4" component="h1" sx={{ color: 'primary.main', mb: 1 }}>
-          StarMaker
+          StarBuddy
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
           Org resource and blueprint tracking for Star Citizen. Sign in with the

@@ -145,7 +145,7 @@ function App() {
 
   return (
     <main className="container">
-      <h1>StarMaker</h1>
+      <h1>StarBuddy</h1>
       <p className="tagline">Game.log watcher — P1 scaffold</p>
 
       <section className="panel">
@@ -163,13 +163,13 @@ function App() {
         ) : (
           <>
             <p className="hint">
-              Sign in to your community's StarMaker website, generate a pairing code on the
+              Sign in to your community's StarBuddy website, generate a pairing code on the
               dashboard, and enter it here.
             </p>
             <div className="row">
               <input
                 type="text"
-                placeholder="https://starmaker.example.org"
+                placeholder="https://starbuddy.example.org"
                 value={serverUrl}
                 onChange={(e) => setServerUrl(e.target.value)}
               />

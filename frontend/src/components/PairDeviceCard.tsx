@@ -49,7 +49,7 @@ export function PairDeviceCard() {
         <Typography variant="h6">Desktop client</Typography>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-        Pair the StarMaker desktop app to sync blueprints and refinery events from your Game.log.
+        Pair the StarBuddy desktop app to sync blueprints and refinery events from your Game.log.
         Generate a code, then enter it in the app's Server panel within 10 minutes.
       </Typography>
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
@@ -58,7 +58,7 @@ export function PairDeviceCard() {
           variant="outlined"
           startIcon={<DownloadIcon />}
           component="a"
-          href="https://github.com/ulrichdahl/StarMaker/releases/latest"
+          href="https://github.com/ulrichdahl/StarBuddy/releases/latest"
           target="_blank"
           rel="noopener"
         >
@@ -67,7 +67,7 @@ export function PairDeviceCard() {
         <Typography variant="caption" color="text.secondary">
           Windows installer · Linux AppImage/deb/rpm —{' '}
           <Link
-            href="https://github.com/ulrichdahl/StarMaker/releases/tag/dev"
+            href="https://github.com/ulrichdahl/StarBuddy/releases/tag/dev"
             target="_blank"
             rel="noopener"
             color="inherit"

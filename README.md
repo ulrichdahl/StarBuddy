@@ -1,8 +1,8 @@
-# StarMaker
+# StarBuddy
 
 A self-hostable companion platform for Star Citizen communities: track your org's **resources** (with quality), **blueprints**, and **refining orders** — then ask it what your org can craft right now, what it's closest to being able to craft, and who holds the blueprint and best materials for the item you need.
 
-**Status: specification / pre-alpha.** Read the full project specification at **[ulrichdahl.github.io/StarMaker/spec.html](https://ulrichdahl.github.io/StarMaker/spec.html)** (source: [`spec.html`](spec.html)).
+**Status: specification / pre-alpha.** Read the full project specification at **[ulrichdahl.github.io/StarBuddy/spec.html](https://ulrichdahl.github.io/StarBuddy/spec.html)** (source: [`spec.html`](spec.html)).
 
 ## What it does
 
@@ -24,8 +24,8 @@ Laravel + PostgreSQL backend (`backend/`) · React (MUI) SPA (`frontend/`) · No
 
 The desktop client (Game.log watcher) is built automatically for Windows and Linux:
 
-- **[Development build](https://github.com/ulrichdahl/StarMaker/releases/tag/dev)** — rolling, replaced on every change to `main`. Windows installer (`.exe`/`.msi`), Linux AppImage/`.deb`/`.rpm`.
-- **[Stable releases](https://github.com/ulrichdahl/StarMaker/releases/latest)** — published when a `v*` tag is pushed.
+- **[Development build](https://github.com/ulrichdahl/StarBuddy/releases/tag/dev)** — rolling, replaced on every change to `main`. Windows installer (`.exe`/`.msi`), Linux AppImage/`.deb`/`.rpm`.
+- **[Stable releases](https://github.com/ulrichdahl/StarBuddy/releases/latest)** — published when a `v*` tag is pushed.
 
 ## Running your own instance
 
@@ -36,7 +36,7 @@ covers local/evaluation use.
 Prerequisites: Docker with Compose, and a [Discord application](https://discord.com/developers/applications) for your community (OAuth2 redirect `<your-url>/api/auth/discord/callback`, plus a bot invited to your server).
 
 ```sh
-git clone https://github.com/ulrichdahl/StarMaker.git && cd StarMaker
+git clone https://github.com/ulrichdahl/StarBuddy.git && cd StarBuddy
 cp .env.example .env        # fill in Discord credentials, guild id, DB password,
                             # and APP_KEY (echo "base64:$(openssl rand -base64 32)")
 docker compose up -d --build
@@ -58,7 +58,7 @@ docker network create proxy        # once, or reuse your proxy's network
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
-Point your nginx/SSL proxy at `http://starmaker-web:80` on that network, and
+Point your nginx/SSL proxy at `http://starbuddy-web:80` on that network, and
 set `APP_URL`, `DISCORD_REDIRECT_URI`, `SESSION_DOMAIN`, and
 `SANCTUM_STATEFUL_DOMAINS` in `.env` to your public https domain.
 
@@ -70,7 +70,7 @@ Open `http://localhost:8080` (or your `APP_URL`) and sign in with Discord. Only 
 
 ## Fair play
 
-StarMaker never injects into the game, reads game memory, automates inputs, or scrapes RSI. It only reads the `Game.log` text file and (opt-in) screenshots you explicitly capture.
+StarBuddy never injects into the game, reads game memory, automates inputs, or scrapes RSI. It only reads the `Game.log` text file and (opt-in) screenshots you explicitly capture.
 
 ## License
 

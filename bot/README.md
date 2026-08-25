@@ -1,11 +1,11 @@
-# StarMaker Discord Bot
+# StarBuddy Discord Bot
 
-Discord companion for StarMaker, the self-hostable Star Citizen org resource tracker. Talks to the Laravel backend's internal bot API and exposes a small webhook (`POST /notify` on port 3000) that the Laravel queue uses to deliver embeds to Discord channels.
+Discord companion for StarBuddy, the self-hostable Star Citizen org resource tracker. Talks to the Laravel backend's internal bot API and exposes a small webhook (`POST /notify` on port 3000) that the Laravel queue uses to deliver embeds to Discord channels.
 
 ## Commands
 
 - `/ping` — latency + backend health.
-- `/whoami` — your StarMaker registration status (ephemeral).
+- `/whoami` — your StarBuddy registration status (ephemeral).
 - `/stash` — placeholder, coming in P2.
 
 ## Setup
