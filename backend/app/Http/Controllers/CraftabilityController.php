@@ -143,6 +143,7 @@ class CraftabilityController extends Controller
 
         return DB::transaction(function () use ($blueprint, $user, $data, $quantity, $stackIds) {
             $consumed = [];
+            $stackConsumption = [];
             $qualityWeighted = 0;
             $qualityWeight = 0;
             $fallbackLocation = null;
@@ -178,6 +179,18 @@ class CraftabilityController extends Controller
                         $qualityWeighted += $use * $stack->quality;
                         $qualityWeight += $use;
                     }
+                    // Everything an undo needs to put this back, even if
+                    // the stack row is deleted below.
+                    $stackConsumption[] = [
+                        'stack_id' => $stack->id,
+                        'user_id' => $stack->user_id,
+                        'org_id' => $stack->org_id,
+                        'resource_type_id' => $stack->resource_type_id,
+                        'location_id' => $stack->location_id,
+                        'quality' => $stack->quality,
+                        'visibility' => $stack->visibility,
+                        'used' => $use,
+                    ];
                     if ($use === $stack->quantity) {
                         $stack->delete();
                     } else {
@@ -209,7 +222,7 @@ class CraftabilityController extends Controller
                 'source' => 'manual',
             ]);
 
-            \App\Models\AuditLog::create([
+            $audit = \App\Models\AuditLog::create([
                 'user_id' => $user->id,
                 'org_id' => $user->orgs()->value('orgs.id'),
                 'action' => 'craft.completed',
@@ -217,9 +230,12 @@ class CraftabilityController extends Controller
                     'blueprint' => $blueprint->name,
                     'quantity' => $quantity,
                     'use_type' => $useType,
+                    'owned_id' => $owned?->id,
                     'blueprint_owner' => $owned?->user_id,
                     'quality' => $quality,
                     'consumed' => $consumed,
+                    'item_stack_id' => $item->id,
+                    'stack_consumption' => $stackConsumption,
                 ],
             ]);
 
@@ -229,7 +245,79 @@ class CraftabilityController extends Controller
                 'quality' => $quality,
                 'consumed' => $consumed,
                 'item_stack_id' => $item->id,
+                'craft_id' => $audit->id,
             ];
+        });
+    }
+
+    /**
+     * Undo a recorded craft: give every consumed stack its amount back
+     * (recreating stacks that were emptied and deleted), remove the crafted
+     * items from the ledger, and roll back the blueprint use counter.
+     */
+    public function undoCraft(Request $request, \App\Models\AuditLog $audit)
+    {
+        $user = $request->user();
+        abort_if($audit->action !== 'craft.completed', 404);
+        abort_if($audit->user_id !== $user->id, 403, 'Only the member who recorded the craft can undo it.');
+        abort_if(isset($audit->details['undone_at']), 422, 'This craft has already been undone.');
+        abort_unless(isset($audit->details['stack_consumption']), 422,
+            'This craft predates undo support and cannot be reversed automatically.');
+
+        return DB::transaction(function () use ($audit, $user) {
+            $details = $audit->details;
+
+            foreach ($details['stack_consumption'] as $c) {
+                $stack = ResourceStack::lockForUpdate()->find($c['stack_id']);
+                if ($stack) {
+                    $stack->update([
+                        'quantity' => $stack->quantity + $c['used'],
+                        'updated_by' => $user->id,
+                    ]);
+                } else {
+                    ResourceStack::create([
+                        'user_id' => $c['user_id'],
+                        'org_id' => $c['org_id'],
+                        'resource_type_id' => $c['resource_type_id'],
+                        'location_id' => $c['location_id'],
+                        'quality' => $c['quality'],
+                        'quantity' => $c['used'],
+                        'visibility' => $c['visibility'],
+                        'source' => 'manual',
+                        'updated_by' => $user->id,
+                    ]);
+                }
+            }
+
+            $quantity = $details['quantity'] ?? 1;
+            if ($item = \App\Models\ItemStack::lockForUpdate()->find($details['item_stack_id'] ?? 0)) {
+                if ($item->quantity > $quantity) {
+                    $item->update(['quantity' => $item->quantity - $quantity]);
+                } else {
+                    $item->delete();
+                }
+            }
+
+            if ($owned = BlueprintOwned::find($details['owned_id'] ?? 0)) {
+                $col = ($details['use_type'] ?? 'personal') === 'org' ? 'uses_org' : 'uses_personal';
+                $owned->update([$col => max(0, $owned->{$col} - $quantity)]);
+            }
+
+            $details['undone_at'] = now()->toIso8601String();
+            $audit->update(['details' => $details]);
+
+            \App\Models\AuditLog::create([
+                'user_id' => $user->id,
+                'org_id' => $audit->org_id,
+                'action' => 'craft.undone',
+                'details' => [
+                    'craft_id' => $audit->id,
+                    'blueprint' => $details['blueprint'],
+                    'quantity' => $quantity,
+                ],
+            ]);
+
+            return ['undone' => true, 'restored' => $details['consumed'] ?? []];
         });
     }
 

@@ -108,6 +108,7 @@ interface CraftResultResponse {
   quantity: number
   quality: number | null
   consumed: { name: string; quantity: number; unit: 'mscu' | 'pieces' }[]
+  craft_id: number
 }
 
 type Selection = Record<string, Set<number>>
@@ -200,6 +201,18 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
     [data, selection, qty],
   )
 
+  const invalidateLedgers = () => {
+    queryClient.invalidateQueries({ queryKey: ['craft-detail', blueprintId] })
+    queryClient.invalidateQueries({ queryKey: ['craftability'] })
+    queryClient.invalidateQueries({ queryKey: ['resource-stacks'] })
+    queryClient.invalidateQueries({ queryKey: ['item-stacks'] })
+  }
+
+  const undo = useMutation({
+    mutationFn: async (craftId: number) => (await api.post(`/api/crafts/${craftId}/undo`)).data,
+    onSuccess: invalidateLedgers,
+  })
+
   const craft = useMutation({
     mutationFn: async () =>
       (
@@ -211,10 +224,8 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
         })
       ).data,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['craft-detail', blueprintId] })
-      queryClient.invalidateQueries({ queryKey: ['craftability'] })
-      queryClient.invalidateQueries({ queryKey: ['resource-stacks'] })
-      queryClient.invalidateQueries({ queryKey: ['item-stacks'] })
+      undo.reset()
+      invalidateLedgers()
     },
   })
 
@@ -416,16 +427,42 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
             </Stack>
 
             {craft.isSuccess && (
-              <Alert severity="success" sx={{ mt: 2 }}>
+              <Alert
+                severity="success"
+                sx={{ mt: 2 }}
+                action={
+                  <Button
+                    color="inherit"
+                    size="small"
+                    disabled={undo.isPending}
+                    onClick={() =>
+                      undo.mutate(craft.data.craft_id, { onSuccess: () => craft.reset() })
+                    }
+                  >
+                    {undo.isPending ? 'Undoing…' : 'Undo'}
+                  </Button>
+                }
+              >
                 Crafted {craft.data.quantity > 1 ? `${craft.data.quantity}× ` : ''}
                 {craft.data.crafted}
                 {craft.data.quality !== null ? ` at quality ${craft.data.quality}` : ''} — materials
                 deducted, item added to your Items ledger.
               </Alert>
             )}
+            {undo.isSuccess && !craft.isSuccess && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                Craft undone — the materials are back in the ledger, the crafted item was removed,
+                and the blueprint use was rolled back.
+              </Alert>
+            )}
             {craft.isError && (
               <Alert severity="error" sx={{ mt: 2 }}>
                 Could not record the craft — materials may have changed. Reopen to refresh.
+              </Alert>
+            )}
+            {undo.isError && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                Could not undo the craft.
               </Alert>
             )}
           </DialogContent>
