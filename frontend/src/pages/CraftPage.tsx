@@ -173,7 +173,7 @@ export function CraftPage() {
                       )}
                       {r.owner_count > 0 && (
                         <Tooltip
-                          title={`${r.owner_count} ${r.owner_count === 1 ? 'member owns' : 'members own'} this blueprint — open the row to see who`}
+                          title={`${r.owner_count} ${r.owner_count === 1 ? 'org member' : 'org members'}${r.owned_by_me ? ' besides you' : ''} own${r.owner_count === 1 ? 's' : ''} this blueprint — open the row to see who`}
                         >
                           <Chip
                             size="small"
@@ -184,7 +184,7 @@ export function CraftPage() {
                           />
                         </Tooltip>
                       )}
-                      {!r.is_default && r.owner_count === 0 && (
+                      {!r.is_default && r.owner_count === 0 && !r.owned_by_me && (
                         <Typography variant="body2" color="text.disabled">
                           —
                         </Typography>

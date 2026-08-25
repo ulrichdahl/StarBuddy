@@ -544,8 +544,8 @@ class CraftabilityController extends Controller
                 'craft_time_seconds' => $bp->craft_time_seconds,
                 'is_default' => $bp->is_default,
                 // Who owns it stays in the detail endpoint — the list only
-                // needs a count and whether the viewer is among them.
-                'owner_count' => ($owners[$bp->id] ?? collect())->count(),
+                // needs whether the viewer has it and how many OTHERS do.
+                'owner_count' => ($owners[$bp->id] ?? collect())->reject(fn ($id) => $id === $user->id)->count(),
                 'owned_by_me' => ($owners[$bp->id] ?? collect())->contains($user->id),
                 'craftable' => $coverage >= 1.0,
                 'coverage' => round($coverage, 3),
