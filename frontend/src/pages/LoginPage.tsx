@@ -4,6 +4,7 @@ import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import LoginIcon from '@mui/icons-material/Login'
 import { FanSiteFooter } from '../components/FanSiteFooter'
+import { Wordmark } from '../components/BrandMark'
 
 /**
  * Shown when GET /api/me returns 401. Discord OAuth is a full-page
@@ -24,9 +25,9 @@ export function LoginPage() {
       <Box sx={{ maxWidth: 560, width: '100%' }}>
       <Paper sx={{ p: 5, maxWidth: 420, width: '100%', textAlign: 'center', mx: 'auto' }}>
         <Box component="img" src="/logo.svg" alt="" aria-hidden sx={{ width: 72, height: 72, mb: 1 }} />
-        <Typography variant="h4" component="h1" sx={{ color: 'primary.main', mb: 1 }}>
-          StarBuddy
-        </Typography>
+        <Box component="h1" sx={{ m: 0, mb: 1 }}>
+          <Wordmark variant="h4" />
+        </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
           Org resource and blueprint tracking for Star Citizen. Sign in with the
           Discord account linked to your org.

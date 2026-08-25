@@ -97,7 +97,7 @@ export function AppShell({ me }: AppShellProps) {
             </IconButton>
           )}
           <Box component="h1" sx={{ flexGrow: 1, m: 0, display: 'flex', alignItems: 'center' }}>
-            <BrandMark wordmark={!isDesktop} />
+            <BrandMark />
           </Box>
           <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
             {me.handle ?? me.discord_username}
