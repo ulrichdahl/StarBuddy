@@ -99,10 +99,15 @@ export interface CreateResourceStack {
 
 export interface ItemStack {
   id: number
+  user_id: number
   item_class: string
+  item_name: string | null
   quantity: number
   location: Location
   visibility: Visibility
+  source: string
+  // Links a crafted stack to its craft.completed audit row — undoable.
+  craft_id: number | null
   updated_at: string
 }
 

@@ -10,7 +10,7 @@ class ItemStack extends Model
 {
     protected $fillable = [
         'user_id', 'org_id', 'location_id', 'item_class', 'item_name',
-        'quantity', 'visibility', 'source',
+        'quantity', 'visibility', 'source', 'craft_id',
     ];
 
     public function user(): BelongsTo

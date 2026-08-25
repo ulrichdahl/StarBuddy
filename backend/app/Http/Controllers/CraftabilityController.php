@@ -219,7 +219,7 @@ class CraftabilityController extends Controller
                 'item_name' => $blueprint->name.($quality !== null ? " (Q{$quality})" : ''),
                 'quantity' => $quantity,
                 'visibility' => 'private',
-                'source' => 'manual',
+                'source' => 'craft',
             ]);
 
             $audit = \App\Models\AuditLog::create([
@@ -238,6 +238,9 @@ class CraftabilityController extends Controller
                     'stack_consumption' => $stackConsumption,
                 ],
             ]);
+            // Link back so the Items ledger can offer undo after the modal
+            // is long gone.
+            $item->update(['craft_id' => $audit->id]);
 
             return [
                 'crafted' => $blueprint->name,
@@ -292,7 +295,7 @@ class CraftabilityController extends Controller
             $quantity = $details['quantity'] ?? 1;
             if ($item = \App\Models\ItemStack::lockForUpdate()->find($details['item_stack_id'] ?? 0)) {
                 if ($item->quantity > $quantity) {
-                    $item->update(['quantity' => $item->quantity - $quantity]);
+                    $item->update(['quantity' => $item->quantity - $quantity, 'craft_id' => null]);
                 } else {
                     $item->delete();
                 }

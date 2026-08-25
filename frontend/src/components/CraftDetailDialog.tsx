@@ -471,15 +471,7 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
             <Button
               variant="contained"
               disabled={!plan.craftable || craft.isPending || craft.isSuccess}
-              onClick={() => {
-                if (
-                  window.confirm(
-                    `Record crafting ${qty > 1 ? `${qty}× ` : ''}${bp.name}? The selected materials will be deducted from the ledger.`,
-                  )
-                ) {
-                  craft.mutate()
-                }
-              }}
+              onClick={() => craft.mutate()}
             >
               {craft.isPending
                 ? 'Recording…'
