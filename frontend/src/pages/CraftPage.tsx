@@ -15,7 +15,11 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
+import GroupsIcon from '@mui/icons-material/Groups'
+import HowToRegIcon from '@mui/icons-material/HowToReg'
+import PublicIcon from '@mui/icons-material/Public'
 import { api } from '../lib/api'
 import { PageHeader } from '../components/PageHeader'
 import { CraftDetailDialog } from '../components/CraftDetailDialog'
@@ -27,7 +31,8 @@ interface CraftResult {
   type: string | null
   sub_type: string | null
   grade: string | null
-  owners: string[]
+  owner_count: number
+  owned_by_me: boolean
   is_default: boolean
   craftable: boolean
   coverage: number
@@ -122,7 +127,7 @@ export function CraftPage() {
               <TableRow>
                 <TableCell>Blueprint</TableCell>
                 <TableCell>Type / grade</TableCell>
-                <TableCell>Blueprint holders</TableCell>
+                <TableCell align="center">Holders</TableCell>
                 <TableCell sx={{ minWidth: 160 }}>Materials</TableCell>
                 <TableCell>Missing</TableCell>
                 <TableCell align="right">Est. quality</TableCell>
@@ -143,10 +148,37 @@ export function CraftPage() {
                       {r.grade ? ` · Grade ${gradeLabel(r.grade)}` : ''}
                     </Typography>
                   </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" color="text.secondary">
-                      {r.is_default ? 'Everyone (default)' : r.owners.join(', ') || '—'}
-                    </Typography>
+                  <TableCell align="center">
+                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+                      {r.is_default && (
+                        <Tooltip title="Default blueprint — everyone has it">
+                          <PublicIcon fontSize="small" color="disabled" />
+                        </Tooltip>
+                      )}
+                      {r.owned_by_me && (
+                        <Tooltip title="You have this blueprint">
+                          <HowToRegIcon fontSize="small" color="primary" />
+                        </Tooltip>
+                      )}
+                      {r.owner_count > 0 && (
+                        <Tooltip
+                          title={`${r.owner_count} ${r.owner_count === 1 ? 'member owns' : 'members own'} this blueprint — open the row to see who`}
+                        >
+                          <Chip
+                            size="small"
+                            variant="outlined"
+                            icon={<GroupsIcon />}
+                            label={r.owner_count}
+                            sx={{ fontVariantNumeric: 'tabular-nums' }}
+                          />
+                        </Tooltip>
+                      )}
+                      {!r.is_default && r.owner_count === 0 && (
+                        <Typography variant="body2" color="text.disabled">
+                          —
+                        </Typography>
+                      )}
+                    </Box>
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

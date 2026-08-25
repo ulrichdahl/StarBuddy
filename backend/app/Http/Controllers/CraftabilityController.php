@@ -471,10 +471,9 @@ class CraftabilityController extends Controller
             ->unique();
         $owners = BlueprintOwned::whereIn('user_id', $orgUserIds)
             ->whereNotNull('blueprint_id')
-            ->with('user:id,name,handle')
-            ->get()
+            ->get(['blueprint_id', 'user_id'])
             ->groupBy('blueprint_id')
-            ->map(fn ($rows) => $rows->map(fn ($r) => $r->user->handle ?? $r->user->name)->unique()->values());
+            ->map(fn ($rows) => $rows->pluck('user_id')->unique());
 
         // ── Evaluate recipes ──
         $query = Blueprint::whereNotNull('ingredients')
@@ -486,7 +485,7 @@ class CraftabilityController extends Controller
             $query->where(fn ($q) => $q->whereIn('id', $owners->keys())->orWhere('is_default', true));
         }
 
-        $results = $query->get()->map(function (Blueprint $bp) use ($availability, $owners) {
+        $results = $query->get()->map(function (Blueprint $bp) use ($availability, $owners, $user) {
             $coverage = 1.0;
             $missing = [];
             $qualityWeighted = 0;
@@ -541,7 +540,10 @@ class CraftabilityController extends Controller
                 'tags' => $bp->tags,
                 'craft_time_seconds' => $bp->craft_time_seconds,
                 'is_default' => $bp->is_default,
-                'owners' => $owners[$bp->id] ?? [],
+                // Who owns it stays in the detail endpoint — the list only
+                // needs a count and whether the viewer is among them.
+                'owner_count' => ($owners[$bp->id] ?? collect())->count(),
+                'owned_by_me' => ($owners[$bp->id] ?? collect())->contains($user->id),
                 'craftable' => $coverage >= 1.0,
                 'coverage' => round($coverage, 3),
                 'missing' => $missing,
