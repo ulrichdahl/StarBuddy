@@ -36,6 +36,13 @@ x-app: &app
 services:
   app:
     <<: *app
+    networks:
+      default:
+        # Unambiguous name for Caddy: the web container is also attached to
+        # the operator's proxy network, where a generic "app" may resolve to
+        # a foreign container (NPM names its own service "app").
+        aliases:
+          - starmaker-app
 
   queue:
     <<: *app
@@ -48,6 +55,10 @@ services:
   reverb:
     <<: *app
     command: php artisan reverb:start --host=0.0.0.0 --port=8081
+    networks:
+      default:
+        aliases:
+          - starmaker-reverb
 
   web:
     image: caddy:2-alpine

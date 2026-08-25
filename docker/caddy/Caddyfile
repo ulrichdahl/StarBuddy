@@ -7,15 +7,18 @@
 	# Backend paths → PHP-FPM in the app container. The root directive must
 	# be at handle level: php_fastcgi's file matcher resolves against the
 	# site root (the dir is mounted read-only into this container).
+	# Upstreams use starmaker-* aliases: this container also sits on the
+	# operator's proxy network, where generic names like "app" can resolve
+	# to foreign containers.
 	@backend path /api/* /sanctum/* /up /broadcasting/*
 	handle @backend {
 		root * /var/www/html/public
-		php_fastcgi app:9000
+		php_fastcgi starmaker-app:9000
 	}
 
 	# Reverb websockets.
 	handle /app/* {
-		reverse_proxy reverb:8081
+		reverse_proxy starmaker-reverb:8081
 	}
 
 	# Everything else is the SPA.
