@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, LazyLock, Mutex};
 use tauri::{Emitter, Manager};
 
+mod kde_rule;
 mod overlay;
 
 // Notification lines are duplicated in the log (queued + displayed); events
@@ -770,6 +771,8 @@ pub fn run() {
             overlay::overlay_close,
             overlay::overlay_hotkey,
             overlay::overlay_set_hotkey,
+            kde_rule::overlay_kde_rule,
+            kde_rule::overlay_set_kde_rule,
             start_watcher,
             stop_watcher,
             watcher_status,

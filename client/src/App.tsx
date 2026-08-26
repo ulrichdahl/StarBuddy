@@ -57,6 +57,12 @@ interface HotkeyInfo {
   toggle_command: string;
 }
 
+/** KWin window rule that keeps overlays above the fullscreen game (Linux/KDE). */
+interface KdeRuleInfo {
+  applicable: boolean;
+  installed: boolean;
+}
+
 // ── RSI service status (server mirrors status.robertsspaceindustries.com) ──
 
 interface StatusIncident {
@@ -176,6 +182,8 @@ function App() {
   const [hotkeyDraft, setHotkeyDraft] = useState("");
   const [hotkeyError, setHotkeyError] = useState<string | null>(null);
   const [statusOpen, setStatusOpen] = useState<boolean | null>(null);
+  const [kdeRule, setKdeRule] = useState<KdeRuleInfo | null>(null);
+  const [kdeRuleError, setKdeRuleError] = useState<string | null>(null);
 
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
@@ -188,6 +196,7 @@ function App() {
     invoke<boolean>("watcher_status").then(setWatching);
     // Errors (offline, rate-limited, odd tag) mean "no update info", never an update.
     invoke<UpdateCheck>("check_for_update").then(setUpdate).catch(() => {});
+    invoke<KdeRuleInfo>("overlay_kde_rule").then(setKdeRule).catch(() => {});
     invoke<HotkeyInfo>("overlay_hotkey")
       .then((h) => {
         setHotkey(h);
@@ -208,6 +217,9 @@ function App() {
       listen<[string, boolean]>("overlay-visibility", (e) => {
         if (e.payload[0] === "status") setStatusOpen(e.payload[1]);
       }),
+      listen<boolean>("overlay-kde-rule", (e) =>
+        setKdeRule((prev) => ({ applicable: prev?.applicable ?? true, installed: e.payload })),
+      ),
     ];
     return () => {
       subs.forEach((p) => p.then((un) => un()));
@@ -286,6 +298,15 @@ function App() {
       setStatusOpen(await invoke<boolean>("overlay_toggle", { name: "status" }));
     } catch {
       /* window creation failed — nothing sensible to show */
+    }
+  };
+
+  const setKdeRuleInstalled = async (install: boolean) => {
+    setKdeRuleError(null);
+    try {
+      setKdeRule(await invoke<KdeRuleInfo>("overlay_set_kde_rule", { install }));
+    } catch (e) {
+      setKdeRuleError(String(e));
     }
   };
 
@@ -564,6 +585,17 @@ function App() {
           </p>
         )}
         {!connection?.paired && <p className="hint">{t("overlay.pairHint")}</p>}
+        {kdeRule?.applicable && (
+          <div className="row">
+            <p className="hint" style={{ flex: 1, margin: 0 }}>
+              {kdeRule.installed ? t("overlay.kdeRuleInstalled") : t("overlay.kdeRuleMissing")}
+            </p>
+            <button onClick={() => setKdeRuleInstalled(!kdeRule.installed)}>
+              {kdeRule.installed ? t("overlay.kdeRuleRemove") : t("overlay.kdeRuleInstall")}
+            </button>
+          </div>
+        )}
+        {kdeRuleError && <p className="error">{kdeRuleError}</p>}
       </section>
 
       <section className="panel">

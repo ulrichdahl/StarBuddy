@@ -177,6 +177,9 @@ fn create(app: &AppHandle, name: &str) -> Result<(), String> {
         .build()
         .map_err(|e| e.to_string())?;
 
+    // KDE would otherwise stack the focused fullscreen game above us.
+    crate::kde_rule::ensure(app);
+
     let app2 = app.clone();
     let name2 = name.to_string();
     win.on_window_event(move |event| {

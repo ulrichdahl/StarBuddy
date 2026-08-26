@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    starmaker_client_lib::run()
+    starbuddy_client_lib::run()
 }

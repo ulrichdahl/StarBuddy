@@ -1,5 +1,5 @@
 [package]
-name = "starmaker-client"
+name = "starbuddy-client"
 version = "0.1.6"
 description = "StarBuddy desktop client — Star Citizen Game.log watcher and org ledger companion"
 authors = ["Ulrich Dahl <ulrich.dahl@gmail.com>"]
@@ -7,7 +7,7 @@ license = "AGPL-3.0-or-later"
 edition = "2021"
 
 [lib]
-name = "starmaker_client_lib"
+name = "starbuddy_client_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
