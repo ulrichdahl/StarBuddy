@@ -12,8 +12,21 @@
 # Environment overrides:
 #   STARBUDDY_COMPOSE   compose command (default: production file pair)
 #   STARBUDDY_BRANCH    branch to track (default: main)
+#
+# Flags:
+#   --force             rebuild and roll the stack even when already on the
+#                       latest commit (e.g. after a manual `git pull`, which
+#                       leaves the images built from the old checkout)
 
 set -euo pipefail
+
+FORCE=0
+for arg in "$@"; do
+    case "$arg" in
+        --force) FORCE=1 ;;
+        *) echo "unknown argument: $arg" >&2; exit 2 ;;
+    esac
+done
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
@@ -40,11 +53,15 @@ git fetch --quiet --tags origin "$BRANCH"
 LOCAL=$(git rev-parse HEAD)
 REMOTE=$(git rev-parse "origin/$BRANCH")
 
-if [ "$LOCAL" = "$REMOTE" ]; then
+if [ "$LOCAL" = "$REMOTE" ] && [ "$FORCE" = 0 ]; then
     exit 0 # up to date — stay silent for cron
 fi
 
-log "updating ${LOCAL:0:9} -> ${REMOTE:0:9}"
+if [ "$LOCAL" = "$REMOTE" ]; then
+    log "forced rebuild at ${LOCAL:0:9}"
+else
+    log "updating ${LOCAL:0:9} -> ${REMOTE:0:9}"
+fi
 
 # Pre-update database dump, kept next to the nightly backups.
 DATA_DIR=$(grep -E '^STAR(BUDDY|MAKER)_DATA_DIR=' .env | head -1 | cut -d= -f2- || true)
