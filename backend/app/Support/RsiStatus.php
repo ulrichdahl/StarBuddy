@@ -160,7 +160,9 @@ class RsiStatus
             'informational' => (bool) ($issue['informational'] ?? false),
             'affected' => array_values(array_filter((array) ($issue['affected'] ?? []), 'is_string')),
             'body_html' => $issue['body'] ?? null,
-            'permalink' => isset($issue['permalink']) ? preg_replace('~/index\.html$~', '/', $issue['permalink']) : null,
+            // Kept verbatim: the site is static S3 hosting, so the directory
+            // form without index.html does not resolve.
+            'permalink' => $issue['permalink'] ?? null,
             'started_at' => self::parseTime($issue['createdAt'] ?? null),
             'rsi_updated_at' => self::parseTime($issue['lastMod'] ?? null),
         ];

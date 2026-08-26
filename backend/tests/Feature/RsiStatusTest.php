@@ -94,7 +94,7 @@ class RsiStatusTest extends TestCase
         $this->assertSame(['Persistent Universe', 'Arena Commander'], $incident->affected);
         $this->assertSame('2026-08-26 14:15:00', $incident->started_at->toDateTimeString());
         $this->assertSame('2026-08-26 14:15:09', $incident->rsi_updated_at->toDateTimeString());
-        $this->assertSame(self::BASE.'/issues/2026-08-26_live-deployment/', $incident->permalink);
+        $this->assertSame(self::BASE.'/issues/2026-08-26_live-deployment/index.html', $incident->permalink);
 
         $this->assertCount(1, Queue::pushed(NotifyDiscord::class));
         $job = Queue::pushed(NotifyDiscord::class)->first();
