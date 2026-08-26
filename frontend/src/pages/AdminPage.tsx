@@ -5,6 +5,8 @@ import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Checkbox from '@mui/material/Checkbox'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
@@ -19,10 +21,10 @@ import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import { api, unwrapList } from '../lib/api'
-import type { BulkClearRequest, Location, ResourceType } from '../lib/types'
+import type { BulkClearRequest, BulkClearResult, Location, ResourceType } from '../lib/types'
 import { PageHeader } from '../components/PageHeader'
 
-type ScopeMode = 'category' | 'type'
+type ScopeMode = 'category' | 'type' | 'everything'
 
 /** The word the admin must type to confirm a bulk clear. Not localized on purpose. */
 const CONFIRM_WORD = 'CLEAR'
@@ -37,6 +39,7 @@ export function AdminPage() {
   const queryClient = useQueryClient()
 
   const [mode, setMode] = useState<ScopeMode>('category')
+  const [includePrivate, setIncludePrivate] = useState(false)
   const [category, setCategory] = useState('')
   const [resourceType, setResourceType] = useState<ResourceType | null>(null)
   const [memberId, setMemberId] = useState('')
@@ -58,28 +61,38 @@ export function AdminPage() {
   const categories = [...new Set(resourceTypes.map((rt) => rt.category))].sort()
 
   const clearInventory = useMutation({
-    mutationFn: (body: BulkClearRequest) => api.delete('/api/admin/inventory', { data: body }),
+    mutationFn: (body: BulkClearRequest) =>
+      api.delete<BulkClearResult>('/api/admin/inventory', { data: body }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resource-stacks'] })
+      queryClient.invalidateQueries({ queryKey: ['item-stacks'] })
+      queryClient.invalidateQueries({ queryKey: ['craftability'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       setConfirmOpen(false)
       setConfirmText('')
     },
   })
 
-  const hasTarget = mode === 'category' ? category !== '' : resourceType !== null
+  const hasTarget = mode === 'everything' || (mode === 'category' ? category !== '' : resourceType !== null)
 
   const buildRequest = (): BulkClearRequest => ({
-    ...(mode === 'category' ? { category } : { resource_type_id: resourceType?.id }),
+    ...(mode === 'everything'
+      ? { everything: true }
+      : mode === 'category'
+        ? { category, include_private: includePrivate }
+        : { resource_type_id: resourceType?.id, include_private: includePrivate }),
     ...(memberId !== '' ? { member_id: Number(memberId) } : {}),
     ...(locationId !== '' ? { location_id: locationId } : {}),
   })
 
   // Category, resource and location names are game data — interpolated verbatim.
   const scopeSummary = [
-    mode === 'category'
-      ? t('admin.scopeCategory', { name: category })
-      : t('admin.scopeResource', { name: resourceType?.name }),
+    mode === 'everything'
+      ? t('admin.scopeEverything')
+      : mode === 'category'
+        ? t('admin.scopeCategory', { name: category })
+        : t('admin.scopeResource', { name: resourceType?.name }),
+    mode === 'everything' || includePrivate ? t('admin.scopeWithPrivate') : t('admin.scopeOrgOnly'),
     memberId !== '' ? t('admin.scopeMember', { id: memberId }) : t('admin.scopeAllMembers'),
     locationId !== ''
       ? t('admin.scopeLocation', { name: locations.find((l) => l.id === locationId)?.name })
@@ -110,9 +123,14 @@ export function AdminPage() {
           >
             <ToggleButton value="category">{t('admin.byCategory')}</ToggleButton>
             <ToggleButton value="type">{t('admin.byResourceType')}</ToggleButton>
+            <ToggleButton value="everything">{t('admin.everything')}</ToggleButton>
           </ToggleButtonGroup>
 
-          {mode === 'category' ? (
+          {mode === 'everything' ? (
+            <Alert severity="warning" variant="outlined">
+              {t('admin.everythingHelp')}
+            </Alert>
+          ) : mode === 'category' ? (
             <TextField
               select
               label={t('admin.resourceCategory')}
@@ -134,6 +152,13 @@ export function AdminPage() {
               isOptionEqualToValue={(a, b) => a.id === b.id}
               groupBy={(option) => option.category}
               renderInput={(params) => <TextField {...params} label={t('admin.resourceType')} />}
+            />
+          )}
+
+          {mode !== 'everything' && (
+            <FormControlLabel
+              control={<Checkbox checked={includePrivate} onChange={(e) => setIncludePrivate(e.target.checked)} />}
+              label={t('admin.includePrivate')}
             />
           )}
 
@@ -159,8 +184,20 @@ export function AdminPage() {
             ))}
           </TextField>
 
-          {clearInventory.isSuccess && <Alert severity="success">{t('admin.cleared')}</Alert>}
-          {clearInventory.isError && <Alert severity="error">{t('admin.clearFailed')}</Alert>}
+          {clearInventory.isSuccess && (
+            <Alert severity="success">
+              {t('admin.clearedCounts', {
+                materials: clearInventory.data.data.cleared.resource_stacks,
+                items: clearInventory.data.data.cleared.item_stacks,
+              })}
+            </Alert>
+          )}
+          {clearInventory.isError && (
+            <Alert severity="error">
+              {(clearInventory.error as { response?: { data?: { message?: string } } }).response?.data?.message ??
+                t('admin.clearFailed')}
+            </Alert>
+          )}
 
           <Button
             variant="contained"

@@ -166,10 +166,18 @@ export interface ImportPreview {
 
 /** Body for DELETE /api/admin/inventory. */
 export interface BulkClearRequest {
+  // Game wipe: every material and item stack of every org member.
+  everything?: boolean
   resource_type_id?: number
   category?: string
   member_id?: number
   location_id?: number
+  // Also clear members' private stashes (implied by `everything`).
+  include_private?: boolean
+}
+
+export interface BulkClearResult {
+  cleared: { resource_stacks: number; item_stacks: number }
 }
 
 /** One row of GET /api/blueprints/matrix: a blueprint and which members own it. */

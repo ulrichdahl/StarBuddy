@@ -58,7 +58,7 @@
     "title": "Admin",
     "subtitle": "Org administration tools",
     "bulkClearTitle": "Bulk-clear inventory",
-    "bulkClearDescription": "Permanently removes matching resource stacks from the org inventory. This cannot be undone.",
+    "bulkClearDescription": "Permanently removes matching material stacks (and, for a game wipe, items) from the org. This cannot be undone.",
     "clearBy": "Clear by",
     "byCategory": "By category",
     "byResourceType": "By resource type",
@@ -69,7 +69,7 @@
     "locationOptional": "Location (optional)",
     "allLocations": "All locations",
     "cleared": "Inventory cleared.",
-    "clearFailed": "Clear failed. Check your permissions.",
+    "clearFailed": "Clear failed.",
     "clearInventoryEllipsis": "Clear inventory…",
     "clearInventory": "Clear inventory",
     "clearing": "Clearing…",
@@ -81,7 +81,14 @@
     "scopeMember": "member #{{id}}",
     "scopeAllMembers": "all members",
     "scopeLocation": "location \"{{name}}\"",
-    "scopeAllLocations": "all locations"
+    "scopeAllLocations": "all locations",
+    "everything": "Everything (game wipe)",
+    "everythingHelp": "After a server wipe: removes every material and item stack of every org member, including private stashes. Blueprints, locations and refinery orders are kept.",
+    "includePrivate": "Also clear members' private stashes",
+    "clearedCounts": "Cleared {{materials}} material stacks and {{items}} item stacks.",
+    "scopeEverything": "everything — all materials and items",
+    "scopeWithPrivate": "including private stashes",
+    "scopeOrgOnly": "org-visible stacks only"
   },
   "craft": {
     "title": "Craft",

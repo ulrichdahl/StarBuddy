@@ -58,7 +58,7 @@
     "title": "Admin",
     "subtitle": "Administrationsværktøjer til din org",
     "bulkClearTitle": "Ryd lagerbeholdning",
-    "bulkClearDescription": "Fjerner permanent alle matchende ressourcestakke fra org'ens lager. Dette kan ikke fortrydes.",
+    "bulkClearDescription": "Fjerner permanent de matchende materialestakke (og ved en game wipe også genstande) fra org’en. Kan ikke fortrydes.",
     "clearBy": "Ryd efter",
     "byCategory": "Efter kategori",
     "byResourceType": "Efter ressourcetype",
@@ -69,7 +69,7 @@
     "locationOptional": "Lokation (valgfrit)",
     "allLocations": "Alle lokationer",
     "cleared": "Lageret er ryddet.",
-    "clearFailed": "Rydning mislykkedes. Tjek dine rettigheder.",
+    "clearFailed": "Rydning mislykkedes.",
     "clearInventoryEllipsis": "Ryd lager…",
     "clearInventory": "Ryd lager",
     "clearing": "Rydder…",
@@ -81,7 +81,14 @@
     "scopeMember": "medlem #{{id}}",
     "scopeAllMembers": "alle medlemmer",
     "scopeLocation": "lokation \"{{name}}\"",
-    "scopeAllLocations": "alle lokationer"
+    "scopeAllLocations": "alle lokationer",
+    "everything": "Alt (game wipe)",
+    "everythingHelp": "Efter en server-wipe: fjerner alle materiale- og genstandsstakke for alle org-medlemmer, inklusive private lagre. Blueprints, lokationer og raffineringsordrer bevares.",
+    "includePrivate": "Ryd også medlemmernes private lagre",
+    "clearedCounts": "Ryddede {{materials}} materialestakke og {{items}} genstandsstakke.",
+    "scopeEverything": "alt — alle materialer og genstande",
+    "scopeWithPrivate": "inklusive private lagre",
+    "scopeOrgOnly": "kun org-synlige stakke"
   },
   "craft": {
     "title": "Fremstil",
