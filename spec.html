@@ -291,7 +291,7 @@
 <div class="wrap">
 
 <header class="masthead">
-  <p class="eyebrow">Project Specification · Draft 0.5 · P2 complete</p>
+  <p class="eyebrow">Project Specification · Draft 0.6 · P2 complete · Maintenance alarm shipped</p>
   <h1>StarBuddy <span class="thin">/ Org Forge Ledger</span></h1>
   <p class="subtitle">A cross-platform companion tool that gives a Star Citizen org one shared answer to three questions: what resources do we hold, who can craft what, and what should we craft next.</p>
   <div class="meta">
@@ -594,6 +594,19 @@
       <ul>
         <li>Recipe and item-classification sync from the Wiki API; craft-now and nearest-miss lists with filters; craft modal with product stats, stack selection, batch crafts, blueprint uses and undo; org administration via <code>/starbuddy org</code>; localized bot replies.</li>
         <li><code>/starbuddy craftable</code> and <code>/starbuddy need</code> on a shared craftability service; refinery-completion pings to a configurable channel (live events only); "Find an item" search in the top bar; member × blueprint matrix view.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="pnum">P2+<small>Alarm</small></div>
+    <div>
+      <h4>RSI maintenance alarm <span class="pill ok">Done</span></h4>
+      <p>Pulled forward because it is testable today and the payoff is immediate: RSI posts a maintenance notice on <a href="https://status.robertsspaceindustries.com">status.robertsspaceindustries.com</a> roughly 30 minutes before servers go down, and that window is all players get to stow ships and gear.</p>
+      <ul>
+        <li>Backend polls the status page's cstate JSON every minute (<code>starbuddy:poll-rsi-status</code>), mirrors incidents in <code>rsi_incidents</code>, and classifies each change as new / updated / resolved. The announced shutdown time ("Servers will go offline at 1445 UTC") is parsed out of the notice.</li>
+        <li>Discord: a new notice posts to <code>STARMAKER_STATUS_CHANNEL_ID</code> with a configurable ping (<code>@here</code>, a role, or none) and a Discord-native relative time for the shutdown; updates and the all-clear post without pinging. <code>/starbuddy status</code> answers on demand.</li>
+        <li>Website: a severity-coloured banner under the top bar on every page with a live countdown, affected systems, the full notice on demand, opt-in browser notifications, and a ⚠ tab-title prefix; collapses to a one-line strip and re-expands whenever RSI edits the notice.</li>
+        <li>Desktop client: same banner plus a native OS notification on first sight of a new notice — the surface that reaches a player who is in-game. A hotkey overlay version is the P4 follow-up (see the overlay design directions).</li>
       </ul>
     </div>
   </div>

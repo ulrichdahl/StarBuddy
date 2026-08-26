@@ -78,5 +78,24 @@
   },
   "common": {
     "separator": " · "
+  },
+  "status": {
+    "severity": {
+      "maintenance": "Vedligeholdelse",
+      "disrupted": "Forringet service",
+      "down": "Nedbrud",
+      "notice": "Meddelelse"
+    },
+    "shutdownIn": "Serverne lukker om {{time}}",
+    "shutdownAt": "Serverne lukker kl. {{time}} UTC",
+    "shutdownPassed": "Serverne lukkede kl. {{time}} UTC",
+    "stow": "Pak dine skibe og dit udstyr væk nu.",
+    "openStatus": "RSI’s statusside",
+    "showDetails": "Detaljer",
+    "hideDetails": "Skjul detaljer",
+    "collapse": "Fold advarslen sammen",
+    "expand": "Vis advarslen",
+    "notificationTitle": "Star Citizen: {{severity}}",
+    "updated": "Opdateret kl. {{time}} UTC"
   }
 }

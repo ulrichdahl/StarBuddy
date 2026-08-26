@@ -78,5 +78,24 @@
   },
   "common": {
     "separator": " · "
+  },
+  "status": {
+    "severity": {
+      "maintenance": "Maintenance",
+      "disrupted": "Degraded service",
+      "down": "Outage",
+      "notice": "Notice"
+    },
+    "shutdownIn": "Servers go offline in {{time}}",
+    "shutdownAt": "Servers offline at {{time}} UTC",
+    "shutdownPassed": "Servers went offline at {{time}} UTC",
+    "stow": "Stow your ships and gear now.",
+    "openStatus": "RSI status page",
+    "showDetails": "Details",
+    "hideDetails": "Hide details",
+    "collapse": "Collapse alert",
+    "expand": "Show alert",
+    "notificationTitle": "Star Citizen: {{severity}}",
+    "updated": "Updated {{time}} UTC"
   }
 }

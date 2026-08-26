@@ -10,6 +10,7 @@ import { need } from "./need.js";
 import { org } from "./org.js";
 import { ping } from "./ping.js";
 import { stash } from "./stash.js";
+import { status } from "./status.js";
 import { whoami } from "./whoami.js";
 
 export type { Subcommand, SubcommandGroup } from "./command.js";
@@ -17,7 +18,7 @@ export type { Subcommand, SubcommandGroup } from "./command.js";
 /** The one top-level command everything lives under. */
 export const ROOT = "starbuddy";
 
-const subcommands: Subcommand[] = [ping, whoami, craftable, need, stash];
+const subcommands: Subcommand[] = [ping, whoami, status, craftable, need, stash];
 const groups: SubcommandGroup[] = [org];
 
 export function buildRootCommand(): RESTPostAPIChatInputApplicationCommandsJSONBody {

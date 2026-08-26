@@ -425,6 +425,28 @@ async fn sync_events(app: tauri::AppHandle, events: Vec<LogEvent>) -> Result<Syn
     post_events(&settings, &events).await
 }
 
+/// RSI service status as mirrored by the paired server (GET /api/status).
+/// Passed through untyped: the UI owns the shape, and the server may add
+/// fields without a client release.
+#[tauri::command]
+async fn fetch_status(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let settings = load_settings(&app).ok_or("Not paired with a server yet.")?;
+    let resp = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?
+        .get(format!("{}/api/status", settings.server_url))
+        .bearer_auth(&settings.token)
+        .header("Accept", "application/json")
+        .send()
+        .await
+        .map_err(|e| format!("Could not reach server: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(error_body(resp).await);
+    }
+    resp.json().await.map_err(|e| e.to_string())
+}
+
 // ── Live log watcher ────────────────────────────────────────────────────────
 // Polls Game.log every 2 s from the end of the file, parses new lines,
 // streams events to the UI ("watcher-event") and auto-syncs them to the
@@ -684,6 +706,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(WatcherState::default())
         .invoke_handler(tauri::generate_handler![
             detect_game_log,
@@ -692,6 +715,7 @@ pub fn run() {
             pair_device,
             unpair,
             sync_events,
+            fetch_status,
             start_watcher,
             stop_watcher,
             watcher_status,

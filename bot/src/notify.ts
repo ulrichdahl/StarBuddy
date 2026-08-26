@@ -5,6 +5,8 @@ import { config } from "./config.js";
 interface NotifyPayload {
   channel_id: string;
   embed: APIEmbed;
+  /** Plain text above the embed — the only place a mention actually pings. */
+  content?: string | null;
 }
 
 function isNotifyPayload(value: unknown): value is NotifyPayload {
@@ -13,13 +15,14 @@ function isNotifyPayload(value: unknown): value is NotifyPayload {
   return (
     typeof record["channel_id"] === "string" &&
     typeof record["embed"] === "object" &&
-    record["embed"] !== null
+    record["embed"] !== null &&
+    (record["content"] === undefined || record["content"] === null || typeof record["content"] === "string")
   );
 }
 
 /**
  * Tiny webhook server the Laravel queue posts notifications to:
- * POST /notify { channel_id, embed } with the shared bearer token.
+ * POST /notify { channel_id, embed, content? } with the shared bearer token.
  */
 export function startNotifyServer(client: Client): Server {
   const server = createServer((req, res) => {
@@ -59,7 +62,13 @@ export function startNotifyServer(client: Client): Server {
             respond(404, { error: "Channel not found or not sendable" });
             return;
           }
-          await channel.send({ embeds: [payload.embed] });
+          await channel.send({
+            content: payload.content ?? undefined,
+            embeds: [payload.embed],
+            // Status alerts lead with "@here" or a role mention; let those
+            // through (the bot only ever posts to operator-chosen channels).
+            allowedMentions: { parse: ["everyone", "roles", "users"] },
+          });
           respond(200, { ok: true });
         } catch (error) {
           console.error("Failed to deliver notification:", error);

@@ -10,6 +10,7 @@ A self-hostable companion platform for Star Citizen communities: track your org'
 - **Org ledger** — per-member, per-location stashes of resources with exact per-crate quality numbers, quantities in 0.001 SCU crate increments (or pieces for gems). Fast keyboard-first manual entry; screenshot OCR planned.
 - **Craftability engine** — joins the ledger with per-patch recipe data (Star Citizen Wiki API) to list everything the org can craft now and rank the nearest misses; filterable by blueprint tags.
 - **Discord-native** — login via Discord OAuth gated to your community's server, org/role mapping from guild roles, bot slash commands and channel notifications.
+- **Maintenance alarm** — polls the [RSI status page](https://status.robertsspaceindustries.com) every minute and, the moment a maintenance or outage notice appears, pings a Discord channel and raises a countdown banner on the website and in the desktop client (with a native notification) — so players use the ~30 minutes before servers drop to stow ships and gear. `/starbuddy status` shows the current picture on demand.
 - **Overlay** — hotkey-toggled in-game overlay on Windows and Linux (layer-shell on KDE/Hyprland/Sway, X11 backend, web-on-second-screen fallback).
 
 ## Languages

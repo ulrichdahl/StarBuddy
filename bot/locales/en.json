@@ -17,7 +17,8 @@
     "need": "Who has the blueprint and materials — by item name or category (shield, powerplant, undersuit…)",
     "optionSearch": "Only recipes whose name contains this",
     "optionItem": "Item or blueprint name, or a category like shield / powerplant / undersuit",
-    "optionCraftableSearch": "A material you have (lists recipes that use it) or part of a recipe name"
+    "optionCraftableSearch": "A material you have (lists recipes that use it) or part of a recipe name",
+    "status": "Current Star Citizen service status (maintenance, outages)"
   },
   "common": {
     "error": "Something went wrong while running that command.",
@@ -84,5 +85,20 @@
     "categoryLine": "• **{{name}}** · {{type}} — {{coverage}}% of materials · {{holders}}",
     "categoryMore_one": "…and {{count}} more — search a name for details.",
     "categoryMore_other": "…and {{count}} more — search a name for details."
+  },
+  "status": {
+    "allClearTitle": "All systems operational",
+    "allClear": "No maintenance or incidents reported on the RSI status page.",
+    "checked": "Last checked",
+    "affected": "Affected: {{systems}}",
+    "shutdown": "**Servers offline at {{time}} ({{relative}})** — stow your ships and gear before then.",
+    "recentTitle": "Recently resolved",
+    "unavailable": "Could not read the service status right now ({{error}}).",
+    "severity": {
+      "down": "Outage",
+      "disrupted": "Degraded service",
+      "maintenance": "Maintenance",
+      "notice": "Notice"
+    }
   }
 }

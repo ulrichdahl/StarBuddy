@@ -17,7 +17,8 @@
     "need": "Hvem har blueprintet og materialerne — efter navn eller kategori (shield, powerplant, undersuit…)",
     "optionSearch": "Kun recepter hvis navn indeholder dette",
     "optionItem": "Genstand eller blueprint-navn, eller en kategori som shield / powerplant / undersuit",
-    "optionCraftableSearch": "Et materiale du har (viser recepter der bruger det) eller en del af et receptnavn"
+    "optionCraftableSearch": "Et materiale du har (viser recepter der bruger det) eller en del af et receptnavn",
+    "status": "Aktuel Star Citizen-servicestatus (vedligeholdelse, nedbrud)"
   },
   "common": {
     "error": "Noget gik galt under kommandoen.",
@@ -84,5 +85,20 @@
     "categoryLine": "• **{{name}}** · {{type}} — {{coverage}}% af materialerne · {{holders}}",
     "categoryMore_one": "…og {{count}} mere — søg på et navn for detaljer.",
     "categoryMore_other": "…og {{count}} flere — søg på et navn for detaljer."
+  },
+  "status": {
+    "allClearTitle": "Alle systemer kører",
+    "allClear": "Ingen vedligeholdelse eller hændelser meldt på RSI’s statusside.",
+    "checked": "Sidst tjekket",
+    "affected": "Berørt: {{systems}}",
+    "shutdown": "**Serverne lukker kl. {{time}} ({{relative}})** — pak skibe og udstyr væk inden da.",
+    "recentTitle": "Nyligt løst",
+    "unavailable": "Kunne ikke læse servicestatus lige nu ({{error}}).",
+    "severity": {
+      "down": "Nedbrud",
+      "disrupted": "Forringet service",
+      "maintenance": "Vedligeholdelse",
+      "notice": "Meddelelse"
+    }
   }
 }

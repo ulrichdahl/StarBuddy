@@ -79,6 +79,19 @@ ping to that channel whenever a member's refinery work order completes (live
 events only — a first-run history import never floods it). The bot needs
 *View Channel* and *Send Messages* there.
 
+**Recommended:** `STARMAKER_STATUS_CHANNEL_ID=<channel id>` turns on RSI
+service-status alerts. The backend checks
+<https://status.robertsspaceindustries.com> every minute; the moment a
+maintenance or outage notice appears, the bot posts it to that channel with
+the announced shutdown time, and members see the same alert (with a
+countdown) on the website and in the desktop client. RSI typically gives
+about 30 minutes between the notice and servers going down — that is the
+window players have to stow ships and gear. `STARMAKER_STATUS_MENTION`
+(default `@here`) is what pings people on a *new* notice; updates and the
+all-clear post quietly. Use a role mention such as `<@&ROLE_ID>` to ping an
+opt-in role instead, or leave it empty to post without pinging. The bot needs
+*Mention @everyone, @here and All Roles* in that channel for the ping to work.
+
 ## 3. Reverse proxy
 
 The production compose publishes **no ports**; the `web` container joins an
@@ -133,7 +146,10 @@ sm run --rm bot node dist/register-commands.js
 
 **Verify:** `curl https://YOUR-DOMAIN/up` → 200, then sign in with Discord in
 a browser (this proves the whole OAuth + proxy-header chain). In Discord,
-`/starbuddy ping` should answer with backend health.
+`/starbuddy ping` should answer with backend health and `/starbuddy status`
+with the current RSI service status (run
+`sm exec app php artisan starbuddy:poll-rsi-status` once if it says nothing
+has been checked yet — the scheduler does this every minute from now on).
 
 **Set up your orgs:** a Discord *server admin* runs `/starbuddy org create name:…` and
 `/starbuddy org manager user:@someone org:…`. Members request to join on the website
@@ -155,6 +171,10 @@ dashboard; managers accept there.
   After a big game patch you can run the sync commands from §4 manually.
 - **Health** — `https://YOUR-DOMAIN/up` is an uptime-check endpoint;
   `/starbuddy ping` in Discord checks bot ↔ backend.
+- **RSI status alerts** — `sm logs scheduler` shows the every-minute poll;
+  `sm exec app php artisan starbuddy:poll-rsi-status` runs one by hand. No
+  Discord post despite an incident usually means the bot lacks *Send
+  Messages* / *Mention everyone* in `STARMAKER_STATUS_CHANNEL_ID`.
 
 ## 6. Updating
 

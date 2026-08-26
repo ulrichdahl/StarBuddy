@@ -195,3 +195,37 @@ export interface BlueprintMatrixResponse {
   per_page: number
   total: number
 }
+
+// ── RSI service status (mirrored from status.robertsspaceindustries.com) ──
+
+export type StatusSeverity = 'maintenance' | 'disrupted' | 'down' | 'notice' | string
+
+export interface StatusIncident {
+  id: number
+  slug: string
+  title: string
+  severity: StatusSeverity
+  resolved: boolean
+  informational: boolean
+  affected: string[]
+  body_html: string | null
+  // Plain text with **bold** markers, paragraphs separated by blank lines.
+  body_text: string
+  // Announced server shutdown, when the notice states one.
+  shutdown_at: string | null
+  permalink: string | null
+  started_at: string | null
+  updated_at: string | null
+  resolved_at: string | null
+  // Changes whenever RSI edits the notice — drives "new alert" detection.
+  version: string | null
+}
+
+export interface RsiStatus {
+  summary: string
+  systems: { name: string; status: string }[]
+  fetched_at: string | null
+  status_url: string
+  active: StatusIncident[]
+  recent: StatusIncident[]
+}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
 import { useTranslation } from "react-i18next";
 import { LOCALE_NAMES, SUPPORTED_LOCALES, setLocale, type Locale } from "./i18n";
 import "./App.css";
@@ -50,6 +51,90 @@ interface UpdateCheck {
 
 type UpdateStatus = "idle" | "checking" | "upToDate" | "failed";
 
+// ── RSI service status (server mirrors status.robertsspaceindustries.com) ──
+
+interface StatusIncident {
+  slug: string;
+  title: string;
+  severity: string;
+  resolved: boolean;
+  informational: boolean;
+  affected: string[];
+  body_text: string;
+  shutdown_at: string | null;
+  permalink: string | null;
+  updated_at: string | null;
+  version: string | null;
+}
+
+interface RsiStatus {
+  summary: string;
+  status_url: string;
+  active: StatusIncident[];
+  recent: StatusIncident[];
+}
+
+const STATUS_POLL_MS = 60_000;
+const STATUS_SEEN_KEY = "starbuddy.status.seen";
+
+type Severity = "down" | "disrupted" | "maintenance" | "notice";
+const asSeverity = (s: string): Severity =>
+  s === "down" || s === "disrupted" || s === "maintenance" ? s : "notice";
+const versionKey = (i: StatusIncident) => `${i.slug}@${i.version ?? ""}`;
+
+function readSeen(): Set<string> {
+  try {
+    const raw = localStorage.getItem(STATUS_SEEN_KEY);
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeSeen(seen: Set<string>) {
+  try {
+    localStorage.setItem(STATUS_SEEN_KEY, JSON.stringify([...seen].slice(-50)));
+  } catch {
+    // storage unavailable — we may notify again after a restart, which is fine
+  }
+}
+
+function utcTime(iso: string, language: string) {
+  return new Date(iso).toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+}
+
+function countdown(ms: number) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const sec = total % 60;
+  const mm = String(m).padStart(2, "0");
+  const ss = String(sec).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
+/** **bold** markers → <strong>, blank lines → paragraphs. */
+function BodyText({ text }: { text: string }) {
+  return (
+    <>
+      {text
+        .split(/\n{2,}/)
+        .filter((p) => p.trim() !== "")
+        .map((p, i) => (
+          <p key={i} className="status-body">
+            {p.split(/(\*\*[^*]+\*\*)/g).map((part, j) =>
+              part.startsWith("**") && part.endsWith("**") ? (
+                <strong key={j}>{part.slice(2, -2)}</strong>
+              ) : (
+                <span key={j}>{part}</span>
+              ),
+            )}
+          </p>
+        ))}
+    </>
+  );
+}
+
 function App() {
   const { t, i18n } = useTranslation();
   const [liveDir, setLiveDir] = useState<string | null>(null);
@@ -73,6 +158,12 @@ function App() {
   const [liveEvents, setLiveEvents] = useState<LogEvent[]>([]);
   const [liveSynced, setLiveSynced] = useState(0);
   const liveSyncedRef = useRef(0);
+
+  const [status, setStatus] = useState<RsiStatus | null>(null);
+  const [statusCollapsed, setStatusCollapsed] = useState<Set<string>>(() => new Set());
+  const [statusDetails, setStatusDetails] = useState<Set<string>>(() => new Set());
+  const [now, setNow] = useState(() => Date.now());
+  const seenRef = useRef<Set<string>>(readSeen());
 
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
@@ -102,6 +193,72 @@ function App() {
       if (updateStatusTimer.current) clearTimeout(updateStatusTimer.current);
     };
   }, []);
+
+  // Poll the paired server for RSI maintenance/outage notices. A version
+  // we have never seen fires a native notification — that is the "stow
+  // your gear" alarm while the game has the screen.
+  useEffect(() => {
+    if (!connection?.paired) {
+      setStatus(null);
+      return;
+    }
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const data = await invoke<RsiStatus>("fetch_status");
+        if (cancelled) return;
+        setStatus(data);
+        const fresh = data.active.filter((i) => !seenRef.current.has(versionKey(i)));
+        if (fresh.length === 0) return;
+        fresh.forEach((i) => seenRef.current.add(versionKey(i)));
+        writeSeen(seenRef.current);
+        // Re-open anything the member had collapsed: this is new information.
+        setStatusCollapsed((prev) => {
+          const next = new Set(prev);
+          fresh.forEach((i) => next.delete(i.slug));
+          return next;
+        });
+        let granted = await isPermissionGranted();
+        if (!granted) granted = (await requestPermission()) === "granted";
+        if (!granted) return;
+        for (const incident of fresh) {
+          const severity = t(`status.severity.${asSeverity(incident.severity)}`);
+          const shutdown = incident.shutdown_at
+            ? t("status.shutdownAt", { time: utcTime(incident.shutdown_at, i18n.language) })
+            : "";
+          sendNotification({
+            title: t("status.notificationTitle", { severity }),
+            body: [incident.title, shutdown, t("status.stow")].filter(Boolean).join("\n"),
+          });
+        }
+      } catch {
+        // Offline or server down: keep showing the last known state.
+      }
+    };
+    void poll();
+    const id = setInterval(() => void poll(), STATUS_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [connection?.paired, t, i18n.language]);
+
+  const activeIncidents = status?.active ?? [];
+  const ticking = activeIncidents.some(
+    (i) => i.shutdown_at && new Date(i.shutdown_at).getTime() > Date.now(),
+  );
+  useEffect(() => {
+    if (!ticking) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [ticking]);
+
+  const toggleSet = (set: Set<string>, key: string) => {
+    const next = new Set(set);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    return next;
+  };
 
   const checkForUpdate = async () => {
     if (updateStatusTimer.current) clearTimeout(updateStatusTimer.current);
@@ -212,6 +369,81 @@ function App() {
           ))}
         </select>
       </div>
+
+      {activeIncidents.map((incident) => {
+        const severity = asSeverity(incident.severity);
+        const shutdownMs = incident.shutdown_at ? new Date(incident.shutdown_at).getTime() - now : null;
+        const shutdownTime = incident.shutdown_at ? utcTime(incident.shutdown_at, i18n.language) : null;
+        const urgent = shutdownMs !== null && shutdownMs > 0;
+        const timing =
+          shutdownMs === null
+            ? null
+            : urgent
+              ? t("status.shutdownIn", { time: countdown(shutdownMs) })
+              : t("status.shutdownPassed", { time: shutdownTime });
+        const collapsed = statusCollapsed.has(incident.slug);
+        const details = statusDetails.has(incident.slug);
+
+        if (collapsed) {
+          return (
+            <button
+              key={incident.slug}
+              className={`status-banner status-${severity} collapsed`}
+              onClick={() => setStatusCollapsed((prev) => toggleSet(prev, incident.slug))}
+              aria-label={t("status.expand")}
+            >
+              <span className="status-label">{t(`status.severity.${severity}`)}</span>
+              <span className="status-title">{incident.title}</span>
+              {timing && <span className="status-countdown mono">{timing}</span>}
+            </button>
+          );
+        }
+
+        return (
+          <div key={incident.slug} className={`status-banner status-${severity}${urgent ? " urgent" : ""}`} role="alert">
+            <div className="status-head">
+              <span className="status-label">{t(`status.severity.${severity}`)}</span>
+              {incident.affected.map((a) => (
+                <span key={a} className="status-chip">
+                  {a}
+                </span>
+              ))}
+              <button
+                className="dismiss"
+                onClick={() => setStatusCollapsed((prev) => toggleSet(prev, incident.slug))}
+                aria-label={t("status.collapse")}
+                title={t("status.collapse")}
+              >
+                ×
+              </button>
+            </div>
+            <h2 className="status-title">{incident.title}</h2>
+            {timing && (
+              <p className={`status-countdown mono${urgent ? " big" : ""}`}>
+                {timing}
+                {urgent && shutdownTime && <span className="hint"> ({shutdownTime} UTC)</span>}
+              </p>
+            )}
+            {urgent && <p className="status-stow">{t("status.stow")}</p>}
+            {details && <BodyText text={incident.body_text} />}
+            <div className="row status-actions">
+              <button onClick={() => setStatusDetails((prev) => toggleSet(prev, incident.slug))}>
+                {details ? t("status.hideDetails") : t("status.showDetails")}
+              </button>
+              {incident.permalink && (
+                <button onClick={() => openUrl(incident.permalink!).catch(() => {})}>
+                  {t("status.openStatus")}
+                </button>
+              )}
+              {incident.updated_at && (
+                <span className="hint status-updated">
+                  {t("status.updated", { time: utcTime(incident.updated_at, i18n.language) })}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
 
       {update?.update_available && !updateDismissed && (
         <div className="update-banner" role="status">

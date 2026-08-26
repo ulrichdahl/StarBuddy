@@ -414,5 +414,29 @@
       "saveError": "Stakken kunne ikke gemmes. Prøv igen.",
       "addStack": "Tilføj stak"
     }
+  },
+  "status": {
+    "region": "Star Citizen-servicestatus",
+    "severity": {
+      "maintenance": "Vedligeholdelse",
+      "disrupted": "Forringet service",
+      "down": "Nedbrud",
+      "notice": "Meddelelse"
+    },
+    "shutdownIn": "Serverne lukker om {{time}}",
+    "shutdownAt": "Serverne lukker kl. {{time}} UTC",
+    "shutdownPassed": "Serverne lukkede kl. {{time}} UTC",
+    "stow": "Pak dine skibe og dit udstyr væk nu.",
+    "openStatus": "RSI’s statusside",
+    "showDetails": "Detaljer",
+    "hideDetails": "Skjul detaljer",
+    "collapse": "Fold advarslen sammen",
+    "expand": "Vis advarslen",
+    "notifyEnable": "Giv mig besked i denne browser, når der kommer en ny meddelelse",
+    "notifyOn": "Browsernotifikationer er slået til — klik for at slå fra",
+    "notifyBlocked": "Notifikationer er blokeret i dine browserindstillinger",
+    "notificationTitle": "Star Citizen: {{severity}}",
+    "updated": "Opdateret kl. {{time}} UTC",
+    "resolved": "Løst: {{title}}"
   }
 }

@@ -32,6 +32,7 @@ import type { Me } from '../lib/types'
 import { BrandMark } from './BrandMark'
 import { FanSiteFooter } from './FanSiteFooter'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { StatusAlertBanner } from './StatusAlertBanner'
 
 const DRAWER_WIDTH = 232
 
@@ -184,6 +185,7 @@ export function AppShell({ me }: AppShellProps) {
         sx={{ flexGrow: 1, p: { xs: 2, md: 3 }, minWidth: 0, display: 'flex', flexDirection: 'column' }}
       >
         <Toolbar />
+        <StatusAlertBanner />
         <Box sx={{ flex: 1 }}>
           <Outlet />
         </Box>

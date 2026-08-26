@@ -414,5 +414,29 @@
       "saveError": "Could not save the stack. Try again.",
       "addStack": "Add stack"
     }
+  },
+  "status": {
+    "region": "Star Citizen service status",
+    "severity": {
+      "maintenance": "Maintenance",
+      "disrupted": "Degraded service",
+      "down": "Outage",
+      "notice": "Notice"
+    },
+    "shutdownIn": "Servers go offline in {{time}}",
+    "shutdownAt": "Servers offline at {{time}} UTC",
+    "shutdownPassed": "Servers went offline at {{time}} UTC",
+    "stow": "Stow your ships and gear now.",
+    "openStatus": "RSI status page",
+    "showDetails": "Details",
+    "hideDetails": "Hide details",
+    "collapse": "Collapse alert",
+    "expand": "Show alert",
+    "notifyEnable": "Notify me in this browser when a new notice appears",
+    "notifyOn": "Browser notifications on — click to turn off",
+    "notifyBlocked": "Notifications are blocked in your browser settings",
+    "notificationTitle": "Star Citizen: {{severity}}",
+    "updated": "Updated {{time}} UTC",
+    "resolved": "Resolved: {{title}}"
   }
 }

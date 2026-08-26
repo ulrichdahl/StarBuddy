@@ -16,6 +16,15 @@ return [
     // import never floods it). Empty = notifications off.
     'refinery_channel_id' => env('STARMAKER_REFINERY_CHANNEL_ID'),
 
+    // RSI service status (status.robertsspaceindustries.com) is polled every
+    // minute. New maintenance/outage notices go to this Discord channel;
+    // empty = no Discord alerts (the web/client banners still work).
+    'status_channel_id' => env('STARMAKER_STATUS_CHANNEL_ID'),
+    // Text placed above a fresh alert so it actually pings: "@here",
+    // "@everyone" or a role mention like "<@&123456789>". Empty = no ping.
+    'status_mention' => env('STARMAKER_STATUS_MENTION', '@here'),
+    'status_url' => env('STARMAKER_STATUS_URL', 'https://status.robertsspaceindustries.com'),
+
     // Discord role id => org name. Members holding the role are attached to
     // the org on login. Format: JSON object, e.g. {"123456789":"Stellar Forge"}
     'role_org_map' => json_decode(env('STARMAKER_ROLE_ORG_MAP', '{}'), true) ?: [],

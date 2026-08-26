@@ -246,3 +246,144 @@ th {
 .fansite a {
   color: var(--accent);
 }
+
+/* ── RSI service status alerts ─────────────────────────────────────────── */
+
+.status-banner {
+  --sev: #e0a526;
+  position: relative;
+  margin-top: 14px;
+  padding: 12px 14px 12px 18px;
+  border: 1px solid color-mix(in srgb, var(--sev) 55%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--sev) 12%, var(--panel));
+  font-size: 14px;
+  overflow: hidden;
+}
+
+.status-banner::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  background: var(--sev);
+}
+
+.status-banner.urgent::before {
+  animation: status-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-banner.urgent::before { animation: none; }
+}
+
+.status-down { --sev: #e0564b; }
+.status-disrupted { --sev: #cc5a2e; }
+.status-maintenance { --sev: #e0a526; }
+.status-notice { --sev: #4a7cd6; }
+
+.status-banner.collapsed {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding-top: 7px;
+  padding-bottom: 7px;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.status-banner.collapsed .status-countdown {
+  margin-left: auto;
+  color: var(--sev);
+}
+
+.status-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-head .dismiss {
+  margin-left: auto;
+  border-color: transparent;
+  color: var(--muted);
+  padding: 2px 8px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.status-label {
+  color: var(--sev);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.status-chip {
+  border: 1px solid color-mix(in srgb, var(--sev) 50%, transparent);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.status-banner .status-title {
+  margin: 4px 0 0;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.status-banner.collapsed .status-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.status-countdown {
+  margin: 6px 0 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.status-countdown.big {
+  font-size: 24px;
+  color: var(--sev);
+}
+
+.status-stow {
+  margin: 4px 0 0;
+  font-weight: 600;
+}
+
+.status-body {
+  margin: 10px 0 0;
+  max-width: 70ch;
+  white-space: pre-line;
+}
+
+.status-actions {
+  margin-top: 10px;
+  align-items: center;
+}
+
+.status-actions button {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.status-updated {
+  margin-left: auto;
+  font-size: 12px;
+}

@@ -135,8 +135,35 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return (await response.json()) as T;
 }
 
+/** One incident of GET /api/bot/status */
+export interface StatusIncident {
+  slug: string;
+  title: string;
+  severity: string;
+  resolved: boolean;
+  informational: boolean;
+  affected: string[];
+  body_text: string;
+  shutdown_at: string | null;
+  permalink: string | null;
+  started_at: string | null;
+  updated_at: string | null;
+  resolved_at: string | null;
+}
+
+/** Response of GET /api/bot/status */
+export interface StatusResponse {
+  summary: string;
+  systems: { name: string; status: string }[];
+  fetched_at: string | null;
+  status_url: string;
+  active: StatusIncident[];
+  recent: StatusIncident[];
+}
+
 export const backend = {
   health: () => request<HealthResponse>("/api/bot/health"),
+  status: () => request<StatusResponse>("/api/bot/status"),
   member: (discordId: string) =>
     request<MemberLookupResponse>(`/api/bot/member/${encodeURIComponent(discordId)}`),
   craftable: (discordId: string, search?: string, limit = 10) =>

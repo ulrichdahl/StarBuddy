@@ -20,6 +20,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('me', [\App\Http\Controllers\ProfileController::class, 'update']);
 
     Route::get('dashboard', DashboardController::class);
+    Route::get('status', \App\Http\Controllers\StatusController::class);
     Route::get('craftability', \App\Http\Controllers\CraftabilityController::class);
     Route::get('craftability/{blueprint}', [\App\Http\Controllers\CraftabilityController::class, 'show']);
     Route::post('craftability/{blueprint}/craft', [\App\Http\Controllers\CraftabilityController::class, 'craft']);
@@ -70,6 +71,7 @@ Route::post('devices/pair', [DeviceController::class, 'pair'])->middleware('thro
 // Internal service API for the Discord bot (token-authenticated, not exposed publicly).
 Route::prefix('bot')->middleware('bot')->group(function () {
     Route::get('health', [BotController::class, 'health']);
+    Route::get('status', \App\Http\Controllers\StatusController::class);
     Route::get('member/{discordId}', [BotController::class, 'member']);
     Route::get('craftable/{discordId}', [BotController::class, 'craftable']);
     Route::get('need/{discordId}', [BotController::class, 'need']);
