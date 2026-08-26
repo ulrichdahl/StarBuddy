@@ -3,6 +3,9 @@
 // Instance configuration. Keys read STARBUDDY_* and fall back to the
 // pre-rename STARMAKER_* names so an un-migrated .env keeps working.
 return [
+    // Deployed version, baked into the image by update.sh (git describe).
+    'version' => env('STARBUDDY_VERSION', 'dev'),
+
     // The Discord server (guild) this instance belongs to. Only members of
     // this guild can sign in. Everything community-specific hangs off this.
     'home_guild_id' => env('STARBUDDY_HOME_GUILD_ID', env('STARMAKER_HOME_GUILD_ID')),

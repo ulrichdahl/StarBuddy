@@ -23,7 +23,10 @@ name: starbuddy
 #   docker compose run --rm bot node dist/register-commands.js
 
 x-app: &app
-  build: ./backend
+  build:
+    context: ./backend
+    args:
+      STARBUDDY_VERSION: ${STARBUDDY_VERSION:-dev}
   env_file: .env
   restart: unless-stopped
   depends_on:
@@ -85,7 +88,10 @@ services:
       - frontend-dist:/out
 
   bot:
-    build: ./bot
+    build:
+      context: ./bot
+      args:
+        STARBUDDY_VERSION: ${STARBUDDY_VERSION:-dev}
     env_file: .env
     restart: unless-stopped
     environment:

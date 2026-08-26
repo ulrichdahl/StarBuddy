@@ -8,7 +8,7 @@ class BotController extends Controller
 {
     public function health()
     {
-        return ['ok' => true, 'status' => 'ok', 'time' => now()->toIso8601String()];
+        return ['ok' => true, 'status' => 'ok', 'time' => now()->toIso8601String(), 'version' => config('starbuddy.version')];
     }
 
     public function member(string $discordId)

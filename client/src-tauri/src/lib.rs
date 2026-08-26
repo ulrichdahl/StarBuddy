@@ -608,6 +608,21 @@ fn parse_semver(s: &str) -> Option<(u64, u64, u64)> {
     Some((major, minor, patch))
 }
 
+#[derive(Serialize)]
+pub struct AppVersion {
+    pub version: String,
+    /// CI build stamp ("dev-20260827-0315") for rolling builds; None for releases.
+    pub build: Option<String>,
+}
+
+#[tauri::command]
+fn app_version() -> AppVersion {
+    AppVersion {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        build: option_env!("STARBUDDY_BUILD").map(str::to_string),
+    }
+}
+
 #[tauri::command]
 async fn check_for_update() -> Result<UpdateCheck, String> {
     let current = env!("CARGO_PKG_VERSION");
@@ -795,7 +810,8 @@ pub fn run() {
             start_watcher,
             stop_watcher,
             watcher_status,
-            check_for_update
+            check_for_update,
+            app_version
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

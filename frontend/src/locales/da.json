@@ -33,7 +33,8 @@
     "freeSoftware": "StarBuddy er fri software (AGPL-3.0) —",
     "source": "kildekode på GitHub",
     "badgeAlt": "Star Citizen — Made by the Community",
-    "credit": "Et <community>United Danes</community>-fællesskabsprojekt — bygget af <author>DK-Raven</author> med <claude>Claude.ai</claude>."
+    "credit": "Et <community>United Danes</community>-fællesskabsprojekt — bygget af <author>DK-Raven</author> med <claude>Claude.ai</claude>.",
+    "serverVersion": "Server v{{version}}"
   },
   "import": {
     "title": "Import",

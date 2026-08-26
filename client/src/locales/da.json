@@ -69,7 +69,9 @@
     "check": "Søg efter opdateringer",
     "checking": "Søger…",
     "upToDate": "Du har den nyeste version (v{{current}}).",
-    "failed": "Kunne ikke søge efter opdateringer."
+    "failed": "Kunne ikke søge efter opdateringer.",
+    "version": "v{{version}}",
+    "versionBuild": "v{{version}} · {{build}}"
   },
   "footer": {
     "disclaimer": "Dette er en uofficiel Star Citizen-fanapplikation uden tilknytning til Cloud Imperium-koncernen. Alt indhold, der ikke er skabt af værten eller brugerne, tilhører de respektive ejere.",

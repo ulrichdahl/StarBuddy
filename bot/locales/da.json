@@ -28,10 +28,11 @@
     "notRegistered": "Du er ikke registreret i StarBuddy endnu. Log ind på hjemmesiden først."
   },
   "ping": {
-    "reply": "Pong! Svartid: {{latency}} ms | WS: {{ws}} ms | Backend: {{backend}}",
+    "reply": "Pong! Svartid: {{latency}} ms | WS: {{ws}} ms | Backend: {{backend}} | {{version}}",
     "healthy": "ok",
     "unhealthy": "fejler",
-    "unreachable": "kan ikke nås ({{error}})"
+    "unreachable": "kan ikke nås ({{error}})",
+    "versions": "bot v{{bot}} · server v{{api}}"
   },
   "whoami": {
     "registered": "Du er registreret i StarBuddy som **{{handle}}**.",

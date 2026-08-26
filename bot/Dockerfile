@@ -10,6 +10,8 @@ RUN npm run build
 # --- Runtime stage: prod deps + compiled output only ---
 FROM node:26-alpine AS runtime
 ENV NODE_ENV=production
+ARG STARBUDDY_VERSION=dev
+ENV STARBUDDY_VERSION=$STARBUDDY_VERSION
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev

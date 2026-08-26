@@ -42,6 +42,11 @@ interface SyncSummary {
   backfilled?: number;
 }
 
+interface AppVersion {
+  version: string;
+  build: string | null;
+}
+
 interface UpdateCheck {
   current: string;
   latest: string;
@@ -185,6 +190,7 @@ function App() {
   const [kdeRule, setKdeRule] = useState<KdeRuleInfo | null>(null);
   const [kdeRuleError, setKdeRuleError] = useState<string | null>(null);
 
+  const [appVersion, setAppVersion] = useState<AppVersion | null>(null);
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
@@ -196,6 +202,7 @@ function App() {
     invoke<boolean>("watcher_status").then(setWatching);
     // Errors (offline, rate-limited, odd tag) mean "no update info", never an update.
     invoke<UpdateCheck>("check_for_update").then(setUpdate).catch(() => {});
+    invoke<AppVersion>("app_version").then(setAppVersion).catch(() => {});
     invoke<KdeRuleInfo>("overlay_kde_rule").then(setKdeRule).catch(() => {});
     invoke<HotkeyInfo>("overlay_hotkey")
       .then((h) => {
@@ -775,6 +782,13 @@ function App() {
             <a href="https://github.com/ulrichdahl/StarBuddy" target="_blank" rel="noopener">{t("footer.source")}</a>.
           </p>
           <p className="hint update-row">
+            {appVersion && (
+              <span className="mono">
+                {appVersion.build
+                  ? t("update.versionBuild", { version: appVersion.version, build: appVersion.build })
+                  : t("update.version", { version: appVersion.version })}
+              </span>
+            )}
             <button
               className="link-button"
               onClick={checkForUpdate}

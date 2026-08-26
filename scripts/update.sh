@@ -74,7 +74,10 @@ if grep -qE '^STARMAKER_' .env; then
     log ".env migrated: STARMAKER_* keys renamed to STARBUDDY_* (backup kept)"
 fi
 
-log "building images"
+# Shown in every surface's footer: "0.1.6+8 (0da88ca)" style from git describe.
+export STARBUDDY_VERSION
+STARBUDDY_VERSION=$(git describe --tags --always 2>/dev/null | sed -E 's/^v//; s/-([0-9]+)-g([0-9a-f]+)$/+\1 (\2)/')
+log "building images (version $STARBUDDY_VERSION)"
 $COMPOSE build --pull --quiet
 
 if old_stack_running; then

@@ -28,10 +28,11 @@
     "notRegistered": "You are not registered with StarBuddy yet. Sign in on the website first."
   },
   "ping": {
-    "reply": "Pong! Latency: {{latency}}ms | WS: {{ws}}ms | Backend: {{backend}}",
+    "reply": "Pong! Latency: {{latency}}ms | WS: {{ws}}ms | Backend: {{backend}} | {{version}}",
     "healthy": "healthy",
     "unhealthy": "unhealthy",
-    "unreachable": "unreachable ({{error}})"
+    "unreachable": "unreachable ({{error}})",
+    "versions": "bot v{{bot}} · server v{{api}}"
   },
   "whoami": {
     "registered": "You are registered with StarBuddy as **{{handle}}**.",

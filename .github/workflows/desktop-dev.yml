@@ -16,7 +16,18 @@ permissions:
   contents: write
 
 jobs:
+  # One UTC stamp shared by both platform builds, so the five installers of
+  # a run carry the same name.
+  stamp:
+    runs-on: ubuntu-latest
+    outputs:
+      stamp: ${{ steps.s.outputs.stamp }}
+    steps:
+      - id: s
+        run: echo "stamp=$(date -u +%Y%m%d-%H%M)" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: stamp
     strategy:
       fail-fast: false
       matrix:
@@ -53,9 +64,25 @@ jobs:
 
       - name: Build
         working-directory: client
+        env:
+          # Baked into the binary (option_env!) and shown in the client footer.
+          STARBUDDY_BUILD: dev-${{ needs.stamp.outputs.stamp }}
         run: |
           npm ci
           npm run tauri build
+
+      # Dev installers are named by build stamp, not by the (unchanged)
+      # version: StarBuddy_0.1.6_x64-setup.exe → StarBuddy_dev-20260827-0315_x64-setup.exe
+      - name: Stamp bundle names
+        shell: bash
+        env:
+          STAMP: dev-${{ needs.stamp.outputs.stamp }}
+        run: |
+          VER=$(node -p "require('./client/src-tauri/tauri.conf.json').version")
+          shopt -s nullglob
+          for f in client/src-tauri/target/release/bundle/*/*"$VER"*; do
+            mv -v "$f" "${f//$VER/$STAMP}"
+          done
 
       # The bundled Ubuntu libwayland conflicts with newer host Mesa/EGL
       # (white window, "Could not create default EGL display"). Strip it so
@@ -79,7 +106,7 @@ jobs:
           if-no-files-found: error
 
   publish-dev:
-    needs: build
+    needs: [stamp, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -105,6 +132,6 @@ jobs:
           prerelease: true
           make_latest: false
           body: |
-            Automatic build of the latest `main` (${{ github.sha }}).
+            Build `dev-${{ needs.stamp.outputs.stamp }}` (UTC) of `main` at ${{ github.sha }}.
             Assets are replaced on every client change — this is not a stable release.
           files: bundles/**

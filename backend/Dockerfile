@@ -14,6 +14,9 @@ COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction
 
 FROM base
+# Version shown on the website footer, /api/version and the bot (git describe from update.sh).
+ARG STARBUDDY_VERSION=dev
+ENV STARBUDDY_VERSION=$STARBUDDY_VERSION
 COPY --from=deps /app/vendor ./vendor
 COPY . .
 COPY --from=deps /usr/bin/composer /usr/bin/composer

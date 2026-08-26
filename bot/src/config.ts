@@ -25,6 +25,8 @@ export const config = {
   botApiToken: required("BOT_API_TOKEN"),
   /** Port for the notification webhook server. */
   notifyPort: Number(process.env["NOTIFY_PORT"] ?? 3000),
+  /** Deployed version, baked into the image by update.sh (git describe). */
+  version: process.env["STARBUDDY_VERSION"] ?? "dev",
 } as const;
 
 export type Config = typeof config;

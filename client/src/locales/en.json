@@ -69,7 +69,9 @@
     "check": "Check for updates",
     "checking": "Checking…",
     "upToDate": "You're up to date (v{{current}}).",
-    "failed": "Could not check for updates."
+    "failed": "Could not check for updates.",
+    "version": "v{{version}}",
+    "versionBuild": "v{{version}} · {{build}}"
   },
   "footer": {
     "disclaimer": "This is an unofficial Star Citizen fan application, not affiliated with the Cloud Imperium group of companies. All content not authored by its host or users is property of its respective owners.",

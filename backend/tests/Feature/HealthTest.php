@@ -12,4 +12,10 @@ class HealthTest extends TestCase
     {
         $this->get('/up')->assertOk();
     }
+
+    public function test_version_is_public(): void
+    {
+        config(['starbuddy.version' => '0.1.7+3 (abc1234)']);
+        $this->getJson('/api/version')->assertOk()->assertJson(['name' => 'StarBuddy', 'version' => '0.1.7+3 (abc1234)']);
+    }
 }

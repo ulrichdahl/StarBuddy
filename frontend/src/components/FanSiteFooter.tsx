@@ -1,7 +1,9 @@
+import { useQuery } from '@tanstack/react-query'
 import { Trans, useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
+import { api } from '../lib/api'
 
 /**
  * Cloud Imperium fan-kit compliance: the "Made by the Community" logo (only
@@ -12,6 +14,12 @@ import Typography from '@mui/material/Typography'
  */
 export function FanSiteFooter() {
   const { t } = useTranslation()
+  const { data: server } = useQuery({
+    queryKey: ['server-version'],
+    queryFn: async () => (await api.get<{ version: string }>('/api/version')).data,
+    staleTime: 60 * 60_000,
+    retry: false,
+  })
   return (
     <Box
       component="footer"
@@ -64,6 +72,11 @@ export function FanSiteFooter() {
             {t('footer.source')}
           </Link>
           .
+          {server?.version && (
+            <Typography component="span" variant="caption" sx={{ ml: 1, fontVariantNumeric: 'tabular-nums' }}>
+              {t('footer.serverVersion', { version: server.version })}
+            </Typography>
+          )}
         </Typography>
       </Box>
     </Box>
