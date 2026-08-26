@@ -51,6 +51,12 @@ interface UpdateCheck {
 
 type UpdateStatus = "idle" | "checking" | "upToDate" | "failed";
 
+interface HotkeyInfo {
+  hotkey: string;
+  global_supported: boolean;
+  toggle_command: string;
+}
+
 // ── RSI service status (server mirrors status.robertsspaceindustries.com) ──
 
 interface StatusIncident {
@@ -166,6 +172,11 @@ function App() {
   const [now, setNow] = useState(() => Date.now());
   const seenRef = useRef<Set<string>>(readSeen());
 
+  const [hotkey, setHotkey] = useState<HotkeyInfo | null>(null);
+  const [hotkeyDraft, setHotkeyDraft] = useState("");
+  const [hotkeyError, setHotkeyError] = useState<string | null>(null);
+  const [statusOpen, setStatusOpen] = useState<boolean | null>(null);
+
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
@@ -177,6 +188,12 @@ function App() {
     invoke<boolean>("watcher_status").then(setWatching);
     // Errors (offline, rate-limited, odd tag) mean "no update info", never an update.
     invoke<UpdateCheck>("check_for_update").then(setUpdate).catch(() => {});
+    invoke<HotkeyInfo>("overlay_hotkey")
+      .then((h) => {
+        setHotkey(h);
+        setHotkeyDraft(h.hotkey);
+      })
+      .catch(() => {});
 
     const subs = [
       listen<LogEvent>("watcher-event", (e) =>
@@ -188,6 +205,9 @@ function App() {
       }),
       listen<string>("watcher-sync-error", (e) => setWatcherError(e.payload)),
       listen<{ running: boolean }>("watcher-status", (e) => setWatching(e.payload.running)),
+      listen<[string, boolean]>("overlay-visibility", (e) => {
+        if (e.payload[0] === "status") setStatusOpen(e.payload[1]);
+      }),
     ];
     return () => {
       subs.forEach((p) => p.then((un) => un()));
@@ -259,6 +279,25 @@ function App() {
     if (next.has(key)) next.delete(key);
     else next.add(key);
     return next;
+  };
+
+  const toggleStatusWindow = async () => {
+    try {
+      setStatusOpen(await invoke<boolean>("overlay_toggle", { name: "status" }));
+    } catch {
+      /* window creation failed — nothing sensible to show */
+    }
+  };
+
+  const saveHotkey = async () => {
+    setHotkeyError(null);
+    try {
+      const info = await invoke<HotkeyInfo>("overlay_set_hotkey", { hotkey: hotkeyDraft });
+      setHotkey(info);
+      setHotkeyDraft(info.hotkey);
+    } catch (e) {
+      setHotkeyError(String(e));
+    }
   };
 
   const checkForUpdate = async () => {
@@ -497,6 +536,34 @@ function App() {
             {pairError && <p className="error">{pairError}</p>}
           </>
         )}
+      </section>
+
+      <section className="panel">
+        <h2>{t("overlay.panelTitle")}</h2>
+        <p className="hint">{t("overlay.panelHint")}</p>
+        <div className="row">
+          <button onClick={toggleStatusWindow}>
+            {statusOpen ? t("overlay.hideStatus") : t("overlay.showStatus")}
+          </button>
+          <input
+            type="text"
+            aria-label={t("overlay.hotkey")}
+            placeholder="Ctrl+Alt+S"
+            style={{ maxWidth: 200, flex: "0 1 auto" }}
+            value={hotkeyDraft}
+            onChange={(e) => setHotkeyDraft(e.target.value)}
+          />
+          <button disabled={!hotkey || hotkeyDraft.trim() === hotkey.hotkey} onClick={saveHotkey}>
+            {t("overlay.saveHotkey")}
+          </button>
+        </div>
+        {hotkeyError && <p className="error">{hotkeyError}</p>}
+        {hotkey && !hotkey.global_supported && (
+          <p className="hint">
+            {t("overlay.waylandHint")} <code>{hotkey.toggle_command}</code>
+          </p>
+        )}
+        {!connection?.paired && <p className="hint">{t("overlay.pairHint")}</p>}
       </section>
 
       <section className="panel">

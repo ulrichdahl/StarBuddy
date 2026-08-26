@@ -1,0 +1,281 @@
+/* ── Overlay windows: Launcher Glass ─────────────────────────────────────
+   The window itself is transparent; the panel paints its own glass. */
+@import "../assets/fonts/fonts.css";
+
+html.overlay-mode,
+html.overlay-mode body {
+  background: transparent !important;
+  margin: 0;
+  overflow: hidden;
+}
+
+.ov {
+  --bg0: #0a0c10;
+  --glass: rgba(10, 16, 24, 0.86);
+  --line: rgba(120, 160, 190, 0.35);
+  --line2: rgba(120, 160, 190, 0.18);
+  --steel: #7fa0b8;
+  --cyan: #3cc9f0;
+  --amber: #e0a526;
+  --amber2: #f3c65a;
+  --red: #e0564b;
+  --green: #2fbfa4;
+  --text: #dbe6ee;
+  --muted: #8fa3b3;
+  --dim: #5f7384;
+  --disp: "Rajdhani", "Bahnschrift", "Arial Narrow", sans-serif;
+  --body: "Exo 2", "Segoe UI", system-ui, sans-serif;
+  --mono: "Share Tech Mono", ui-monospace, Consolas, monospace;
+  --acc: var(--cyan);
+  --acc-soft: rgba(60, 201, 240, 0.12);
+  --cut: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+
+  position: relative;
+  width: 440px;
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 13px;
+  line-height: 1.45;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  clip-path: var(--cut);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ov.ov-strip {
+  width: 860px;
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 12px 100%, 0 calc(100% - 12px));
+}
+.ov.ov-strip.ov-bottom {
+  clip-path: polygon(12px 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%, 0 12px);
+}
+.ov.ov-dock-left {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+}
+.ov.ov-dock-right {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+.ov::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--acc);
+  box-shadow: 0 0 14px var(--acc);
+  pointer-events: none;
+}
+.ov.ov-strip::before {
+  width: auto;
+  height: 3px;
+  right: 0;
+  bottom: auto;
+}
+.ov.ov-strip.ov-bottom::before {
+  top: auto;
+  bottom: 0;
+}
+.ov.ov-urgent::before {
+  animation: ov-pulse 1.6s ease-in-out infinite;
+}
+@keyframes ov-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ov.ov-urgent::before { animation: none; }
+}
+
+/* title bar */
+.ov-tb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 16px;
+  border-bottom: 1px solid var(--line2);
+  cursor: grab;
+}
+.ov-strip .ov-tb {
+  border-bottom: 0;
+  padding: 6px 8px 6px 14px;
+  cursor: default;
+}
+.ov-tb:active { cursor: grabbing; }
+.ov-strip .ov-tb:active { cursor: default; }
+.ov-grip {
+  width: 12px;
+  height: 14px;
+  flex: none;
+  background: radial-gradient(circle, var(--steel) 1px, transparent 1.4px) 0 0 / 5px 5px;
+  opacity: 0.7;
+}
+.ov-strip .ov-grip { display: none; }
+.ov-eyebrow {
+  font-family: var(--disp);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--acc);
+  line-height: 1.2;
+}
+.ov-title {
+  font-family: var(--disp);
+  font-weight: 600;
+  font-size: 17px;
+  color: #fff;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ov-strip .ov-title { font-size: 15px; }
+.ov-tb-text { min-width: 0; flex: 1; }
+.ov-strip .ov-tb-text { flex: none; }
+.ov-sp { flex: 1; }
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* control cluster: size · placement · opacity · close */
+.ov-grp {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line2);
+  background: rgba(10, 16, 24, 0.5);
+  flex: none;
+  transition: opacity 0.15s;
+}
+.ov:not(:hover) .ov-grp { opacity: 0.45; }
+.ov-ib {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--steel);
+  cursor: pointer;
+  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+.ov-ib svg { width: 17px; height: 17px; }
+.ov-ib:hover { color: var(--text); background: rgba(120, 160, 190, 0.12); border-color: var(--line); }
+.ov-ib:focus-visible { outline: 1px solid var(--cyan); outline-offset: 1px; }
+.ov-ib.on { color: var(--cyan); background: rgba(60, 201, 240, 0.12); border-color: rgba(60, 201, 240, 0.55); }
+.ov-ib:disabled { opacity: 0.3; cursor: not-allowed; }
+.ov-ib:disabled:hover { background: transparent; border-color: transparent; color: var(--steel); }
+
+/* popovers */
+.ov-pop {
+  position: absolute;
+  z-index: 5;
+  right: 8px;
+  top: 44px;
+  background: rgba(10, 16, 24, 0.96);
+  border: 1px solid var(--line);
+  padding: 8px;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+.ov-strip .ov-pop { top: 40px; }
+.ov-pick {
+  width: 136px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+.ov-pick .ov-ib { width: 100%; height: 34px; }
+.ov-pick .e { visibility: hidden; }
+.ov-pop-lbl {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-family: var(--disp);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+  color: var(--muted);
+  padding-top: 6px;
+  border-top: 1px solid var(--line2);
+  margin-top: 2px;
+}
+.ov-opop { width: 220px; padding: 10px 12px 8px; }
+.ov-opop-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.ov-opop-h .mono { color: var(--cyan); font-size: 14px; }
+.ov-opop input[type="range"] {
+  width: 100%;
+  margin: 8px 0;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+.ov-opop-f {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--disp);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 9.5px;
+  color: var(--muted);
+}
+.ov-opop-f span:nth-child(2) { color: var(--text); text-align: center; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* body */
+.ov-body { padding: 10px 14px 12px 16px; }
+.ov-box {
+  border: 1px solid var(--line2);
+  background: rgba(120, 160, 190, 0.06);
+  padding: 8px 10px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.ov-box.acc { border-color: color-mix(in srgb, var(--acc) 40%, transparent); background: var(--acc-soft); }
+.ov-box .big { font-size: 22px; color: var(--acc); line-height: 1; }
+.ov-box .lbl { color: var(--muted); font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.12em; font-size: 10.5px; font-weight: 600; }
+.ov-box .push { margin-left: auto; }
+.ov-p { margin: 10px 0 0; color: var(--text); font-size: 12.5px; white-space: pre-line; }
+.ov-p strong { color: #fff; }
+.ov-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.ov-chip {
+  font-size: 11px;
+  padding: 1px 8px;
+  border: 1px solid var(--line2);
+  background: rgba(120, 160, 190, 0.1);
+  color: var(--text);
+  line-height: 1.5;
+}
+.ov-sys { display: grid; gap: 4px; margin-top: 10px; font-size: 12.5px; }
+.ov-sys div { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px solid var(--line2); }
+.ov-sys .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); flex: none; }
+.ov-sys .dot.warn { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.ov-sys .dot.bad { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.ov-sys .st { margin-left: auto; color: var(--muted); font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; font-weight: 600; }
+.ov-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 11px; color: var(--dim); }
+.ov-foot .lnk {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--steel);
+  background: none;
+  border: none;
+  border-bottom: 1px dotted rgba(127, 160, 184, 0.55);
+  padding: 0;
+  cursor: pointer;
+}
+.ov-foot .lnk:hover { color: var(--text); }
+.ov-foot .push { margin-left: auto; }
+.ov-stow { font-weight: 600; color: #fff; }
+.ov-strip .ov-tb .ov-strip-item { white-space: nowrap; }
+.ov-strip .ov-count { font-size: 20px; color: var(--acc); line-height: 1; }
+.ov-strip .ov-muted { color: var(--muted); font-size: 12px; }
+.ov-accent-ok { --acc: var(--green); --acc-soft: rgba(47, 191, 164, 0.1); }
+.ov-accent-maintenance { --acc: var(--amber); --acc-soft: rgba(224, 165, 38, 0.1); }
+.ov-accent-disrupted { --acc: #cc5a2e; --acc-soft: rgba(204, 90, 46, 0.1); }
+.ov-accent-down { --acc: var(--red); --acc-soft: rgba(224, 86, 75, 0.1); }
+.ov-accent-notice { --acc: #4a7cd6; --acc-soft: rgba(74, 124, 214, 0.1); }
+.ov-accent-none { --acc: var(--steel); --acc-soft: rgba(127, 160, 184, 0.1); }

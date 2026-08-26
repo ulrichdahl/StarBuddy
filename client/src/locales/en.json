@@ -97,5 +97,52 @@
     "expand": "Show alert",
     "notificationTitle": "Star Citizen: {{severity}}",
     "updated": "Updated {{time}}"
+  },
+  "overlay": {
+    "panelTitle": "In-game overlay",
+    "panelHint": "The status window floats above the game and shows whether the servers are fine — green when all systems are operational, amber with a countdown when maintenance is announced. Toggle it with the hotkey.",
+    "showStatus": "Show status window",
+    "hideStatus": "Hide status window",
+    "hotkey": "Hotkey",
+    "saveHotkey": "Save hotkey",
+    "waylandHint": "Global hotkeys cannot be registered on this desktop session. Bind this command to a key in your desktop settings instead:",
+    "pairHint": "Pair with a server above — the window reads the service status through it.",
+    "controls": "Window controls",
+    "collapse": "Collapse to minimal",
+    "expand": "Expand to full",
+    "sizeStrip": "Always a strip while docked top or bottom",
+    "placement": "Placement: {{mode}} — click to change",
+    "placementTitle": "Placement",
+    "opacity": "Opacity",
+    "close": "Close",
+    "mode": {
+      "floating": "Floating",
+      "dock-left": "Dock left",
+      "dock-top": "Dock top",
+      "dock-right": "Dock right",
+      "dock-bottom": "Dock bottom"
+    },
+    "status": {
+      "windowName": "RSI status window",
+      "eyebrow": "RSI status",
+      "title": "Star Citizen services",
+      "allOk": "All systems operational",
+      "allOkBody": "No maintenance or incidents reported.",
+      "someIssues": "Service notice",
+      "someIssuesBody": "RSI reports a change on one or more systems.",
+      "offlineIn": "Servers offline in",
+      "checked": "Checked {{time}}",
+      "notPaired": "Pair the client with your StarBuddy server to see the service status.",
+      "unreachable": "Server unreachable — showing nothing rather than guessing.",
+      "loading": "Checking…",
+      "system": {
+        "operational": "Operational",
+        "ok": "Operational",
+        "maintenance": "Maintenance",
+        "disrupted": "Degraded",
+        "down": "Down",
+        "notice": "Notice"
+      }
+    }
   }
 }

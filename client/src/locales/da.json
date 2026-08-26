@@ -97,5 +97,52 @@
     "expand": "Vis advarslen",
     "notificationTitle": "Star Citizen: {{severity}}",
     "updated": "Opdateret kl. {{time}}"
+  },
+  "overlay": {
+    "panelTitle": "Overlay i spillet",
+    "panelHint": "Statusvinduet svæver over spillet og viser, om serverne er i orden — grønt når alle systemer kører, gult med nedtælling når der er meldt vedligeholdelse. Slå det til og fra med genvejstasten.",
+    "showStatus": "Vis statusvindue",
+    "hideStatus": "Skjul statusvindue",
+    "hotkey": "Genvejstast",
+    "saveHotkey": "Gem genvejstast",
+    "waylandHint": "Globale genvejstaster kan ikke registreres i denne skrivebordssession. Bind i stedet denne kommando til en tast i dine skrivebordsindstillinger:",
+    "pairHint": "Par med en server ovenfor — vinduet læser servicestatus gennem den.",
+    "controls": "Vinduesknapper",
+    "collapse": "Fold sammen til minimal",
+    "expand": "Udvid til fuld",
+    "sizeStrip": "Altid en stribe, når vinduet er fastgjort øverst eller nederst",
+    "placement": "Placering: {{mode}} — klik for at ændre",
+    "placementTitle": "Placering",
+    "opacity": "Gennemsigtighed",
+    "close": "Luk",
+    "mode": {
+      "floating": "Flydende",
+      "dock-left": "Fastgjort venstre",
+      "dock-top": "Fastgjort øverst",
+      "dock-right": "Fastgjort højre",
+      "dock-bottom": "Fastgjort nederst"
+    },
+    "status": {
+      "windowName": "RSI-statusvindue",
+      "eyebrow": "RSI-status",
+      "title": "Star Citizen-tjenester",
+      "allOk": "Alle systemer kører",
+      "allOkBody": "Ingen vedligeholdelse eller hændelser meldt.",
+      "someIssues": "Servicemeddelelse",
+      "someIssuesBody": "RSI melder en ændring på et eller flere systemer.",
+      "offlineIn": "Serverne lukker om",
+      "checked": "Tjekket {{time}}",
+      "notPaired": "Par klienten med din StarBuddy-server for at se servicestatus.",
+      "unreachable": "Serveren kan ikke nås — viser intet frem for at gætte.",
+      "loading": "Tjekker…",
+      "system": {
+        "operational": "Kører",
+        "ok": "Kører",
+        "maintenance": "Vedligeholdelse",
+        "disrupted": "Forringet",
+        "down": "Nede",
+        "notice": "Meddelelse"
+      }
+    }
   }
 }

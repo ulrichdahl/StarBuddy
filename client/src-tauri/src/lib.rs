@@ -8,6 +8,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, LazyLock, Mutex};
 use tauri::{Emitter, Manager};
 
+mod overlay;
+
 // Notification lines are duplicated in the log (queued + displayed); events
 // are deduplicated on (timestamp, detail). Names can contain quotes
 // (`Arclight "Midnight" Pistol`), hence the greedy capture up to `: " [n]`.
@@ -703,11 +705,55 @@ pub fn run() {
     if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
         std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
     }
+    // Wayland gives clients no say over window position or stacking, which
+    // the overlay windows need (docking, always-on-top), and X11-style
+    // global hotkeys only reach X clients. Running through XWayland — like
+    // the game itself under Wine — gets all three back. Users who know
+    // better can set GDK_BACKEND themselves.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WAYLAND_DISPLAY").is_some() && std::env::var_os("GDK_BACKEND").is_none() {
+        std::env::set_var("GDK_BACKEND", "x11");
+    }
 
     tauri::Builder::default()
+        // Must be first: a second launch hands its args to this instance.
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            if args.iter().any(|a| a == overlay::TOGGLE_FLAG) {
+                let _ = overlay::toggle(app, overlay::STATUS);
+            } else if let Some(main) = app.get_webview_window("main") {
+                let _ = main.show();
+                let _ = main.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, shortcut, event| overlay::on_shortcut(app, shortcut, event.state()))
+                .build(),
+        )
         .manage(WatcherState::default())
+        .setup(|app| {
+            let handle = app.handle().clone();
+            app.manage(overlay::OverlayState::load(&handle));
+            overlay::register_hotkey(&handle);
+            overlay::show_if_open(&handle, overlay::STATUS);
+            if std::env::args().any(|a| a == overlay::TOGGLE_FLAG) {
+                let _ = overlay::toggle(&handle, overlay::STATUS);
+            }
+            // Hidden overlay windows would otherwise keep the process alive
+            // after the main window is closed.
+            if let Some(main) = app.get_webview_window("main") {
+                let exit_handle = handle.clone();
+                main.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { .. } = event {
+                        overlay::save_now(&exit_handle);
+                        exit_handle.exit(0);
+                    }
+                });
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             detect_game_log,
             scan_backlog,
@@ -716,11 +762,24 @@ pub fn run() {
             unpair,
             sync_events,
             fetch_status,
+            overlay::overlay_toggle,
+            overlay::overlay_prefs,
+            overlay::overlay_update,
+            overlay::overlay_fit,
+            overlay::overlay_start_drag,
+            overlay::overlay_close,
+            overlay::overlay_hotkey,
+            overlay::overlay_set_hotkey,
             start_watcher,
             stop_watcher,
             watcher_status,
             check_for_update
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            if let tauri::RunEvent::Exit = event {
+                overlay::save_now(app);
+            }
+        });
 }

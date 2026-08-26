@@ -606,7 +606,8 @@
         <li>Backend polls the status page's cstate JSON every minute (<code>starbuddy:poll-rsi-status</code>), mirrors incidents in <code>rsi_incidents</code>, and classifies each change as new / updated / resolved. The announced shutdown time ("Servers will go offline at 1445 UTC") is parsed out of the notice.</li>
         <li>Discord: a new notice posts to <code>STARMAKER_STATUS_CHANNEL_ID</code> with a configurable ping (<code>@here</code>, a role, or none) and a Discord-native relative time for the shutdown; updates and the all-clear post without pinging. <code>/starbuddy status</code> answers on demand.</li>
         <li>Website: a severity-coloured banner under the top bar on every page with a live countdown, affected systems, the full notice on demand, opt-in browser notifications, and a ⚠ tab-title prefix; collapses to a one-line strip and re-expands whenever RSI edits the notice.</li>
-        <li>Desktop client: same banner plus a native OS notification on first sight of a new notice — the surface that reaches a player who is in-game. A hotkey overlay version is the P4 follow-up (see the overlay design directions).</li>
+        <li>Desktop client: same banner plus a native OS notification on first sight of a new notice — the surface that reaches a player who is in-game.</li>
+        <li><strong>Status overlay window</strong> (first P4 surface, pulled forward): a frameless, transparent, always-on-top Tauri window toggled by a configurable global hotkey (default <code>Ctrl+Alt+S</code>; on Wayland desktops a <code>--toggle-status</code> CLI flag bound to a desktop-environment key does the same through the single-instance plugin). Shows green "All systems operational" with the per-system list, or the severity-coloured notice with a shutdown countdown. Every overlay window shares the Launcher-Glass chrome and a size · placement · opacity · close cluster: Full/Minimal, floating or docked left/right (drag along the edge) / top/bottom (centred strip), per-window opacity 25–100 %, all persisted per window in <code>overlay.json</code>.</li>
       </ul>
     </div>
   </div>
@@ -636,7 +637,8 @@
     <div>
       <h4>Overlay</h4>
       <ul>
-        <li>Windows layered window first, then Linux layer-shell/X11 backends; hotkey chain per platform; craft-now list and quick entry in-overlay. Grows out of the P3a popup surface.</li>
+        <li>Windows layered window first, then Linux layer-shell/X11 backends; hotkey chain per platform; craft-now list and quick entry in-overlay. Grows out of the status overlay window (shipped with the maintenance alarm) and the P3a scan popup.</li>
+        <li>Current Linux stance: under Wayland the client forces <code>GDK_BACKEND=x11</code> so it runs through XWayland like the Wine game — that restores window positioning, always-on-top and X11 global hotkeys in one move; a native layer-shell backend remains the long-term fix.</li>
       </ul>
     </div>
   </div>
