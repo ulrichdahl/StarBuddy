@@ -199,50 +199,53 @@ export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, titl
         {cluster}
       </div>
 
+      {pop !== "none" && (
+        <div className="ov-pops">
+          {pop === "place" && (
+            <div className="ov-pop ov-pick" role="menu" aria-label={t("overlay.placementTitle")}>
+              <span className="e" />
+              {placeBtn("dock-top")}
+              <span className="e" />
+              {placeBtn("dock-left")}
+              {placeBtn("floating")}
+              {placeBtn("dock-right")}
+              <span className="e" />
+              {placeBtn("dock-bottom")}
+              <span className="e" />
+              <span className="ov-pop-lbl">{t("overlay.placementTitle")}</span>
+            </div>
+          )}
+          {pop === "opacity" && (
+            <div className="ov-pop ov-opop">
+              <div className="ov-opop-h">
+                <span className="ov-eyebrow" style={{ color: "var(--muted)" }}>
+                  {t("overlay.opacity")}
+                </span>
+                <span className="mono">{Math.round(prefs.opacity * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min={25}
+                max={100}
+                step={5}
+                value={Math.round(prefs.opacity * 100)}
+                aria-label={t("overlay.opacity")}
+                onChange={(e) => update({ opacity: Number(e.target.value) / 100 })}
+              />
+              <div className="ov-opop-f">
+                <span>25%</span>
+                <span>{displayName}</span>
+                <span>100%</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {!strip_ && (
         <div className="ov-body">
           {firstBox}
           {!minimal && children}
-        </div>
-      )}
-
-      {pop === "place" && (
-        <div className="ov-pop ov-pick" role="menu" aria-label={t("overlay.placementTitle")}>
-          <span className="e" />
-          {placeBtn("dock-top")}
-          <span className="e" />
-          {placeBtn("dock-left")}
-          {placeBtn("floating")}
-          {placeBtn("dock-right")}
-          <span className="e" />
-          {placeBtn("dock-bottom")}
-          <span className="e" />
-          <span className="ov-pop-lbl">{t("overlay.placementTitle")}</span>
-        </div>
-      )}
-
-      {pop === "opacity" && (
-        <div className="ov-pop ov-opop">
-          <div className="ov-opop-h">
-            <span className="ov-eyebrow" style={{ color: "var(--muted)" }}>
-              {t("overlay.opacity")}
-            </span>
-            <span className="mono">{Math.round(prefs.opacity * 100)}%</span>
-          </div>
-          <input
-            type="range"
-            min={25}
-            max={100}
-            step={5}
-            value={Math.round(prefs.opacity * 100)}
-            aria-label={t("overlay.opacity")}
-            onChange={(e) => update({ opacity: Number(e.target.value) / 100 })}
-          />
-          <div className="ov-opop-f">
-            <span>25%</span>
-            <span>{displayName}</span>
-            <span>100%</span>
-          </div>
         </div>
       )}
     </div>

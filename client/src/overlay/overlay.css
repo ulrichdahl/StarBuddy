@@ -146,11 +146,11 @@ html.overlay-mode body {
   gap: 2px;
   padding: 2px;
   border: 1px solid var(--line2);
-  background: rgba(10, 16, 24, 0.5);
+  background: rgba(10, 16, 24, 0.55);
   flex: none;
-  transition: opacity 0.15s;
 }
-.ov:not(:hover) .ov-grp { opacity: 0.45; }
+.ov:not(:hover) .ov-ib { color: var(--dim); }
+.ov:not(:hover) .ov-ib.on { color: rgba(60, 201, 240, 0.6); }
 .ov-ib {
   display: inline-grid;
   place-items: center;
@@ -161,28 +161,29 @@ html.overlay-mode body {
   background: transparent;
   color: var(--steel);
   cursor: pointer;
-  clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
-  transition: color 0.12s, background 0.12s, border-color 0.12s;
+  border-radius: 2px;
 }
-.ov-ib svg { width: 17px; height: 17px; }
+.ov-ib svg { width: 17px; height: 17px; display: block; }
 .ov-ib:hover { color: var(--text); background: rgba(120, 160, 190, 0.12); border-color: var(--line); }
 .ov-ib:focus-visible { outline: 1px solid var(--cyan); outline-offset: 1px; }
 .ov-ib.on { color: var(--cyan); background: rgba(60, 201, 240, 0.12); border-color: rgba(60, 201, 240, 0.55); }
 .ov-ib:disabled { opacity: 0.3; cursor: not-allowed; }
 .ov-ib:disabled:hover { background: transparent; border-color: transparent; color: var(--steel); }
 
-/* popovers */
+/* popovers: rendered in flow under the title bar so the native window,
+   which wraps the panel, always contains them (strips and minimal too) */
+.ov-pops {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 8px 8px 16px;
+  border-bottom: 1px solid var(--line2);
+}
+.ov-strip .ov-pops { border-top: 1px solid var(--line2); border-bottom: 0; }
 .ov-pop {
-  position: absolute;
-  z-index: 5;
-  right: 8px;
-  top: 44px;
-  background: rgba(10, 16, 24, 0.96);
+  background: rgba(10, 16, 24, 0.7);
   border: 1px solid var(--line);
   padding: 8px;
-  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
 }
-.ov-strip .ov-pop { top: 40px; }
 .ov-pick {
   width: 136px;
   display: grid;
