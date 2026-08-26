@@ -1,11 +1,14 @@
 name: Desktop release
 
 # Tagged releases: push a v* tag (e.g. v0.1.0) to build the desktop apps for
-# Windows and Linux and publish them as a GitHub Release.
+# Windows and Linux and publish them as a GitHub Release. If GitHub drops
+# the tag's push event (it happens), run it by hand against the tag:
+#   gh workflow run desktop-release.yml --ref vX.Y.Z
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
