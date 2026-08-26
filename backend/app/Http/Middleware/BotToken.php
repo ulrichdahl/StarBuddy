@@ -10,7 +10,7 @@ class BotToken
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $token = config('starmaker.bot_api_token');
+        $token = config('starbuddy.bot_api_token');
 
         if (! $token || ! hash_equals($token, (string) $request->bearerToken())) {
             abort(401, 'Invalid bot token.');

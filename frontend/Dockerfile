@@ -1,4 +1,4 @@
-# StarMaker frontend — build-only image.
+# StarBuddy frontend — build-only image.
 #
 # docker compose builds this image and copies /dist into a shared volume;
 # Caddy serves the SPA from that volume and proxies /api, /sanctum and

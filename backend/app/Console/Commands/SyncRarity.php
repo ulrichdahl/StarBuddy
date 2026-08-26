@@ -19,7 +19,6 @@ class SyncRarity extends Command
     protected $signature = 'starbuddy:sync-rarity';
 
     // Pre-rename name, kept so old habits and scripts keep working.
-    protected $aliases = ['starmaker:sync-rarity'];
 
     protected $description = 'Derive resource rarity from wiki mining spawn probabilities';
 

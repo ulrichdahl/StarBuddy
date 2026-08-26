@@ -7,7 +7,7 @@
 # images. All output is timestamped for cron logs.
 #
 #   crontab -e:
-#   17 4 * * *  /srv/starbuddy/StarMaker/scripts/update.sh >> /srv/starbuddy/update.log 2>&1
+#   17 4 * * *  /srv/starbuddy/StarBuddy/scripts/update.sh >> /srv/starbuddy/update.log 2>&1
 #
 # Environment overrides:
 #   STARBUDDY_COMPOSE   compose command (default: production file pair)
@@ -18,8 +18,13 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
 
-COMPOSE=${STARBUDDY_COMPOSE:-${STARMAKER_COMPOSE:-"docker compose -f docker-compose.yml -f docker-compose.prod.yml"}}
-BRANCH=${STARBUDDY_BRANCH:-${STARMAKER_BRANCH:-main}}
+COMPOSE=${STARBUDDY_COMPOSE:-"docker compose -f docker-compose.yml -f docker-compose.prod.yml"}
+BRANCH=${STARBUDDY_BRANCH:-main}
+# Compose project name before the StarBuddy rename; its containers are
+# taken down once and replaced by the "starbuddy" project (data lives in
+# bind mounts, so nothing is lost).
+OLD_PROJECT=starmaker
+old_stack_running() { docker ps -q --filter "label=com.docker.compose.project=$OLD_PROJECT" | grep -q .; }
 
 log() { printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
 
@@ -41,14 +46,16 @@ fi
 log "updating ${LOCAL:0:9} -> ${REMOTE:0:9}"
 
 # Pre-update database dump, kept next to the nightly backups.
-DATA_DIR=$(grep -E '^STARMAKER_DATA_DIR=' .env | cut -d= -f2- || true)
+DATA_DIR=$(grep -E '^STAR(BUDDY|MAKER)_DATA_DIR=' .env | head -1 | cut -d= -f2- || true)
 DATA_DIR=${DATA_DIR:-./data}
 mkdir -p "$DATA_DIR/backups"
 DUMP="$DATA_DIR/backups/pre-update-$(date +%Y%m%d-%H%M%S).sql.gz"
-if $COMPOSE ps --status running db --quiet | grep -q .; then
-    DB_USER=$(grep -E '^DB_USERNAME=' .env | cut -d= -f2-)
-    DB_NAME=$(grep -E '^DB_DATABASE=' .env | cut -d= -f2-)
-    $COMPOSE exec -T db pg_dump -U "${DB_USER:-starmaker}" "${DB_NAME:-starmaker}" | gzip > "$DUMP"
+DB_USER=$(grep -E '^DB_USERNAME=' .env | cut -d= -f2- || true)
+DB_NAME=$(grep -E '^DB_DATABASE=' .env | cut -d= -f2- || true)
+DUMP_COMPOSE=$COMPOSE
+if old_stack_running; then DUMP_COMPOSE="docker compose -p $OLD_PROJECT -f docker-compose.yml -f docker-compose.prod.yml"; fi
+if $DUMP_COMPOSE ps --status running db --quiet 2>/dev/null | grep -q .; then
+    $DUMP_COMPOSE exec -T db pg_dump -U "${DB_USER:-starmaker}" "${DB_NAME:-starmaker}" | gzip > "$DUMP"
     log "database dumped to $DUMP"
 else
     log "warning: db container not running — skipping pre-update dump"
@@ -56,8 +63,25 @@ fi
 
 git pull --ff-only --quiet origin "$BRANCH"
 
+# One-time migration from the pre-rename layout: STARMAKER_* keys become
+# STARBUDDY_*, and the database name/user the old compose defaulted to are
+# pinned explicitly (the defaults changed to "starbuddy").
+if grep -qE '^STARMAKER_' .env; then
+    cp .env ".env.bak-$(date +%Y%m%d-%H%M%S)"
+    grep -qE '^DB_DATABASE=' .env || echo 'DB_DATABASE=starmaker' >> .env
+    grep -qE '^DB_USERNAME=' .env || echo 'DB_USERNAME=starmaker' >> .env
+    sed -i -E 's/^STARMAKER_/STARBUDDY_/' .env
+    log ".env migrated: STARMAKER_* keys renamed to STARBUDDY_* (backup kept)"
+fi
+
 log "building images"
 $COMPOSE build --pull --quiet
+
+if old_stack_running; then
+    log "stopping the pre-rename stack (compose project $OLD_PROJECT)"
+    docker compose -p "$OLD_PROJECT" -f docker-compose.yml -f docker-compose.prod.yml down --remove-orphans \
+        || docker ps -aq --filter "label=com.docker.compose.project=$OLD_PROJECT" | xargs -r docker rm -f
+fi
 
 log "rolling the stack"
 $COMPOSE up -d --remove-orphans

@@ -293,11 +293,13 @@ function App() {
     return next;
   };
 
+  const [overlayError, setOverlayError] = useState<string | null>(null);
   const toggleStatusWindow = async () => {
+    setOverlayError(null);
     try {
       setStatusOpen(await invoke<boolean>("overlay_toggle", { name: "status" }));
-    } catch {
-      /* window creation failed — nothing sensible to show */
+    } catch (e) {
+      setOverlayError(String(e));
     }
   };
 
@@ -578,6 +580,7 @@ function App() {
             {t("overlay.saveHotkey")}
           </button>
         </div>
+        {overlayError && <p className="error">{overlayError}</p>}
         {hotkeyError && <p className="error">{hotkeyError}</p>}
         {hotkey && !hotkey.global_supported && (
           <p className="hint">

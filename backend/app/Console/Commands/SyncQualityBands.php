@@ -19,7 +19,6 @@ class SyncQualityBands extends Command
     protected $signature = 'starbuddy:sync-quality-bands';
 
     // Pre-rename name, kept so old habits and scripts keep working.
-    protected $aliases = ['starmaker:sync-quality-bands'];
 
     protected $description = 'Seed per-resource quality bands from the Star Citizen Wiki Ore_quality page';
 
@@ -28,7 +27,7 @@ class SyncQualityBands extends Command
     public function handle(): int
     {
         $response = Http::retry(3, 2000)->timeout(30)
-            ->withHeaders(['User-Agent' => 'StarMaker/0.1 (self-hosted org tool)'])
+            ->withHeaders(['User-Agent' => 'StarBuddy/0.1 (self-hosted org tool)'])
             ->get(self::API, [
                 'action' => 'parse',
                 'page' => 'Ore_quality',

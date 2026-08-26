@@ -1,10 +1,12 @@
 # Hosting StarBuddy
 
-> **Renamed from StarMaker (2026-08-25).** Existing instances need no changes:
-> the `STARMAKER_*` variable names in `.env`, the `starmaker-web` proxy alias,
-> the compose project name, and the `starmaker:*` artisan commands all keep
-> working, and GitHub redirects the old repository URL for `git pull`.
-> New docs use the `starbuddy-*` names.
+> **Upgrading an instance from before the StarBuddy rename?** Run
+> `scripts/update.sh` once: it renames the `STARBUDDY_*` keys in `.env`
+> (backup kept), pins the database name/user the old defaults used, and
+> replaces the old `starmaker` containers with the `starbuddy` project.
+> Your data is untouched (it lives in `STARBUDDY_DATA_DIR`). One manual step:
+> point your reverse proxy at **`starbuddy-web`** — the `starmaker-web`
+> alias is gone.
 
 One StarBuddy instance serves **one Discord community**. Members sign in with
 Discord; only members of your configured server can join. This guide takes an
@@ -22,7 +24,7 @@ operator from empty server to a maintained, auto-updating production instance.
 | `db` / `redis` | postgres 17 / redis 7 | Data & cache |
 | `backup` | postgres-backup-local | Nightly dumps, kept 14 days |
 
-Persistent state lives in **`STARMAKER_DATA_DIR`** on the host:
+Persistent state lives in **`STARBUDDY_DATA_DIR`** on the host:
 `postgres/` (the database) and `backups/` (nightly + pre-update dumps).
 That one directory is your backup surface.
 
@@ -66,27 +68,27 @@ APP_URL=https://YOUR-DOMAIN
 DISCORD_REDIRECT_URI=https://YOUR-DOMAIN/api/auth/discord/callback
 SESSION_DOMAIN=YOUR-DOMAIN
 SANCTUM_STATEFUL_DOMAINS=YOUR-DOMAIN
-STARMAKER_DATA_DIR=/srv/starbuddy/data
-STARMAKER_HOME_GUILD_ID=      # your server id from step 1.5
-STARMAKER_BOT_API_TOKEN=      # openssl rand -hex 32
+STARBUDDY_DATA_DIR=/srv/starbuddy/data
+STARBUDDY_HOME_GUILD_ID=      # your server id from step 1.5
+STARBUDDY_BOT_API_TOKEN=      # openssl rand -hex 32
 DB_PASSWORD=                  # openssl rand -hex 24
 ```
 
 Plus the four Discord credentials from step 1.
 
-Optional: `STARMAKER_REFINERY_CHANNEL_ID=<channel id>` makes the bot post a
+Optional: `STARBUDDY_REFINERY_CHANNEL_ID=<channel id>` makes the bot post a
 ping to that channel whenever a member's refinery work order completes (live
 events only — a first-run history import never floods it). The bot needs
 *View Channel* and *Send Messages* there.
 
-**Recommended:** `STARMAKER_STATUS_CHANNEL_ID=<channel id>` turns on RSI
+**Recommended:** `STARBUDDY_STATUS_CHANNEL_ID=<channel id>` turns on RSI
 service-status alerts. The backend checks
 <https://status.robertsspaceindustries.com> every minute; the moment a
 maintenance or outage notice appears, the bot posts it to that channel with
 the announced shutdown time, and members see the same alert (with a
 countdown) on the website and in the desktop client. RSI typically gives
 about 30 minutes between the notice and servers going down — that is the
-window players have to stow ships and gear. `STARMAKER_STATUS_MENTION`
+window players have to stow ships and gear. `STARBUDDY_STATUS_MENTION`
 (default `@here`) is what pings people on a *new* notice; updates and the
 all-clear post quietly. Use a role mention such as `<@&ROLE_ID>` to ping an
 opt-in role instead, or leave it empty to post without pinging. The bot needs
@@ -157,7 +159,7 @@ dashboard; managers accept there.
 
 ## 5. Maintenance
 
-- **Backups** — everything is in `STARMAKER_DATA_DIR`: `backups/` holds
+- **Backups** — everything is in `STARBUDDY_DATA_DIR`: `backups/` holds
   nightly dumps (14 days) and pre-update dumps; `postgres/` is the live
   database. Back up the whole directory off-site. Restore a dump:
 
@@ -174,7 +176,7 @@ dashboard; managers accept there.
 - **RSI status alerts** — `sm logs scheduler` shows the every-minute poll;
   `sm exec app php artisan starbuddy:poll-rsi-status` runs one by hand. No
   Discord post despite an incident usually means the bot lacks *Send
-  Messages* / *Mention everyone* in `STARMAKER_STATUS_CHANNEL_ID`.
+  Messages* / *Mention everyone* in `STARBUDDY_STATUS_CHANNEL_ID`.
 
 ## 6. Updating
 
@@ -211,7 +213,7 @@ sm build && sm up -d
 |---|---|
 | Discord login redirects to `http://` or loops | Proxy isn't sending `X-Forwarded-Proto` — see the nginx example |
 | `redirect_uri mismatch` from Discord | The portal redirect must equal `DISCORD_REDIRECT_URI` byte for byte |
-| "not_a_member" after Discord auth | The account isn't in `STARMAKER_HOME_GUILD_ID`'s server |
+| "not_a_member" after Discord auth | The account isn't in `STARBUDDY_HOME_GUILD_ID`'s server |
 | Slash commands answer twice | Two bot processes share the token (e.g. a dev instance) — stop one |
 | Blank API responses (empty 200) | `backend/public` mount missing in the web container — pull latest compose |
 | Desktop client white window (Linux) | Use the current AppImage; older builds had a WebKit/EGL issue |

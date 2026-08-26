@@ -19,7 +19,6 @@ class SyncBlueprints extends Command
     protected $signature = 'starbuddy:sync-blueprints {--page-size=100}';
 
     // Pre-rename name, kept so old habits and scripts keep working.
-    protected $aliases = ['starmaker:sync-blueprints'];
 
     protected $description = 'Sync crafting recipes from the Star Citizen Wiki API and link owned blueprints';
 

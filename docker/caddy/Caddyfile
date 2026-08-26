@@ -1,4 +1,4 @@
-# StarMaker reverse proxy. Plain HTTP on :80 inside the container; put your
+# StarBuddy reverse proxy. Plain HTTP on :80 inside the container; put your
 # TLS-terminating proxy in front, or change this to your domain name and
 # publish 443 to let Caddy manage certificates itself.
 :80 {

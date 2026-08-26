@@ -26,7 +26,7 @@ class AuthController extends Controller
         $discordUser = Socialite::driver('discord')->user();
 
         // The join gate: only members of this instance's home guild may sign in.
-        $homeGuild = (string) config('starmaker.home_guild_id');
+        $homeGuild = (string) config('starbuddy.home_guild_id');
         $guilds = Http::withToken($discordUser->token)
             ->acceptJson()
             ->get('https://discord.com/api/users/@me/guilds')
@@ -67,7 +67,7 @@ class AuthController extends Controller
     // missing scope) simply leave memberships unchanged.
     private function syncOrgsFromRoles(User $user, string $token, string $homeGuild): void
     {
-        $map = config('starmaker.role_org_map');
+        $map = config('starbuddy.role_org_map');
         if (empty($map)) {
             return;
         }

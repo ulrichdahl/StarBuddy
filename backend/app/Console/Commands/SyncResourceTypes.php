@@ -21,7 +21,6 @@ class SyncResourceTypes extends Command
     protected $signature = 'starbuddy:sync-resource-types';
 
     // Pre-rename name, kept so old habits and scripts keep working.
-    protected $aliases = ['starmaker:sync-resource-types'];
 
     protected $description = 'Sync resource types from the Star Citizen Wiki commodities API';
 

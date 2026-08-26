@@ -87,6 +87,16 @@ jobs:
           path: bundles
           merge-multiple: true
 
+      # The rolling release is *replaced*, not appended to: drop every
+      # asset from earlier builds before uploading this one.
+      - name: Prune previous dev assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view dev --json assets -q '.assets[].name' 2>/dev/null \
+            | while read -r name; do gh release delete-asset dev "$name" -y; done || true
+
       - name: Update rolling dev release
         uses: softprops/action-gh-release@v2
         with:

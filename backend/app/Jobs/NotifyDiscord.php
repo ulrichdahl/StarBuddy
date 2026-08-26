@@ -23,9 +23,9 @@ class NotifyDiscord implements ShouldQueue
 
     public function handle(): void
     {
-        Http::withToken(config('starmaker.bot_api_token'))
+        Http::withToken(config('starbuddy.bot_api_token'))
             ->timeout(10)
-            ->post(config('starmaker.bot_notify_url'), [
+            ->post(config('starbuddy.bot_notify_url'), [
                 'channel_id' => $this->channelId,
                 'embed' => $this->embed,
                 'content' => $this->content,

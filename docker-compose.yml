@@ -1,6 +1,4 @@
-# Project name stays "starmaker" (pre-rename) so existing deployments keep
-# their containers and volumes across updates. Cosmetic only.
-name: starmaker
+name: starbuddy
 
 # StarBuddy community instance — base definition. No ports are published
 # here: local development gets its port from docker-compose.override.yml
@@ -9,7 +7,7 @@ name: starmaker
 #
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 #
-# Persistent data lives under ${STARMAKER_DATA_DIR:-./data} as plain host
+# Persistent data lives under ${STARBUDDY_DATA_DIR:-./data} as plain host
 # directories (postgres/, backups/) so you control placement and backup.
 #
 # First start:
@@ -43,12 +41,9 @@ services:
       default:
         # Unambiguous name for Caddy: the web container is also attached to
         # the operator's proxy network, where a generic "app" may resolve to
-        # a foreign container (NPM names its own service "app"). The old
-        # starmaker-* aliases are kept for deployments from before the
-        # StarBuddy rename.
+        # a foreign container (NPM names its own service "app").
         aliases:
           - starbuddy-app
-          - starmaker-app
 
   queue:
     <<: *app
@@ -65,7 +60,6 @@ services:
       default:
         aliases:
           - starbuddy-reverb
-          - starmaker-reverb
 
   web:
     image: caddy:2-alpine
@@ -96,20 +90,20 @@ services:
     restart: unless-stopped
     environment:
       BACKEND_URL: http://web
-      BOT_API_TOKEN: ${STARMAKER_BOT_API_TOKEN}
-      HOME_GUILD_ID: ${STARMAKER_HOME_GUILD_ID}
+      BOT_API_TOKEN: ${STARBUDDY_BOT_API_TOKEN}
+      HOME_GUILD_ID: ${STARBUDDY_HOME_GUILD_ID}
 
   db:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_DATABASE:-starmaker}
-      POSTGRES_USER: ${DB_USERNAME:-starmaker}
+      POSTGRES_DB: ${DB_DATABASE:-starbuddy}
+      POSTGRES_USER: ${DB_USERNAME:-starbuddy}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
     volumes:
-      - ${STARMAKER_DATA_DIR:-./data}/postgres:/var/lib/postgresql/data
+      - ${STARBUDDY_DATA_DIR:-./data}/postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-starmaker} -d ${DB_DATABASE:-starmaker}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-starbuddy} -d ${DB_DATABASE:-starbuddy}"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -129,13 +123,13 @@ services:
         condition: service_healthy
     environment:
       POSTGRES_HOST: db
-      POSTGRES_DB: ${DB_DATABASE:-starmaker}
-      POSTGRES_USER: ${DB_USERNAME:-starmaker}
+      POSTGRES_DB: ${DB_DATABASE:-starbuddy}
+      POSTGRES_USER: ${DB_USERNAME:-starbuddy}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       SCHEDULE: "@daily"
       BACKUP_KEEP_DAYS: "14"
     volumes:
-      - ${STARMAKER_DATA_DIR:-./data}/backups:/backups
+      - ${STARBUDDY_DATA_DIR:-./data}/backups:/backups
 
 volumes:
   redis-data:

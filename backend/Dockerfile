@@ -1,4 +1,4 @@
-# StarMaker backend — PHP-FPM. The same image runs the fpm pool (app),
+# StarBuddy backend — PHP-FPM. The same image runs the fpm pool (app),
 # queue worker, scheduler, and Reverb; compose overrides the command.
 FROM php:8.5-fpm-alpine AS base
 

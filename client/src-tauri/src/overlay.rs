@@ -125,7 +125,9 @@ fn update_prefs(app: &AppHandle, name: &str, f: impl FnOnce(&mut WindowPrefs)) -
 }
 
 /// Show the window if hidden (creating it on first use), hide it if shown.
-/// Returns the new visibility.
+/// Returns the new visibility. Must run on the main thread — window
+/// creation is main-thread-only on Windows; callers off it use
+/// [`toggle_from_anywhere`].
 pub fn toggle(app: &AppHandle, name: &str) -> Result<bool, String> {
     let now_visible = if let Some(win) = app.get_webview_window(&label(name)) {
         let visible = win.is_visible().map_err(|e| e.to_string())?;
@@ -146,6 +148,19 @@ pub fn toggle(app: &AppHandle, name: &str) -> Result<bool, String> {
     Ok(now_visible)
 }
 
+/// Toggle from a command/async thread: hop to the main thread and wait.
+pub async fn toggle_from_anywhere(app: AppHandle, name: String) -> Result<bool, String> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    let app2 = app.clone();
+    app.run_on_main_thread(move || {
+        let _ = tx.send(toggle(&app2, &name));
+    })
+    .map_err(|e| e.to_string())?;
+    tauri::async_runtime::spawn_blocking(move || rx.recv().map_err(|_| "toggle did not complete".to_string())?)
+        .await
+        .map_err(|e| e.to_string())?
+}
+
 /// Flush prefs to disk — positions are kept in memory during drags and
 /// written here on exit so the last drop always sticks.
 pub fn save_now(app: &AppHandle) {
@@ -160,9 +175,13 @@ pub fn show_if_open(app: &AppHandle, name: &str) {
 
 fn create(app: &AppHandle, name: &str) -> Result<(), String> {
     let prefs = window_prefs(app, name);
+    // The name travels as a global set before any page script runs; the
+    // query string is kept for `vite dev`, where it is the only channel.
     let url = WebviewUrl::App(format!("index.html?window={name}").into());
     let win = WebviewWindowBuilder::new(app, label(name), url)
+        .initialization_script(format!("window.__STARBUDDY_WINDOW__ = {};", serde_json::json!(name)))
         .title(format!("StarBuddy — {name}"))
+        .focused(false)
         .decorations(false)
         .transparent(true)
         .shadow(false)
@@ -250,8 +269,8 @@ pub fn apply_layout(app: &AppHandle, name: &str) -> Result<(), String> {
 // ── Commands ───────────────────────────────────────────────────────────────
 
 #[tauri::command]
-pub fn overlay_toggle(app: AppHandle, name: String) -> Result<bool, String> {
-    toggle(&app, &name)
+pub async fn overlay_toggle(app: AppHandle, name: String) -> Result<bool, String> {
+    toggle_from_anywhere(app, name).await
 }
 
 #[tauri::command]

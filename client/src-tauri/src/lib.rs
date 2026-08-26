@@ -675,11 +675,11 @@ mod tests {
         assert!(parse_semver("v0.1.5-rc.1").unwrap() > current); // prerelease of newer → update
     }
 
-    // Runs against a real installation when STARMAKER_TEST_LIVE_DIR is set;
+    // Runs against a real installation when STARBUDDY_TEST_LIVE_DIR is set;
     // skips silently otherwise so CI stays green without game files.
     #[test]
     fn scans_real_logs() {
-        let Ok(dir) = std::env::var("STARMAKER_TEST_LIVE_DIR") else {
+        let Ok(dir) = std::env::var("STARBUDDY_TEST_LIVE_DIR") else {
             return;
         };
         let result = scan_backlog_impl(dir, |_| {}).expect("scan should succeed");
@@ -698,6 +698,24 @@ mod tests {
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// The app identifier changed with the StarBuddy rename, which moves the
+/// per-user config directory. Carry pairing and overlay prefs over from
+/// the old location the first time the renamed client starts.
+fn migrate_old_config_dir(app: &tauri::AppHandle) {
+    let Ok(new_dir) = app.path().app_config_dir() else { return };
+    let Some(old_dir) = new_dir.parent().map(|p| p.join("io.github.ulrichdahl.starmaker")) else { return };
+    if new_dir.join("settings.json").exists() || !old_dir.is_dir() {
+        return;
+    }
+    let _ = fs::create_dir_all(&new_dir);
+    for name in ["settings.json", "overlay.json"] {
+        let from = old_dir.join(name);
+        if from.exists() {
+            let _ = fs::copy(&from, new_dir.join(name));
+        }
+    }
+}
+
 pub fn run() {
     // The AppImage bundles Ubuntu-22.04-era WebKitGTK, whose DMABUF renderer
     // aborts with EGL_BAD_PARAMETER against newer Mesa/driver stacks (white
@@ -736,6 +754,7 @@ pub fn run() {
         .manage(WatcherState::default())
         .setup(|app| {
             let handle = app.handle().clone();
+            migrate_old_config_dir(&handle);
             app.manage(overlay::OverlayState::load(&handle));
             overlay::register_hotkey(&handle);
             overlay::show_if_open(&handle, overlay::STATUS);

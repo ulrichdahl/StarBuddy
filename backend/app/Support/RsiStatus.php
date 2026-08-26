@@ -32,7 +32,7 @@ class RsiStatus
 
     public static function baseUrl(): string
     {
-        return rtrim(config('starmaker.status_url', 'https://status.robertsspaceindustries.com'), '/');
+        return rtrim(config('starbuddy.status_url', 'https://status.robertsspaceindustries.com'), '/');
     }
 
     /**
@@ -241,7 +241,7 @@ class RsiStatus
 
     private static function alert(RsiIncident $incident, string $kind): void
     {
-        $channel = config('starmaker.status_channel_id');
+        $channel = config('starbuddy.status_channel_id');
         if (! $channel) {
             return;
         }
@@ -281,7 +281,7 @@ class RsiStatus
 
         // Only a fresh, player-affecting notice pings people; updates and
         // the all-clear post quietly.
-        $mention = trim((string) config('starmaker.status_mention'));
+        $mention = trim((string) config('starbuddy.status_mention'));
         $content = ($kind === 'new' && ! $incident->informational && $mention !== '') ? $mention : null;
 
         NotifyDiscord::dispatch($channel, $embed, $content);

@@ -79,7 +79,7 @@ class RsiStatusTest extends TestCase
 
     public function test_new_incident_is_stored_and_pinged_once(): void
     {
-        config(['starmaker.status_channel_id' => '123', 'starmaker.status_mention' => '@here']);
+        config(['starbuddy.status_channel_id' => '123', 'starbuddy.status_mention' => '@here']);
         Queue::fake();
         $this->stub([
             self::BASE.'/index.json' => $this->index([$this->issue()]),
@@ -111,7 +111,7 @@ class RsiStatusTest extends TestCase
 
     public function test_edit_alerts_quietly_and_removal_resolves(): void
     {
-        config(['starmaker.status_channel_id' => '123', 'starmaker.status_mention' => '@here']);
+        config(['starbuddy.status_channel_id' => '123', 'starbuddy.status_mention' => '@here']);
         Queue::fake();
         $this->stub([
             self::BASE.'/index.json' => $this->index([$this->issue()]),
@@ -150,7 +150,7 @@ class RsiStatusTest extends TestCase
 
     public function test_no_channel_means_no_discord_but_still_mirrored(): void
     {
-        config(['starmaker.status_channel_id' => null]);
+        config(['starbuddy.status_channel_id' => null]);
         Queue::fake();
         $this->stub([
             self::BASE.'/index.json' => $this->index([$this->issue()]),
@@ -183,7 +183,7 @@ class RsiStatusTest extends TestCase
 
     public function test_status_endpoints_share_the_payload(): void
     {
-        config(['starmaker.bot_api_token' => 'secret']);
+        config(['starbuddy.bot_api_token' => 'secret']);
         RsiIncident::create([
             'slug' => 'x', 'title' => 'Login issues', 'severity' => 'disrupted', 'affected' => ['Platform'],
             'body_html' => '<p>Investigating.</p>', 'started_at' => now(), 'rsi_updated_at' => now(), 'body_hash' => 'h',

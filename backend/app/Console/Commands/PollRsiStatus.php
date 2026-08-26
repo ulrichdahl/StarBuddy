@@ -14,8 +14,6 @@ class PollRsiStatus extends Command
 {
     protected $signature = 'starbuddy:poll-rsi-status';
 
-    protected $aliases = ['starmaker:poll-rsi-status'];
-
     protected $description = 'Check the RSI status page for new or changed incidents and alert players';
 
     public function handle(): int

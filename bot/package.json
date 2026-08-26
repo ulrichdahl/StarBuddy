@@ -2,7 +2,7 @@
   "name": "starbuddy-bot",
   "version": "0.1.6",
   "private": true,
-  "description": "Discord bot for StarMaker — self-hostable Star Citizen org resource tracker",
+  "description": "Discord bot for StarBuddy — self-hostable Star Citizen org resource tracker",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",

@@ -131,7 +131,7 @@ class IngestController extends Controller
     // a first-run logbackups import replays months of completions.
     private function notifyRefineryCompletion($user, string $station, string $timestamp): void
     {
-        $channel = config('starmaker.refinery_channel_id');
+        $channel = config('starbuddy.refinery_channel_id');
         if (! $channel) {
             return;
         }

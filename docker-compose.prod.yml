@@ -4,8 +4,7 @@
 #
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 #
-# Point your nginx/SSL proxy at http://starbuddy-web:80 on that network
-# (the pre-rename alias starmaker-web is kept for existing proxy configs).
+# Point your nginx/SSL proxy at http://starbuddy-web:80 on that network.
 # Remember to set APP_URL, DISCORD_REDIRECT_URI, SESSION_DOMAIN and
 # SANCTUM_STATEFUL_DOMAINS in .env to your public https domain.
 services:
@@ -15,7 +14,6 @@ services:
       proxy:
         aliases:
           - starbuddy-web
-          - starmaker-web
 
 networks:
   proxy:

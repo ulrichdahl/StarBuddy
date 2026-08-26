@@ -135,7 +135,7 @@ class BotController extends Controller
         }
         $user = User::where('discord_id', $data['discord_id'])->first();
         if (! $user) {
-            return response()->json(['message' => 'That player has not signed in to StarMaker yet.'], 404);
+            return response()->json(['message' => 'That player has not signed in to StarBuddy yet.'], 404);
         }
 
         // Managers are active members by definition.

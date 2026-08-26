@@ -16,7 +16,6 @@ class SyncLocations extends Command
     protected $signature = 'starbuddy:sync-locations';
 
     // Pre-rename name, kept so old habits and scripts keep working.
-    protected $aliases = ['starmaker:sync-locations'];
 
     protected $description = 'Sync shared locations (cities, stations) from the SC Trade Tools API';
 

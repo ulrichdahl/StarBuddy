@@ -67,11 +67,11 @@ Point your nginx/SSL proxy at `http://starbuddy-web:80` on that network, and
 set `APP_URL`, `DISCORD_REDIRECT_URI`, `SESSION_DOMAIN`, and
 `SANCTUM_STATEFUL_DOMAINS` in `.env` to your public https domain.
 
-Persistent data lives under `STARMAKER_DATA_DIR` (default `./data`):
+Persistent data lives under `STARBUDDY_DATA_DIR` (default `./data`):
 `postgres/` is the database, `backups/` receives nightly dumps kept 14 days.
 Point it at an absolute path on servers and include it in your backups.
 
-Open `http://localhost:8080` (or your `APP_URL`) and sign in with Discord. Only members of the configured `STARMAKER_HOME_GUILD_ID` can join. Nightly database dumps land in `./backups/`.
+Open `http://localhost:8080` (or your `APP_URL`) and sign in with Discord. Only members of the configured `STARBUDDY_HOME_GUILD_ID` can join. Nightly database dumps land in `./backups/`.
 
 ## Fair play
 
