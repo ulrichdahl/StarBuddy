@@ -87,8 +87,8 @@
       "notice": "Notice"
     },
     "shutdownIn": "Servers go offline in {{time}}",
-    "shutdownAt": "Servers offline at {{time}} UTC",
-    "shutdownPassed": "Servers went offline at {{time}} UTC",
+    "shutdownAt": "Servers offline at {{time}}",
+    "shutdownPassed": "Servers went offline at {{time}}",
     "stow": "Stow your ships and gear now.",
     "openStatus": "RSI status page",
     "showDetails": "Details",
@@ -96,6 +96,6 @@
     "collapse": "Collapse alert",
     "expand": "Show alert",
     "notificationTitle": "Star Citizen: {{severity}}",
-    "updated": "Updated {{time}} UTC"
+    "updated": "Updated {{time}}"
   }
 }

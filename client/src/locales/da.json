@@ -87,8 +87,8 @@
       "notice": "Meddelelse"
     },
     "shutdownIn": "Serverne lukker om {{time}}",
-    "shutdownAt": "Serverne lukker kl. {{time}} UTC",
-    "shutdownPassed": "Serverne lukkede kl. {{time}} UTC",
+    "shutdownAt": "Serverne lukker kl. {{time}}",
+    "shutdownPassed": "Serverne lukkede kl. {{time}}",
     "stow": "Pak dine skibe og dit udstyr væk nu.",
     "openStatus": "RSI’s statusside",
     "showDetails": "Detaljer",
@@ -96,6 +96,6 @@
     "collapse": "Fold advarslen sammen",
     "expand": "Vis advarslen",
     "notificationTitle": "Star Citizen: {{severity}}",
-    "updated": "Opdateret kl. {{time}} UTC"
+    "updated": "Opdateret kl. {{time}}"
   }
 }

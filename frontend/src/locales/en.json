@@ -424,8 +424,8 @@
       "notice": "Notice"
     },
     "shutdownIn": "Servers go offline in {{time}}",
-    "shutdownAt": "Servers offline at {{time}} UTC",
-    "shutdownPassed": "Servers went offline at {{time}} UTC",
+    "shutdownAt": "Servers offline at {{time}}",
+    "shutdownPassed": "Servers went offline at {{time}}",
     "stow": "Stow your ships and gear now.",
     "openStatus": "RSI status page",
     "showDetails": "Details",
@@ -436,7 +436,7 @@
     "notifyOn": "Browser notifications on — click to turn off",
     "notifyBlocked": "Notifications are blocked in your browser settings",
     "notificationTitle": "Star Citizen: {{severity}}",
-    "updated": "Updated {{time}} UTC",
+    "updated": "Updated {{time}}",
     "resolved": "Resolved: {{title}}"
   }
 }

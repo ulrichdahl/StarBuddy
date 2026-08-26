@@ -99,8 +99,9 @@ function writeSeen(seen: Set<string>) {
   }
 }
 
-function utcTime(iso: string, language: string) {
-  return new Date(iso).toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
+/** Local clock time with a short zone label ("16:45 CEST"). */
+function localTime(iso: string, language: string) {
+  return new Date(iso).toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
 }
 
 function countdown(ms: number) {
@@ -224,7 +225,7 @@ function App() {
         for (const incident of fresh) {
           const severity = t(`status.severity.${asSeverity(incident.severity)}`);
           const shutdown = incident.shutdown_at
-            ? t("status.shutdownAt", { time: utcTime(incident.shutdown_at, i18n.language) })
+            ? t("status.shutdownAt", { time: localTime(incident.shutdown_at, i18n.language) })
             : "";
           sendNotification({
             title: t("status.notificationTitle", { severity }),
@@ -373,7 +374,7 @@ function App() {
       {activeIncidents.map((incident) => {
         const severity = asSeverity(incident.severity);
         const shutdownMs = incident.shutdown_at ? new Date(incident.shutdown_at).getTime() - now : null;
-        const shutdownTime = incident.shutdown_at ? utcTime(incident.shutdown_at, i18n.language) : null;
+        const shutdownTime = incident.shutdown_at ? localTime(incident.shutdown_at, i18n.language) : null;
         const urgent = shutdownMs !== null && shutdownMs > 0;
         const timing =
           shutdownMs === null
@@ -421,7 +422,7 @@ function App() {
             {timing && (
               <p className={`status-countdown mono${urgent ? " big" : ""}`}>
                 {timing}
-                {urgent && shutdownTime && <span className="hint"> ({shutdownTime} UTC)</span>}
+                {urgent && shutdownTime && <span className="hint"> ({shutdownTime})</span>}
               </p>
             )}
             {urgent && <p className="status-stow">{t("status.stow")}</p>}
@@ -437,7 +438,7 @@ function App() {
               )}
               {incident.updated_at && (
                 <span className="hint status-updated">
-                  {t("status.updated", { time: utcTime(incident.updated_at, i18n.language) })}
+                  {t("status.updated", { time: localTime(incident.updated_at, i18n.language) })}
                 </span>
               )}
             </div>

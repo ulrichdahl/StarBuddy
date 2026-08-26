@@ -83,8 +83,9 @@ const readFlag = (key: string) => {
   }
 }
 
-function formatUtcTime(iso: string, language: string) {
-  return new Date(iso).toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })
+/** Viewer-local clock time with a short zone label ("16:45 CEST"). */
+function formatLocalTime(iso: string, language: string) {
+  return new Date(iso).toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })
 }
 
 function formatCountdown(ms: number) {
@@ -219,7 +220,7 @@ export function StatusAlertBanner() {
     for (const incident of fresh) {
       const severity = t(`status.severity.${asSeverity(incident.severity)}`)
       const shutdown = incident.shutdown_at
-        ? t('status.shutdownAt', { time: formatUtcTime(incident.shutdown_at, i18n.language) })
+        ? t('status.shutdownAt', { time: formatLocalTime(incident.shutdown_at, i18n.language) })
         : ''
       try {
         const n = new Notification(t('status.notificationTitle', { severity }), {
@@ -285,7 +286,7 @@ export function StatusAlertBanner() {
         const key = versionKey(incident)
         const isCollapsed = collapsed.has(key)
         const shutdownMs = incident.shutdown_at ? new Date(incident.shutdown_at).getTime() - now : null
-        const shutdownTime = incident.shutdown_at ? formatUtcTime(incident.shutdown_at, i18n.language) : null
+        const shutdownTime = incident.shutdown_at ? formatLocalTime(incident.shutdown_at, i18n.language) : null
         const countdown =
           shutdownMs === null
             ? null
@@ -385,7 +386,7 @@ export function StatusAlertBanner() {
                     {countdown}
                     {urgent && shutdownTime && (
                       <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1, fontWeight: 400 }}>
-                        ({shutdownTime} UTC)
+                        ({shutdownTime})
                       </Typography>
                     )}
                   </Typography>
@@ -427,13 +428,7 @@ export function StatusAlertBanner() {
                   )}
                   {incident.updated_at && (
                     <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
-                      {t('status.updated', {
-                        time: new Date(incident.updated_at).toLocaleString(i18n.language, {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          timeZone: 'UTC',
-                        }),
-                      })}
+                      {t('status.updated', { time: formatLocalTime(incident.updated_at, i18n.language) })}
                     </Typography>
                   )}
                 </Box>
@@ -474,7 +469,7 @@ export function StatusAlertBanner() {
               {incident.resolved_at && (
                 <Typography component="span" variant="body2" color="text.secondary">
                   {' '}
-                  · {formatUtcTime(incident.resolved_at, i18n.language)} UTC
+                  · {formatLocalTime(incident.resolved_at, i18n.language)}
                 </Typography>
               )}
             </Typography>
