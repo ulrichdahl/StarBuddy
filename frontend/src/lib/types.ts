@@ -166,8 +166,13 @@ export interface ImportPreview {
 
 /** Body for DELETE /api/admin/inventory. */
 export interface BulkClearRequest {
-  // Game wipe: every material and item stack of every org member.
+  org_id?: number
+  // Patch reset: every material stack of every org member (private included).
   everything?: boolean
+  // With `everything`: only these resource categories (omit = all).
+  resource_categories?: string[]
+  // With `everything`: also remove item stacks (crafted items etc.).
+  items?: boolean
   resource_type_id?: number
   category?: string
   member_id?: number

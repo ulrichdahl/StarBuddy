@@ -80,6 +80,19 @@ class AdminInventoryTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'inventory.wipe', 'user_id' => $this->manager->id]);
     }
 
+    public function test_patch_reset_can_keep_items_and_limit_categories(): void
+    {
+        // LTP kept the crafted items and the gems this patch: wipe ore only.
+        $this->actingAs($this->manager)
+            ->deleteJson('/api/admin/inventory', ['everything' => true, 'resource_categories' => ['ore'], 'items' => false])
+            ->assertOk()
+            ->assertJsonPath('cleared.resource_stacks', 2)
+            ->assertJsonPath('cleared.item_stacks', 0);
+
+        $this->assertSame(1, ResourceStack::where('resource_type_id', $this->gemId)->count(), 'gems kept');
+        $this->assertSame(1, ItemStack::count(), 'items kept');
+    }
+
     public function test_plain_members_and_empty_scope_are_refused(): void
     {
         $this->actingAs($this->member)->deleteJson('/api/admin/inventory', ['everything' => true])->assertForbidden();

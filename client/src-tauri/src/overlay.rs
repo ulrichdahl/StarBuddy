@@ -69,6 +69,11 @@ impl Default for OverlayPrefs {
 pub struct OverlayState {
     prefs: Mutex<OverlayPrefs>,
     last_saved: Mutex<Instant>,
+    /// Per window: ignore Moved events until this instant. Set around our
+    /// own show()/set_position() calls, because the window manager may
+    /// re-place a re-shown window and report that as a move — which must
+    /// not overwrite the position the player chose.
+    quiet_until: Mutex<HashMap<String, Instant>>,
 }
 
 impl OverlayState {
@@ -77,8 +82,20 @@ impl OverlayState {
             .and_then(|p| fs::read(p).ok())
             .and_then(|b| serde_json::from_slice(&b).ok())
             .unwrap_or_default();
-        Self { prefs: Mutex::new(prefs), last_saved: Mutex::new(Instant::now() - Duration::from_secs(10)) }
+        Self {
+            prefs: Mutex::new(prefs),
+            last_saved: Mutex::new(Instant::now() - Duration::from_secs(10)),
+            quiet_until: Mutex::new(HashMap::new()),
+        }
     }
+}
+
+fn quiet(app: &AppHandle, name: &str, ms: u64) {
+    app.state::<OverlayState>().quiet_until.lock().unwrap().insert(name.to_string(), Instant::now() + Duration::from_millis(ms));
+}
+
+fn is_quiet(app: &AppHandle, name: &str) -> bool {
+    app.state::<OverlayState>().quiet_until.lock().unwrap().get(name).is_some_and(|t| Instant::now() < *t)
 }
 
 fn prefs_path(app: &AppHandle) -> Option<PathBuf> {
@@ -134,6 +151,7 @@ pub fn toggle(app: &AppHandle, name: &str) -> Result<bool, String> {
         if visible {
             win.hide().map_err(|e| e.to_string())?;
         } else {
+            quiet(app, name, 1000);
             win.show().map_err(|e| e.to_string())?;
             let _ = apply_layout(app, name);
         }
@@ -175,6 +193,7 @@ pub fn show_if_open(app: &AppHandle, name: &str) {
 
 fn create(app: &AppHandle, name: &str) -> Result<(), String> {
     let prefs = window_prefs(app, name);
+    quiet(app, name, 1500);
     // The name travels as a global set before any page script runs; the
     // query string is kept for `vite dev`, where it is the only channel.
     let url = WebviewUrl::App(format!("index.html?window={name}").into());
@@ -206,13 +225,22 @@ fn create(app: &AppHandle, name: &str) -> Result<(), String> {
             on_moved(&app2, &name2, *pos);
         }
     });
-    apply_layout(app, name)
+    if let Err(e) = apply_layout(app, name) {
+        eprintln!("overlay {name}: initial layout skipped: {e}");
+    }
+    Ok(())
 }
 
 /// Floating windows remember where they were dropped; edge-docked windows
 /// keep only the along-edge coordinate and snap back to their edge.
 fn on_moved(app: &AppHandle, name: &str, pos: PhysicalPosition<i32>) {
+    if is_quiet(app, name) {
+        return;
+    }
     let Some(win) = app.get_webview_window(&label(name)) else { return };
+    if !win.is_visible().unwrap_or(false) {
+        return;
+    }
     let scale = win.scale_factor().unwrap_or(1.0);
     let logical: LogicalPosition<f64> = pos.to_logical(scale);
     let mode = window_prefs(app, name).mode;
@@ -261,6 +289,7 @@ pub fn apply_layout(app: &AppHandle, name: &str) -> Result<(), String> {
 
     let current: LogicalPosition<f64> = win.outer_position().map_err(|e| e.to_string())?.to_logical(scale);
     if (current.x - target.x).abs() > 0.5 || (current.y - target.y).abs() > 0.5 {
+        quiet(app, name, 300);
         win.set_position(target).map_err(|e| e.to_string())?;
     }
     Ok(())

@@ -21,7 +21,8 @@ import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import { api, unwrapList } from '../lib/api'
-import type { BulkClearRequest, BulkClearResult, Location, ResourceType } from '../lib/types'
+import { useMe } from '../lib/auth'
+import type { BulkClearRequest, BulkClearResult, Location, OrgMember, ResourceType } from '../lib/types'
 import { PageHeader } from '../components/PageHeader'
 
 type ScopeMode = 'category' | 'type' | 'everything'
@@ -38,11 +39,17 @@ export function AdminPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
 
+  const { me } = useMe()
   const [mode, setMode] = useState<ScopeMode>('category')
   const [includePrivate, setIncludePrivate] = useState(false)
   const [category, setCategory] = useState('')
   const [resourceType, setResourceType] = useState<ResourceType | null>(null)
-  const [memberId, setMemberId] = useState('')
+  const [member, setMember] = useState<OrgMember | null>(null)
+  const [orgId, setOrgId] = useState<number | ''>('')
+  // Patch reset: LTP keeps a moving subset (gems one patch, materials the
+  // next, crafted items mostly) — so the admin picks what actually went.
+  const [wipeCategories, setWipeCategories] = useState<Set<string> | null>(null) // null = all
+  const [wipeItems, setWipeItems] = useState(false)
   const [locationId, setLocationId] = useState<number | ''>('')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [confirmText, setConfirmText] = useState('')
@@ -60,6 +67,17 @@ export function AdminPage() {
 
   const categories = [...new Set(resourceTypes.map((rt) => rt.category))].sort()
 
+  const orgs = me?.orgs ?? []
+  const effectiveOrgId = orgId !== '' ? orgId : orgs[0]?.id
+  const { data: members = [] } = useQuery({
+    queryKey: ['org-members', effectiveOrgId],
+    enabled: effectiveOrgId !== undefined,
+    queryFn: async () => unwrapList<OrgMember>((await api.get(`/api/orgs/${effectiveOrgId}/members`)).data),
+  })
+  const activeMembers = members.filter((m) => m.status === 'active')
+  const memberLabel = (m: OrgMember) => (m.handle ? `${m.handle} (${m.name})` : m.name)
+  const selectedWipeCategories = wipeCategories ?? new Set(categories)
+
   const clearInventory = useMutation({
     mutationFn: (body: BulkClearRequest) =>
       api.delete<BulkClearResult>('/api/admin/inventory', { data: body }),
@@ -73,27 +91,44 @@ export function AdminPage() {
     },
   })
 
-  const hasTarget = mode === 'everything' || (mode === 'category' ? category !== '' : resourceType !== null)
+  const hasTarget =
+    mode === 'everything'
+      ? selectedWipeCategories.size > 0 || wipeItems
+      : mode === 'category'
+        ? category !== ''
+        : resourceType !== null
 
   const buildRequest = (): BulkClearRequest => ({
+    ...(effectiveOrgId !== undefined ? { org_id: effectiveOrgId } : {}),
     ...(mode === 'everything'
-      ? { everything: true }
+      ? {
+          everything: true,
+          items: wipeItems,
+          ...(wipeCategories && wipeCategories.size < categories.length
+            ? { resource_categories: [...wipeCategories] }
+            : {}),
+        }
       : mode === 'category'
         ? { category, include_private: includePrivate }
         : { resource_type_id: resourceType?.id, include_private: includePrivate }),
-    ...(memberId !== '' ? { member_id: Number(memberId) } : {}),
+    ...(member ? { member_id: member.id } : {}),
     ...(locationId !== '' ? { location_id: locationId } : {}),
   })
 
   // Category, resource and location names are game data — interpolated verbatim.
   const scopeSummary = [
     mode === 'everything'
-      ? t('admin.scopeEverything')
+      ? [
+          selectedWipeCategories.size === categories.length
+            ? t('admin.scopeAllMaterials')
+            : t('admin.scopeMaterialsIn', { list: [...selectedWipeCategories].sort().join(', ') || '—' }),
+          wipeItems ? t('admin.scopeItemsToo') : t('admin.scopeItemsKept'),
+        ].join(', ')
       : mode === 'category'
         ? t('admin.scopeCategory', { name: category })
         : t('admin.scopeResource', { name: resourceType?.name }),
     mode === 'everything' || includePrivate ? t('admin.scopeWithPrivate') : t('admin.scopeOrgOnly'),
-    memberId !== '' ? t('admin.scopeMember', { id: memberId }) : t('admin.scopeAllMembers'),
+    member ? t('admin.scopeMember', { name: memberLabel(member) }) : t('admin.scopeAllMembers'),
     locationId !== ''
       ? t('admin.scopeLocation', { name: locations.find((l) => l.id === locationId)?.name })
       : t('admin.scopeAllLocations'),
@@ -126,10 +161,61 @@ export function AdminPage() {
             <ToggleButton value="everything">{t('admin.everything')}</ToggleButton>
           </ToggleButtonGroup>
 
+          {orgs.length > 1 && (
+            <TextField
+              select
+              label={t('admin.org')}
+              value={effectiveOrgId ?? ''}
+              onChange={(e) => {
+                setOrgId(Number(e.target.value))
+                setMember(null)
+              }}
+            >
+              {orgs.map((o) => (
+                <MenuItem key={o.id} value={o.id}>
+                  {o.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
+
           {mode === 'everything' ? (
-            <Alert severity="warning" variant="outlined">
-              {t('admin.everythingHelp')}
-            </Alert>
+            <>
+              <Alert severity="warning" variant="outlined">
+                {t('admin.everythingHelp')}
+              </Alert>
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                  {t('admin.wipeWhat')}
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 2 }}>
+                  {categories.map((cat) => (
+                    <FormControlLabel
+                      key={cat}
+                      control={
+                        <Checkbox
+                          checked={selectedWipeCategories.has(cat)}
+                          onChange={(e) => {
+                            const next = new Set(selectedWipeCategories)
+                            if (e.target.checked) next.add(cat)
+                            else next.delete(cat)
+                            setWipeCategories(next)
+                          }}
+                        />
+                      }
+                      label={cat}
+                    />
+                  ))}
+                  <FormControlLabel
+                    control={<Checkbox checked={wipeItems} onChange={(e) => setWipeItems(e.target.checked)} />}
+                    label={t('admin.wipeItems')}
+                  />
+                </Box>
+                <Typography variant="caption" color="text.secondary">
+                  {t('admin.wipeWhatHelp')}
+                </Typography>
+              </Box>
+            </>
           ) : mode === 'category' ? (
             <TextField
               select
@@ -162,12 +248,15 @@ export function AdminPage() {
             />
           )}
 
-          <TextField
-            label={t('admin.memberIdOptional')}
-            type="number"
-            value={memberId}
-            onChange={(e) => setMemberId(e.target.value)}
-            helperText={t('admin.memberIdHelp')}
+          <Autocomplete
+            options={activeMembers}
+            value={member}
+            onChange={(_, value) => setMember(value)}
+            getOptionLabel={memberLabel}
+            isOptionEqualToValue={(a, b) => a.id === b.id}
+            renderInput={(params) => (
+              <TextField {...params} label={t('admin.memberOptional')} helperText={t('admin.memberHelp')} />
+            )}
           />
 
           <TextField

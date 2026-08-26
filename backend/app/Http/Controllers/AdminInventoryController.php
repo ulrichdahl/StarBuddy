@@ -20,8 +20,13 @@ class AdminInventoryController extends Controller
     {
         $data = $request->validate([
             'org_id' => ['nullable', 'exists:orgs,id'],
-            // Game wipe: every material and item stack of every org member.
+            // Patch reset: every material stack of every org member (optionally
+            // only some categories — long-term persistence keeps a moving
+            // subset from patch to patch) and, if asked, item stacks too.
             'everything' => ['nullable', 'boolean'],
+            'resource_categories' => ['nullable', 'array'],
+            'resource_categories.*' => ['string'],
+            'items' => ['nullable', 'boolean'],
             'resource_type_id' => ['nullable', 'exists:resource_types,id'],
             'category' => ['nullable', 'string'],
             'item_class' => ['nullable', 'string'],
@@ -33,6 +38,8 @@ class AdminInventoryController extends Controller
         ]);
 
         $everything = (bool) ($data['everything'] ?? false);
+        $wipeCategories = $data['resource_categories'] ?? null;   // null = all
+        $wipeItems = (bool) ($data['items'] ?? true);
         $typeId = $data['resource_type_id'] ?? null;
         $category = $data['category'] ?? null;
         $itemClass = $data['item_class'] ?? null;
@@ -59,15 +66,16 @@ class AdminInventoryController extends Controller
 
         $cleared = ['resource_stacks' => 0, 'item_stacks' => 0];
 
-        if ($everything || $typeId || $category) {
+        if (($everything && $wipeCategories !== []) || $typeId || $category) {
             $query = $scope(ResourceStack::query())
                 ->when($typeId, fn ($q, $id) => $q->where('resource_type_id', $id))
-                ->when($category, fn ($q, $c) => $q->whereHas('resourceType', fn ($t) => $t->where('category', $c)));
+                ->when($category, fn ($q, $c) => $q->whereHas('resourceType', fn ($t) => $t->where('category', $c)))
+                ->when($everything && $wipeCategories !== null, fn ($q) => $q->whereHas('resourceType', fn ($t) => $t->whereIn('category', $wipeCategories)));
             $cleared['resource_stacks'] = $query->count();
             $query->delete();
         }
 
-        if ($everything || $itemClass) {
+        if (($everything && $wipeItems) || $itemClass) {
             $query = $scope(ItemStack::query())
                 ->when($itemClass, fn ($q, $c) => $q->where('item_class', $c));
             $cleared['item_stacks'] = $query->count();
