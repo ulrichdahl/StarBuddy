@@ -35,7 +35,8 @@ if ! flock -n 9; then
     exit 0
 fi
 
-git fetch --quiet origin "$BRANCH"
+# Tags too: the version string comes from `git describe`.
+git fetch --quiet --tags origin "$BRANCH"
 LOCAL=$(git rev-parse HEAD)
 REMOTE=$(git rev-parse "origin/$BRANCH")
 
