@@ -723,6 +723,14 @@ function App() {
           <img src="/made-by-the-community.svg" alt="Star Citizen — Made by the Community" width="64" height="64" />
         </a>
         <div>
+          <p className="credit">
+            {t("footer.creditPrefix")}{" "}
+            <button className="link-button" onClick={() => openUrl("https://uniteddanes.org").catch(() => {})}>United Danes</button>
+            {t("footer.creditMiddle")}{" "}
+            <button className="link-button" onClick={() => openUrl("https://robertsspaceindustries.com/citizens/DK-Raven").catch(() => {})}>DK-Raven</button>
+            {" "}{t("footer.creditWith")}{" "}
+            <button className="link-button" onClick={() => openUrl("https://claude.ai").catch(() => {})}>Claude.ai</button>.
+          </p>
           <p>
             {t("footer.disclaimer")}{" "}
             <a href="https://robertsspaceindustries.com/" target="_blank" rel="noopener">robertsspaceindustries.com</a>

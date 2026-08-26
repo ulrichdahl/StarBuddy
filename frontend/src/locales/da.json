@@ -32,7 +32,8 @@
     "trademarks": "Star Citizen®, Roberts Space Industries® og Cloud Imperium® er registrerede varemærker tilhørende Cloud Imperium Rights LLC.",
     "freeSoftware": "StarBuddy er fri software (AGPL-3.0) —",
     "source": "kildekode på GitHub",
-    "badgeAlt": "Star Citizen — Made by the Community"
+    "badgeAlt": "Star Citizen — Made by the Community",
+    "credit": "Et <community>United Danes</community>-fællesskabsprojekt — bygget af <author>DK-Raven</author> med <claude>Claude.ai</claude>."
   },
   "import": {
     "title": "Import",

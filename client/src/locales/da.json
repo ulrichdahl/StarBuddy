@@ -74,7 +74,10 @@
   "footer": {
     "disclaimer": "Dette er en uofficiel Star Citizen-fanapplikation uden tilknytning til Cloud Imperium-koncernen. Alt indhold, der ikke er skabt af værten eller brugerne, tilhører de respektive ejere.",
     "trademark": "Star Citizen®, Roberts Space Industries® og Cloud Imperium® er registrerede varemærker tilhørende Cloud Imperium Rights LLC. StarBuddy er fri software (AGPL-3.0) —",
-    "source": "kildekode på GitHub"
+    "source": "kildekode på GitHub",
+    "creditPrefix": "Et",
+    "creditMiddle": "-fællesskabsprojekt — bygget af",
+    "creditWith": "med"
   },
   "common": {
     "separator": " · "

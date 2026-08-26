@@ -1,4 +1,4 @@
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
@@ -8,6 +8,7 @@ import Typography from '@mui/material/Typography'
  * resized, never recolored, ≥50% opacity), the required fan-site notice in
  * readable type, a link to the official site, and the trademark notice.
  * https://support.robertsspaceindustries.com/hc/en-us/articles/360006895793
+ * Above it, the project credit: the community it was built for and by whom.
  */
 export function FanSiteFooter() {
   const { t } = useTranslation()
@@ -41,6 +42,16 @@ export function FanSiteFooter() {
         />
       </Box>
       <Box sx={{ flex: 1, minWidth: 260 }}>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          <Trans
+            i18nKey="footer.credit"
+            components={{
+              community: <Link href="https://uniteddanes.org" target="_blank" rel="noopener" color="primary" />,
+              author: <Link href="https://robertsspaceindustries.com/citizens/DK-Raven" target="_blank" rel="noopener" color="inherit" />,
+              claude: <Link href="https://claude.ai" target="_blank" rel="noopener" color="inherit" />,
+            }}
+          />
+        </Typography>
         <Typography variant="body2" color="text.secondary">
           {t('footer.notice')}{' '}
           <Link href="https://robertsspaceindustries.com/" target="_blank" rel="noopener" color="inherit">

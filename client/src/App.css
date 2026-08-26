@@ -387,3 +387,12 @@ th {
   margin-left: auto;
   font-size: 12px;
 }
+
+.fansite .credit {
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+.fansite .credit .link-button {
+  color: var(--accent);
+  font: inherit;
+}
