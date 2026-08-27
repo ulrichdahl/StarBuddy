@@ -12,6 +12,7 @@ mod changes;
 mod kde_rule;
 mod overlay;
 pub mod scan;
+pub mod sigs;
 
 // Notification lines are duplicated in the log (queued + displayed); events
 // are deduplicated on (timestamp, detail). Names can contain quotes
@@ -1030,7 +1031,9 @@ pub fn run() {
             scan::scan_live_toggle,
             scan::scan_live_running,
             scan::scan_region_get,
-            scan::scan_region_set
+            scan::scan_region_set,
+            sigs::scan_lookup,
+            sigs::scan_signatures_refresh
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

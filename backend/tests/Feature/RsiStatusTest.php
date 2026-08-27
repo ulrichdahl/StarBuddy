@@ -22,6 +22,8 @@ class RsiStatusTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Fixtures are dated 2026-08-26; the 12-hour "recent" window is relative to now.
+        \Illuminate\Support\Carbon::setTestNow('2026-08-26 19:00:00');
         Http::fake(function ($request) {
             $url = $request->url();
             foreach ($this->stubs as $pattern => $payload) {

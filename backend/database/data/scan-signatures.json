@@ -1,0 +1,535 @@
+{
+  "_meta": {
+    "patch": "4.10",
+    "updated": "2026-08-27",
+    "notes": "Radar signature (RS) of ship-mineable rocks since Alpha 4.7: every mineral has a fixed base signature; the scanner shows the SUM over a cluster (18,000 = 5 x Bexalite 3,600). Ground deposits encode only size: 3,000 = hand-mineable, 4,000 = ROC/vehicle deposit (also summed); their mineral follows from the location. 3,000 also matches capital-wreck debris.",
+    "sources": [
+      "Star Citizen game files (Game2.dcb, MineableElement records): signatures, instability, resistance",
+      "Diftic/SC_Signature_Scanner SignatureValue.md via lostspezi/starvein data/curated/signature-profiles.json (MIT): dominant share and companion minerals",
+      "Hunter-36/sc-ore-scanner core/data/signatures.json (MIT): independent cross-check of the signature table"
+    ]
+  },
+  "ground": {
+    "fps": 3000,
+    "roc": 4000
+  },
+  "ores": [
+    {
+      "name": "Quantainium",
+      "signature": 3170,
+      "instability": 1000,
+      "resistance": 0.95,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Beryl",
+          "share": [
+            10,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Stileron",
+      "signature": 3185,
+      "instability": 870,
+      "resistance": 0.6,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Taranite",
+          "share": [
+            10,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Savrilium",
+      "signature": 3200,
+      "instability": 1000,
+      "resistance": 0.95,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Gold",
+          "share": [
+            10,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ouratite",
+      "signature": 3370,
+      "instability": 600,
+      "resistance": 0.6,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Agricium",
+          "share": [
+            10,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Riccite",
+      "signature": 3385,
+      "instability": 850,
+      "resistance": 0.95,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Laranite",
+          "share": [
+            10,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Lindinium",
+      "signature": 3400,
+      "instability": 1000,
+      "resistance": 0.95,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Tungsten",
+          "share": [
+            10,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Beryl",
+      "signature": 3540,
+      "instability": 350,
+      "resistance": 0.65,
+      "dominant": [
+        50,
+        100
+      ],
+      "companions": []
+    },
+    {
+      "name": "Taranite",
+      "signature": 3555,
+      "instability": 700,
+      "resistance": 0.5,
+      "dominant": [
+        50,
+        100
+      ],
+      "companions": []
+    },
+    {
+      "name": "Borase",
+      "signature": 3570,
+      "instability": 40,
+      "resistance": 0.3,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Gold",
+          "share": [
+            5,
+            10
+          ]
+        },
+        {
+          "name": "Bexalite",
+          "share": [
+            5,
+            10
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Gold",
+      "signature": 3585,
+      "instability": 550,
+      "resistance": 0.5,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Borase",
+          "share": [
+            5,
+            10
+          ]
+        },
+        {
+          "name": "Bexalite",
+          "share": [
+            5,
+            10
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bexalite",
+      "signature": 3600,
+      "instability": 600,
+      "resistance": 0.6,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Gold",
+          "share": [
+            5,
+            10
+          ]
+        },
+        {
+          "name": "Borase",
+          "share": [
+            5,
+            10
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Laranite",
+      "signature": 3825,
+      "instability": 400,
+      "resistance": 0.5,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Tungsten",
+          "share": [
+            10,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Aslarite",
+      "signature": 3840,
+      "instability": 700,
+      "resistance": 0.5,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Titanium",
+          "share": [
+            5,
+            10
+          ]
+        },
+        {
+          "name": "Agricium",
+          "share": [
+            5,
+            10
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Titanium",
+      "signature": 3855,
+      "instability": 0,
+      "resistance": 0.1,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Aslarite",
+          "share": [
+            5,
+            10
+          ]
+        },
+        {
+          "name": "Agricium",
+          "share": [
+            5,
+            10
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tungsten",
+      "signature": 3870,
+      "instability": 0,
+      "resistance": -0.4,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Laranite",
+          "share": [
+            10,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Agricium",
+      "signature": 3885,
+      "instability": 350,
+      "resistance": 0.5,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Titanium",
+          "share": [
+            5,
+            10
+          ]
+        },
+        {
+          "name": "Aslarite",
+          "share": [
+            5,
+            10
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Torite",
+      "signature": 3900,
+      "instability": 550,
+      "resistance": 0.25,
+      "dominant": [
+        50,
+        100
+      ],
+      "companions": []
+    },
+    {
+      "name": "Hephaestanite",
+      "signature": 4180,
+      "instability": 400,
+      "resistance": -0.3,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Quartz",
+          "share": [
+            5,
+            10
+          ]
+        },
+        {
+          "name": "Silicon",
+          "share": [
+            5,
+            10
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tin",
+      "signature": 4195,
+      "instability": 0,
+      "resistance": -0.2,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Copper",
+          "share": [
+            10,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Quartz",
+      "signature": 4210,
+      "instability": 50,
+      "resistance": -0.7,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Hephaestanite",
+          "share": [
+            5,
+            10
+          ]
+        },
+        {
+          "name": "Silicon",
+          "share": [
+            5,
+            10
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Corundum",
+      "signature": 4225,
+      "instability": 50,
+      "resistance": 0.1,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Aluminum",
+          "share": [
+            10,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Copper",
+      "signature": 4240,
+      "instability": 50,
+      "resistance": -0.7,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Tin",
+          "share": [
+            10,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Silicon",
+      "signature": 4255,
+      "instability": 50,
+      "resistance": -0.2,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Hephaestanite",
+          "share": [
+            5,
+            10
+          ]
+        },
+        {
+          "name": "Quartz",
+          "share": [
+            5,
+            10
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Iron",
+      "signature": 4270,
+      "instability": 50,
+      "resistance": -0.4,
+      "dominant": [
+        50,
+        100
+      ],
+      "companions": []
+    },
+    {
+      "name": "Aluminum",
+      "signature": 4285,
+      "instability": 0,
+      "resistance": -0.4,
+      "dominant": [
+        40,
+        80
+      ],
+      "companions": [
+        {
+          "name": "Corundum",
+          "share": [
+            10,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ice",
+      "signature": 4300,
+      "instability": 0,
+      "resistance": -0.5,
+      "dominant": [
+        50,
+        100
+      ],
+      "companions": []
+    }
+  ]
+}

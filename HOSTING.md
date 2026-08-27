@@ -143,6 +143,7 @@ sm exec app php artisan starbuddy:sync-resource-types
 sm exec app php artisan starbuddy:sync-locations
 sm exec app php artisan starbuddy:sync-quality-bands
 sm exec app php artisan starbuddy:sync-rarity          # ~2 min
+sm exec app php artisan starbuddy:sync-scan-signatures # radar signatures, from the repo
 sm run --rm bot node dist/register-commands.js
 ```
 

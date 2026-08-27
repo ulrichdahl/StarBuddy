@@ -162,10 +162,10 @@
     "hotkeyStatus": "Genvejstast til statusvinduet",
     "hotkeyScan": "Genvejstast til scanning",
     "scanNow": "Scan nu (v1)",
-    "scanHint": "Scan v1: F7 slår en live-læser til, som holder øje med signaturområdet i spilbilledet (omkring midten, en tredjedel nede) og læser det gule signaturmærke med lokal OCR, når det ændrer sig; \"Scan nu\" læser ét helt billede. Modeller ≈ 15 MB, hentes én gang. Skærmbilleder forlader aldrig denne maskine.",
+    "scanHint": "Scanning v2: F7 slår en live-aflæser til, der holder øje med signaturområdet i spilbilledet (omkring midten, en tredjedel nede) og læser det gule signaturmærke med lokal OCR cirka én gang i sekundet; værdien slås op i referencetabellen, og vinduet navngiver mineralet (eller klyngen) og hvad klippen indeholder. \"Scan nu\" læser ét helt billede. Modeller ≈ 15 MB, hentes én gang. Skærmbilleder forlader aldrig denne maskine.",
     "scan": {
       "windowName": "Scanningsvindue",
-      "eyebrow": "Scanning · v1",
+      "eyebrow": "Scanning · v2",
       "title": "Scanning",
       "idle": "Tryk på scannings-genvejstasten på et scanningsresultat.",
       "phase": {
@@ -189,7 +189,33 @@
       "live": "LIVE",
       "liveOn": "Live: til",
       "liveOff": "Live: fra",
-      "liveWaiting": "Holder øje med signaturområdet — ping en kontakt i scanningstilstand."
+      "liveWaiting": "Holder øje med signaturområdet — ping en kontakt i scanningstilstand.",
+      "match": {
+        "cluster": "{{name}} × {{count}}",
+        "fps": "Håndminerbar forekomst",
+        "fpsCluster": "{{count}} håndminerbare forekomster",
+        "roc": "ROC-/køretøjsforekomst",
+        "rocCluster": "{{count}} ROC-/køretøjsforekomster",
+        "unknown": "Intet kendt mineral for denne signatur",
+        "approx": "nærmeste match",
+        "alternatives": "Kan også være",
+        "share": "Andel af klippen",
+        "companions": "Også i klippen",
+        "resistance": "Modstand",
+        "instability": "Ustabilitet",
+        "quality": "Kvalitet",
+        "hard": "hård",
+        "easy": "let",
+        "groundHint": "Forekomster på jorden bærer kun deres størrelse i signaturen — mineralet følger af hvor du er.",
+        "wreckHint": "3.000 er også signaturen for vragdele fra kapitalskibe."
+      },
+      "rarity": {
+        "common": "almindelig",
+        "uncommon": "ualmindelig",
+        "rare": "sjælden",
+        "epic": "episk",
+        "legendary": "legendarisk"
+      }
     },
     "liveScanStart": "Start live-scanning (F7)",
     "liveScanStop": "Stop live-scanning (F7)"

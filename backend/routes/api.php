@@ -21,6 +21,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('dashboard', DashboardController::class);
     Route::get('status', \App\Http\Controllers\StatusController::class);
+    Route::get('scan/signatures', [\App\Http\Controllers\ScanController::class, 'signatures']);
+    Route::get('scan/signature/{value}', [\App\Http\Controllers\ScanController::class, 'lookup']);
     Route::get('craftability', \App\Http\Controllers\CraftabilityController::class);
     Route::get('craftability/{blueprint}', [\App\Http\Controllers\CraftabilityController::class, 'show']);
     Route::post('craftability/{blueprint}/craft', [\App\Http\Controllers\CraftabilityController::class, 'craft']);

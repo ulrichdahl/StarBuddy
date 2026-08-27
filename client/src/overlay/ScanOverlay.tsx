@@ -21,6 +21,28 @@ interface Badge {
   text: string;
 }
 
+interface SigOre {
+  name: string;
+  signature: number;
+  instability: number | null;
+  resistance: number | null;
+  dominant: [number, number] | null;
+  companions: { name: string; share: [number, number] }[];
+  rarity: string | null;
+  qualities: number[];
+}
+
+/** One reading of a signature: a mineral (kind "ship") or a ground deposit size. */
+interface SigMatch {
+  name: string;
+  kind: "ship" | "fps" | "roc" | string;
+  count: number;
+  signature: number;
+  exact: boolean;
+  delta: number;
+  ore: SigOre | null;
+}
+
 interface ScanResult {
   captured_at: number;
   source: string;
@@ -32,11 +54,13 @@ interface ScanResult {
   badges?: Badge[];
   signature: number | null;
   mass: number | null;
+  matches?: SigMatch[];
 }
 
 interface LiveReading {
   at: number;
   signature: number | null;
+  matches: SigMatch[];
   badges: Badge[];
   region_px: [number, number, number, number];
   elapsed_ms: number;
@@ -49,9 +73,9 @@ interface ScanStatus {
 }
 
 /**
- * Scan v0: capture → local OCR → readout. Shows the signature/mass when a
- * label was recognised, otherwise the raw lines so the parser can be
- * grown against what the game really renders.
+ * Scan v2: capture → local OCR → signature → reference lookup. The
+ * signature identifies the dominant mineral (or a cluster of them) since
+ * Alpha 4.7; the window names it and shows what the rock holds.
  */
 export function ScanOverlay() {
   const { t, i18n } = useTranslation();
@@ -95,27 +119,42 @@ export function ScanOverlay() {
         ? null
         : t(`overlay.scan.phase.${status.phase}`, { detail: status.detail });
 
-  const capturedAt = result
-    ? new Date(result.captured_at).toLocaleTimeString(i18n.language, { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-    : null;
-  const liveSig = live && reading ? reading.signature : null;
-  const found = liveSig !== null || (result && (result.signature !== null || result.mass !== null));
+  const fmt = (n: number) => n.toLocaleString(i18n.language);
+  const range = (r: [number, number]) => `${fmt(r[0])}–${fmt(r[1])}%`;
+  const matchName = (m: SigMatch) => {
+    if (m.kind === "ship") return m.count > 1 ? t("overlay.scan.match.cluster", { name: m.name, count: m.count }) : m.name;
+    const key = m.kind === "fps" ? "fps" : "roc";
+    return m.count > 1 ? t(`overlay.scan.match.${key}Cluster`, { count: m.count }) : t(`overlay.scan.match.${key}`);
+  };
+  const resistance = (r: number) => `${t(r >= 0.5 ? "overlay.scan.match.hard" : "overlay.scan.match.easy")} · ${r.toFixed(2)}`;
+
+  // The reading on display: the live loop while it runs, else the last "Scan now".
+  const useLive = live && reading !== null;
+  const sig = useLive ? reading!.signature : result?.signature ?? null;
+  const matches: SigMatch[] = useLive ? reading!.matches : result?.matches ?? [];
+  const best = matches[0] ?? null;
+  const others = matches.slice(1);
+  const at = useLive ? reading!.at : result?.captured_at;
+  const atText = at ? new Date(at).toLocaleTimeString(i18n.language, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : null;
+
+  const found = sig !== null || (result !== null && result.mass !== null);
   const title =
-    liveSig !== null
-      ? t("overlay.scan.signature", { value: liveSig.toLocaleString(i18n.language) })
-      : found && result
-        ? result.signature !== null
-          ? t("overlay.scan.signature", { value: result.signature.toLocaleString(i18n.language) })
-          : t("overlay.scan.massOnly")
-        : result
-          ? t("overlay.scan.noLabels")
-          : t("overlay.scan.title");
+    best !== null
+      ? matchName(best)
+      : sig !== null
+        ? t("overlay.scan.signature", { value: fmt(sig) })
+        : found && result
+          ? t("overlay.scan.massOnly")
+          : result
+            ? t("overlay.scan.noLabels")
+            : t("overlay.scan.title");
   const liveButton = (
     <button type="button" className={`ov-btn${live ? " on" : ""}`} onClick={toggleLive}>
       {live ? t("overlay.scan.liveOn") : t("overlay.scan.liveOff")}
     </button>
   );
   const shown = showAll ? result?.lines ?? [] : (result?.lines ?? []).slice(0, 8);
+  const qualityBand = best?.ore && best.ore.qualities.length > 0 ? `${fmt(Math.min(...best.ore.qualities))}–${fmt(Math.max(...best.ore.qualities))}` : null;
 
   return (
     <OverlayWindow
@@ -126,13 +165,27 @@ export function ScanOverlay() {
       title={title}
       firstBox={
         <div className={`ov-box${found ? " acc" : ""}`}>
-          {liveSig !== null ? (
+          {sig !== null ? (
             <>
               <span className="lbl">{t("overlay.scan.sigLabel")}</span>
-              <span className="mono big">{liveSig.toLocaleString(i18n.language)}</span>
-              <span className="mono ov-dim">
-                {reading && new Date(reading.at).toLocaleTimeString(i18n.language, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-              </span>
+              <span className="mono big">{fmt(sig)}</span>
+              {best === null ? (
+                <span className="ov-dim">{t("overlay.scan.match.unknown")}</span>
+              ) : (
+                <>
+                  {!best.exact && (
+                    <span className="ov-dim">
+                      ≈ {t("overlay.scan.match.approx")} ({best.delta > 0 ? "+" : ""}
+                      {fmt(best.delta)})
+                    </span>
+                  )}
+                  {best.ore?.rarity && <span className="ov-chip">{t(`overlay.scan.rarity.${best.ore.rarity}`, best.ore.rarity)}</span>}
+                  {best.ore?.resistance !== null && best.ore?.resistance !== undefined && (
+                    <span className="mono ov-dim">{resistance(best.ore.resistance)}</span>
+                  )}
+                </>
+              )}
+              {atText && <span className="mono ov-dim">{atText}</span>}
               <span className="push">{liveButton}</span>
             </>
           ) : phaseText ? (
@@ -142,18 +195,8 @@ export function ScanOverlay() {
             </>
           ) : found ? (
             <>
-              {result!.signature !== null && (
-                <>
-                  <span className="lbl">{t("overlay.scan.sigLabel")}</span>
-                  <span className="mono big">{result!.signature.toLocaleString(i18n.language)}</span>
-                </>
-              )}
-              {result!.mass !== null && (
-                <>
-                  <span className="lbl">{t("overlay.scan.massLabel")}</span>
-                  <span className="mono">{result!.mass.toLocaleString(i18n.language)}</span>
-                </>
-              )}
+              <span className="lbl">{t("overlay.scan.massLabel")}</span>
+              <span className="mono">{fmt(result!.mass!)}</span>
               <span className="push">{liveButton}</span>
             </>
           ) : (
@@ -166,35 +209,86 @@ export function ScanOverlay() {
       }
       strip={
         <>
-          {liveSig !== null && <span className="mono ov-count ov-strip-item">{liveSig.toLocaleString(i18n.language)}</span>}
-          <span className="ov-muted ov-strip-item">{phaseText ?? (live ? (liveSig === null ? t("overlay.scan.liveWaiting") : "") : result ? t("overlay.scan.linesRead", { count: result.lines.length }) : "")}</span>
+          {sig !== null && <span className="mono ov-count ov-strip-item">{fmt(sig)}</span>}
+          {best !== null && <span className="ov-strip-item">{matchName(best)}</span>}
+          <span className="ov-muted ov-strip-item">{phaseText ?? (live ? (sig === null ? t("overlay.scan.liveWaiting") : "") : result && sig === null ? t("overlay.scan.linesRead", { count: result.lines.length }) : "")}</span>
           <span className="ov-strip-item">{liveButton}</span>
         </>
       }
     >
-      {result && (
+      {best !== null && (
+        <div className="ov-facts">
+          {best.ore?.dominant && (
+            <div>
+              <span className="lbl">{t("overlay.scan.match.share")}</span>
+              <span className="mono">{range(best.ore.dominant)}</span>
+            </div>
+          )}
+          {best.ore && best.ore.companions.length > 0 && (
+            <div>
+              <span className="lbl">{t("overlay.scan.match.companions")}</span>
+              <span>{best.ore.companions.map((c) => `${c.name} ${range(c.share)}`).join(" · ")}</span>
+            </div>
+          )}
+          {best.ore?.resistance !== null && best.ore?.resistance !== undefined && (
+            <div>
+              <span className="lbl">{t("overlay.scan.match.resistance")}</span>
+              <span className="mono">{resistance(best.ore.resistance)}</span>
+            </div>
+          )}
+          {best.ore?.instability !== null && best.ore?.instability !== undefined && (
+            <div>
+              <span className="lbl">{t("overlay.scan.match.instability")}</span>
+              <span className="mono">{fmt(best.ore.instability)}</span>
+            </div>
+          )}
+          {qualityBand && (
+            <div>
+              <span className="lbl">{t("overlay.scan.match.quality")}</span>
+              <span className="mono">{qualityBand}</span>
+            </div>
+          )}
+          {best.kind !== "ship" && <div className="ov-dim">{t("overlay.scan.match.groundHint")}</div>}
+          {best.kind !== "ship" && best.signature === 3000 && best.count === 1 && <div className="ov-dim">{t("overlay.scan.match.wreckHint")}</div>}
+          {others.length > 0 && (
+            <div>
+              <span className="lbl">{t("overlay.scan.match.alternatives")}</span>
+              <span className="ov-chips">
+                {others.map((m, i) => (
+                  <span key={i} className="ov-chip" title={fmt(m.signature * m.count)}>
+                    {matchName(m)}
+                  </span>
+                ))}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+      {result && !useLive && (
         <>
           {result.badges && result.badges.length > 1 && (
             <div className="ov-chips">
               {result.badges.map((b, i) => (
                 <span key={i} className="ov-chip mono" title={`${b.x},${b.y}`}>
-                  {b.value.toLocaleString(i18n.language)}
+                  {fmt(b.value)}
                 </span>
               ))}
             </div>
           )}
-          <div className="ov-lines">
-            {shown.map((l, i) => (
-              <div key={i}>
-                <span className="mono ov-dim">
-                  {l.x},{l.y}
-                </span>
-                <span>{l.text}</span>
-              </div>
-            ))}
-            {result.lines.length === 0 && <div className="ov-dim">{t("overlay.scan.nothingRead")}</div>}
-          </div>
-          {result.lines.length > 8 && (
+          {best === null && (
+            <div className="ov-lines">
+              {shown.map((l, i) => (
+                <div key={i}>
+                  <span className="mono ov-dim">
+                    {l.x},{l.y}
+                  </span>
+                  <span>{l.text}</span>
+                </div>
+              ))}
+              {result.lines.length === 0 && <div className="ov-dim">{t("overlay.scan.nothingRead")}</div>}
+            </div>
+          )}
+          {best === null && result.lines.length > 8 && (
             <button type="button" className="ov-btn" style={{ marginTop: 8 }} onClick={() => setShowAll(!showAll)}>
               {showAll ? t("overlay.scan.showFewer") : t("overlay.scan.showAll", { count: result.lines.length })}
             </button>
@@ -206,12 +300,13 @@ export function ScanOverlay() {
             <button type="button" className="ov-btn" onClick={scanNow} disabled={busy} style={{ marginLeft: 8 }}>
               {t("overlay.scan.scanNow")}
             </button>
-            {capturedAt && <span className="push mono">{capturedAt}</span>}
           </div>
-          <p className="ov-p ov-dim" style={{ fontSize: 11 }}>
-            {t("overlay.scan.privacy")}
-          </p>
         </>
+      )}
+      {(result || live) && (
+        <p className="ov-p ov-dim" style={{ fontSize: 11 }}>
+          {t("overlay.scan.privacy")}
+        </p>
       )}
     </OverlayWindow>
   );

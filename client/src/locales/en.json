@@ -162,10 +162,10 @@
     "hotkeyStatus": "Status window hotkey",
     "hotkeyScan": "Scan hotkey",
     "scanNow": "Scan now (v1)",
-    "scanHint": "Scan v1: F7 toggles a live reader that watches the signature area of the game frame (around the centre, a third down) and reads the amber signature badge with on-device OCR whenever it changes; \"Scan now\" reads one full frame. Models ≈ 15 MB, downloaded once. Screenshots never leave this machine.",
+    "scanHint": "Scan v2: F7 toggles a live reader that watches the signature area of the game frame (around the centre, a third down) and reads the amber signature badge with on-device OCR about once a second; the value is matched against the reference table and the window names the mineral (or cluster) and what the rock holds. \"Scan now\" reads one full frame. Models ≈ 15 MB, downloaded once. Screenshots never leave this machine.",
     "scan": {
       "windowName": "Scan window",
-      "eyebrow": "Scan · v1",
+      "eyebrow": "Scan · v2",
       "title": "Scan",
       "idle": "Press the scan hotkey on a scan result.",
       "phase": {
@@ -189,7 +189,33 @@
       "live": "LIVE",
       "liveOn": "Live: on",
       "liveOff": "Live: off",
-      "liveWaiting": "Watching the signature area — ping a contact in scan mode."
+      "liveWaiting": "Watching the signature area — ping a contact in scan mode.",
+      "match": {
+        "cluster": "{{name}} × {{count}}",
+        "fps": "Hand-mineable deposit",
+        "fpsCluster": "{{count}} hand-mineable deposits",
+        "roc": "ROC / vehicle deposit",
+        "rocCluster": "{{count}} ROC / vehicle deposits",
+        "unknown": "No known mineral for this signature",
+        "approx": "closest match",
+        "alternatives": "Could also be",
+        "share": "Share of rock",
+        "companions": "Also in the rock",
+        "resistance": "Resistance",
+        "instability": "Instability",
+        "quality": "Quality",
+        "hard": "hard",
+        "easy": "easy",
+        "groundHint": "Ground deposits carry only their size in the signature — the mineral follows from where you are.",
+        "wreckHint": "3,000 is also the signature of capital-wreck debris."
+      },
+      "rarity": {
+        "common": "common",
+        "uncommon": "uncommon",
+        "rare": "rare",
+        "epic": "epic",
+        "legendary": "legendary"
+      }
     },
     "liveScanStart": "Start live scan (F7)",
     "liveScanStop": "Stop live scan (F7)"

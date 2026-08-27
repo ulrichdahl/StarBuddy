@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Schedule;
 Schedule::command('starbuddy:sync-blueprints')->dailyAt('05:00');
 Schedule::command('starbuddy:sync-items')->dailyAt('05:10');
 Schedule::command('starbuddy:sync-resource-types')->dailyAt('05:15');
+Schedule::command('starbuddy:sync-scan-signatures')->dailyAt('05:20');
 Schedule::command('starbuddy:sync-locations')->dailyAt('05:30');
 Schedule::command('starbuddy:sync-quality-bands')->dailyAt('05:40');
 Schedule::command('starbuddy:sync-rarity')->weeklyOn(1, '05:50');

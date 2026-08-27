@@ -114,6 +114,8 @@ $COMPOSE restart web >/dev/null 2>&1 || true
 
 log "running migrations"
 $COMPOSE exec -T app php artisan migrate --force
+# Reference data shipped in the repo (scan signatures) — cheap, idempotent.
+$COMPOSE exec -T app php artisan starbuddy:sync-scan-signatures >/dev/null 2>&1 || log "warning: sync-scan-signatures failed"
 
 # Slash-command registration is an idempotent PUT; keep it current.
 $COMPOSE run --rm bot node dist/register-commands.js >/dev/null 2>&1 \

@@ -65,6 +65,8 @@ pub struct ScanResult {
     pub signature: Option<f64>,
     /// Best-effort: the number next to a "mass" label.
     pub mass: Option<f64>,
+    /// What the signature means (reference table lookup).
+    pub matches: Vec<crate::sigs::SigMatch>,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -96,6 +98,7 @@ impl Default for ScanRegion {
 pub struct LiveReading {
     pub at: u64,
     pub signature: Option<f64>,
+    pub matches: Vec<crate::sigs::SigMatch>,
     pub badges: Vec<Badge>,
     pub region_px: (i32, i32, i32, i32),
     pub elapsed_ms: u128,
@@ -547,6 +550,7 @@ pub fn analyze(engine: &OcrEngine, cap: &Captured, started: Instant) -> Result<S
         badges,
         signature,
         mass,
+        matches: Vec::new(),
     })
 }
 
@@ -608,7 +612,11 @@ pub async fn scan(app: AppHandle) -> Result<ScanResult, String> {
         }
         *busy = true;
     }
-    let result = scan_inner(&app).await;
+    crate::sigs::refresh_in_background(&app);
+    let result = scan_inner(&app).await.map(|mut r| {
+        r.matches = r.signature.map(|v| crate::sigs::lookup(&app, v)).unwrap_or_default();
+        r
+    });
     *app.state::<ScanState>().busy.lock().unwrap() = false;
     match &result {
         Ok(r) => {
@@ -683,6 +691,7 @@ pub fn live_toggle(app: &AppHandle) -> bool {
     *live = Some(stop.clone());
     drop(live);
     let _ = app.emit("scan-live-state", true);
+    crate::sigs::refresh_in_background(app);
     let app2 = app.clone();
     std::thread::Builder::new()
         .name("scan-live".into())
@@ -715,7 +724,7 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
         let changed = prev.as_ref().map(|p| frame_diff(p, &cap.rgb) > 4.0).unwrap_or(true);
         prev = Some(cap.rgb.clone());
         if !changed && idle_since.elapsed() < Duration::from_secs(3) {
-            std::thread::sleep(Duration::from_millis(if cap.source.contains(" (") { 900 } else { 250 }));
+            std::thread::sleep(Duration::from_millis(if cap.source.contains(" (") { 400 } else { 250 }));
             continue;
         }
         idle_since = Instant::now();
@@ -744,6 +753,7 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
             LiveReading {
                 at: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
                 signature: badges.first().map(|b| b.value),
+                matches: badges.first().map(|b| crate::sigs::lookup(&app, b.value)).unwrap_or_default(),
                 badges,
                 region_px: region_px(region, cap.width, cap.full_height),
                 elapsed_ms: started.elapsed().as_millis(),
@@ -753,8 +763,9 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
             log::debug!("live scan: signature {:?} in {} ms", reading.signature, reading.elapsed_ms);
         }
         let _ = app.emit("scan-live", &reading);
-        // A screenshot tool costs ~0.7 s per frame; poll gently on that route.
-        let pause = if cap.source.contains(" (") { 1200 } else { 400 };
+        // A screenshot tool costs ~0.7 s per frame on its own; a short pause
+        // keeps the loop near one reading per second without spinning.
+        let pause = if cap.source.contains(" (") { 300 } else { 400 };
         std::thread::sleep(Duration::from_millis(pause));
     }
     // Loop ended on its own (error) — reflect that in the state.

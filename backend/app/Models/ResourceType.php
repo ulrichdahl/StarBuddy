@@ -6,11 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class ResourceType extends Model
 {
-    protected $fillable = ['name', 'category', 'unit', 'known_qualities', 'rarity', 'spawn_score'];
+    protected $fillable = [
+        'name', 'category', 'unit', 'known_qualities', 'rarity', 'spawn_score',
+        'scan_signature', 'mining_instability', 'mining_resistance', 'scan_profile',
+    ];
 
     protected function casts(): array
     {
-        return ['known_qualities' => 'array'];
+        return ['known_qualities' => 'array', 'scan_profile' => 'array'];
     }
 
     // Bootstrapping only: resources without their wiki band ladder learn
