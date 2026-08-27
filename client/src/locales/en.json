@@ -74,7 +74,8 @@
     "upToDate": "You're up to date (v{{current}}).",
     "failed": "Could not check for updates.",
     "version": "v{{version}}",
-    "versionBuild": "v{{version}} · {{build}}"
+    "versionBuild": "v{{version}} · {{build}}",
+    "openLog": "Open log folder"
   },
   "footer": {
     "disclaimer": "This is an unofficial Star Citizen fan application, not affiliated with the Cloud Imperium group of companies. All content not authored by its host or users is property of its respective owners.",
@@ -159,7 +160,7 @@
     "hotkeyStatus": "Status window hotkey",
     "hotkeyScan": "Scan hotkey",
     "scanNow": "Scan now (v1)",
-    "scanHint": "Scan v1: captures the game screen, finds the signature badge next to a pinged contact and reads it with on-device OCR (models ≈ 15 MB, downloaded once); the scan window shows the signature and the raw readout. Screenshots never leave this machine.",
+    "scanHint": "Scan v1: F7 toggles a live reader that watches the signature area of the game frame (around the centre, a third down) and reads the amber signature badge with on-device OCR whenever it changes; \"Scan now\" reads one full frame. Models ≈ 15 MB, downloaded once. Screenshots never leave this machine.",
     "scan": {
       "windowName": "Scan window",
       "eyebrow": "Scan · v1",
@@ -182,7 +183,13 @@
       "nothingRead": "Nothing readable on screen.",
       "showAll": "Show all {{count}} lines",
       "showFewer": "Show fewer",
-      "privacy": "Processed locally — the capture is kept in memory only."
-    }
+      "privacy": "Processed locally — the capture is kept in memory only.",
+      "live": "LIVE",
+      "liveOn": "Live: on",
+      "liveOff": "Live: off",
+      "liveWaiting": "Watching the signature area — ping a contact in scan mode."
+    },
+    "liveScanStart": "Start live scan (F7)",
+    "liveScanStop": "Stop live scan (F7)"
   }
 }

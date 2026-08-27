@@ -11,11 +11,12 @@
 //! once, the capture lives in memory only.
 
 use ocrs::{ImageSource, OcrEngine, OcrEngineParams, TextItem};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Mutex;
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager};
 
 /// Window name of the scan overlay.
@@ -74,15 +75,49 @@ pub struct ScanStatus {
     pub progress: Option<f64>,
 }
 
+/// Where the signature badge lives on screen, as fractions of the game
+/// frame. From the corpus: badge centred horizontally at ~0.50, at ~0.33
+/// of the height; the box leaves room for it to drift with the contact.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+pub struct ScanRegion {
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+}
+
+impl Default for ScanRegion {
+    fn default() -> Self {
+        Self { x: 0.40, y: 0.26, w: 0.20, h: 0.14 }
+    }
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct LiveReading {
+    pub at: u64,
+    pub signature: Option<f64>,
+    pub badges: Vec<Badge>,
+    pub region_px: (i32, i32, i32, i32),
+    pub elapsed_ms: u128,
+}
+
 #[derive(Default)]
 pub struct ScanState {
     engine: Mutex<Option<OcrEngine>>,
     last: Mutex<Option<ScanResult>>,
     busy: Mutex<bool>,
+    /// Stop flag of the running live loop, if any.
+    live: Mutex<Option<Arc<AtomicBool>>>,
 }
 
 fn status(app: &AppHandle, phase: &str, detail: impl Into<String>, progress: Option<f64>) {
-    let _ = app.emit("scan-status", ScanStatus { phase: phase.into(), detail: detail.into(), progress });
+    let detail = detail.into();
+    if phase == "error" {
+        log::error!("scan: {detail}");
+    } else {
+        log::debug!("scan: {phase} {detail}");
+    }
+    let _ = app.emit("scan-status", ScanStatus { phase: phase.into(), detail, progress });
 }
 
 fn models_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -127,6 +162,9 @@ pub struct Captured {
     pub width: u32,
     pub height: u32,
     pub source: String,
+    /// Height of the whole game frame this came from (== height unless a
+    /// region crop); scales the badge-icon size window.
+    pub full_height: u32,
 }
 
 /// Windows: the game window if it is up, else the primary monitor.
@@ -153,7 +191,7 @@ fn capture() -> Result<Captured, String> {
     };
     let (width, height) = img.dimensions();
     let rgb = img.pixels().flat_map(|p| [p[0], p[1], p[2]]).collect();
-    Ok(Captured { rgb, width, height, source })
+    Ok(Captured { rgb, width, height, source, full_height: height })
 }
 
 /// Linux: GetImage on the game's own X window. The client runs through
@@ -171,6 +209,12 @@ fn capture() -> Result<Captured, String> {
 
 #[cfg(target_os = "linux")]
 fn capture_x11_window() -> Result<Captured, String> {
+    capture_x11_rect(None)
+}
+
+/// GetImage on the game window, whole or a sub-rectangle (relative region).
+#[cfg(target_os = "linux")]
+fn capture_x11_rect(region: Option<ScanRegion>) -> Result<Captured, String> {
     use x11rb::connection::Connection;
     use x11rb::protocol::xproto::{AtomEnum, ConnectionExt, ImageFormat, Window};
 
@@ -215,9 +259,13 @@ fn capture_x11_window() -> Result<Captured, String> {
     }
     let (win, title) = game.ok_or("no Star Citizen X11 window")?;
     let geo = conn.get_geometry(win).map_err(|e| e.to_string())?.reply().map_err(|e| e.to_string())?;
-    let (width, height) = (geo.width as u32, geo.height as u32);
+    let (fx, fy, fw, fh) = match region {
+        Some(r) => region_px(r, geo.width as u32, geo.height as u32),
+        None => (0, 0, geo.width as i32, geo.height as i32),
+    };
+    let (width, height) = (fw as u32, fh as u32);
     let img = conn
-        .get_image(ImageFormat::Z_PIXMAP, win, 0, 0, geo.width, geo.height, !0)
+        .get_image(ImageFormat::Z_PIXMAP, win, fx as i16, fy as i16, fw as u16, fh as u16, !0)
         .map_err(|e| e.to_string())?
         .reply()
         .map_err(|e| format!("X11 GetImage on the game window failed: {e}"))?;
@@ -227,7 +275,32 @@ fn capture_x11_window() -> Result<Captured, String> {
     }
     // ZPixmap is BGRx in memory on little-endian servers.
     let rgb = img.data.chunks_exact(bpp).flat_map(|px| [px[2], px[1], px[0]]).collect();
-    Ok(Captured { rgb, width, height, source: format!("window: {title}") })
+    Ok(Captured { rgb, width, height, source: format!("window: {title}"), full_height: geo.height as u32 })
+}
+
+/// Region fractions → pixel rect inside a frame of the given size.
+fn region_px(r: ScanRegion, width: u32, height: u32) -> (i32, i32, i32, i32) {
+    let x = (r.x.clamp(0.0, 0.95) * width as f32) as i32;
+    let y = (r.y.clamp(0.0, 0.95) * height as f32) as i32;
+    let w = ((r.w.clamp(0.02, 1.0) * width as f32) as i32).min(width as i32 - x);
+    let h = ((r.h.clamp(0.02, 1.0) * height as f32) as i32).min(height as i32 - y);
+    (x, y, w.max(8), h.max(8))
+}
+
+/// Only the signature region of the game frame (the live loop's capture).
+fn capture_region(region: ScanRegion) -> Result<Captured, String> {
+    #[cfg(target_os = "linux")]
+    {
+        capture_x11_rect(Some(region))
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let full = capture()?;
+        let (x, y, w, h) = region_px(region, full.width, full.height);
+        let img = image::RgbImage::from_raw(full.width, full.height, full.rgb).ok_or("bad frame")?;
+        let crop = image::imageops::crop_imm(&img, x as u32, y as u32, w as u32, h as u32).to_image();
+        Ok(Captured { rgb: crop.into_raw(), width: w as u32, height: h as u32, source: full.source, full_height: full.height })
+    }
 }
 
 /// KDE spectacle / wlroots grim / GNOME screenshot into a temp PNG.
@@ -246,7 +319,7 @@ fn capture_with_tool() -> Result<Captured, String> {
             let img = image::open(&out).map_err(|e| e.to_string())?.into_rgb8();
             let _ = fs::remove_file(&out);
             let (width, height) = img.dimensions();
-            return Ok(Captured { rgb: img.into_raw(), width, height, source: format!("monitor ({tool})") });
+            return Ok(Captured { rgb: img.into_raw(), width, height, source: format!("monitor ({tool})"), full_height: height });
         }
         tried.push(tool);
     }
@@ -343,7 +416,7 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
         let (bw, bh) = ((maxx - minx + 1) * 2, (maxy - miny + 1) * 2);
         let fill = (n * 4) as f32 / (bw * bh) as f32;
         // Pin icon is ~20×22 px at 1440p; scale the window with resolution.
-        let k = cap.height as f32 / 1440.0;
+        let k = cap.full_height as f32 / 1440.0;
         let (lo, hi) = ((10.0 * k) as usize, (36.0 * k).ceil() as usize);
         if (lo..=hi).contains(&bw) && (lo..=hi).contains(&bh) && fill > 0.35 {
             blobs.push(Blob { x: (minx * 2) as i32, y: (miny * 2) as i32, w: bw as i32, h: bh as i32 });
@@ -405,7 +478,7 @@ fn badge_number(text: &str) -> Option<f64> {
 
 /// Find signature badges: OCR the strip right of every icon candidate.
 pub fn find_badges(engine: &OcrEngine, cap: &Captured) -> Vec<Badge> {
-    let k = cap.height as f32 / 1440.0;
+    let k = cap.full_height as f32 / 1440.0;
     let mut out = Vec::new();
     for b in find_amber_icons(cap) {
         let Some(crop) = crop_upscaled(cap, b.x + b.w - (4.0 * k) as i32, b.y - (8.0 * k) as i32, (150.0 * k) as i32, b.h + (16.0 * k) as i32, 3) else { continue };
@@ -531,15 +604,150 @@ async fn scan_inner(app: &AppHandle) -> Result<ScanResult, String> {
     .map_err(|e| e.to_string())?
 }
 
-/// Hotkey path: make sure the scan window is up, then scan.
+/// Hotkey path: make sure the scan window is up, then toggle the live loop.
 pub fn trigger(app: &AppHandle) {
     let _ = crate::overlay::show(app, SCAN);
+    let running = live_toggle(app);
+    log::info!("live scan {}", if running { "started" } else { "stopped" });
+}
+
+// ── Live loop: region capture, change detection, badge read ────────────────
+
+/// Mean absolute difference of two equally sized frames (sampled).
+fn frame_diff(a: &[u8], b: &[u8]) -> f32 {
+    if a.len() != b.len() || a.is_empty() {
+        return 255.0;
+    }
+    let mut sum = 0u64;
+    let mut n = 0u64;
+    for i in (0..a.len()).step_by(24) {
+        sum += (a[i] as i16 - b[i] as i16).unsigned_abs() as u64;
+        n += 1;
+    }
+    sum as f32 / n.max(1) as f32
+}
+
+pub fn current_region(app: &AppHandle) -> ScanRegion {
+    crate::load_client_prefs(app).scan_region.unwrap_or_default()
+}
+
+/// Start or stop the live loop; returns whether it is running afterwards.
+pub fn live_toggle(app: &AppHandle) -> bool {
+    let state = app.state::<ScanState>();
+    let mut live = state.live.lock().unwrap();
+    if let Some(stop) = live.take() {
+        stop.store(true, Ordering::Relaxed);
+        let _ = app.emit("scan-live-state", false);
+        return false;
+    }
+    let stop = Arc::new(AtomicBool::new(false));
+    *live = Some(stop.clone());
+    drop(live);
+    let _ = app.emit("scan-live-state", true);
     let app2 = app.clone();
-    tauri::async_runtime::spawn(async move {
-        if let Err(e) = scan(app2).await {
-            eprintln!("scan failed: {e}");
+    std::thread::Builder::new()
+        .name("scan-live".into())
+        .spawn(move || live_loop(app2, stop))
+        .expect("spawn live scan thread");
+    true
+}
+
+fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
+    let mut prev: Option<Vec<u8>> = None;
+    let mut last_error = String::new();
+    let mut idle_since = Instant::now();
+    while !stop.load(Ordering::Relaxed) {
+        let region = current_region(&app);
+        let cap = match capture_region(region) {
+            Ok(c) => c,
+            Err(e) => {
+                if e != last_error {
+                    log::warn!("live scan capture: {e}");
+                    status(&app, "error", format!("live: {e}"), None);
+                    last_error = e;
+                }
+                std::thread::sleep(Duration::from_millis(2000));
+                continue;
+            }
+        };
+        last_error.clear();
+
+        // Skip OCR while the region is static (badge already read, or no HUD).
+        let changed = prev.as_ref().map(|p| frame_diff(p, &cap.rgb) > 4.0).unwrap_or(true);
+        prev = Some(cap.rgb.clone());
+        if !changed && idle_since.elapsed() < Duration::from_secs(3) {
+            std::thread::sleep(Duration::from_millis(250));
+            continue;
         }
-    });
+        idle_since = Instant::now();
+
+        let started = Instant::now();
+        let reading = {
+            let state = app.state::<ScanState>();
+            let mut engine = state.engine.lock().unwrap();
+            if engine.is_none() {
+                let dir = match models_dir(&app) {
+                    Ok(d) => d,
+                    Err(e) => {
+                        status(&app, "error", e, None);
+                        break;
+                    }
+                };
+                match engine_from_dir(&dir) {
+                    Ok(e) => *engine = Some(e),
+                    Err(e) => {
+                        status(&app, "error", format!("OCR models not ready ({e}) — press Scan now once to download them"), None);
+                        break;
+                    }
+                }
+            }
+            let badges = find_badges(engine.as_ref().unwrap(), &cap);
+            LiveReading {
+                at: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
+                signature: badges.first().map(|b| b.value),
+                badges,
+                region_px: region_px(region, cap.width, cap.full_height),
+                elapsed_ms: started.elapsed().as_millis(),
+            }
+        };
+        if reading.signature.is_some() {
+            log::debug!("live scan: signature {:?} in {} ms", reading.signature, reading.elapsed_ms);
+        }
+        let _ = app.emit("scan-live", &reading);
+        std::thread::sleep(Duration::from_millis(400));
+    }
+    // Loop ended on its own (error) — reflect that in the state.
+    let state = app.state::<ScanState>();
+    let mut live = state.live.lock().unwrap();
+    if live.as_ref().is_some_and(|s| Arc::ptr_eq(s, &stop)) {
+        *live = None;
+        let _ = app.emit("scan-live-state", false);
+    }
+    log::info!("live scan loop ended");
+}
+
+#[tauri::command]
+pub fn scan_live_toggle(app: AppHandle) -> bool {
+    live_toggle(&app)
+}
+
+#[tauri::command]
+pub fn scan_live_running(app: AppHandle) -> bool {
+    app.state::<ScanState>().live.lock().unwrap().is_some()
+}
+
+#[tauri::command]
+pub fn scan_region_get(app: AppHandle) -> ScanRegion {
+    current_region(&app)
+}
+
+#[tauri::command]
+pub fn scan_region_set(app: AppHandle, region: ScanRegion) -> Result<ScanRegion, String> {
+    let mut prefs = crate::load_client_prefs(&app);
+    prefs.scan_region = Some(region);
+    crate::save_client_prefs(&app, &prefs)?;
+    log::info!("scan region set to {region:?}");
+    Ok(region)
 }
 
 #[tauri::command]
@@ -584,7 +792,7 @@ mod tests {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../screenshots");
         for (file, want) in expected {
             let img = image::open(root.join(file)).unwrap().into_rgb8();
-            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.into() };
+            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.into(), full_height: img.height() };
             let result = analyze(&engine, &cap, Instant::now()).unwrap();
             assert_eq!(result.signature, Some(want), "{file}");
             assert_eq!(result.badges.len(), 1, "{file}: exactly one badge");

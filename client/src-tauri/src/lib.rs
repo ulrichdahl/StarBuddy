@@ -141,9 +141,11 @@ fn candidate_live_dirs() -> Vec<PathBuf> {
 /// Client preferences that are not about the server pairing.
 #[derive(Serialize, Deserialize, Clone, Default)]
 #[serde(default)]
-struct ClientPrefs {
+pub(crate) struct ClientPrefs {
     /// LIVE folder the player picked when auto-detection failed.
     live_dir: Option<String>,
+    /// Where on screen the scan signature badge is looked for (relative).
+    pub(crate) scan_region: Option<scan::ScanRegion>,
 }
 
 fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -152,7 +154,11 @@ fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("client.json"))
 }
 
-fn load_client_prefs(app: &tauri::AppHandle) -> ClientPrefs {
+pub(crate) fn save_client_prefs(app: &tauri::AppHandle, prefs: &ClientPrefs) -> Result<(), String> {
+    fs::write(client_prefs_path(app)?, serde_json::to_vec_pretty(prefs).map_err(|e| e.to_string())?).map_err(|e| e.to_string())
+}
+
+pub(crate) fn load_client_prefs(app: &tauri::AppHandle) -> ClientPrefs {
     client_prefs_path(app)
         .ok()
         .and_then(|p| fs::read(p).ok())
@@ -187,8 +193,8 @@ fn set_live_dir(app: tauri::AppHandle, path: String) -> Result<String, String> {
     let live_str = live.to_string_lossy().into_owned();
     let mut prefs = load_client_prefs(&app);
     prefs.live_dir = Some(live_str.clone());
-    fs::write(client_prefs_path(&app)?, serde_json::to_vec_pretty(&prefs).map_err(|e| e.to_string())?)
-        .map_err(|e| e.to_string())?;
+    save_client_prefs(&app, &prefs)?;
+    log::info!("LIVE folder set to {live_str}");
     Ok(live_str)
 }
 
@@ -668,6 +674,21 @@ fn parse_semver(s: &str) -> Option<(u64, u64, u64)> {
     Some((major, minor, patch))
 }
 
+/// Where the debug log lives (Linux ~/.local/share/<id>/logs, Windows
+/// %LOCALAPPDATA%\\<id>\\logs); shown in the client so testers can find it.
+#[tauri::command]
+fn log_dir(app: tauri::AppHandle) -> Result<String, String> {
+    app.path().app_log_dir().map(|p| p.to_string_lossy().into_owned()).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn open_log_dir(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let dir = app.path().app_log_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    app.opener().open_path(dir.to_string_lossy(), None::<&str>).map_err(|e| e.to_string())
+}
+
 #[derive(Serialize)]
 pub struct AppVersion {
     pub version: String,
@@ -820,6 +841,23 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_opener::init())
+        // Debug log: rotating file in the app log dir + stdout. Dev builds
+        // log at debug, releases at info.
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .targets([
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir { file_name: Some("starbuddy".into()) }),
+                    tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                ])
+                .level(if option_env!("STARBUDDY_BUILD").is_some() { log::LevelFilter::Debug } else { log::LevelFilter::Info })
+                .level_for("hyper", log::LevelFilter::Warn)
+                .level_for("reqwest", log::LevelFilter::Warn)
+                .level_for("tao", log::LevelFilter::Warn)
+                .level_for("rten", log::LevelFilter::Warn)
+                .max_file_size(2_000_000)
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepOne)
+                .build(),
+        )
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(
@@ -830,11 +868,18 @@ pub fn run() {
         .manage(WatcherState::default())
         .setup(|app| {
             let handle = app.handle().clone();
+            log::info!(
+                "StarBuddy client v{} {} starting ({} {})",
+                env!("CARGO_PKG_VERSION"),
+                option_env!("STARBUDDY_BUILD").unwrap_or("release"),
+                std::env::consts::OS,
+                std::env::consts::ARCH
+            );
             migrate_old_config_dir(&handle);
             app.manage(overlay::OverlayState::load(&handle));
             app.manage(scan::ScanState::default());
             if let Err(e) = overlay::register_hotkeys(&handle) {
-                eprintln!("overlay hotkeys: {e}");
+                log::warn!("overlay hotkeys: {e}");
             }
             overlay::show_if_open(&handle, overlay::STATUS);
             overlay::show_if_open(&handle, scan::SCAN);
@@ -880,7 +925,13 @@ pub fn run() {
             stop_watcher,
             watcher_status,
             check_for_update,
-            app_version
+            app_version,
+            log_dir,
+            open_log_dir,
+            scan::scan_live_toggle,
+            scan::scan_live_running,
+            scan::scan_region_get,
+            scan::scan_region_set
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

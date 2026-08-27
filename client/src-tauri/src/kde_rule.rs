@@ -151,7 +151,7 @@ pub fn ensure(app: &AppHandle) {
         Ok(()) => {
             let _ = app.emit("overlay-kde-rule", true);
         }
-        Err(e) => eprintln!("KWin rule not installed: {e}"),
+        Err(e) => log::warn!("KWin rule not installed: {e}"),
     }
 }
 

@@ -190,6 +190,8 @@ function App() {
   const [hotkeyDraft, setHotkeyDraft] = useState("");
   const [scanHotkeyDraft, setScanHotkeyDraft] = useState("");
   const [scanError, setScanError] = useState<string | null>(null);
+  const [scanLive, setScanLive] = useState(false);
+  const [logDir, setLogDir] = useState<string | null>(null);
   const [hotkeyError, setHotkeyError] = useState<string | null>(null);
   const [statusOpen, setStatusOpen] = useState<boolean | null>(null);
   const [kdeRule, setKdeRule] = useState<KdeRuleInfo | null>(null);
@@ -208,6 +210,8 @@ function App() {
     // Errors (offline, rate-limited, odd tag) mean "no update info", never an update.
     invoke<UpdateCheck>("check_for_update").then(setUpdate).catch(() => {});
     invoke<AppVersion>("app_version").then(setAppVersion).catch(() => {});
+    invoke<string>("log_dir").then(setLogDir).catch(() => {});
+    invoke<boolean>("scan_live_running").then(setScanLive).catch(() => {});
     invoke<KdeRuleInfo>("overlay_kde_rule").then(setKdeRule).catch(() => {});
     invoke<HotkeyInfo>("overlay_hotkey")
       .then((h) => {
@@ -230,6 +234,7 @@ function App() {
       listen<[string, boolean]>("overlay-visibility", (e) => {
         if (e.payload[0] === "status") setStatusOpen(e.payload[1]);
       }),
+      listen<boolean>("scan-live-state", (e) => setScanLive(e.payload)),
       listen<boolean>("overlay-kde-rule", (e) =>
         setKdeRule((prev) => ({ applicable: prev?.applicable ?? true, installed: e.payload })),
       ),
@@ -334,6 +339,16 @@ function App() {
       setScanHotkeyDraft(info.hotkeys["scan"] ?? "");
     } catch (e) {
       setHotkeyError(String(e));
+    }
+  };
+
+  const toggleLiveScan = async () => {
+    setScanError(null);
+    try {
+      await invoke("overlay_show", { name: "scan" }).catch(() => {});
+      setScanLive(await invoke<boolean>("scan_live_toggle"));
+    } catch (e) {
+      setScanError(String(e));
     }
   };
 
@@ -636,6 +651,7 @@ function App() {
           </button>
         </div>
         <div className="row">
+          <button onClick={toggleLiveScan}>{scanLive ? t("overlay.liveScanStop") : t("overlay.liveScanStart")}</button>
           <button onClick={scanNow}>{t("overlay.scanNow")}</button>
           <input
             type="text"
@@ -876,6 +892,9 @@ function App() {
               <span role="status">{t("update.upToDate", { current: update.current })}</span>
             )}
             {updateStatus === "failed" && <span role="status">{t("update.failed")}</span>}
+            <button className="link-button" onClick={() => invoke("open_log_dir").catch(() => {})} title={logDir ?? undefined}>
+              {t("update.openLog")}
+            </button>
           </p>
         </div>
       </footer>

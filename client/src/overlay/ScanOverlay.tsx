@@ -34,6 +34,14 @@ interface ScanResult {
   mass: number | null;
 }
 
+interface LiveReading {
+  at: number;
+  signature: number | null;
+  badges: Badge[];
+  region_px: [number, number, number, number];
+  elapsed_ms: number;
+}
+
 interface ScanStatus {
   phase: "idle" | "downloading" | "capturing" | "ocr" | "done" | "error";
   detail: string;
@@ -50,12 +58,21 @@ export function ScanOverlay() {
   const [result, setResult] = useState<ScanResult | null>(null);
   const [status, setStatus] = useState<ScanStatus>({ phase: "idle", detail: "", progress: null });
   const [showAll, setShowAll] = useState(false);
+  const [live, setLive] = useState(false);
+  const [reading, setReading] = useState<LiveReading | null>(null);
 
   useEffect(() => {
     invoke<ScanResult | null>("scan_last").then((r) => r && setResult(r)).catch(() => {});
+    invoke<boolean>("scan_live_running").then(setLive).catch(() => {});
     const subs = [
       listen<ScanStatus>("scan-status", (e) => setStatus(e.payload)),
       listen<ScanResult>("scan-result", (e) => setResult(e.payload)),
+      listen<boolean>("scan-live-state", (e) => setLive(e.payload)),
+      listen<LiveReading>("scan-live", (e) => {
+        // Keep the last reading that had a signature; a frame without one
+        // (badge moved out, HUD hidden) must not blank the window.
+        if (e.payload.signature !== null) setReading(e.payload);
+      }),
     ];
     return () => {
       subs.forEach((p) => p.then((un) => un()));
@@ -67,6 +84,7 @@ export function ScanOverlay() {
     if (busy) return;
     void invoke("scan_now").catch(() => {});
   };
+  const toggleLive = () => void invoke<boolean>("scan_live_toggle").then(setLive).catch(() => {});
 
   const phaseText =
     status.phase === "idle"
@@ -80,14 +98,23 @@ export function ScanOverlay() {
   const capturedAt = result
     ? new Date(result.captured_at).toLocaleTimeString(i18n.language, { hour: "2-digit", minute: "2-digit", second: "2-digit" })
     : null;
-  const found = result && (result.signature !== null || result.mass !== null);
-  const title = found
-    ? result.signature !== null
-      ? t("overlay.scan.signature", { value: result.signature.toLocaleString(i18n.language) })
-      : t("overlay.scan.massOnly")
-    : result
-      ? t("overlay.scan.noLabels")
-      : t("overlay.scan.title");
+  const liveSig = live && reading ? reading.signature : null;
+  const found = liveSig !== null || (result && (result.signature !== null || result.mass !== null));
+  const title =
+    liveSig !== null
+      ? t("overlay.scan.signature", { value: liveSig.toLocaleString(i18n.language) })
+      : found && result
+        ? result.signature !== null
+          ? t("overlay.scan.signature", { value: result.signature.toLocaleString(i18n.language) })
+          : t("overlay.scan.massOnly")
+        : result
+          ? t("overlay.scan.noLabels")
+          : t("overlay.scan.title");
+  const liveButton = (
+    <button type="button" className={`ov-btn${live ? " on" : ""}`} onClick={toggleLive}>
+      {live ? t("overlay.scan.liveOn") : t("overlay.scan.liveOff")}
+    </button>
+  );
   const shown = showAll ? result?.lines ?? [] : (result?.lines ?? []).slice(0, 8);
 
   return (
@@ -95,11 +122,20 @@ export function ScanOverlay() {
       name="scan"
       displayName={t("overlay.scan.windowName")}
       accent={status.phase === "error" ? "ov-accent-down" : found ? "ov-accent-ok" : "ov-accent-none"}
-      eyebrow={t("overlay.scan.eyebrow")}
+      eyebrow={live ? `${t("overlay.scan.eyebrow")} · ${t("overlay.scan.live")}` : t("overlay.scan.eyebrow")}
       title={title}
       firstBox={
         <div className={`ov-box${found ? " acc" : ""}`}>
-          {phaseText ? (
+          {liveSig !== null ? (
+            <>
+              <span className="lbl">{t("overlay.scan.sigLabel")}</span>
+              <span className="mono big">{liveSig.toLocaleString(i18n.language)}</span>
+              <span className="mono ov-dim">
+                {reading && new Date(reading.at).toLocaleTimeString(i18n.language, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              </span>
+              <span className="push">{liveButton}</span>
+            </>
+          ) : phaseText ? (
             <>
               <span>{phaseText}</span>
               {status.progress !== null && <span className="mono push">{Math.round(status.progress * 100)}%</span>}
@@ -118,26 +154,21 @@ export function ScanOverlay() {
                   <span className="mono">{result!.mass.toLocaleString(i18n.language)}</span>
                 </>
               )}
-              <button type="button" className="ov-btn push" onClick={scanNow} disabled={busy}>
-                {t("overlay.scan.scanNow")}
-              </button>
+              <span className="push">{liveButton}</span>
             </>
           ) : (
             <>
-              <span>{result ? t("overlay.scan.linesRead", { count: result.lines.length }) : t("overlay.scan.idle")}</span>
-              <button type="button" className="ov-btn push" onClick={scanNow} disabled={busy}>
-                {t("overlay.scan.scanNow")}
-              </button>
+              <span>{live ? t("overlay.scan.liveWaiting") : result ? t("overlay.scan.linesRead", { count: result.lines.length }) : t("overlay.scan.idle")}</span>
+              <span className="push">{liveButton}</span>
             </>
           )}
         </div>
       }
       strip={
         <>
-          <span className="ov-muted ov-strip-item">{phaseText ?? (result ? t("overlay.scan.linesRead", { count: result.lines.length }) : "")}</span>
-          <button type="button" className="ov-btn ov-strip-item" onClick={scanNow} disabled={busy}>
-            {t("overlay.scan.scanNow")}
-          </button>
+          {liveSig !== null && <span className="mono ov-count ov-strip-item">{liveSig.toLocaleString(i18n.language)}</span>}
+          <span className="ov-muted ov-strip-item">{phaseText ?? (live ? (liveSig === null ? t("overlay.scan.liveWaiting") : "") : result ? t("overlay.scan.linesRead", { count: result.lines.length }) : "")}</span>
+          <span className="ov-strip-item">{liveButton}</span>
         </>
       }
     >
@@ -172,6 +203,9 @@ export function ScanOverlay() {
             <span className="mono">
               {result.source} · {result.width}×{result.height} · {result.elapsed_ms} ms
             </span>
+            <button type="button" className="ov-btn" onClick={scanNow} disabled={busy} style={{ marginLeft: 8 }}>
+              {t("overlay.scan.scanNow")}
+            </button>
             {capturedAt && <span className="push mono">{capturedAt}</span>}
           </div>
           <p className="ov-p ov-dim" style={{ fontSize: 11 }}>

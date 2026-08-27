@@ -74,7 +74,8 @@
     "upToDate": "Du har den nyeste version (v{{current}}).",
     "failed": "Kunne ikke søge efter opdateringer.",
     "version": "v{{version}}",
-    "versionBuild": "v{{version}} · {{build}}"
+    "versionBuild": "v{{version}} · {{build}}",
+    "openLog": "Åbn logmappe"
   },
   "footer": {
     "disclaimer": "Dette er en uofficiel Star Citizen-fanapplikation uden tilknytning til Cloud Imperium-koncernen. Alt indhold, der ikke er skabt af værten eller brugerne, tilhører de respektive ejere.",
@@ -159,7 +160,7 @@
     "hotkeyStatus": "Genvejstast til statusvinduet",
     "hotkeyScan": "Genvejstast til scanning",
     "scanNow": "Scan nu (v1)",
-    "scanHint": "Scan v1: tager et billede af spilskærmen, finder signatur-mærket ved en pinget kontakt og læser det med lokal OCR (modeller ≈ 15 MB, hentes én gang); scanningsvinduet viser signaturen og den rå aflæsning. Skærmbilleder forlader aldrig denne maskine.",
+    "scanHint": "Scan v1: F7 slår en live-læser til, som holder øje med signaturområdet i spilbilledet (omkring midten, en tredjedel nede) og læser det gule signaturmærke med lokal OCR, når det ændrer sig; \"Scan nu\" læser ét helt billede. Modeller ≈ 15 MB, hentes én gang. Skærmbilleder forlader aldrig denne maskine.",
     "scan": {
       "windowName": "Scanningsvindue",
       "eyebrow": "Scanning · v1",
@@ -182,7 +183,13 @@
       "nothingRead": "Intet læsbart på skærmen.",
       "showAll": "Vis alle {{count}} linjer",
       "showFewer": "Vis færre",
-      "privacy": "Behandlet lokalt — billedet gemmes kun i hukommelsen."
-    }
+      "privacy": "Behandlet lokalt — billedet gemmes kun i hukommelsen.",
+      "live": "LIVE",
+      "liveOn": "Live: til",
+      "liveOff": "Live: fra",
+      "liveWaiting": "Holder øje med signaturområdet — ping en kontakt i scanningstilstand."
+    },
+    "liveScanStart": "Start live-scanning (F7)",
+    "liveScanStop": "Stop live-scanning (F7)"
   }
 }

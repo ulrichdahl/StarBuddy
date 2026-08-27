@@ -272,7 +272,7 @@ fn create(app: &AppHandle, name: &str) -> Result<(), String> {
         }
     });
     if let Err(e) = apply_layout(app, name) {
-        eprintln!("overlay {name}: initial layout skipped: {e}");
+        log::warn!("overlay {name}: initial layout skipped: {e}");
     }
     Ok(())
 }
@@ -537,10 +537,10 @@ pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
     match action.as_deref() {
         Some("status") => {
             if let Err(e) = toggle(app, STATUS) {
-                eprintln!("overlay toggle failed: {e}");
+                log::error!("overlay toggle failed: {e}");
             }
         }
         Some("scan") => crate::scan::trigger(app),
-        other => eprintln!("unhandled shortcut action {other:?}"),
+        other => log::warn!("unhandled shortcut action {other:?}"),
     }
 }

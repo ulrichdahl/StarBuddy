@@ -297,3 +297,4 @@ html.overlay-mode body {
 }
 .ov-btn:hover { background: rgba(60, 201, 240, 0.2); }
 .ov-btn:disabled { opacity: 0.4; cursor: default; }
+.ov-btn.on { background: rgba(47, 191, 164, 0.16); border-color: rgba(47, 191, 164, 0.6); color: var(--green); }

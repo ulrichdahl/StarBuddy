@@ -66,7 +66,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         // Full pipeline (badge detection + readout) exactly as the client runs it.
         if scale == 1 && crop.is_none() {
-            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.clone() };
+            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.clone(), full_height: img.height() };
             let started = Instant::now();
             let result = analyze(&engine, &cap, started)?;
             println!("== {file}: signature {:?}, mass {:?}, {} badge(s), {} lines, {} ms", result.signature, result.mass, result.badges.len(), result.lines.len(), result.elapsed_ms);
