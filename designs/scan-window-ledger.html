@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>StarBuddy Scan Window — Ledger</title>
+</head>
+<body>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&amp;family=Exo+2:wght@400;500;600&amp;family=Share+Tech+Mono&amp;display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0a0c10; }
+    a { color: #3cc9f0; } a:hover { color: #7fdcf7; }
+    .ground { width: 520px; height: 470px; padding: 40px; box-sizing: border-box; display: flex; align-items: flex-start; justify-content: center;
+      background: radial-gradient(700px 360px at 80% 110%, rgba(60,120,160,0.22), transparent 60%), radial-gradient(500px 300px at 10% 15%, rgba(90,60,130,0.14), transparent 65%), linear-gradient(180deg, #0a0c10 0%, #0d1219 55%, #101820 100%); }
+    .ov { --glass: rgba(10,16,24,0.86); --line: rgba(120,160,190,0.35); --line2: rgba(120,160,190,0.18); --steel: #7fa0b8; --cyan: #3cc9f0; --amber2: #f3c65a; --green: #2fbfa4;
+      --text: #dbe6ee; --muted: #8fa3b3; --dim: #5f7384; --disp: "Rajdhani", "Bahnschrift", "Arial Narrow", sans-serif; --body: "Exo 2", "Segoe UI", system-ui, sans-serif; --mono: "Share Tech Mono", ui-monospace, Consolas, monospace;
+      --acc: var(--cyan); --acc-soft: rgba(60,201,240,0.12);
+      position: relative; width: 440px; color: var(--text); font-family: var(--body); font-size: 13px; line-height: 1.45; background: var(--glass); border: 1px solid var(--line);
+      clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+    .ov::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--acc); box-shadow: 0 0 14px var(--acc); }
+    .ov-tb { display: flex; align-items: flex-start; gap: 10px; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--line2); }
+    .ov-grip { width: 12px; height: 14px; flex: none; margin-top: 12px; background: radial-gradient(circle, var(--steel) 1px, transparent 1.4px) 0 0 / 5px 5px; opacity: 0.7; }
+    .ov-tb-text { min-width: 0; flex: 1; }
+    .ov-eyebrow { font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.14em; font-size: 10.5px; font-weight: 600; color: var(--acc); line-height: 1.2; }
+    .ov-title { display: flex; align-items: baseline; gap: 10px; font-family: var(--disp); font-weight: 600; font-size: 26px; color: #fff; letter-spacing: 0.03em; line-height: 1.1; }
+    .ov-title .cnt { color: var(--muted); font-weight: 500; }
+    .rar { display: flex; align-items: center; gap: 10px; padding: 6px 0 2px; }
+    .rar .push { margin-left: auto; }
+    .rar .pill, .rar .sigchip { padding: 3px 9px; font-size: 13px; line-height: 1.3; height: 25px; box-sizing: border-box; display: inline-flex; align-items: center; letter-spacing: 0.06em; }
+    .ov-grp { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line2); background: rgba(10,16,24,0.55); flex: none; }
+    .ov-ib { display: inline-grid; place-items: center; width: 26px; height: 26px; border: 1px solid transparent; background: transparent; color: var(--steel); border-radius: 2px; }
+    .ov-ib.on { color: var(--cyan); background: rgba(60,201,240,0.12); border-color: rgba(60,201,240,0.55); }
+    .ov-ib svg { width: 17px; height: 17px; display: block; }
+    .ov-body { padding: 10px 14px 12px 16px; }
+    .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+    .lbl { color: var(--muted); font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.12em; font-size: 10.5px; font-weight: 600; }
+    .pill { font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.12em; font-size: 10px; font-weight: 700; padding: 2px 8px; border: 1px solid var(--line); white-space: nowrap; line-height: 1.4; align-self: center; }
+    .pill.r { border-color: color-mix(in srgb, var(--rarity) 55%, transparent); background: color-mix(in srgb, var(--rarity) 16%, transparent); color: var(--rarity); }
+    .legendary { --rarity: #D65A50; } .epic { --rarity: #A87BEA; } .rare { --rarity: #D9A431; } .uncommon { --rarity: #35B9A0; } .common { --rarity: #DCE5E3; }
+    .sig { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .sigchip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(60,201,240,0.45); background: rgba(60,201,240,0.08); color: var(--text); padding: 3px 9px; font-size: 12px; line-height: 1.3; }
+    .sigchip .mono { color: var(--cyan); font-size: 13px; }
+    .sigchip .sep { color: var(--dim); }
+    .sigdot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--cyan); position: relative; flex: none; }
+    .sigdot::after { content: ""; position: absolute; inset: 2px; border-radius: 50%; background: var(--cyan); }
+    .res { font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.08em; font-size: 10.5px; font-weight: 700; }
+    .res.hard { color: var(--amber2); } .res.easy { color: var(--green); }
+    .q { color: #e0a526; }
+    .ov-btn { font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.12em; font-size: 11px; font-weight: 600; padding: 5px 10px; border: 1px solid rgba(60,201,240,0.5); background: rgba(60,201,240,0.12); color: var(--cyan); line-height: 1.2; }
+    .ov-btn.on { background: rgba(47,191,164,0.16); border-color: rgba(47,191,164,0.6); color: var(--green); }
+    .foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 11px; color: var(--dim); }
+    .foot .push { margin-left: auto; }
+    .cand { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 10px; }
+    .cand th { text-align: left; font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; color: var(--muted); font-weight: 600; padding: 0 8px 6px 0; }
+    .cand td { padding: 6px 8px 6px 0; border-top: 1px solid var(--line2); vertical-align: middle; white-space: nowrap; color: var(--text); }
+    .cand th:last-child, .cand td:last-child { text-align: right; padding-right: 0; }
+    .cand tr.best td { color: #fff; background: linear-gradient(90deg, rgba(60,201,240,0.10), transparent 70%); }
+    .cand td.min { font-weight: 500; }
+    .rdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--rarity); box-shadow: 0 0 6px var(--rarity); margin-right: 7px; vertical-align: 1px; }
+    .hint { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; margin-top: 10px; padding: 7px 10px; border: 1px solid rgba(224,165,38,0.35); background: rgba(224,165,38,0.06); font-size: 12px; }
+    .hint .lbl { color: var(--amber2); }
+    .cand td.ch { color: var(--muted); } .band { font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.1em; font-size: 9.5px; color: var(--dim); margin-left: 8px; }
+  </style>
+<div class="ground"><div class="ov"><div class="ov-tb"><div class="ov-grip"></div><div class="ov-tb-text"><div class="ov-eyebrow">Scan · v2 · Live</div><div class="ov-title"><span>Bexalite</span></div></div><span class="ov-grp"><span class="ov-ib"><svg viewBox="0 0 24 24"><path d="M3 6h15l3 3v9H3z" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"></path><path d="M3 11h18" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"></path><rect x="6.5" y="13.5" width="7" height="2.5" rx=".5" fill="currentColor" stroke="none"></rect></svg></span><span class="ov-ib on"><svg viewBox="0 0 24 24"><path d="M8 3h10.5L22 6.5V14" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="2 2.2"></path><path d="M2 8h11.5L17 11.5V21H2z" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"></path><path d="M2 12.5h15" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"></path></svg></span><span class="ov-ib"><svg viewBox="0 0 24 24"><path d="M3 3h15l3 3v15H3z" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"></path><path d="M3 21L21 6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"></path><path d="M3 21V3h15L3 21z" fill="currentColor" stroke="none" opacity=".35"></path></svg></span><span class="ov-ib"><svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"></path></svg></span></span></div><div class="ov-body"><div class="rar"><span class="pill r uncommon">uncommon</span><span class="sigchip"><span class="sigdot"></span><span class="mono">3,600</span></span><span class="push lbl">Resistance</span><span class="res hard">Hard · 0.60</span></div><table class="cand"><thead><tr><th>Mineral</th><th>Chance</th><th>Share</th><th>Resist.</th><th>Quality</th></tr></thead><tbody><tr class="best"><td class="min"><span class="rdot uncommon"></span>Bexalite</td><td class="mono ch">100%</td><td class="mono">5.7–11.7%</td><td><span class="res hard">Hard</span></td><td class="mono q">Q 501–1000</td></tr><tr class="best"><td class="min"><span class="rdot uncommon" style="opacity: 0.45;"></span><span style="color: var(--muted);">Bexalite</span><span class="band">band 2</span></td><td class="mono ch">100%</td><td class="mono">28.3–78.3%</td><td><span class="res hard">Hard</span></td><td class="mono q">Q 245–490</td></tr><tr class=""><td class="min"><span class="rdot uncommon"></span>Borase</td><td class="mono ch">100%</td><td class="mono">2–5%</td><td><span class="res easy">Easy</span></td><td class="mono q">Q 395–789</td></tr><tr class=""><td class="min"><span class="rdot rare"></span>Gold</td><td class="mono ch">100%</td><td class="mono">2–5%</td><td><span class="res hard">Hard</span></td><td class="mono q">Q 395–789</td></tr></tbody></table><div class="hint"><span class="lbl">Read</span><span>Two Bexalite bands: a thin high-quality vein (<span class="mono">Q 501–1000</span>) or a fat mid-quality body (<span class="mono">Q 245–490</span>). Both crack <span class="res hard">Hard</span>.</span></div><div class="foot"><span class="mono">window (spectacle) · 3,600 in 152 ms</span><span class="push mono">21:03:10</span><span class="ov-btn on">Live: on</span></div></div></div></div>
+</body>
+</html>
