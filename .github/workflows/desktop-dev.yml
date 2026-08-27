@@ -52,7 +52,7 @@ jobs:
         shell: bash
         run: |
           LAST=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
-          { echo "# since ${LAST:-start}"; git log --format='%s' ${LAST:+$LAST..}HEAD -- . ':!screenshots'; } > client/src-tauri/changes.txt
+          { echo "# since ${LAST:-start}"; git log --format='%s' ${LAST:+$LAST..}HEAD -- . ':!screenshots' | sed -E 's/ *\[(skip|no) ci\]//g'; } > client/src-tauri/changes.txt
           wc -l client/src-tauri/changes.txt
 
       - uses: actions/setup-node@v4
@@ -133,7 +133,7 @@ jobs:
             echo "Assets are replaced on every client change — this is not a stable release."
             echo
             echo "### Changes since ${LAST:-the beginning}"
-            git log --format='- %s' ${LAST:+$LAST..}HEAD -- . ':!screenshots'
+            git log --format='- %s' ${LAST:+$LAST..}HEAD -- . ':!screenshots' | sed -E 's/ *\[(skip|no) ci\]//g'
           } > dev-notes.md
 
       - uses: actions/download-artifact@v4
