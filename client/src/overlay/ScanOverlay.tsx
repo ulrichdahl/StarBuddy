@@ -19,6 +19,7 @@ interface Badge {
   h: number;
   value: number;
   text: string;
+  shape?: number;
 }
 
 interface SigOre {
@@ -269,7 +270,7 @@ export function ScanOverlay() {
           {result.badges && result.badges.length > 1 && (
             <div className="ov-chips">
               {result.badges.map((b, i) => (
-                <span key={i} className="ov-chip mono" title={`${b.x},${b.y}`}>
+                <span key={i} className="ov-chip mono" title={`${b.x},${b.y}${b.shape !== undefined ? ` · pin ${b.shape.toFixed(2)}` : ""}`}>
                   {fmt(b.value)}
                 </span>
               ))}

@@ -44,6 +44,8 @@ pub struct Badge {
     /// The number read to the right of the icon.
     pub value: f64,
     pub text: String,
+    /// How closely the icon matched the pin template (0–1).
+    pub shape: f32,
 }
 
 #[derive(Serialize, Clone, Debug)]
@@ -414,6 +416,78 @@ struct Blob {
     y: i32,
     w: i32,
     h: i32,
+    /// Similarity to the pin icon, 0–1 (see `pin_score`).
+    shape: f32,
+}
+
+/// The badge's icon: a map pin (teardrop head with a hole, over a flat
+/// ellipse base), drawn here on a 12×14 grid. Candidates are compared to
+/// it so only the signature badge is read — other amber HUD marks of
+/// similar size (contact markers, warnings) are not.
+const PIN_TEMPLATE: [&str; 14] = [
+    ".....##.....",
+    "...######...",
+    "..###..###..",
+    "..##....##..",
+    "..###..###..",
+    "...######...",
+    "...######...",
+    "....####....",
+    "....####....",
+    ".....##.....",
+    ".####..####.",
+    "############",
+    "############",
+    "...######...",
+];
+/// Corpus: real pins score 0.79–0.85, every other amber blob ≤ 0.61, a
+/// solid square 0.50.
+const PIN_MIN_SCORE: f32 = 0.70;
+
+/// 1 − mean absolute difference between the blob's amber mask, resampled
+/// to the template grid by area averaging, and the template.
+fn pin_score_mask(mask: &[bool], w: usize, h: usize) -> f32 {
+    let (tw, th) = (PIN_TEMPLATE[0].len(), PIN_TEMPLATE.len());
+    if w == 0 || h == 0 {
+        return 0.0;
+    }
+    let mut diff = 0.0f32;
+    for j in 0..th {
+        let y0 = j * h / th;
+        let y1 = ((j + 1) * h / th).max(y0 + 1).min(h);
+        for i in 0..tw {
+            let x0 = i * w / tw;
+            let x1 = ((i + 1) * w / tw).max(x0 + 1).min(w);
+            let mut on = 0usize;
+            let mut n = 0usize;
+            for y in y0..y1 {
+                for x in x0..x1 {
+                    on += mask[y * w + x] as usize;
+                    n += 1;
+                }
+            }
+            let cell = on as f32 / n.max(1) as f32;
+            let want = if PIN_TEMPLATE[j].as_bytes()[i] == b'#' { 1.0 } else { 0.0 };
+            diff += (cell - want).abs();
+        }
+    }
+    1.0 - diff / (tw * th) as f32
+}
+
+/// Shape score of a blob's bounding box at full resolution.
+fn pin_score(cap: &Captured, x: i32, y: i32, w: i32, h: i32) -> f32 {
+    let (w, h) = (w as usize, h as usize);
+    let mut mask = vec![false; w * h];
+    for yy in 0..h {
+        for xx in 0..w {
+            let (px, py) = (x as usize + xx, y as usize + yy);
+            if px < cap.width as usize && py < cap.height as usize {
+                let i = (py * cap.width as usize + px) * 3;
+                mask[yy * w + xx] = is_amber(cap.rgb[i], cap.rgb[i + 1], cap.rgb[i + 2]);
+            }
+        }
+    }
+    pin_score_mask(&mask, w, h)
 }
 
 /// Icon-sized amber blobs (the badge's pin icon), on a 2× downsampled mask.
@@ -461,7 +535,13 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
         let k = cap.full_height as f32 / 1440.0;
         let (lo, hi) = ((10.0 * k) as usize, (36.0 * k).ceil() as usize);
         if (lo..=hi).contains(&bw) && (lo..=hi).contains(&bh) && fill > 0.35 {
-            blobs.push(Blob { x: (minx * 2) as i32, y: (miny * 2) as i32, w: bw as i32, h: bh as i32 });
+            let (x, y, w, h) = ((minx * 2) as i32, (miny * 2) as i32, bw as i32, bh as i32);
+            let shape = pin_score(cap, x, y, w, h);
+            if shape >= PIN_MIN_SCORE {
+                blobs.push(Blob { x, y, w, h, shape });
+            } else if shape >= PIN_MIN_SCORE - 0.1 {
+                log::debug!("amber blob at {x},{y} {w}×{h} rejected: pin score {shape:.2}");
+            }
         }
     }
     // Nearest the centre first — the pinged contact is what the player looks at.
@@ -526,7 +606,7 @@ pub fn find_badges(engine: &OcrEngine, cap: &Captured) -> Vec<Badge> {
         let Some(crop) = crop_upscaled(cap, b.x + b.w - (4.0 * k) as i32, b.y - (8.0 * k) as i32, (150.0 * k) as i32, b.h + (16.0 * k) as i32, 3) else { continue };
         let Ok(text) = ocr_text(engine, &crop) else { continue };
         if let Some(value) = badge_number(&text) {
-            out.push(Badge { x: b.x, y: b.y, w: b.w, h: b.h, value, text: text.trim().to_string() });
+            out.push(Badge { x: b.x, y: b.y, w: b.w, h: b.h, shape: b.shape, value, text: text.trim().to_string() });
         }
     }
     out
@@ -849,6 +929,20 @@ mod tests {
             assert_eq!(result.signature, Some(want), "{file}");
             assert_eq!(result.badges.len(), 1, "{file}: exactly one badge");
         }
+    }
+
+    #[test]
+    fn pin_template_scoring() {
+        // The template itself scores 1; a solid block or nothing at all
+        // sits at 0.5, well under the acceptance threshold.
+        let (w, h) = (PIN_TEMPLATE[0].len(), PIN_TEMPLATE.len());
+        let exact: Vec<bool> = PIN_TEMPLATE.iter().flat_map(|r| r.bytes().map(|c| c == b'#')).collect();
+        assert!((pin_score_mask(&exact, w, h) - 1.0).abs() < 1e-6);
+        assert!((pin_score_mask(&vec![true; 20 * 20], 20, 20) - 0.5).abs() < 0.01);
+        assert!(pin_score_mask(&vec![false; 20 * 20], 20, 20) < PIN_MIN_SCORE);
+        // Resampling keeps the score: the template drawn at 2× still matches.
+        let big: Vec<bool> = (0..h * 2).flat_map(|y| (0..w * 2).map(move |x| PIN_TEMPLATE[y / 2].as_bytes()[x / 2] == b'#')).collect();
+        assert!(pin_score_mask(&big, w * 2, h * 2) > 0.99);
     }
 
     #[test]
