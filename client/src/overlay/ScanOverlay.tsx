@@ -22,26 +22,34 @@ interface Badge {
   shape?: number;
 }
 
-interface SigOre {
+/** One ledger row: a mineral's band in the rock. */
+interface SigRow {
   name: string;
-  signature: number;
-  instability: number | null;
-  resistance: number | null;
-  dominant: [number, number] | null;
-  companions: { name: string; share: [number, number] }[];
+  dominant: boolean;
+  share: [number, number] | null;
   rarity: string | null;
+  resistance: number | null;
+  instability: number | null;
   qualities: number[];
 }
 
-/** One reading of a signature: a mineral (kind "ship") or a ground deposit size. */
+interface SigOre {
+  name: string;
+  signature: number;
+  rarity: string | null;
+  resistance: number | null;
+}
+
+/** One reading of a signature: a mineral (kind "ship") or a size-only kind (debris, fps, roc). */
 interface SigMatch {
   name: string;
-  kind: "ship" | "fps" | "roc" | string;
+  kind: "ship" | "debris" | "fps" | "roc" | string;
   count: number;
   signature: number;
   exact: boolean;
   delta: number;
   ore: SigOre | null;
+  rows: SigRow[];
 }
 
 interface ScanResult {
@@ -74,9 +82,10 @@ interface ScanStatus {
 }
 
 /**
- * Scan v2: capture → local OCR → signature → reference lookup. The
- * signature identifies the dominant mineral (or a cluster of them) since
- * Alpha 4.7; the window names it and shows what the rock holds.
+ * Scan v2, design A "Ledger": the mineral (or debris/deposit kind) is the
+ * title with the cluster count in grey after it; a rarity row sits above
+ * the ledger, which has one row per composition band. The signature
+ * itself only appears in the footer.
  */
 export function ScanOverlay() {
   const { t, i18n } = useTranslation();
@@ -127,12 +136,14 @@ export function ScanOverlay() {
 
   const fmt = (n: number) => n.toLocaleString(i18n.language);
   const range = (r: [number, number]) => `${fmt(r[0])}–${fmt(r[1])}%`;
-  const matchName = (m: SigMatch) => {
-    if (m.kind === "ship") return m.count > 1 ? t("overlay.scan.match.cluster", { name: m.name, count: m.count }) : m.name;
-    const key = m.kind === "fps" ? "fps" : "roc";
-    return m.count > 1 ? t(`overlay.scan.match.${key}Cluster`, { count: m.count }) : t(`overlay.scan.match.${key}`);
-  };
-  const resistance = (r: number) => `${t(r >= 0.5 ? "overlay.scan.match.hard" : "overlay.scan.match.easy")} · ${r.toFixed(2)}`;
+  const kindName = (m: SigMatch) => (m.kind === "ship" ? m.name : t(`overlay.scan.match.${m.kind === "fps" || m.kind === "roc" || m.kind === "debris" ? m.kind : "fps"}`));
+  const hard = (r: number) => r >= 0.5;
+  const resist = (r: number) => (
+    <span className={`ov-res ${hard(r) ? "hard" : "easy"}`}>
+      {t(hard(r) ? "overlay.scan.match.hard" : "overlay.scan.match.easy")} · {r.toFixed(2)}
+    </span>
+  );
+  const qband = (qs: number[]) => (qs.length > 0 ? `Q ${fmt(Math.min(...qs))}–${fmt(Math.max(...qs))}` : "—");
 
   // The reading on display: the live loop while it runs, else the last "Scan now".
   const useLive = live && reading !== null;
@@ -142,25 +153,53 @@ export function ScanOverlay() {
   const others = matches.slice(1);
   const at = useLive ? reading!.at : result?.captured_at;
   const atText = at ? new Date(at).toLocaleTimeString(i18n.language, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : null;
+  const dominant = best?.rows.find((r) => r.dominant) ?? null;
 
   const found = sig !== null || (result !== null && result.mass !== null);
+  // Title: the mineral / kind, then the count in grey at the same size.
   const title =
-    best !== null
-      ? matchName(best)
-      : sig !== null
-        ? t("overlay.scan.signature", { value: fmt(sig) })
-        : found && result
-          ? t("overlay.scan.massOnly")
-          : result
-            ? t("overlay.scan.noLabels")
-            : t("overlay.scan.title");
+    best !== null ? (
+      <span className="ov-mineral">
+        {kindName(best)}
+        {best.count > 1 && <span className="ov-cnt">× {best.count}</span>}
+      </span>
+    ) : sig !== null ? (
+      t("overlay.scan.match.unknown")
+    ) : found && result ? (
+      t("overlay.scan.massOnly")
+    ) : result ? (
+      t("overlay.scan.noLabels")
+    ) : (
+      t("overlay.scan.title")
+    );
   const liveButton = (
     <button type="button" className={`ov-btn${live ? " on" : ""}`} onClick={toggleLive}>
       {live ? t("overlay.scan.liveOn") : t("overlay.scan.liveOff")}
     </button>
   );
   const shown = showAll ? result?.lines ?? [] : (result?.lines ?? []).slice(0, 8);
-  const qualityBand = best?.ore && best.ore.qualities.length > 0 ? `${fmt(Math.min(...best.ore.qualities))}–${fmt(Math.max(...best.ore.qualities))}` : null;
+
+  // The row above the ledger: rarity chip, raw signature, resistance.
+  const rarityRow =
+    best !== null ? (
+      <>
+        {dominant?.rarity && <span className={`ov-chip ov-rarity ov-rarity-${dominant.rarity}`}>{t(`overlay.scan.rarity.${dominant.rarity}`, dominant.rarity)}</span>}
+        {sig !== null && <span className="mono ov-sig">{fmt(sig)}</span>}
+        {!best.exact && (
+          <span className="ov-dim">
+            ≈ {t("overlay.scan.match.approx")} ({best.delta > 0 ? "+" : ""}
+            {fmt(best.delta)})
+          </span>
+        )}
+        {dominant?.resistance !== null && dominant?.resistance !== undefined && (
+          <>
+            <span className="push lbl">{t("overlay.scan.match.resistance")}</span>
+            {resist(dominant.resistance)}
+          </>
+        )}
+        {best.kind !== "ship" && <span className="ov-dim">{t("overlay.scan.match.groundHint")}</span>}
+      </>
+    ) : null;
 
   return (
     <OverlayWindow
@@ -171,29 +210,14 @@ export function ScanOverlay() {
       title={title}
       firstBox={
         <div className={`ov-box${found ? " acc" : ""}`}>
-          {sig !== null ? (
+          {rarityRow !== null ? (
+            <div className="ov-rar" style={{ flex: 1 }}>
+              {rarityRow}
+            </div>
+          ) : sig !== null ? (
             <>
               <span className="lbl">{t("overlay.scan.sigLabel")}</span>
               <span className="mono big">{fmt(sig)}</span>
-              {best === null ? (
-                <span className="ov-dim">{t("overlay.scan.match.unknown")}</span>
-              ) : (
-                <>
-                  {!best.exact && (
-                    <span className="ov-dim">
-                      ≈ {t("overlay.scan.match.approx")} ({best.delta > 0 ? "+" : ""}
-                      {fmt(best.delta)})
-                    </span>
-                  )}
-                  {best.ore?.rarity && (
-                    <span className={`ov-chip ov-rarity ov-rarity-${best.ore.rarity}`}>{t(`overlay.scan.rarity.${best.ore.rarity}`, best.ore.rarity)}</span>
-                  )}
-                  {best.ore?.resistance !== null && best.ore?.resistance !== undefined && (
-                    <span className="mono ov-dim">{resistance(best.ore.resistance)}</span>
-                  )}
-                </>
-              )}
-              {atText && <span className="mono ov-dim">{atText}</span>}
               <span className="push">{liveButton}</span>
             </>
           ) : phaseText ? (
@@ -217,62 +241,63 @@ export function ScanOverlay() {
       }
       strip={
         <>
-          {sig !== null && <span className="mono ov-count ov-strip-item">{fmt(sig)}</span>}
-          {best !== null && <span className="ov-strip-item">{matchName(best)}</span>}
+          {best !== null && (
+            <span className="ov-strip-item ov-mineral">
+              {kindName(best)}
+              {best.count > 1 && <span className="ov-cnt">× {best.count}</span>}
+            </span>
+          )}
+          {dominant?.rarity && <span className={`ov-strip-item ov-chip ov-rarity ov-rarity-${dominant.rarity}`}>{t(`overlay.scan.rarity.${dominant.rarity}`, dominant.rarity)}</span>}
+          {best === null && sig !== null && <span className="mono ov-count ov-strip-item">{fmt(sig)}</span>}
           <span className="ov-muted ov-strip-item">{phaseText ?? (live ? (sig === null ? t("overlay.scan.liveWaiting") : "") : result && sig === null ? t("overlay.scan.linesRead", { count: result.lines.length }) : "")}</span>
           <span className="ov-strip-item">{liveButton}</span>
         </>
       }
     >
-      {best !== null && (
-        <div className="ov-facts">
-          {best.ore?.dominant && (
-            <div>
-              <span className="lbl">{t("overlay.scan.match.share")}</span>
-              <span className="mono">{range(best.ore.dominant)}</span>
-            </div>
-          )}
-          {best.ore && best.ore.companions.length > 0 && (
-            <div>
-              <span className="lbl">{t("overlay.scan.match.companions")}</span>
-              <span>{best.ore.companions.map((c) => `${c.name} ${range(c.share)}`).join(" · ")}</span>
-            </div>
-          )}
-          {best.ore?.resistance !== null && best.ore?.resistance !== undefined && (
-            <div>
-              <span className="lbl">{t("overlay.scan.match.resistance")}</span>
-              <span className="mono">{resistance(best.ore.resistance)}</span>
-            </div>
-          )}
-          {best.ore?.instability !== null && best.ore?.instability !== undefined && (
-            <div>
-              <span className="lbl">{t("overlay.scan.match.instability")}</span>
-              <span className="mono">{fmt(best.ore.instability)}</span>
-            </div>
-          )}
-          {qualityBand && (
-            <div>
-              <span className="lbl">{t("overlay.scan.match.quality")}</span>
-              <span className="mono">{qualityBand}</span>
-            </div>
-          )}
-          {best.kind !== "ship" && <div className="ov-dim">{t("overlay.scan.match.groundHint")}</div>}
-          {best.kind !== "ship" && best.signature === 3000 && best.count === 1 && <div className="ov-dim">{t("overlay.scan.match.wreckHint")}</div>}
-          {others.length > 0 && (
-            <div>
-              <span className="lbl">{t("overlay.scan.match.alternatives")}</span>
-              <span className="ov-chips">
-                {others.map((m, i) => (
-                  <span key={i} className="ov-chip" title={fmt(m.signature * m.count)}>
-                    {matchName(m)}
-                  </span>
-                ))}
-              </span>
-            </div>
-          )}
+      {best !== null && best.rows.length > 0 && (
+        <table className="ov-cand">
+          <thead>
+            <tr>
+              <th>{t("overlay.scan.match.colMineral")}</th>
+              <th>{t("overlay.scan.match.colShare")}</th>
+              <th>{t("overlay.scan.match.colResist")}</th>
+              <th>{t("overlay.scan.match.colQuality")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {best.rows.map((r, i) => {
+              // The same mineral again = another composition band of it.
+              const band = best.rows.slice(0, i).filter((p) => p.name === r.name).length;
+              return (
+                <tr key={i} className={r.dominant ? "best" : ""}>
+                  <td className="min">
+                    <span className={`rdot ${r.rarity ? `ov-rarity-${r.rarity}` : ""}`} />
+                    {r.name}
+                    {band > 0 && <span className="band">{t("overlay.scan.match.band", { n: band + 1 })}</span>}
+                  </td>
+                  <td className="mono">{r.share ? range(r.share) : "—"}</td>
+                  <td>{r.resistance !== null ? resist(r.resistance) : "—"}</td>
+                  <td className="mono ov-q">{qband(r.qualities)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+      {others.length > 0 && (
+        <div className="ov-chips">
+          <span className="lbl" style={{ alignSelf: "center" }}>
+            {t("overlay.scan.match.alternatives")}
+          </span>
+          {others.map((m, i) => (
+            <span key={i} className="ov-chip" title={fmt(m.signature * m.count)}>
+              {kindName(m)}
+              {m.count > 1 ? ` × ${m.count}` : ""}
+            </span>
+          ))}
         </div>
       )}
-      {result && !useLive && (
+      {result && !useLive && best === null && (
         <>
           {result.badges && result.badges.length > 1 && (
             <div className="ov-chips">
@@ -283,33 +308,36 @@ export function ScanOverlay() {
               ))}
             </div>
           )}
-          {best === null && (
-            <div className="ov-lines">
-              {shown.map((l, i) => (
-                <div key={i}>
-                  <span className="mono ov-dim">
-                    {l.x},{l.y}
-                  </span>
-                  <span>{l.text}</span>
-                </div>
-              ))}
-              {result.lines.length === 0 && <div className="ov-dim">{t("overlay.scan.nothingRead")}</div>}
-            </div>
-          )}
-          {best === null && result.lines.length > 8 && (
+          <div className="ov-lines">
+            {shown.map((l, i) => (
+              <div key={i}>
+                <span className="mono ov-dim">
+                  {l.x},{l.y}
+                </span>
+                <span>{l.text}</span>
+              </div>
+            ))}
+            {result.lines.length === 0 && <div className="ov-dim">{t("overlay.scan.nothingRead")}</div>}
+          </div>
+          {result.lines.length > 8 && (
             <button type="button" className="ov-btn" style={{ marginTop: 8 }} onClick={() => setShowAll(!showAll)}>
               {showAll ? t("overlay.scan.showFewer") : t("overlay.scan.showAll", { count: result.lines.length })}
             </button>
           )}
-          <div className="ov-foot">
-            <span className="mono">
-              {result.source} · {result.width}×{result.height} · {result.elapsed_ms} ms
-            </span>
-            <button type="button" className="ov-btn" onClick={scanNow} disabled={busy} style={{ marginLeft: 8 }}>
-              {t("overlay.scan.scanNow")}
-            </button>
-          </div>
         </>
+      )}
+      {(result || live) && (
+        <div className="ov-foot">
+          <span className="mono">
+            {sig !== null && `${fmt(sig)} · `}
+            {useLive ? `${reading!.elapsed_ms} ms` : result ? `${result.source} · ${result.width}×${result.height} · ${result.elapsed_ms} ms` : ""}
+          </span>
+          {atText && <span className="mono">{atText}</span>}
+          <span className="push">{liveButton}</span>
+          <button type="button" className="ov-btn" onClick={scanNow} disabled={busy}>
+            {t("overlay.scan.scanNow")}
+          </button>
+        </div>
       )}
       {(result || live) && (
         <p className="ov-p ov-dim" style={{ fontSize: 11 }}>

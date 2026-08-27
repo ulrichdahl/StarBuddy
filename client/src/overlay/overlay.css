@@ -278,12 +278,26 @@ html.overlay-mode body {
 .ov-accent-notice { --acc: #4a7cd6; --acc-soft: rgba(74, 124, 214, 0.1); }
 .ov-accent-none { --acc: var(--steel); --acc-soft: rgba(127, 160, 184, 0.1); }
 
-/* scan readout */
-/* Fact list under a scan match: label column, value column. */
-.ov-facts { display: grid; gap: 2px; margin-top: 10px; font-size: 12px; }
-.ov-facts div { display: grid; grid-template-columns: minmax(96px, max-content) 1fr; gap: 10px; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--line2); }
-.ov-facts .lbl { color: var(--muted); font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.12em; font-size: 10.5px; font-weight: 600; }
-.ov-facts .ov-chips { margin-top: 0; }
+/* scan readout (design A · Ledger) */
+.ov-mineral { font-size: 26px; }
+.ov-mineral .ov-cnt { color: var(--muted); font-weight: 500; margin-left: 8px; }
+.ov-strip .ov-mineral { font-size: 18px; }
+.ov-rar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ov-rar .push { margin-left: auto; }
+.ov-rar .ov-sig { color: var(--cyan); font-size: 15px; }
+.ov-cand { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 10px; }
+.ov-cand th { text-align: left; font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.14em; font-size: 10px; color: var(--muted); font-weight: 600; padding: 0 8px 6px 0; }
+.ov-cand td { padding: 6px 8px 6px 0; border-top: 1px solid var(--line2); vertical-align: middle; white-space: nowrap; color: var(--text); }
+.ov-cand th:last-child, .ov-cand td:last-child { text-align: right; padding-right: 0; }
+.ov-cand tr.best td { color: #fff; background: linear-gradient(90deg, rgba(60, 201, 240, 0.1), transparent 70%); }
+.ov-cand td.min { font-weight: 500; }
+.ov-cand .rdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--rarity, var(--steel)); box-shadow: 0 0 6px var(--rarity, transparent); margin-right: 7px; vertical-align: 1px; }
+.ov-cand .band { font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.1em; font-size: 9.5px; color: var(--dim); margin-left: 8px; }
+.ov-res { font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.08em; font-size: 10.5px; font-weight: 700; }
+.ov-res.hard { color: var(--amber2); }
+.ov-res.easy { color: var(--green); }
+.ov-q { color: var(--amber); }
+
 /* Rarity chips: the website's palette (frontend/src/lib/rarity.ts), tinted onto the glass. */
 .ov-chip.ov-rarity { border-color: color-mix(in srgb, var(--rarity) 55%, transparent); background: color-mix(in srgb, var(--rarity) 16%, transparent); color: var(--rarity); font-weight: 600; letter-spacing: 0.04em; }
 .ov-rarity-legendary { --rarity: #D65A50; }

@@ -7,6 +7,7 @@ the client shows it under "What's new".
 
 ## Unreleased
 
+- Scan window redesigned as the Ledger: the mineral (or Debris / deposit) is the title with the cluster count in grey after it, a row with rarity, raw signature and resistance sits above a ledger with one row per composition band (mineral · share · resistance · quality), and the signature moves out of the headline. Debris pieces (2,000 each) are recognised.
 - Scan window: a capture hiccup no longer leaves the window's red accent on after readings resume; the rarity shown is the raw-ore variant's, so it is never missing.
 
 ## 0.1.8 — 2026-08-27

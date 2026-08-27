@@ -2,7 +2,7 @@
   "_meta": {
     "patch": "4.10",
     "updated": "2026-08-27",
-    "notes": "Radar signature (RS) of ship-mineable rocks since Alpha 4.7: every mineral has a fixed base signature; the scanner shows the SUM over a cluster (18,000 = 5 x Bexalite 3,600). Ground deposits encode only size: 3,000 = hand-mineable, 4,000 = ROC/vehicle deposit (also summed); their mineral follows from the location. 3,000 also matches capital-wreck debris.",
+    "notes": "Radar signature (RS) of ship-mineable rocks since Alpha 4.7: every mineral has a fixed base signature; the scanner shows the SUM over a cluster (18,000 = 5 x Bexalite 3,600). Ground/space kinds encode only size: 2,000 = salvageable debris piece, 3,000 = hand-mineable deposit, 4,000 = ROC/vehicle deposit (also summed); the mineral follows from the location.",
     "sources": [
       "Star Citizen game files (Game2.dcb, MineableElement records): signatures, instability, resistance",
       "Diftic/SC_Signature_Scanner SignatureValue.md via lostspezi/starvein data/curated/signature-profiles.json (MIT): dominant share and companion minerals",
@@ -10,6 +10,7 @@
     ]
   },
   "ground": {
+    "debris": 2000,
     "fps": 3000,
     "roc": 4000
   },

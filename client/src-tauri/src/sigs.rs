@@ -58,6 +58,19 @@ pub struct SigTable {
     pub ores: Vec<SigOre>,
 }
 
+/// One ledger row: a mineral's band in the rock (the dominant mineral,
+/// then its companions), with what the table knows about that mineral.
+#[derive(Serialize, Clone, Debug)]
+pub struct SigRow {
+    pub name: String,
+    pub dominant: bool,
+    pub share: Option<[f64; 2]>,
+    pub rarity: Option<String>,
+    pub resistance: Option<f64>,
+    pub instability: Option<f64>,
+    pub qualities: Vec<u32>,
+}
+
 #[derive(Serialize, Clone, Debug)]
 pub struct SigMatch {
     pub name: String,
@@ -69,6 +82,33 @@ pub struct SigMatch {
     pub exact: bool,
     pub delta: i64,
     pub ore: Option<SigOre>,
+    /// Composition ledger: dominant mineral first, then companions.
+    pub rows: Vec<SigRow>,
+}
+
+fn rows_for(table: &SigTable, ore: &SigOre) -> Vec<SigRow> {
+    let mut rows = vec![SigRow {
+        name: ore.name.clone(),
+        dominant: true,
+        share: ore.dominant,
+        rarity: ore.rarity.clone(),
+        resistance: ore.resistance,
+        instability: ore.instability,
+        qualities: ore.qualities.clone(),
+    }];
+    for c in &ore.companions {
+        let known = table.ores.iter().find(|o| o.name.eq_ignore_ascii_case(&c.name));
+        rows.push(SigRow {
+            name: c.name.clone(),
+            dominant: false,
+            share: Some(c.share),
+            rarity: known.and_then(|o| o.rarity.clone()),
+            resistance: known.and_then(|o| o.resistance),
+            instability: known.and_then(|o| o.instability),
+            qualities: known.map(|o| o.qualities.clone()).unwrap_or_default(),
+        });
+    }
+    rows
 }
 
 static TABLE: Mutex<Option<SigTable>> = Mutex::new(None);
@@ -133,6 +173,7 @@ pub fn matches(table: &SigTable, value: f64) -> Vec<SigMatch> {
             signature: base,
             exact: delta == 0,
             delta,
+            rows: ore.map(|o| rows_for(table, o)).unwrap_or_default(),
             ore: ore.cloned(),
         });
     }
@@ -213,6 +254,12 @@ mod tests {
         assert_eq!(m[0].count, 1);
         assert!(m[0].exact);
         assert_eq!(m[0].ore.as_ref().unwrap().resistance, Some(0.95));
+        // Ledger: Lindinium first, then its Tungsten companion with Tungsten's own stats.
+        assert_eq!(m[0].rows.len(), 2);
+        assert!(m[0].rows[0].dominant);
+        assert_eq!(m[0].rows[1].name, "Tungsten");
+        assert_eq!(m[0].rows[1].share, Some([10.0, 20.0]));
+        assert_eq!(m[0].rows[1].resistance, Some(-0.4));
     }
 
     #[test]
@@ -228,6 +275,9 @@ mod tests {
     fn ground_and_approximate() {
         let t = bundled();
         assert_eq!(matches(&t, 4000.0)[0].kind, "roc");
+        // Debris pieces are 2,000 each; 4,000 is also two of them.
+        assert!(matches(&t, 4000.0).iter().any(|m| m.kind == "debris" && m.count == 2));
+        assert_eq!(matches(&t, 6000.0).iter().find(|m| m.kind == "debris").unwrap().count, 3);
         let m = matches(&t, 3610.0);
         assert_eq!(m[0].name, "Bexalite");
         assert!(!m[0].exact);
