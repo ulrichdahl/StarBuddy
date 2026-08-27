@@ -314,26 +314,44 @@ fn crop_region(full: Captured, region: ScanRegion) -> Result<Captured, String> {
 }
 
 /// KDE spectacle / wlroots grim / GNOME screenshot into a temp PNG.
+/// This is the route for a game running as a native Wayland client (Wine's
+/// Wayland driver), which has no X11 window to read. Spectacle takes the
+/// *current* screen (the one with the cursor, i.e. the game's) so the
+/// region fractions stay meaningful on multi-monitor desktops. Tools run
+/// through host_command so the AppImage's library paths never reach them.
 #[cfg(target_os = "linux")]
 fn capture_with_tool() -> Result<Captured, String> {
     let out = std::env::temp_dir().join(format!("starbuddy-scan-{}.png", std::process::id()));
+    let _ = fs::remove_file(&out);
+    let out_s = out.to_string_lossy().into_owned();
     let tools: [(&str, Vec<String>); 3] = [
-        ("spectacle", vec!["-b".into(), "-n".into(), "-f".into(), "-o".into(), out.to_string_lossy().into_owned()]),
-        ("grim", vec![out.to_string_lossy().into_owned()]),
-        ("gnome-screenshot", vec!["-f".into(), out.to_string_lossy().into_owned()]),
+        ("spectacle", vec!["-b".into(), "-n".into(), "-m".into(), "-o".into(), out_s.clone()]),
+        ("grim", vec![out_s.clone()]),
+        ("gnome-screenshot", vec!["-f".into(), out_s.clone()]),
     ];
     let mut tried = Vec::new();
     for (tool, args) in tools {
-        let ok = std::process::Command::new(tool).args(&args).status().map(|s| s.success()).unwrap_or(false);
-        if ok && out.exists() {
+        let output = match crate::host_command(tool).args(&args).output() {
+            Ok(o) => o,
+            Err(e) => {
+                if e.kind() != std::io::ErrorKind::NotFound {
+                    log::debug!("{tool}: {e}");
+                }
+                tried.push(format!("{tool} (not installed)"));
+                continue;
+            }
+        };
+        if output.status.success() && out.exists() {
             let img = image::open(&out).map_err(|e| e.to_string())?.into_rgb8();
             let _ = fs::remove_file(&out);
             let (width, height) = img.dimensions();
             return Ok(Captured { rgb: img.into_raw(), width, height, source: format!("monitor ({tool})"), full_height: height });
         }
-        tried.push(tool);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        log::warn!("{tool} exited {} without an image: {}", output.status, stderr.trim());
+        tried.push(format!("{tool} ({})", output.status));
     }
-    Err(format!("no screenshot tool worked (tried {})", tried.join(", ")))
+    Err(format!("no screenshot tool delivered an image (tried {})", tried.join(", ")))
 }
 
 #[cfg(not(any(windows, target_os = "linux")))]
