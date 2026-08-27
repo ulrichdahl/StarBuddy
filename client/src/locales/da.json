@@ -75,7 +75,9 @@
     "failed": "Kunne ikke søge efter opdateringer.",
     "version": "v{{version}}",
     "versionBuild": "v{{version}} · {{build}}",
-    "openLog": "Åbn logmappe"
+    "openLog": "Åbn logmappe",
+    "devAvailable": "Der er et nyere dev-build ({{latest}}; du har {{current}}).",
+    "notes": "Hvad er ændret"
   },
   "footer": {
     "disclaimer": "Dette er en uofficiel Star Citizen-fanapplikation uden tilknytning til Cloud Imperium-koncernen. Alt indhold, der ikke er skabt af værten eller brugerne, tilhører de respektive ejere.",
@@ -191,5 +193,12 @@
     },
     "liveScanStart": "Start live-scanning (F7)",
     "liveScanStop": "Stop live-scanning (F7)"
+  },
+  "changes": {
+    "sinceLive_one": "Nyheder — {{count}} ændring siden v{{version}}",
+    "sinceLive_other": "Nyheder — {{count}} ændringer siden v{{version}}",
+    "inVersion": "Nyheder i v{{version}}",
+    "summaryHint": "På vej i næste live-udgivelse:",
+    "commitsHint": "Alle ændringer i dette dev-build:"
   }
 }

@@ -50,9 +50,24 @@ interface AppVersion {
 
 interface UpdateCheck {
   current: string;
+  build: string | null;
   latest: string;
   url: string;
   update_available: boolean;
+  notes: string | null;
+  latest_dev: string | null;
+  dev_url: string | null;
+  dev_update_available: boolean;
+  dev_notes: string | null;
+}
+
+interface Changes {
+  channel: "release" | "dev";
+  version: string;
+  build: string | null;
+  since: string | null;
+  summary: string[];
+  commits: string[];
 }
 
 type UpdateStatus = "idle" | "checking" | "upToDate" | "failed";
@@ -198,6 +213,7 @@ function App() {
   const [kdeRuleError, setKdeRuleError] = useState<string | null>(null);
 
   const [appVersion, setAppVersion] = useState<AppVersion | null>(null);
+  const [changes, setChanges] = useState<Changes | null>(null);
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
@@ -210,6 +226,7 @@ function App() {
     // Errors (offline, rate-limited, odd tag) mean "no update info", never an update.
     invoke<UpdateCheck>("check_for_update").then(setUpdate).catch(() => {});
     invoke<AppVersion>("app_version").then(setAppVersion).catch(() => {});
+    invoke<Changes>("app_changes").then(setChanges).catch(() => {});
     invoke<string>("log_dir").then(setLogDir).catch(() => {});
     invoke<boolean>("scan_live_running").then(setScanLive).catch(() => {});
     invoke<KdeRuleInfo>("overlay_kde_rule").then(setKdeRule).catch(() => {});
@@ -368,7 +385,7 @@ function App() {
     try {
       const info = await invoke<UpdateCheck>("check_for_update");
       setUpdate(info);
-      if (info.update_available) {
+      if (info.update_available || info.dev_update_available) {
         setUpdateDismissed(false);
         setUpdateStatus("idle");
         return;
@@ -380,8 +397,11 @@ function App() {
     updateStatusTimer.current = setTimeout(() => setUpdateStatus("idle"), 5000);
   };
 
+  // A live update always wins over a dev one.
+  const offeredUpdate = update?.update_available ? "release" : update?.dev_update_available ? "dev" : null;
   const openReleasePage = () => {
-    const url = update?.url || "https://github.com/ulrichdahl/StarBuddy/releases/latest";
+    const url =
+      (offeredUpdate === "dev" ? update?.dev_url : update?.url) || "https://github.com/ulrichdahl/StarBuddy/releases/latest";
     openUrl(url).catch(() => {});
   };
 
@@ -575,9 +595,21 @@ function App() {
         );
       })}
 
-      {update?.update_available && !updateDismissed && (
+      {update && offeredUpdate && !updateDismissed && (
         <div className="update-banner" role="status">
-          <p>{t("update.available", { latest: update.latest, current: update.current })}</p>
+          <div style={{ flex: 1 }}>
+            <p>
+              {offeredUpdate === "dev"
+                ? t("update.devAvailable", { latest: update.latest_dev, current: update.build })
+                : t("update.available", { latest: update.latest, current: update.current })}
+            </p>
+            {(offeredUpdate === "dev" ? update.dev_notes : update.notes) && (
+              <details className="update-notes">
+                <summary>{t("update.notes")}</summary>
+                <pre>{offeredUpdate === "dev" ? update.dev_notes : update.notes}</pre>
+              </details>
+            )}
+          </div>
           <button onClick={openReleasePage}>{t("update.download")}</button>
           <button
             className="dismiss"
@@ -850,6 +882,36 @@ function App() {
           )}
           {syncError && <p className="error">{syncError}</p>}
         </section>
+      )}
+
+      {changes && (changes.summary.length > 0 || changes.commits.length > 0) && (
+        <details className="panel changes">
+          <summary>
+            {changes.channel === "dev"
+              ? t("changes.sinceLive", { count: changes.commits.length, version: (changes.since ?? "").replace(/^v/, "") })
+              : t("changes.inVersion", { version: changes.version })}
+          </summary>
+          {changes.summary.length > 0 && (
+            <>
+              {changes.channel === "dev" && <p className="hint">{t("changes.summaryHint")}</p>}
+              <ul>
+                {changes.summary.map((c, i) => (
+                  <li key={i}>{c}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {changes.commits.length > 0 && (
+            <>
+              <p className="hint">{t("changes.commitsHint")}</p>
+              <ul className="mono commits">
+                {changes.commits.map((c, i) => (
+                  <li key={i}>{c}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </details>
       )}
 
       <footer className="fansite">

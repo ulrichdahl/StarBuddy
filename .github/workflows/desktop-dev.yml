@@ -44,6 +44,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # tags + history for the "changes since last release" list
+
+      # Baked into the binary: the client shows these under "What's new".
+      - name: Collect changes since the last live release
+        shell: bash
+        run: |
+          LAST=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          { echo "# since ${LAST:-start}"; git log --format='%s' ${LAST:+$LAST..}HEAD -- . ':!screenshots'; } > client/src-tauri/changes.txt
+          wc -l client/src-tauri/changes.txt
 
       - uses: actions/setup-node@v4
         with:
@@ -109,6 +119,23 @@ jobs:
     needs: [stamp, build]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Release notes: the stamp line (the client parses it for its update
+      # check) followed by the commits since the last live release.
+      - name: Write release notes
+        run: |
+          LAST=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          {
+            echo "Build \`dev-${{ needs.stamp.outputs.stamp }}\` (UTC) of \`main\` at ${{ github.sha }}."
+            echo "Assets are replaced on every client change — this is not a stable release."
+            echo
+            echo "### Changes since ${LAST:-the beginning}"
+            git log --format='- %s' ${LAST:+$LAST..}HEAD -- . ':!screenshots'
+          } > dev-notes.md
+
       - uses: actions/download-artifact@v4
         with:
           path: bundles
@@ -131,7 +158,5 @@ jobs:
           name: Development build (rolling)
           prerelease: true
           make_latest: false
-          body: |
-            Build `dev-${{ needs.stamp.outputs.stamp }}` (UTC) of `main` at ${{ github.sha }}.
-            Assets are replaced on every client change — this is not a stable release.
+          body_path: dev-notes.md
           files: bundles/**

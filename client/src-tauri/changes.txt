@@ -1,0 +1,2 @@
+# Commits since the last live release. CI overwrites this file for dev
+# builds (see .github/workflows/desktop-dev.yml); release builds ignore it.

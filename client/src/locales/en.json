@@ -75,7 +75,9 @@
     "failed": "Could not check for updates.",
     "version": "v{{version}}",
     "versionBuild": "v{{version}} · {{build}}",
-    "openLog": "Open log folder"
+    "openLog": "Open log folder",
+    "devAvailable": "A newer dev build is available ({{latest}}; you have {{current}}).",
+    "notes": "What changed"
   },
   "footer": {
     "disclaimer": "This is an unofficial Star Citizen fan application, not affiliated with the Cloud Imperium group of companies. All content not authored by its host or users is property of its respective owners.",
@@ -191,5 +193,12 @@
     },
     "liveScanStart": "Start live scan (F7)",
     "liveScanStop": "Stop live scan (F7)"
+  },
+  "changes": {
+    "sinceLive_one": "What’s new — {{count}} change since v{{version}}",
+    "sinceLive_other": "What’s new — {{count}} changes since v{{version}}",
+    "inVersion": "What’s new in v{{version}}",
+    "summaryHint": "Coming in the next live release:",
+    "commitsHint": "Every change in this dev build:"
   }
 }
