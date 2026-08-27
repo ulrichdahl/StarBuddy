@@ -315,22 +315,26 @@ fn crop_region(full: Captured, region: ScanRegion) -> Result<Captured, String> {
 
 /// KDE spectacle / wlroots grim / GNOME screenshot into a temp PNG.
 /// This is the route for a game running as a native Wayland client (Wine's
-/// Wayland driver), which has no X11 window to read. Spectacle takes the
-/// *current* screen (the one with the cursor, i.e. the game's) so the
-/// region fractions stay meaningful on multi-monitor desktops. Tools run
-/// through host_command so the AppImage's library paths never reach them.
+/// Wayland driver), which has no X11 window to read. Spectacle first grabs
+/// the *active window* — while playing that is the game frame itself, so
+/// the region fractions apply to the real frame regardless of monitor size
+/// — and falls back to the current screen when the active window cannot be
+/// the game (too small: our own overlay that was just clicked, a dialog).
+/// Tools run through host_command so the AppImage's library paths never
+/// reach them.
 #[cfg(target_os = "linux")]
 fn capture_with_tool() -> Result<Captured, String> {
     let out = std::env::temp_dir().join(format!("starbuddy-scan-{}.png", std::process::id()));
-    let _ = fs::remove_file(&out);
     let out_s = out.to_string_lossy().into_owned();
-    let tools: [(&str, Vec<String>); 3] = [
-        ("spectacle", vec!["-b".into(), "-n".into(), "-m".into(), "-o".into(), out_s.clone()]),
-        ("grim", vec![out_s.clone()]),
-        ("gnome-screenshot", vec!["-f".into(), out_s.clone()]),
+    let attempts: [(&str, &str, Vec<String>); 4] = [
+        ("spectacle", "window", vec!["-b".into(), "-n".into(), "-a".into(), "-o".into(), out_s.clone()]),
+        ("spectacle", "screen", vec!["-b".into(), "-n".into(), "-m".into(), "-o".into(), out_s.clone()]),
+        ("grim", "screen", vec![out_s.clone()]),
+        ("gnome-screenshot", "screen", vec!["-f".into(), out_s.clone()]),
     ];
     let mut tried = Vec::new();
-    for (tool, args) in tools {
+    for (tool, what, args) in attempts {
+        let _ = fs::remove_file(&out);
         let output = match crate::host_command(tool).args(&args).output() {
             Ok(o) => o,
             Err(e) => {
@@ -341,15 +345,22 @@ fn capture_with_tool() -> Result<Captured, String> {
                 continue;
             }
         };
-        if output.status.success() && out.exists() {
-            let img = image::open(&out).map_err(|e| e.to_string())?.into_rgb8();
-            let _ = fs::remove_file(&out);
-            let (width, height) = img.dimensions();
-            return Ok(Captured { rgb: img.into_raw(), width, height, source: format!("monitor ({tool})"), full_height: height });
+        if !(output.status.success() && out.exists()) {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            log::warn!("{tool} {what}: exited {} without an image: {}", output.status, stderr.trim());
+            tried.push(format!("{tool} {what} ({})", output.status));
+            continue;
         }
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        log::warn!("{tool} exited {} without an image: {}", output.status, stderr.trim());
-        tried.push(format!("{tool} ({})", output.status));
+        let img = image::open(&out).map_err(|e| e.to_string())?.into_rgb8();
+        let _ = fs::remove_file(&out);
+        let (width, height) = img.dimensions();
+        // The game frame is never this small; an overlay/dialog was active.
+        if what == "window" && (width < 1024 || height < 600) {
+            log::debug!("active window is {width}×{height}, not the game — using the screen");
+            tried.push(format!("{tool} window ({width}×{height})"));
+            continue;
+        }
+        return Ok(Captured { rgb: img.into_raw(), width, height, source: format!("{what} ({tool})"), full_height: height });
     }
     Err(format!("no screenshot tool delivered an image (tried {})", tried.join(", ")))
 }
@@ -704,7 +715,7 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
         let changed = prev.as_ref().map(|p| frame_diff(p, &cap.rgb) > 4.0).unwrap_or(true);
         prev = Some(cap.rgb.clone());
         if !changed && idle_since.elapsed() < Duration::from_secs(3) {
-            std::thread::sleep(Duration::from_millis(if cap.source.starts_with("monitor (") { 900 } else { 250 }));
+            std::thread::sleep(Duration::from_millis(if cap.source.contains(" (") { 900 } else { 250 }));
             continue;
         }
         idle_since = Instant::now();
@@ -743,7 +754,7 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
         }
         let _ = app.emit("scan-live", &reading);
         // A screenshot tool costs ~0.7 s per frame; poll gently on that route.
-        let pause = if cap.source.starts_with("monitor (") { 1200 } else { 400 };
+        let pause = if cap.source.contains(" (") { 1200 } else { 400 };
         std::thread::sleep(Duration::from_millis(pause));
     }
     // Loop ended on its own (error) — reflect that in the state.
