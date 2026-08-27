@@ -398,6 +398,20 @@ function App() {
     }
   };
 
+  // A typed path is remembered the same way as a picked one (validated, saved).
+  const applyTypedDir = async () => {
+    const typed = customDir.trim();
+    if (!typed || typed === liveDir) return;
+    setLiveDirError(null);
+    try {
+      const live = await invoke<string>("set_live_dir", { path: typed });
+      setLiveDir(live);
+      setCustomDir("");
+    } catch (e) {
+      setLiveDirError(String(e));
+    }
+  };
+
   const pair = async () => {
     setPairing(true);
     setPairError(null);
@@ -683,6 +697,8 @@ function App() {
             placeholder={t("scan.dirPlaceholder")}
             value={customDir}
             onChange={(e) => setCustomDir(e.target.value)}
+            onBlur={() => void applyTypedDir()}
+            onKeyDown={(e) => e.key === "Enter" && void applyTypedDir()}
           />
           <button
             disabled={scanning || (!customDir && !liveDir)}
