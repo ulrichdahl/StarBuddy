@@ -11,3 +11,6 @@ backups/
 .DS_Store
 Thumbs.db
 data/
+
+# Reference data shipped with the app (the data/ rule above is for runtime volumes).
+!backend/database/data/
