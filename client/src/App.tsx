@@ -57,7 +57,8 @@ interface UpdateCheck {
 type UpdateStatus = "idle" | "checking" | "upToDate" | "failed";
 
 interface HotkeyInfo {
-  hotkey: string;
+  /** action → shortcut, e.g. { status: "F6" } */
+  hotkeys: Record<string, string>;
   global_supported: boolean;
   toggle_command: string;
 }
@@ -207,7 +208,7 @@ function App() {
     invoke<HotkeyInfo>("overlay_hotkey")
       .then((h) => {
         setHotkey(h);
-        setHotkeyDraft(h.hotkey);
+        setHotkeyDraft(h.hotkeys["status"] ?? "");
       })
       .catch(() => {});
 
@@ -322,9 +323,9 @@ function App() {
   const saveHotkey = async () => {
     setHotkeyError(null);
     try {
-      const info = await invoke<HotkeyInfo>("overlay_set_hotkey", { hotkey: hotkeyDraft });
+      const info = await invoke<HotkeyInfo>("overlay_set_hotkey", { action: "status", hotkey: hotkeyDraft });
       setHotkey(info);
-      setHotkeyDraft(info.hotkey);
+      setHotkeyDraft(info.hotkeys["status"] ?? "");
     } catch (e) {
       setHotkeyError(String(e));
     }
@@ -578,12 +579,12 @@ function App() {
           <input
             type="text"
             aria-label={t("overlay.hotkey")}
-            placeholder="Ctrl+Alt+S"
+            placeholder="F6"
             style={{ maxWidth: 200, flex: "0 1 auto" }}
             value={hotkeyDraft}
             onChange={(e) => setHotkeyDraft(e.target.value)}
           />
-          <button disabled={!hotkey || hotkeyDraft.trim() === hotkey.hotkey} onClick={saveHotkey}>
+          <button disabled={!hotkey || hotkeyDraft.trim() === (hotkey.hotkeys["status"] ?? "")} onClick={saveHotkey}>
             {t("overlay.saveHotkey")}
           </button>
         </div>

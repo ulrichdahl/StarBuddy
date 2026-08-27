@@ -4,7 +4,8 @@
 //!
 //! Placement modes: `floating` (drag anywhere), `dock-left` / `dock-right`
 //! (pinned to that edge, slides up and down), `dock-top` / `dock-bottom`
-//! (centred strip, not draggable). Size: `full` or `minimal`.
+//! (strip pinned to that edge, slides left and right; centred until moved).
+//! Size: `full` or `minimal`.
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -17,7 +18,11 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 /// The RSI status window — the first overlay surface.
 pub const STATUS: &str = "status";
-pub const DEFAULT_HOTKEY: &str = "Ctrl+Alt+S";
+/// Default per action. F6 is unbound in Star Citizen's current default
+/// keyset (F1 mobiGlas, F2 starmap, F4 camera, F11 comms, F12 chat are not).
+pub const DEFAULT_HOTKEYS: [(&str, &str); 1] = [("status", "F6")];
+/// Pre-F6 default; a stored copy of it is migrated to the new default.
+const LEGACY_DEFAULT_HOTKEY: &str = "Ctrl+Alt+S";
 /// CLI flag a second launch (or a desktop-environment keybinding) uses to
 /// toggle the status window — the hotkey path for Wayland desktops.
 pub const TOGGLE_FLAG: &str = "--toggle-status";
@@ -31,6 +36,8 @@ pub struct WindowPrefs {
     /// Logical position for floating; for dock-left/right only `y` matters.
     pub x: f64,
     pub y: f64,
+    /// Along-edge offset for dock-top/bottom; None = centred.
+    pub dock_x: Option<f64>,
     /// Last content size the webview asked for (logical px).
     pub width: f64,
     pub height: f64,
@@ -46,6 +53,7 @@ impl Default for WindowPrefs {
             opacity: 1.0,
             x: 40.0,
             y: 40.0,
+            dock_x: None,
             width: 440.0,
             height: 200.0,
             open: false,
@@ -53,16 +61,42 @@ impl Default for WindowPrefs {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(default)]
 pub struct OverlayPrefs {
+    /// Legacy single hotkey (status window); folded into `hotkeys` on load.
+    #[serde(skip_serializing_if = "String::is_empty")]
     pub hotkey: String,
+    /// action → shortcut; missing actions use DEFAULT_HOTKEYS.
+    pub hotkeys: HashMap<String, String>,
     pub windows: HashMap<String, WindowPrefs>,
 }
 
-impl Default for OverlayPrefs {
-    fn default() -> Self {
-        Self { hotkey: DEFAULT_HOTKEY.into(), windows: HashMap::new() }
+impl OverlayPrefs {
+    fn migrate(mut self) -> Self {
+        if !self.hotkey.is_empty() {
+            if self.hotkey != LEGACY_DEFAULT_HOTKEY && !self.hotkeys.contains_key("status") {
+                self.hotkeys.insert("status".into(), std::mem::take(&mut self.hotkey));
+            }
+            self.hotkey.clear();
+        }
+        self
+    }
+
+    pub fn hotkey_for(&self, action: &str) -> Option<String> {
+        self.hotkeys
+            .get(action)
+            .cloned()
+            .or_else(|| DEFAULT_HOTKEYS.iter().find(|(a, _)| *a == action).map(|(_, k)| k.to_string()))
+    }
+
+    /// Every action with its effective shortcut.
+    pub fn all_hotkeys(&self) -> Vec<(String, String)> {
+        DEFAULT_HOTKEYS
+            .iter()
+            .map(|(a, _)| (a.to_string(), self.hotkey_for(a).unwrap_or_default()))
+            .filter(|(_, k)| !k.is_empty())
+            .collect()
     }
 }
 
@@ -74,16 +108,19 @@ pub struct OverlayState {
     /// re-place a re-shown window and report that as a move — which must
     /// not overwrite the position the player chose.
     quiet_until: Mutex<HashMap<String, Instant>>,
+    /// Currently registered global shortcuts and the action each triggers.
+    registered: Mutex<Vec<(Shortcut, String)>>,
 }
 
 impl OverlayState {
     pub fn load(app: &AppHandle) -> Self {
-        let prefs = prefs_path(app)
+        let prefs: OverlayPrefs = prefs_path(app)
             .and_then(|p| fs::read(p).ok())
             .and_then(|b| serde_json::from_slice(&b).ok())
             .unwrap_or_default();
         Self {
-            prefs: Mutex::new(prefs),
+            prefs: Mutex::new(prefs.migrate()),
+            registered: Mutex::new(Vec::new()),
             last_saved: Mutex::new(Instant::now() - Duration::from_secs(10)),
             quiet_until: Mutex::new(HashMap::new()),
         }
@@ -232,7 +269,8 @@ fn create(app: &AppHandle, name: &str) -> Result<(), String> {
 }
 
 /// Floating windows remember where they were dropped; edge-docked windows
-/// keep only the along-edge coordinate and snap back to their edge.
+/// keep only the along-edge coordinate (y for left/right, x for top/bottom)
+/// and snap back to their edge.
 fn on_moved(app: &AppHandle, name: &str, pos: PhysicalPosition<i32>) {
     if is_quiet(app, name) {
         return;
@@ -257,6 +295,11 @@ fn on_moved(app: &AppHandle, name: &str, pos: PhysicalPosition<i32>) {
             let _ = apply_layout(app, name);
             save(app, false);
         }
+        "dock-top" | "dock-bottom" => {
+            update_prefs(app, name, |w| w.dock_x = Some(logical.x));
+            let _ = apply_layout(app, name);
+            save(app, false);
+        }
         _ => {}
     }
 }
@@ -277,13 +320,13 @@ pub fn apply_layout(app: &AppHandle, name: &str) -> Result<(), String> {
 
     let clamp_y = |y: f64| y.max(m_pos.y).min(m_pos.y + m_size.height - size.height);
     let clamp_x = |x: f64| x.max(m_pos.x).min(m_pos.x + m_size.width - size.width);
-    let centred_x = m_pos.x + ((m_size.width - size.width) / 2.0).round();
+    let strip_x = prefs.dock_x.map(clamp_x).unwrap_or_else(|| m_pos.x + ((m_size.width - size.width) / 2.0).round());
 
     let target = match prefs.mode.as_str() {
         "dock-left" => LogicalPosition::new(m_pos.x, clamp_y(prefs.y)),
         "dock-right" => LogicalPosition::new(m_pos.x + m_size.width - size.width, clamp_y(prefs.y)),
-        "dock-top" => LogicalPosition::new(centred_x, m_pos.y),
-        "dock-bottom" => LogicalPosition::new(centred_x, m_pos.y + m_size.height - size.height),
+        "dock-top" => LogicalPosition::new(strip_x, m_pos.y),
+        "dock-bottom" => LogicalPosition::new(strip_x, m_pos.y + m_size.height - size.height),
         _ => LogicalPosition::new(clamp_x(prefs.x), clamp_y(prefs.y)),
     };
 
@@ -356,14 +399,11 @@ pub fn overlay_fit(app: AppHandle, window: tauri::WebviewWindow, width: f64, hei
     Ok(())
 }
 
-/// Title-bar drag. Top/bottom strips are fixed, so the request is ignored.
+/// Title-bar drag. Docked windows are snapped back to their edge after
+/// the drop (see on_moved), so only the along-edge coordinate sticks.
 #[tauri::command]
-pub fn overlay_start_drag(app: AppHandle, window: tauri::WebviewWindow) -> Result<(), String> {
-    let name = name_of(window.label()).ok_or("not an overlay window")?;
-    let mode = window_prefs(&app, name).mode;
-    if mode == "dock-top" || mode == "dock-bottom" {
-        return Ok(());
-    }
+pub fn overlay_start_drag(window: tauri::WebviewWindow) -> Result<(), String> {
+    name_of(window.label()).ok_or("not an overlay window")?;
     window.start_dragging().map_err(|e| e.to_string())
 }
 
@@ -379,7 +419,8 @@ pub fn overlay_close(app: AppHandle, window: tauri::WebviewWindow) -> Result<(),
 
 #[derive(Serialize)]
 pub struct HotkeyInfo {
-    pub hotkey: String,
+    /// action → shortcut, e.g. {"status": "F6"}.
+    pub hotkeys: HashMap<String, String>,
     /// False on Wayland sessions, where X11-style global grabs do not reach
     /// the compositor; the CLI toggle is the way there.
     pub global_supported: bool,
@@ -393,47 +434,89 @@ fn on_wayland() -> bool {
 
 #[tauri::command]
 pub fn overlay_hotkey(app: AppHandle) -> HotkeyInfo {
-    let hotkey = app.state::<OverlayState>().prefs.lock().unwrap().hotkey.clone();
+    let hotkeys = app.state::<OverlayState>().prefs.lock().unwrap().all_hotkeys().into_iter().collect();
     let exe = std::env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|_| "starbuddy".into());
     HotkeyInfo {
-        hotkey,
+        hotkeys,
         global_supported: !(cfg!(target_os = "linux") && on_wayland() && std::env::var("GDK_BACKEND").as_deref() != Ok("x11")),
         toggle_command: format!("\"{exe}\" {TOGGLE_FLAG}"),
     }
 }
 
 #[tauri::command]
-pub fn overlay_set_hotkey(app: AppHandle, hotkey: String) -> Result<HotkeyInfo, String> {
+pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Result<HotkeyInfo, String> {
+    if !DEFAULT_HOTKEYS.iter().any(|(a, _)| *a == action) {
+        return Err(format!("unknown action {action}"));
+    }
     let hotkey = hotkey.trim().to_string();
-    let shortcut: Shortcut = hotkey.parse().map_err(|e| format!("Not a valid shortcut: {e}"))?;
-    let gs = app.global_shortcut();
-    gs.unregister_all().map_err(|e| e.to_string())?;
-    gs.register(shortcut).map_err(|e| format!("Could not register {hotkey}: {e}"))?;
-    app.state::<OverlayState>().prefs.lock().unwrap().hotkey = hotkey;
+    hotkey.parse::<Shortcut>().map_err(|e| format!("Not a valid shortcut: {e}"))?;
+    let previous = app.state::<OverlayState>().prefs.lock().unwrap().hotkeys.insert(action.clone(), hotkey.clone());
+    if let Err(e) = register_hotkeys(&app) {
+        // Roll back so a shortcut another app owns never sticks.
+        {
+            let state = app.state::<OverlayState>();
+            let mut prefs = state.prefs.lock().unwrap();
+            match previous {
+                Some(old) => prefs.hotkeys.insert(action, old),
+                None => prefs.hotkeys.remove(&action),
+            };
+        }
+        let _ = register_hotkeys(&app);
+        return Err(format!("Could not register {hotkey}: {e}"));
+    }
     save(&app, true);
     Ok(overlay_hotkey(app))
 }
 
-/// Register the saved hotkey at startup (errors are logged, never fatal —
-/// another app may own the combination).
-pub fn register_hotkey(app: &AppHandle) {
-    let hotkey = app.state::<OverlayState>().prefs.lock().unwrap().hotkey.clone();
-    match hotkey.parse::<Shortcut>() {
-        Ok(s) => {
-            if let Err(e) = app.global_shortcut().register(s) {
-                eprintln!("overlay hotkey {hotkey} not registered: {e}");
+/// (Re)register every action's shortcut. Errors are returned so the
+/// caller can decide; at startup they are only logged — another app may
+/// own the combination.
+pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
+    let state = app.state::<OverlayState>();
+    let wanted = state.prefs.lock().unwrap().all_hotkeys();
+    let gs = app.global_shortcut();
+    gs.unregister_all().map_err(|e| e.to_string())?;
+    let mut registered = Vec::new();
+    let mut first_err = None;
+    for (action, key) in wanted {
+        match key.parse::<Shortcut>() {
+            Ok(shortcut) => match gs.register(shortcut) {
+                Ok(()) => registered.push((shortcut, action)),
+                Err(e) => {
+                    first_err.get_or_insert(format!("{key}: {e}"));
+                }
+            },
+            Err(e) => {
+                first_err.get_or_insert(format!("{key}: {e}"));
             }
         }
-        Err(e) => eprintln!("overlay hotkey {hotkey} invalid: {e}"),
+    }
+    *state.registered.lock().unwrap() = registered;
+    match first_err {
+        Some(e) => Err(e),
+        None => Ok(()),
     }
 }
 
-/// Handler for the global-shortcut plugin: any registered shortcut toggles
-/// the status window (there is only ever one registered).
-pub fn on_shortcut(app: &AppHandle, _shortcut: &Shortcut, state: ShortcutState) {
-    if state == ShortcutState::Pressed {
-        if let Err(e) = toggle(app, STATUS) {
-            eprintln!("overlay toggle failed: {e}");
+/// Handler for the global-shortcut plugin: dispatch by action.
+pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
+    if state != ShortcutState::Pressed {
+        return;
+    }
+    let action = app
+        .state::<OverlayState>()
+        .registered
+        .lock()
+        .unwrap()
+        .iter()
+        .find(|(s, _)| s == shortcut)
+        .map(|(_, a)| a.clone());
+    match action.as_deref() {
+        Some("status") => {
+            if let Err(e) = toggle(app, STATUS) {
+                eprintln!("overlay toggle failed: {e}");
+            }
         }
+        other => eprintln!("unhandled shortcut action {other:?}"),
     }
 }

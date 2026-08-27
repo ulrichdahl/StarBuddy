@@ -771,7 +771,9 @@ pub fn run() {
             let handle = app.handle().clone();
             migrate_old_config_dir(&handle);
             app.manage(overlay::OverlayState::load(&handle));
-            overlay::register_hotkey(&handle);
+            if let Err(e) = overlay::register_hotkeys(&handle) {
+                eprintln!("overlay hotkeys: {e}");
+            }
             overlay::show_if_open(&handle, overlay::STATUS);
             if std::env::args().any(|a| a == overlay::TOGGLE_FLAG) {
                 let _ = overlay::toggle(&handle, overlay::STATUS);

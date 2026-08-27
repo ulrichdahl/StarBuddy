@@ -30,14 +30,14 @@ export const DockRightIcon = (p: P) => (
   </svg>
 );
 
-/** Centred strip along the top edge; no dragging. */
+/** Strip along the top edge; drag left and right. */
 export const DockTopIcon = (p: P) => (
   <svg {...base} {...p}>
     <rect x="2" y="4" width="20" height="16" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinejoin="round" strokeLinecap="round"/><rect x="6" y="4" width="12" height="6" rx="1" fill="currentColor" stroke="none"/>
   </svg>
 );
 
-/** Centred strip along the bottom edge; no dragging. */
+/** Strip along the bottom edge; drag left and right. */
 export const DockBottomIcon = (p: P) => (
   <svg {...base} {...p}>
     <rect x="2" y="4" width="20" height="16" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinejoin="round" strokeLinecap="round"/><rect x="6" y="14" width="12" height="6" rx="1" fill="currentColor" stroke="none"/>
