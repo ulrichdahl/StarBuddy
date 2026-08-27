@@ -8,6 +8,7 @@ the client shows it under "What's new".
 ## Unreleased
 
 - Scan v2: the signature is looked up in a reference table — the window names the mineral ("Lindinium", "Bexalite × 5" for a cluster), its share of the rock, companion minerals, resistance, instability, rarity and quality band; ground deposits are told apart from ship rocks. The table ships with the client and is refreshed from the server (`/api/scan/signatures`, `/api/scan/signature/{value}`); servers get `starbuddy:sync-scan-signatures` (run by update.sh).
+- Rarity in the scan window is coloured like on the website (common … legendary).
 - The badge detector now checks the icon's shape against the map-pin template, so other amber HUD marks of similar size are never read as a signature.
 - Live scan reads about once a second on the screenshot-tool route (was every 2–4 s).
 - In-game scan window: F7 toggles a live reader that watches the signature area of the game frame and reads the amber signature badge with on-device OCR; "Scan now" reads one full frame. Models (≈15 MB) download once; nothing leaves your machine.

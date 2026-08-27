@@ -180,7 +180,9 @@ export function ScanOverlay() {
                       {fmt(best.delta)})
                     </span>
                   )}
-                  {best.ore?.rarity && <span className="ov-chip">{t(`overlay.scan.rarity.${best.ore.rarity}`, best.ore.rarity)}</span>}
+                  {best.ore?.rarity && (
+                    <span className={`ov-chip ov-rarity ov-rarity-${best.ore.rarity}`}>{t(`overlay.scan.rarity.${best.ore.rarity}`, best.ore.rarity)}</span>
+                  )}
                   {best.ore?.resistance !== null && best.ore?.resistance !== undefined && (
                     <span className="mono ov-dim">{resistance(best.ore.resistance)}</span>
                   )}

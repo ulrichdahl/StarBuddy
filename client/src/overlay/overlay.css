@@ -284,6 +284,14 @@ html.overlay-mode body {
 .ov-facts div { display: grid; grid-template-columns: minmax(96px, max-content) 1fr; gap: 10px; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--line2); }
 .ov-facts .lbl { color: var(--muted); font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.12em; font-size: 10.5px; font-weight: 600; }
 .ov-facts .ov-chips { margin-top: 0; }
+/* Rarity chips: the website's palette (frontend/src/lib/rarity.ts), tinted onto the glass. */
+.ov-chip.ov-rarity { border-color: color-mix(in srgb, var(--rarity) 55%, transparent); background: color-mix(in srgb, var(--rarity) 16%, transparent); color: var(--rarity); font-weight: 600; letter-spacing: 0.04em; }
+.ov-rarity-legendary { --rarity: #D65A50; }
+.ov-rarity-epic { --rarity: #A87BEA; }
+.ov-rarity-rare { --rarity: #D9A431; }
+.ov-rarity-uncommon { --rarity: #35B9A0; }
+.ov-rarity-common { --rarity: #DCE5E3; }
+.ov-rarity-poor { --rarity: #8A9C99; }
 .ov-lines { display: grid; gap: 2px; margin-top: 10px; font-size: 12px; max-height: 260px; overflow: auto; }
 .ov-lines div { display: grid; grid-template-columns: 72px 1fr; gap: 10px; padding: 3px 0; border-top: 1px solid var(--line2); }
 .ov-dim { color: var(--dim); }
