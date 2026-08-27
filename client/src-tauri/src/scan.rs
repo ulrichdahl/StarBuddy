@@ -137,28 +137,101 @@ fn capture() -> Result<Captured, String> {
     Ok(Captured { rgb, width, height, source })
 }
 
-/// Linux: the X11 root window. The client runs through XWayland like the
-/// Wine game, so the root shows exactly the game's pixels.
+/// Linux: GetImage on the game's own X window. The client runs through
+/// XWayland like the Wine game, but XWayland is rootless — the root window
+/// has no pixels (GetImage on it is a BadMatch) — so the window itself is
+/// read. If the game is not an X client (native Wayland Wine) or the read
+/// fails, fall back to the desktop's screenshot tool.
 #[cfg(target_os = "linux")]
 fn capture() -> Result<Captured, String> {
+    match capture_x11_window() {
+        Ok(c) => Ok(c),
+        Err(x11_err) => capture_with_tool().map_err(|tool_err| format!("{x11_err}; {tool_err}")),
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn capture_x11_window() -> Result<Captured, String> {
     use x11rb::connection::Connection;
-    use x11rb::protocol::xproto::{ConnectionExt, ImageFormat};
+    use x11rb::protocol::xproto::{AtomEnum, ConnectionExt, ImageFormat, Window};
 
     let (conn, screen_num) = x11rb::connect(None).map_err(|e| format!("X11 connect failed: {e}"))?;
-    let screen = &conn.setup().roots[screen_num];
-    let (width, height) = (screen.width_in_pixels as u32, screen.height_in_pixels as u32);
+    let root = conn.setup().roots[screen_num].root;
+    let net_wm_name = conn.intern_atom(false, b"_NET_WM_NAME").map_err(|e| e.to_string())?.reply().map_err(|e| e.to_string())?.atom;
+    let utf8 = conn.intern_atom(false, b"UTF8_STRING").map_err(|e| e.to_string())?.reply().map_err(|e| e.to_string())?.atom;
+
+    fn name_of(conn: &impl Connection, win: Window, net_wm_name: u32, utf8: u32) -> String {
+        for (prop, ty) in [(net_wm_name, utf8), (AtomEnum::WM_NAME.into(), AtomEnum::STRING.into())] {
+            if let Ok(Ok(r)) = conn.get_property(false, win, prop, ty, 0, 256).map(|c| c.reply()) {
+                if !r.value.is_empty() {
+                    return String::from_utf8_lossy(&r.value).into_owned();
+                }
+            }
+        }
+        String::new()
+    }
+
+    // Breadth-first over the tree: WMs may reparent the game window once.
+    let mut queue = vec![root];
+    let mut depth = 0;
+    let mut game: Option<(Window, String)> = None;
+    while !queue.is_empty() && depth < 3 && game.is_none() {
+        let mut next = Vec::new();
+        for win in queue.drain(..) {
+            let Ok(Ok(tree)) = conn.query_tree(win).map(|c| c.reply()) else { continue };
+            for child in tree.children {
+                let name = name_of(&conn, child, net_wm_name, utf8);
+                if name.contains("Star Citizen") {
+                    game = Some((child, name));
+                    break;
+                }
+                next.push(child);
+            }
+            if game.is_some() {
+                break;
+            }
+        }
+        queue = next;
+        depth += 1;
+    }
+    let (win, title) = game.ok_or("no Star Citizen X11 window")?;
+    let geo = conn.get_geometry(win).map_err(|e| e.to_string())?.reply().map_err(|e| e.to_string())?;
+    let (width, height) = (geo.width as u32, geo.height as u32);
     let img = conn
-        .get_image(ImageFormat::Z_PIXMAP, screen.root, 0, 0, width as u16, height as u16, !0)
+        .get_image(ImageFormat::Z_PIXMAP, win, 0, 0, geo.width, geo.height, !0)
         .map_err(|e| e.to_string())?
         .reply()
-        .map_err(|e| format!("X11 capture failed: {e}"))?;
+        .map_err(|e| format!("X11 GetImage on the game window failed: {e}"))?;
     let bpp = img.data.len() / (width as usize * height as usize);
     if bpp < 3 {
         return Err(format!("unexpected pixel format ({bpp} bytes/px)"));
     }
     // ZPixmap is BGRx in memory on little-endian servers.
     let rgb = img.data.chunks_exact(bpp).flat_map(|px| [px[2], px[1], px[0]]).collect();
-    Ok(Captured { rgb, width, height, source: "monitor".into() })
+    Ok(Captured { rgb, width, height, source: format!("window: {title}") })
+}
+
+/// KDE spectacle / wlroots grim / GNOME screenshot into a temp PNG.
+#[cfg(target_os = "linux")]
+fn capture_with_tool() -> Result<Captured, String> {
+    let out = std::env::temp_dir().join(format!("starbuddy-scan-{}.png", std::process::id()));
+    let tools: [(&str, Vec<String>); 3] = [
+        ("spectacle", vec!["-b".into(), "-n".into(), "-f".into(), "-o".into(), out.to_string_lossy().into_owned()]),
+        ("grim", vec![out.to_string_lossy().into_owned()]),
+        ("gnome-screenshot", vec!["-f".into(), out.to_string_lossy().into_owned()]),
+    ];
+    let mut tried = Vec::new();
+    for (tool, args) in tools {
+        let ok = std::process::Command::new(tool).args(&args).status().map(|s| s.success()).unwrap_or(false);
+        if ok && out.exists() {
+            let img = image::open(&out).map_err(|e| e.to_string())?.into_rgb8();
+            let _ = fs::remove_file(&out);
+            let (width, height) = img.dimensions();
+            return Ok(Captured { rgb: img.into_raw(), width, height, source: format!("monitor ({tool})") });
+        }
+        tried.push(tool);
+    }
+    Err(format!("no screenshot tool worked (tried {})", tried.join(", ")))
 }
 
 #[cfg(not(any(windows, target_os = "linux")))]
