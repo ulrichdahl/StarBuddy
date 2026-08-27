@@ -359,8 +359,9 @@ fn capture_with_tool() -> Result<Captured, String> {
         let img = image::open(&out).map_err(|e| e.to_string())?.into_rgb8();
         let _ = fs::remove_file(&out);
         let (width, height) = img.dimensions();
-        // The game frame is never this small; an overlay/dialog was active.
-        if what == "window" && (width < 1024 || height < 600) {
+        // Not the game: too small, or not a widescreen frame (the client's
+        // own window is ~1130×858 — that is what was captured once).
+        if what == "window" && (width < 1280 || height < 720 || (width as f32 / height as f32) < 1.5) {
             log::debug!("active window is {width}×{height}, not the game — using the screen");
             tried.push(format!("{tool} window ({width}×{height})"));
             continue;
@@ -407,8 +408,15 @@ fn run_ocr(engine: &OcrEngine, cap: &Captured) -> Result<Vec<OcrLine>, String> {
 
 // ── Signature badge detection ───────────────────────────────────────────────
 
-fn is_amber(r: u8, g: u8, b: u8) -> bool {
-    r > 150 && (60..170).contains(&g) && b < 90 && r as i16 - g as i16 > 40
+/// A HUD pixel: saturated and bright, whatever the hue. The badge is drawn
+/// in the ship's HUD colour (amber on one MOLE, cyan on an F7C-M), so the
+/// detector must not care about the colour — the pin shape and the number
+/// next to it are what identify the badge. Space, rock and cockpit are
+/// dark or grey and drop out.
+fn is_hud(r: u8, g: u8, b: u8) -> bool {
+    let max = r.max(g).max(b) as f32;
+    let min = r.min(g).min(b) as f32;
+    max >= 140.0 && (max - min) / max.max(1.0) >= 0.40
 }
 
 struct Blob {
@@ -440,8 +448,8 @@ const PIN_TEMPLATE: [&str; 14] = [
     "############",
     "...######...",
 ];
-/// Corpus: real pins score 0.79–0.85, every other amber blob ≤ 0.61, a
-/// solid square 0.50.
+/// Corpus (HUD mask): real pins score 0.78–0.89, every other blob of pin
+/// size and aspect ≤ 0.65, a solid square 0.50.
 const PIN_MIN_SCORE: f32 = 0.70;
 
 /// 1 − mean absolute difference between the blob's amber mask, resampled
@@ -483,21 +491,22 @@ fn pin_score(cap: &Captured, x: i32, y: i32, w: i32, h: i32) -> f32 {
             let (px, py) = (x as usize + xx, y as usize + yy);
             if px < cap.width as usize && py < cap.height as usize {
                 let i = (py * cap.width as usize + px) * 3;
-                mask[yy * w + xx] = is_amber(cap.rgb[i], cap.rgb[i + 1], cap.rgb[i + 2]);
+                mask[yy * w + xx] = is_hud(cap.rgb[i], cap.rgb[i + 1], cap.rgb[i + 2]);
             }
         }
     }
     pin_score_mask(&mask, w, h)
 }
 
-/// Icon-sized amber blobs (the badge's pin icon), on a 2× downsampled mask.
+/// Icon-sized HUD-coloured blobs shaped like the badge's pin icon, on a
+/// 2× downsampled mask.
 fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
     let (w, h) = ((cap.width / 2) as usize, (cap.height / 2) as usize);
     let mut mask = vec![false; w * h];
     for y in 0..h {
         for x in 0..w {
             let i = ((y * 2) * cap.width as usize + x * 2) * 3;
-            mask[y * w + x] = is_amber(cap.rgb[i], cap.rgb[i + 1], cap.rgb[i + 2]);
+            mask[y * w + x] = is_hud(cap.rgb[i], cap.rgb[i + 1], cap.rgb[i + 2]);
         }
     }
     let mut seen = vec![false; w * h];
@@ -534,7 +543,9 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
         // Pin icon is ~20×22 px at 1440p; scale the window with resolution.
         let k = cap.full_height as f32 / 1440.0;
         let (lo, hi) = ((10.0 * k) as usize, (36.0 * k).ceil() as usize);
-        if (lo..=hi).contains(&bw) && (lo..=hi).contains(&bh) && fill > 0.35 {
+        // The pin is about as tall as it is wide (22×22, 20×24, 18×22 seen).
+        let aspect = bh as f32 / bw as f32;
+        if (lo..=hi).contains(&bw) && (lo..=hi).contains(&bh) && fill > 0.35 && (0.8..=1.5).contains(&aspect) {
             let (x, y, w, h) = ((minx * 2) as i32, (miny * 2) as i32, bw as i32, bh as i32);
             let shape = pin_score(cap, x, y, w, h);
             if shape >= PIN_MIN_SCORE {
@@ -617,7 +628,9 @@ pub fn analyze(engine: &OcrEngine, cap: &Captured, started: Instant) -> Result<S
     let badges = find_badges(engine, cap);
     let lines = run_ocr(engine, cap)?;
     let numbers = lines.iter().flat_map(|l| numbers_in(&l.text)).collect();
-    let signature = badges.first().map(|b| b.value).or_else(|| labelled(&lines, &["SIGNATURE", "SIGN.", " RS ", "RS:"]));
+    // Badges only: a text-label fallback once read our own overlay's
+    // "Signature …" title back as a reading.
+    let signature = badges.first().map(|b| b.value);
     let mass = labelled(&lines, &["MASS"]);
     Ok(ScanResult {
         captured_at: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
@@ -918,6 +931,8 @@ mod tests {
         let expected = [
             ("4.10.0-argo_mole-scanning_signature-a.jpg", 2000.0),
             ("4.10.0-argo_mole-scanning_signature-b.jpg", 15600.0),
+            // Cyan HUD, whole 5120×1440 desktop with the game centred.
+            ("4.10.0-anvil-f7c-m-scanning-signature.png", 10200.0),
         ];
         let models = dirs::data_dir().unwrap().join("io.github.ulrichdahl.starbuddy").join("ocr");
         let engine = engine_from_dir(&models).expect("OCR models present");
@@ -956,7 +971,9 @@ mod tests {
         assert_eq!(badge_number("11.8 C"), None);
         assert_eq!(badge_number("1,234,500"), Some(1234500.0));
         assert_eq!(badge_number("960"), Some(960.0));
-        assert!(is_amber(220, 120, 30));
-        assert!(!is_amber(200, 200, 200));
+        assert!(is_hud(220, 120, 30)); // amber pin
+        assert!(is_hud(64, 202, 202)); // cyan pin (F7C-M HUD)
+        assert!(!is_hud(200, 200, 200)); // grey
+        assert!(!is_hud(40, 70, 70)); // dark cockpit teal
     }
 }

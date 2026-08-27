@@ -19,7 +19,10 @@ runs OCR locally, and this folder is only test data.
   after a full scan), `refinery_order`, `inventory`, …
 - `letter` — a, b, c… for several shots of the same kind.
 
-Keep the native resolution and no HUD mods. Please avoid shots with other
+Keep the native resolution and no HUD mods. A capture of the whole desktop
+is fine (the F7C-M shot is 5120×1440 with the game centred). Shots from
+ships with **different HUD colours** matter most: the signature badge is
+drawn in the HUD colour, so the detector must stay colour-agnostic. Please avoid shots with other
 players' names visible where you can; blur them otherwise.
 
 ## Running the OCR over the corpus
