@@ -291,16 +291,26 @@ fn region_px(r: ScanRegion, width: u32, height: u32) -> (i32, i32, i32, i32) {
 fn capture_region(region: ScanRegion) -> Result<Captured, String> {
     #[cfg(target_os = "linux")]
     {
-        capture_x11_rect(Some(region))
+        match capture_x11_rect(Some(region)) {
+            Ok(c) => return Ok(c),
+            // Native-Wayland game: whole-screen tool capture, then crop.
+            Err(x11_err) => {
+                let full = capture_with_tool().map_err(|tool_err| format!("{x11_err}; {tool_err}"))?;
+                return crop_region(full, region);
+            }
+        }
     }
     #[cfg(not(target_os = "linux"))]
     {
-        let full = capture()?;
-        let (x, y, w, h) = region_px(region, full.width, full.height);
-        let img = image::RgbImage::from_raw(full.width, full.height, full.rgb).ok_or("bad frame")?;
-        let crop = image::imageops::crop_imm(&img, x as u32, y as u32, w as u32, h as u32).to_image();
-        Ok(Captured { rgb: crop.into_raw(), width: w as u32, height: h as u32, source: full.source, full_height: full.height })
+        crop_region(capture()?, region)
     }
+}
+
+fn crop_region(full: Captured, region: ScanRegion) -> Result<Captured, String> {
+    let (x, y, w, h) = region_px(region, full.width, full.height);
+    let img = image::RgbImage::from_raw(full.width, full.height, full.rgb).ok_or("bad frame")?;
+    let crop = image::imageops::crop_imm(&img, x as u32, y as u32, w as u32, h as u32).to_image();
+    Ok(Captured { rgb: crop.into_raw(), width: w as u32, height: h as u32, source: full.source, full_height: full.height })
 }
 
 /// KDE spectacle / wlroots grim / GNOME screenshot into a temp PNG.
@@ -676,7 +686,7 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
         let changed = prev.as_ref().map(|p| frame_diff(p, &cap.rgb) > 4.0).unwrap_or(true);
         prev = Some(cap.rgb.clone());
         if !changed && idle_since.elapsed() < Duration::from_secs(3) {
-            std::thread::sleep(Duration::from_millis(250));
+            std::thread::sleep(Duration::from_millis(if cap.source.starts_with("monitor (") { 900 } else { 250 }));
             continue;
         }
         idle_since = Instant::now();
@@ -714,7 +724,9 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
             log::debug!("live scan: signature {:?} in {} ms", reading.signature, reading.elapsed_ms);
         }
         let _ = app.emit("scan-live", &reading);
-        std::thread::sleep(Duration::from_millis(400));
+        // A screenshot tool costs ~0.7 s per frame; poll gently on that route.
+        let pause = if cap.source.starts_with("monitor (") { 1200 } else { 400 };
+        std::thread::sleep(Duration::from_millis(pause));
     }
     // Loop ended on its own (error) — reflect that in the state.
     let state = app.state::<ScanState>();

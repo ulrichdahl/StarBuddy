@@ -12,6 +12,7 @@ the client shows it under "What's new".
 - Default hotkeys: F6 status window, F7 scan — both editable.
 - "Find your installation…" folder picker when the LIVE folder is not detected; typed paths are remembered.
 - Debug log (`starbuddy.log`, "Open log folder" in the footer) on every build; dev builds log at debug level.
+- Linux: scan capture works with Wine's Wayland driver too (via the desktop's screenshot tool) and external tools run correctly from the AppImage.
 - Dev builds are named by build stamp, check for newer dev builds, and list their changes since the last live release.
 - Website: admin clear has a member picker and a patch-reset mode that lets you choose which material categories (and whether items) the wipe took.
 

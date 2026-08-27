@@ -129,11 +129,7 @@ fn reconfigure_kwin() -> Result<(), String> {
         ("qdbus", &["org.kde.KWin", "/KWin", "reconfigure"]),
     ];
     for (cmd, args) in attempts {
-        let ok = std::process::Command::new(cmd)
-            .args(args)
-            .status()
-            .map(|s| s.success())
-            .unwrap_or(false);
+        let ok = crate::host_command(cmd).args(args).status().map(|s| s.success()).unwrap_or(false);
         if ok {
             return Ok(());
         }
