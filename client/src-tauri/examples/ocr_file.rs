@@ -6,6 +6,7 @@
 //! harness and the client see the same files.
 
 use ocrs::{ImageSource, OcrEngine, OcrEngineParams, TextItem};
+use starbuddy_client_lib::scan::{analyze, Captured};
 use std::path::PathBuf;
 use std::time::Instant;
 
@@ -62,6 +63,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         if scale > 1 {
             img = image::imageops::resize(&img, img.width() * scale, img.height() * scale, image::imageops::FilterType::CatmullRom);
+        }
+        // Full pipeline (badge detection + readout) exactly as the client runs it.
+        if scale == 1 && crop.is_none() {
+            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.clone() };
+            let started = Instant::now();
+            let result = analyze(&engine, &cap, started)?;
+            println!("== {file}: signature {:?}, mass {:?}, {} badge(s), {} lines, {} ms", result.signature, result.mass, result.badges.len(), result.lines.len(), result.elapsed_ms);
+            for b in &result.badges {
+                println!("   badge at {},{} {}×{} → {} ({:?})", b.x, b.y, b.w, b.h, b.value, b.text);
+            }
+            continue;
         }
         let started = Instant::now();
         let source = ImageSource::from_bytes(img.as_raw(), img.dimensions())?;

@@ -12,6 +12,15 @@ interface OcrLine {
   h: number;
 }
 
+interface Badge {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  value: number;
+  text: string;
+}
+
 interface ScanResult {
   captured_at: number;
   source: string;
@@ -20,6 +29,7 @@ interface ScanResult {
   elapsed_ms: number;
   lines: OcrLine[];
   numbers: number[];
+  badges?: Badge[];
   signature: number | null;
   mass: number | null;
 }
@@ -133,6 +143,15 @@ export function ScanOverlay() {
     >
       {result && (
         <>
+          {result.badges && result.badges.length > 1 && (
+            <div className="ov-chips">
+              {result.badges.map((b, i) => (
+                <span key={i} className="ov-chip mono" title={`${b.x},${b.y}`}>
+                  {b.value.toLocaleString(i18n.language)}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="ov-lines">
             {shown.map((l, i) => (
               <div key={i}>

@@ -155,11 +155,11 @@
     },
     "hotkeyStatus": "Status window hotkey",
     "hotkeyScan": "Scan hotkey",
-    "scanNow": "Scan now (v0)",
-    "scanHint": "Scan v0: captures the game screen, reads it with on-device OCR (models ≈ 15 MB, downloaded once) and shows what it read in the scan window. Screenshots never leave this machine. Press the scan hotkey on a mining scan result to help us learn what the game renders.",
+    "scanNow": "Scan now (v1)",
+    "scanHint": "Scan v1: captures the game screen, finds the signature badge next to a pinged contact and reads it with on-device OCR (models ≈ 15 MB, downloaded once); the scan window shows the signature and the raw readout. Screenshots never leave this machine.",
     "scan": {
       "windowName": "Scan window",
-      "eyebrow": "Scan · v0",
+      "eyebrow": "Scan · v1",
       "title": "Scan",
       "idle": "Press the scan hotkey on a scan result.",
       "phase": {

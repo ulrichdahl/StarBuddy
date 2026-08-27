@@ -10,7 +10,7 @@ use tauri::{Emitter, Manager};
 
 mod kde_rule;
 mod overlay;
-mod scan;
+pub mod scan;
 
 // Notification lines are duplicated in the log (queued + displayed); events
 // are deduplicated on (timestamp, detail). Names can contain quotes

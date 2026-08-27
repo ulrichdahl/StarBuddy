@@ -1,10 +1,14 @@
-//! Scan v0 — capture the game screen, run OCR locally, show what was read.
+//! Scan v1 — capture the game screen, find the signature badge, read it.
 //!
-//! This is the "eyes" foundation for the signature/rock-contents window:
-//! v0 proves the pipeline (capture → on-device OCR → readout in an overlay)
-//! and surfaces the raw text so the real scan-screen parser can be written
-//! against what the game actually renders. Nothing leaves the machine: the
-//! OCR models are downloaded once, the capture lives in memory only.
+//! In scan mode the game shows a pinged contact's radar signature as a
+//! small amber badge (pin icon + number such as "2,000" or "15,600") next
+//! to the contact. Full-frame OCR misses that small text; a 3× upscaled
+//! crop next to the icon reads it reliably (see screenshots/ and the
+//! ocr_file example). So: find icon-sized amber blobs, OCR the strip to
+//! the right of each, keep the ones that read as a number, and prefer the
+//! one nearest the screen centre. The full-frame readout is kept as a
+//! debug aid. Nothing leaves the machine: the OCR models are downloaded
+//! once, the capture lives in memory only.
 
 use ocrs::{ImageSource, OcrEngine, OcrEngineParams, TextItem};
 use serde::Serialize;
@@ -30,6 +34,18 @@ pub struct OcrLine {
 }
 
 #[derive(Serialize, Clone, Debug)]
+pub struct Badge {
+    /// Icon position/size in capture pixels.
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    /// The number read to the right of the icon.
+    pub value: f64,
+    pub text: String,
+}
+
+#[derive(Serialize, Clone, Debug)]
 pub struct ScanResult {
     /// Unix millis of the capture.
     pub captured_at: u64,
@@ -41,7 +57,10 @@ pub struct ScanResult {
     pub lines: Vec<OcrLine>,
     /// Every number read, in reading order (the v1 parser's raw material).
     pub numbers: Vec<f64>,
-    /// Best-effort: the number next to a "signature"/"RS" label.
+    /// Signature badges found (icon + number), nearest the centre first.
+    pub badges: Vec<Badge>,
+    /// The signature: value of the badge nearest the centre, else a number
+    /// next to a "signature"/"RS" label in the full-frame readout.
     pub signature: Option<f64>,
     /// Best-effort: the number next to a "mass" label.
     pub mass: Option<f64>,
@@ -103,11 +122,11 @@ async fn ensure_models(app: &AppHandle) -> Result<(PathBuf, PathBuf), String> {
     Ok((dir.join("text-detection.rten"), dir.join("text-recognition.rten")))
 }
 
-struct Captured {
-    rgb: Vec<u8>,
-    width: u32,
-    height: u32,
-    source: String,
+pub struct Captured {
+    pub rgb: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
+    pub source: String,
 }
 
 /// Windows: the game window if it is up, else the primary monitor.
@@ -269,6 +288,161 @@ fn run_ocr(engine: &OcrEngine, cap: &Captured) -> Result<Vec<OcrLine>, String> {
     Ok(out)
 }
 
+// ── Signature badge detection ───────────────────────────────────────────────
+
+fn is_amber(r: u8, g: u8, b: u8) -> bool {
+    r > 150 && (60..170).contains(&g) && b < 90 && r as i16 - g as i16 > 40
+}
+
+struct Blob {
+    x: i32,
+    y: i32,
+    w: i32,
+    h: i32,
+}
+
+/// Icon-sized amber blobs (the badge's pin icon), on a 2× downsampled mask.
+fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
+    let (w, h) = ((cap.width / 2) as usize, (cap.height / 2) as usize);
+    let mut mask = vec![false; w * h];
+    for y in 0..h {
+        for x in 0..w {
+            let i = ((y * 2) * cap.width as usize + x * 2) * 3;
+            mask[y * w + x] = is_amber(cap.rgb[i], cap.rgb[i + 1], cap.rgb[i + 2]);
+        }
+    }
+    let mut seen = vec![false; w * h];
+    let mut blobs = Vec::new();
+    let mut stack = Vec::new();
+    for start in 0..w * h {
+        if !mask[start] || seen[start] {
+            continue;
+        }
+        seen[start] = true;
+        stack.push(start);
+        let (mut minx, mut maxx, mut miny, mut maxy, mut n) = (usize::MAX, 0usize, usize::MAX, 0usize, 0usize);
+        while let Some(i) = stack.pop() {
+            let (x, y) = (i % w, i / w);
+            n += 1;
+            minx = minx.min(x);
+            maxx = maxx.max(x);
+            miny = miny.min(y);
+            maxy = maxy.max(y);
+            for (dx, dy) in [(1i32, 0i32), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1)] {
+                let (nx, ny) = (x as i32 + dx, y as i32 + dy);
+                if nx < 0 || ny < 0 || nx >= w as i32 || ny >= h as i32 {
+                    continue;
+                }
+                let j = ny as usize * w + nx as usize;
+                if mask[j] && !seen[j] {
+                    seen[j] = true;
+                    stack.push(j);
+                }
+            }
+        }
+        let (bw, bh) = ((maxx - minx + 1) * 2, (maxy - miny + 1) * 2);
+        let fill = (n * 4) as f32 / (bw * bh) as f32;
+        // Pin icon is ~20×22 px at 1440p; scale the window with resolution.
+        let k = cap.height as f32 / 1440.0;
+        let (lo, hi) = ((10.0 * k) as usize, (36.0 * k).ceil() as usize);
+        if (lo..=hi).contains(&bw) && (lo..=hi).contains(&bh) && fill > 0.35 {
+            blobs.push(Blob { x: (minx * 2) as i32, y: (miny * 2) as i32, w: bw as i32, h: bh as i32 });
+        }
+    }
+    // Nearest the centre first — the pinged contact is what the player looks at.
+    let (cx, cy) = (cap.width as i32 / 2, cap.height as i32 / 2);
+    blobs.sort_by_key(|b| (b.x + b.w / 2 - cx).pow(2) + (b.y + b.h / 2 - cy).pow(2));
+    blobs.truncate(10);
+    blobs
+}
+
+/// Crop a strip to the right of the icon and upscale it for the OCR.
+fn crop_upscaled(cap: &Captured, x: i32, y: i32, w: i32, h: i32, scale: u32) -> Option<image::RgbImage> {
+    let img = image::RgbImage::from_raw(cap.width, cap.height, cap.rgb.clone())?;
+    let x0 = x.max(0) as u32;
+    let y0 = y.max(0) as u32;
+    let cw = (w as u32).min(cap.width.saturating_sub(x0));
+    let ch = (h as u32).min(cap.height.saturating_sub(y0));
+    if cw < 4 || ch < 4 {
+        return None;
+    }
+    let crop = image::imageops::crop_imm(&img, x0, y0, cw, ch).to_image();
+    Some(image::imageops::resize(&crop, cw * scale, ch * scale, image::imageops::FilterType::CatmullRom))
+}
+
+fn ocr_text(engine: &OcrEngine, img: &image::RgbImage) -> Result<String, String> {
+    let source = ImageSource::from_bytes(img.as_raw(), img.dimensions()).map_err(|e| e.to_string())?;
+    let input = engine.prepare_input(source).map_err(|e| e.to_string())?;
+    let words = engine.detect_words(&input).map_err(|e| e.to_string())?;
+    let lines = engine.find_text_lines(&input, &words);
+    let texts = engine.recognize_text(&input, &lines).map_err(|e| e.to_string())?;
+    Ok(texts.into_iter().flatten().map(|l| l.to_string()).collect::<Vec<_>>().join(" "))
+}
+
+/// "V 15,600" → 15600; "2,000" → 2000; "SCAN" → None. Signatures are
+/// whole numbers of at least three digits, thousands separated by , or .
+fn badge_number(text: &str) -> Option<f64> {
+    let token = text
+        .split_whitespace()
+        .filter(|t| t.chars().any(|c| c.is_ascii_digit()))
+        .max_by_key(|t| t.chars().filter(|c| c.is_ascii_digit()).count())?;
+    if token.chars().any(|c| !c.is_ascii_digit() && c != ',' && c != '.') {
+        return None;
+    }
+    // Groups: a leading 1–3 digits, then only exact thousands groups —
+    // "15,600" and "2,000" pass, "11.8" and "7.4" do not.
+    let mut groups = token.split([',', '.']);
+    let first = groups.next()?;
+    if first.is_empty() || first.len() > 3 || !groups.clone().all(|g| g.len() == 3) {
+        return None;
+    }
+    let digits: String = token.chars().filter(|c| c.is_ascii_digit()).collect();
+    if digits.len() < 3 {
+        return None;
+    }
+    digits.parse().ok()
+}
+
+/// Find signature badges: OCR the strip right of every icon candidate.
+pub fn find_badges(engine: &OcrEngine, cap: &Captured) -> Vec<Badge> {
+    let k = cap.height as f32 / 1440.0;
+    let mut out = Vec::new();
+    for b in find_amber_icons(cap) {
+        let Some(crop) = crop_upscaled(cap, b.x + b.w - (4.0 * k) as i32, b.y - (8.0 * k) as i32, (150.0 * k) as i32, b.h + (16.0 * k) as i32, 3) else { continue };
+        let Ok(text) = ocr_text(engine, &crop) else { continue };
+        if let Some(value) = badge_number(&text) {
+            out.push(Badge { x: b.x, y: b.y, w: b.w, h: b.h, value, text: text.trim().to_string() });
+        }
+    }
+    out
+}
+
+/// Whole analysis of one capture — shared by the app and the harness.
+pub fn analyze(engine: &OcrEngine, cap: &Captured, started: Instant) -> Result<ScanResult, String> {
+    let badges = find_badges(engine, cap);
+    let lines = run_ocr(engine, cap)?;
+    let numbers = lines.iter().flat_map(|l| numbers_in(&l.text)).collect();
+    let signature = badges.first().map(|b| b.value).or_else(|| labelled(&lines, &["SIGNATURE", "SIGN.", " RS ", "RS:"]));
+    let mass = labelled(&lines, &["MASS"]);
+    Ok(ScanResult {
+        captured_at: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
+        source: cap.source.clone(),
+        width: cap.width,
+        height: cap.height,
+        elapsed_ms: started.elapsed().as_millis(),
+        lines,
+        numbers,
+        badges,
+        signature,
+        mass,
+    })
+}
+
+/// Load the OCR engine from a models directory (app or harness).
+pub fn engine_from_dir(dir: &std::path::Path) -> Result<OcrEngine, String> {
+    load_engine(&dir.join("text-detection.rten"), &dir.join("text-recognition.rten"))
+}
+
 fn numbers_in(text: &str) -> Vec<f64> {
     // 1850 · 4,120 · 3.600 · 18.0% — thousands separators are dropped.
     let mut out = Vec::new();
@@ -351,22 +525,7 @@ async fn scan_inner(app: &AppHandle) -> Result<ScanResult, String> {
         status(&app2, "capturing", "capturing screen", None);
         let cap = capture()?;
         status(&app2, "ocr", format!("reading {}×{}", cap.width, cap.height), None);
-        let lines = run_ocr(engine, &cap)?;
-
-        let numbers = lines.iter().flat_map(|l| numbers_in(&l.text)).collect();
-        let signature = labelled(&lines, &["SIGNATURE", "SIGN.", " RS ", "RS:"]);
-        let mass = labelled(&lines, &["MASS"]);
-        Ok(ScanResult {
-            captured_at: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
-            source: cap.source,
-            width: cap.width,
-            height: cap.height,
-            elapsed_ms: started.elapsed().as_millis(),
-            lines,
-            numbers,
-            signature,
-            mass,
-        })
+        analyze(engine, &cap, started)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -409,5 +568,41 @@ mod tests {
         assert_eq!(labelled(&lines, &["SIGNATURE"]), Some(1850.0));
         assert_eq!(labelled(&lines, &["MASS"]), Some(4120.0));
         assert_eq!(labelled(&lines, &["RESISTANCE"]), None);
+    }
+
+    /// Real captures from screenshots/ — needs the OCR models, so it is
+    /// opt-in:  cargo test --release --lib scan -- --ignored
+    #[test]
+    #[ignore]
+    fn corpus_signatures() {
+        let expected = [
+            ("4.10.0-argo_mole-scanning_signature-a.jpg", 2000.0),
+            ("4.10.0-argo_mole-scanning_signature-b.jpg", 15600.0),
+        ];
+        let models = dirs::data_dir().unwrap().join("io.github.ulrichdahl.starbuddy").join("ocr");
+        let engine = engine_from_dir(&models).expect("OCR models present");
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../screenshots");
+        for (file, want) in expected {
+            let img = image::open(root.join(file)).unwrap().into_rgb8();
+            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.into() };
+            let result = analyze(&engine, &cap, Instant::now()).unwrap();
+            assert_eq!(result.signature, Some(want), "{file}");
+            assert_eq!(result.badges.len(), 1, "{file}: exactly one badge");
+        }
+    }
+
+    #[test]
+    fn badge_numbers() {
+        assert_eq!(badge_number("V 15,600"), Some(15600.0));
+        assert_eq!(badge_number("2,000"), Some(2000.0));
+        assert_eq!(badge_number("15.600"), Some(15600.0));
+        assert_eq!(badge_number("SCAN"), None);
+        assert_eq!(badge_number("99%"), None);
+        assert_eq!(badge_number("7.4km"), None);
+        assert_eq!(badge_number("11.8 C"), None);
+        assert_eq!(badge_number("1,234,500"), Some(1234500.0));
+        assert_eq!(badge_number("960"), Some(960.0));
+        assert!(is_amber(220, 120, 30));
+        assert!(!is_amber(200, 200, 200));
     }
 }

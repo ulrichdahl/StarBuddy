@@ -155,11 +155,11 @@
     },
     "hotkeyStatus": "Genvejstast til statusvinduet",
     "hotkeyScan": "Genvejstast til scanning",
-    "scanNow": "Scan nu (v0)",
-    "scanHint": "Scan v0: tager et billede af spilskærmen, læser det med lokal OCR (modeller ≈ 15 MB, hentes én gang) og viser det aflæste i scanningsvinduet. Skærmbilleder forlader aldrig denne maskine. Tryk på scannings-genvejstasten på et scanningsresultat i minedrift, så vi kan lære, hvad spillet viser.",
+    "scanNow": "Scan nu (v1)",
+    "scanHint": "Scan v1: tager et billede af spilskærmen, finder signatur-mærket ved en pinget kontakt og læser det med lokal OCR (modeller ≈ 15 MB, hentes én gang); scanningsvinduet viser signaturen og den rå aflæsning. Skærmbilleder forlader aldrig denne maskine.",
     "scan": {
       "windowName": "Scanningsvindue",
-      "eyebrow": "Scanning · v0",
+      "eyebrow": "Scanning · v1",
       "title": "Scanning",
       "idle": "Tryk på scannings-genvejstasten på et scanningsresultat.",
       "phase": {
