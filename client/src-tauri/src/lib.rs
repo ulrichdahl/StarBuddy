@@ -10,6 +10,7 @@ use tauri::{Emitter, Manager};
 
 mod kde_rule;
 mod overlay;
+mod scan;
 
 // Notification lines are duplicated in the log (queued + displayed); events
 // are deduplicated on (timestamp, detail). Names can contain quotes
@@ -771,10 +772,12 @@ pub fn run() {
             let handle = app.handle().clone();
             migrate_old_config_dir(&handle);
             app.manage(overlay::OverlayState::load(&handle));
+            app.manage(scan::ScanState::default());
             if let Err(e) = overlay::register_hotkeys(&handle) {
                 eprintln!("overlay hotkeys: {e}");
             }
             overlay::show_if_open(&handle, overlay::STATUS);
+            overlay::show_if_open(&handle, scan::SCAN);
             if std::env::args().any(|a| a == overlay::TOGGLE_FLAG) {
                 let _ = overlay::toggle(&handle, overlay::STATUS);
             }
@@ -800,6 +803,7 @@ pub fn run() {
             sync_events,
             fetch_status,
             overlay::overlay_toggle,
+            overlay::overlay_show,
             overlay::overlay_prefs,
             overlay::overlay_update,
             overlay::overlay_fit,
@@ -809,6 +813,8 @@ pub fn run() {
             overlay::overlay_set_hotkey,
             kde_rule::overlay_kde_rule,
             kde_rule::overlay_set_kde_rule,
+            scan::scan_now,
+            scan::scan_last,
             start_watcher,
             stop_watcher,
             watcher_status,

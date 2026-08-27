@@ -277,3 +277,23 @@ html.overlay-mode body {
 .ov-accent-down { --acc: var(--red); --acc-soft: rgba(224, 86, 75, 0.1); }
 .ov-accent-notice { --acc: #4a7cd6; --acc-soft: rgba(74, 124, 214, 0.1); }
 .ov-accent-none { --acc: var(--steel); --acc-soft: rgba(127, 160, 184, 0.1); }
+
+/* scan readout */
+.ov-lines { display: grid; gap: 2px; margin-top: 10px; font-size: 12px; max-height: 260px; overflow: auto; }
+.ov-lines div { display: grid; grid-template-columns: 72px 1fr; gap: 10px; padding: 3px 0; border-top: 1px solid var(--line2); }
+.ov-dim { color: var(--dim); }
+.ov-btn {
+  font-family: var(--disp);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border: 1px solid rgba(60, 201, 240, 0.5);
+  background: rgba(60, 201, 240, 0.12);
+  color: var(--cyan);
+  cursor: pointer;
+  line-height: 1.2;
+}
+.ov-btn:hover { background: rgba(60, 201, 240, 0.2); }
+.ov-btn:disabled { opacity: 0.4; cursor: default; }

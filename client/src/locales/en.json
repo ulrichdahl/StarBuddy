@@ -152,6 +152,34 @@
         "down": "Down",
         "notice": "Notice"
       }
+    },
+    "hotkeyStatus": "Status window hotkey",
+    "hotkeyScan": "Scan hotkey",
+    "scanNow": "Scan now (v0)",
+    "scanHint": "Scan v0: captures the game screen, reads it with on-device OCR (models ≈ 15 MB, downloaded once) and shows what it read in the scan window. Screenshots never leave this machine. Press the scan hotkey on a mining scan result to help us learn what the game renders.",
+    "scan": {
+      "windowName": "Scan window",
+      "eyebrow": "Scan · v0",
+      "title": "Scan",
+      "idle": "Press the scan hotkey on a scan result.",
+      "phase": {
+        "downloading": "Downloading {{detail}}…",
+        "capturing": "Capturing…",
+        "ocr": "Reading: {{detail}}…",
+        "error": "Failed: {{detail}}"
+      },
+      "signature": "Signature {{value}}",
+      "massOnly": "Mass read",
+      "noLabels": "No signature label found",
+      "sigLabel": "Signature",
+      "massLabel": "Mass",
+      "scanNow": "Scan now",
+      "linesRead_one": "{{count}} line read",
+      "linesRead_other": "{{count}} lines read",
+      "nothingRead": "Nothing readable on screen.",
+      "showAll": "Show all {{count}} lines",
+      "showFewer": "Show fewer",
+      "privacy": "Processed locally — the capture is kept in memory only."
     }
   }
 }

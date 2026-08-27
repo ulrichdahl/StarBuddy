@@ -291,7 +291,7 @@
 <div class="wrap">
 
 <header class="masthead">
-  <p class="eyebrow">Project Specification · Draft 0.6 · P2 complete · Maintenance alarm shipped</p>
+  <p class="eyebrow">Project Specification · Draft 0.7 · P2 complete · Overlay v1 · Scan v0</p>
   <h1>StarBuddy <span class="thin">/ Org Forge Ledger</span></h1>
   <p class="subtitle">A cross-platform companion tool that gives a Star Citizen org one shared answer to three questions: what resources do we hold, who can craft what, and what should we craft next.</p>
   <div class="meta">
@@ -611,13 +611,22 @@
       </ul>
     </div>
   </div>
+  <h3>Feature versions</h3>
+  <p>Each feature carries a single-digit version so the roadmap can name a target state per feature instead of per release. v0 = pipeline proven, output is raw; v1 = first useful behaviour; higher = refinement.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Feature</th><th>Now</th><th>Next</th></tr>
+    <tr><td>Maintenance alarm</td><td><strong>v1</strong> — Discord ping, web banner, client notification, status overlay window</td><td>v2: per-member opt-in roles, quiet hours</td></tr>
+    <tr><td>Overlay windows</td><td><strong>v1</strong> — Launcher Glass chrome, floating/docked modes with along-edge drag, Full/Minimal, per-window opacity and position, hotkeys, KDE layer rule</td><td>v2: click-through outside controls, layer-shell backend on Linux</td></tr>
+    <tr><td>Scan (signature)</td><td><strong>v0</strong> — hotkey captures the game screen (game window on Windows, X11 root on Linux), on-device OCR (ocrs, models downloaded once), scan window shows signature/mass when a label is read and the raw lines otherwise</td><td>v1: parse the real scan-result layout; v2: signature → expected rock contents from a reference table; v3: auto-trigger on the scan screen signature</td></tr>
+    <tr><td>Refinery OCR</td><td>—</td><td>v0: read a work order off the terminal into the refinery ledger</td></tr>
+  </table></div>
   <div class="phase">
     <div class="pnum">P3a<small>Eyes</small></div>
     <div>
       <h4>Basic OCR — scan signature detection</h4>
       <ul>
         <li>Local capture pipeline (PaddleOCR/ONNX, on-device only) with a fast <em>signature detector</em>: recognise which game screen is on display (refinery terminal, inventory, mining scan result) from its stable UI landmarks before spending a full OCR pass.</li>
-        <li>When a known signature is found, the client shows an info popup in overlay mode — the first, minimal overlay surface (a toast-sized always-on-top window), pulled forward from P4 so P3 has somewhere to speak.</li>
+        <li><strong>Scan v0 shipped:</strong> hotkey (F7) → screen capture → on-device OCR (pure-Rust <code>ocrs</code>, ≈15 MB of models fetched once) → the scan overlay window shows the recognised signature/mass or the raw lines. The signature detector and the rock-contents table are v1–v2.</li>
         <li>Everything opt-in, hotkey- or toggle-driven; screenshots never leave the machine.</li>
       </ul>
     </div>

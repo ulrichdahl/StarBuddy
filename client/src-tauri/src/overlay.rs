@@ -20,7 +20,7 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 pub const STATUS: &str = "status";
 /// Default per action. F6 is unbound in Star Citizen's current default
 /// keyset (F1 mobiGlas, F2 starmap, F4 camera, F11 comms, F12 chat are not).
-pub const DEFAULT_HOTKEYS: [(&str, &str); 1] = [("status", "F6")];
+pub const DEFAULT_HOTKEYS: [(&str, &str); 2] = [("status", "F6"), ("scan", "F7")];
 /// Pre-F6 default; a stored copy of it is migrated to the new default.
 const LEGACY_DEFAULT_HOTKEY: &str = "Ctrl+Alt+S";
 /// CLI flag a second launch (or a desktop-environment keybinding) uses to
@@ -203,6 +203,15 @@ pub fn toggle(app: &AppHandle, name: &str) -> Result<bool, String> {
     Ok(now_visible)
 }
 
+/// Show (never hide) — for actions that need the window up, like a scan.
+/// Main thread only, like [`toggle`].
+pub fn show(app: &AppHandle, name: &str) -> Result<(), String> {
+    match app.get_webview_window(&label(name)) {
+        Some(win) if win.is_visible().map_err(|e| e.to_string())? => Ok(()),
+        Some(_) | None => toggle(app, name).map(|_| ()),
+    }
+}
+
 /// Toggle from a command/async thread: hop to the main thread and wait.
 pub async fn toggle_from_anywhere(app: AppHandle, name: String) -> Result<bool, String> {
     let (tx, rx) = std::sync::mpsc::channel();
@@ -343,6 +352,20 @@ pub fn apply_layout(app: &AppHandle, name: &str) -> Result<(), String> {
 #[tauri::command]
 pub async fn overlay_toggle(app: AppHandle, name: String) -> Result<bool, String> {
     toggle_from_anywhere(app, name).await
+}
+
+/// Show without toggling (main-thread hop like overlay_toggle).
+#[tauri::command]
+pub async fn overlay_show(app: AppHandle, name: String) -> Result<(), String> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    let app2 = app.clone();
+    app.run_on_main_thread(move || {
+        let _ = tx.send(show(&app2, &name));
+    })
+    .map_err(|e| e.to_string())?;
+    tauri::async_runtime::spawn_blocking(move || rx.recv().map_err(|_| "show did not complete".to_string())?)
+        .await
+        .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -517,6 +540,7 @@ pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
                 eprintln!("overlay toggle failed: {e}");
             }
         }
+        Some("scan") => crate::scan::trigger(app),
         other => eprintln!("unhandled shortcut action {other:?}"),
     }
 }

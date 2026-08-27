@@ -186,6 +186,8 @@ function App() {
 
   const [hotkey, setHotkey] = useState<HotkeyInfo | null>(null);
   const [hotkeyDraft, setHotkeyDraft] = useState("");
+  const [scanHotkeyDraft, setScanHotkeyDraft] = useState("");
+  const [scanError, setScanError] = useState<string | null>(null);
   const [hotkeyError, setHotkeyError] = useState<string | null>(null);
   const [statusOpen, setStatusOpen] = useState<boolean | null>(null);
   const [kdeRule, setKdeRule] = useState<KdeRuleInfo | null>(null);
@@ -209,6 +211,7 @@ function App() {
       .then((h) => {
         setHotkey(h);
         setHotkeyDraft(h.hotkeys["status"] ?? "");
+        setScanHotkeyDraft(h.hotkeys["scan"] ?? "");
       })
       .catch(() => {});
 
@@ -320,14 +323,25 @@ function App() {
     }
   };
 
-  const saveHotkey = async () => {
+  const saveHotkey = async (action: "status" | "scan", value: string) => {
     setHotkeyError(null);
     try {
-      const info = await invoke<HotkeyInfo>("overlay_set_hotkey", { action: "status", hotkey: hotkeyDraft });
+      const info = await invoke<HotkeyInfo>("overlay_set_hotkey", { action, hotkey: value });
       setHotkey(info);
       setHotkeyDraft(info.hotkeys["status"] ?? "");
+      setScanHotkeyDraft(info.hotkeys["scan"] ?? "");
     } catch (e) {
       setHotkeyError(String(e));
+    }
+  };
+
+  const scanNow = async () => {
+    setScanError(null);
+    try {
+      await invoke("overlay_show", { name: "scan" }).catch(() => {});
+      await invoke("scan_now");
+    } catch (e) {
+      setScanError(String(e));
     }
   };
 
@@ -578,16 +592,38 @@ function App() {
           </button>
           <input
             type="text"
-            aria-label={t("overlay.hotkey")}
+            aria-label={t("overlay.hotkeyStatus")}
             placeholder="F6"
-            style={{ maxWidth: 200, flex: "0 1 auto" }}
+            style={{ maxWidth: 160, flex: "0 1 auto" }}
             value={hotkeyDraft}
             onChange={(e) => setHotkeyDraft(e.target.value)}
           />
-          <button disabled={!hotkey || hotkeyDraft.trim() === (hotkey.hotkeys["status"] ?? "")} onClick={saveHotkey}>
+          <button
+            disabled={!hotkey || hotkeyDraft.trim() === (hotkey.hotkeys["status"] ?? "")}
+            onClick={() => saveHotkey("status", hotkeyDraft)}
+          >
             {t("overlay.saveHotkey")}
           </button>
         </div>
+        <div className="row">
+          <button onClick={scanNow}>{t("overlay.scanNow")}</button>
+          <input
+            type="text"
+            aria-label={t("overlay.hotkeyScan")}
+            placeholder="F7"
+            style={{ maxWidth: 160, flex: "0 1 auto" }}
+            value={scanHotkeyDraft}
+            onChange={(e) => setScanHotkeyDraft(e.target.value)}
+          />
+          <button
+            disabled={!hotkey || scanHotkeyDraft.trim() === (hotkey.hotkeys["scan"] ?? "")}
+            onClick={() => saveHotkey("scan", scanHotkeyDraft)}
+          >
+            {t("overlay.saveHotkey")}
+          </button>
+        </div>
+        <p className="hint">{t("overlay.scanHint")}</p>
+        {scanError && <p className="error">{scanError}</p>}
         {overlayError && <p className="error">{overlayError}</p>}
         {hotkeyError && <p className="error">{hotkeyError}</p>}
         {hotkey && !hotkey.global_supported && (

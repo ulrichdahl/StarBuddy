@@ -152,6 +152,34 @@
         "down": "Nede",
         "notice": "Meddelelse"
       }
+    },
+    "hotkeyStatus": "Genvejstast til statusvinduet",
+    "hotkeyScan": "Genvejstast til scanning",
+    "scanNow": "Scan nu (v0)",
+    "scanHint": "Scan v0: tager et billede af spilskærmen, læser det med lokal OCR (modeller ≈ 15 MB, hentes én gang) og viser det aflæste i scanningsvinduet. Skærmbilleder forlader aldrig denne maskine. Tryk på scannings-genvejstasten på et scanningsresultat i minedrift, så vi kan lære, hvad spillet viser.",
+    "scan": {
+      "windowName": "Scanningsvindue",
+      "eyebrow": "Scanning · v0",
+      "title": "Scanning",
+      "idle": "Tryk på scannings-genvejstasten på et scanningsresultat.",
+      "phase": {
+        "downloading": "Henter {{detail}}…",
+        "capturing": "Tager billede…",
+        "ocr": "Læser: {{detail}}…",
+        "error": "Fejlede: {{detail}}"
+      },
+      "signature": "Signatur {{value}}",
+      "massOnly": "Masse aflæst",
+      "noLabels": "Ingen signatur-etiket fundet",
+      "sigLabel": "Signatur",
+      "massLabel": "Masse",
+      "scanNow": "Scan nu",
+      "linesRead_one": "{{count}} linje aflæst",
+      "linesRead_other": "{{count}} linjer aflæst",
+      "nothingRead": "Intet læsbart på skærmen.",
+      "showAll": "Vis alle {{count}} linjer",
+      "showFewer": "Vis færre",
+      "privacy": "Behandlet lokalt — billedet gemmes kun i hukommelsen."
     }
   }
 }
