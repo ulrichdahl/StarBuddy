@@ -48,7 +48,11 @@ class ScanSignatures
         $ores = [];
         foreach ($ref['ores'] as $ore) {
             $matches = $types->get($ore['name'], collect());
-            $type = $matches->firstWhere('category', 'ore') ?? $matches->first();
+            // Prefer the ore variant that carries a rarity ("Bexalite (Raw)"
+            // has one, the legacy "Bexalite (Ore)" row does not).
+            $type = $matches->first(fn ($t) => $t->category === 'ore' && $t->rarity !== null)
+                ?? $matches->firstWhere('category', 'ore')
+                ?? $matches->first();
             $ores[] = [
                 ...$ore,
                 'resource_type_id' => $type?->id,

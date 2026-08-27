@@ -811,7 +811,12 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
                 continue;
             }
         };
-        last_error.clear();
+        if !last_error.is_empty() {
+            // Recovered: clear the error the window is showing, or its
+            // red accent would outlive the hiccup.
+            status(&app, "idle", "", None);
+            last_error.clear();
+        }
 
         // Skip OCR while the region is static (badge already read, or no HUD).
         let changed = prev.as_ref().map(|p| frame_diff(p, &cap.rgb) > 4.0).unwrap_or(true);

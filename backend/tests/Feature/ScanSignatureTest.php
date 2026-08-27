@@ -50,8 +50,9 @@ class ScanSignatureTest extends TestCase
 
     public function test_sync_attaches_signatures_and_table_is_served(): void
     {
-        ResourceType::create(['name' => 'Bexalite (Raw)', 'category' => 'ore', 'rarity' => 'uncommon', 'known_qualities' => [302, 1000]]);
+        // "(Ore)" sorts before "(Raw)" but has no rarity — the table must still show uncommon.
         ResourceType::create(['name' => 'Bexalite (Ore)', 'category' => 'ore']);
+        ResourceType::create(['name' => 'Bexalite (Raw)', 'category' => 'ore', 'rarity' => 'uncommon', 'known_qualities' => [302, 1000]]);
         ResourceType::create(['name' => 'Bexalite', 'category' => 'refined']);
         $this->artisan('starbuddy:sync-scan-signatures')->assertSuccessful();
 

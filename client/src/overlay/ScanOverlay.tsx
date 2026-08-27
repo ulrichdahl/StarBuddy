@@ -96,7 +96,12 @@ export function ScanOverlay() {
       listen<LiveReading>("scan-live", (e) => {
         // Keep the last reading that had a signature; a frame without one
         // (badge moved out, HUD hidden) must not blank the window.
-        if (e.payload.signature !== null) setReading(e.payload);
+        if (e.payload.signature !== null) {
+          setReading(e.payload);
+          // A reading after a capture error clears the error state — the
+          // accent must follow the reading, not a stale failure.
+          setStatus((s) => (s.phase === "error" ? { phase: "idle", detail: "", progress: null } : s));
+        }
       }),
     ];
     return () => {

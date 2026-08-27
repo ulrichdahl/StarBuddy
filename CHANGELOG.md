@@ -5,6 +5,10 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## Unreleased
+
+- Scan window: a capture hiccup no longer leaves the window's red accent on after readings resume; the rarity shown is the raw-ore variant's, so it is never missing.
+
 ## 0.1.8 — 2026-08-27
 
 - Scan v2: the signature is looked up in a reference table — the window names the mineral ("Lindinium", "Bexalite × 5" for a cluster), its share of the rock, companion minerals, resistance, instability, rarity and quality band; ground deposits are told apart from ship rocks. The table ships with the client and is refreshed from the server (`/api/scan/signatures`, `/api/scan/signature/{value}`); servers get `starbuddy:sync-scan-signatures` (run by update.sh).
