@@ -284,6 +284,9 @@ html.overlay-mode body {
 .ov-strip .ov-mineral { font-size: 18px; }
 .ov-rar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .ov-rar .push { margin-left: auto; }
+/* Rarity and signature chips share one box: same padding, font size and height. */
+.ov-rar .ov-chip, .ov-rar .ov-sigchip { padding: 3px 9px; font-size: 13px; line-height: 1.3; box-sizing: border-box; height: 25px; display: inline-flex; align-items: center; }
+.ov-rar .ov-sigchip .mono { font-size: 13px; }
 .ov-sigchip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(60, 201, 240, 0.45); background: rgba(60, 201, 240, 0.08); color: var(--text); padding: 3px 9px; font-size: 12px; line-height: 1.3; }
 .ov-sigchip .mono { color: var(--cyan); font-size: 13px; }
 .ov-sigdot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--cyan); position: relative; flex: none; }
