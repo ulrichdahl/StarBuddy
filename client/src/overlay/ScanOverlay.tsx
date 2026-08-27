@@ -184,7 +184,12 @@ export function ScanOverlay() {
     best !== null ? (
       <>
         {dominant?.rarity && <span className={`ov-chip ov-rarity ov-rarity-${dominant.rarity}`}>{t(`overlay.scan.rarity.${dominant.rarity}`, dominant.rarity)}</span>}
-        {sig !== null && <span className="mono ov-sig">{fmt(sig)}</span>}
+        {sig !== null && (
+          <span className="ov-sigchip">
+            <span className="ov-sigdot" />
+            <span className="mono">{fmt(sig)}</span>
+          </span>
+        )}
         {!best.exact && (
           <span className="ov-dim">
             ≈ {t("overlay.scan.match.approx")} ({best.delta > 0 ? "+" : ""}
