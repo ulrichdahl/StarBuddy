@@ -15,12 +15,15 @@
   "scan": {
     "title": "Star Citizen-installation",
     "detected": "Fundet:",
-    "notDetected": "Ingen installation fundet automatisk. Indtast stien til din LIVE-mappe:",
+    "notDetected": "Ingen installation fundet automatisk. Find din StarCitizen LIVE-mappe, eller skriv stien nedenfor:",
     "dirPlaceholder": "…/StarCitizen/LIVE",
     "scanButton": "Scan loghistorik",
     "scanning": "Scanner…",
     "progress": "Scanner fil {{current}} af {{total}} — {{file}}",
-    "preparing": "Forbereder scanning…"
+    "preparing": "Forbereder scanning…",
+    "browse": "Find din installation…",
+    "browseChange": "Skift…",
+    "browseTitle": "Vælg Star Citizen LIVE-mappen"
   },
   "watcher": {
     "title": "Live-overvågning",

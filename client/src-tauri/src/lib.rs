@@ -138,8 +138,67 @@ fn candidate_live_dirs() -> Vec<PathBuf> {
     dirs_found
 }
 
+/// Client preferences that are not about the server pairing.
+#[derive(Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+struct ClientPrefs {
+    /// LIVE folder the player picked when auto-detection failed.
+    live_dir: Option<String>,
+}
+
+fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir.join("client.json"))
+}
+
+fn load_client_prefs(app: &tauri::AppHandle) -> ClientPrefs {
+    client_prefs_path(app)
+        .ok()
+        .and_then(|p| fs::read(p).ok())
+        .and_then(|b| serde_json::from_slice(&b).ok())
+        .unwrap_or_default()
+}
+
+/// A LIVE folder has Game.log (once the game has run) or Bin64; accept the
+/// StarCitizen folder too and step into its LIVE.
+fn looks_like_live_dir(path: &Path) -> bool {
+    path.join("Game.log").is_file() || path.join("Bin64").is_dir() || path.join("logbackups").is_dir()
+}
+
+fn normalize_live_dir(path: &Path) -> Option<PathBuf> {
+    if looks_like_live_dir(path) {
+        return Some(path.to_path_buf());
+    }
+    let live = path.join("LIVE");
+    looks_like_live_dir(&live).then_some(live)
+}
+
+/// Remember a folder the player browsed to; returns the LIVE folder used.
 #[tauri::command]
-fn detect_game_log() -> Option<String> {
+fn set_live_dir(app: tauri::AppHandle, path: String) -> Result<String, String> {
+    let chosen = PathBuf::from(path.trim());
+    let live = normalize_live_dir(&chosen).ok_or_else(|| {
+        format!(
+            "{} does not look like Star Citizen's LIVE folder — it should contain Game.log or Bin64 (…/Roberts Space Industries/StarCitizen/LIVE).",
+            chosen.display()
+        )
+    })?;
+    let live_str = live.to_string_lossy().into_owned();
+    let mut prefs = load_client_prefs(&app);
+    prefs.live_dir = Some(live_str.clone());
+    fs::write(client_prefs_path(&app)?, serde_json::to_vec_pretty(&prefs).map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())?;
+    Ok(live_str)
+}
+
+#[tauri::command]
+fn detect_game_log(app: tauri::AppHandle) -> Option<String> {
+    if let Some(saved) = load_client_prefs(&app).live_dir {
+        if looks_like_live_dir(Path::new(&saved)) {
+            return Some(saved);
+        }
+    }
     candidate_live_dirs()
         .into_iter()
         .find(|d| d.join("Game.log").is_file() || d.join("logbackups").is_dir())
@@ -762,6 +821,7 @@ pub fn run() {
         }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, shortcut, event| overlay::on_shortcut(app, shortcut, event.state()))
@@ -796,6 +856,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             detect_game_log,
+            set_live_dir,
             scan_backlog,
             get_connection,
             pair_device,

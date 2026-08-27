@@ -15,12 +15,15 @@
   "scan": {
     "title": "Star Citizen installation",
     "detected": "Detected:",
-    "notDetected": "No installation auto-detected. Enter your LIVE folder path:",
+    "notDetected": "No installation auto-detected. Browse to your StarCitizen LIVE folder, or type its path below:",
     "dirPlaceholder": "…/StarCitizen/LIVE",
     "scanButton": "Scan log history",
     "scanning": "Scanning…",
     "progress": "Scanning file {{current}} of {{total}} — {{file}}",
-    "preparing": "Preparing scan…"
+    "preparing": "Preparing scan…",
+    "browse": "Find your installation…",
+    "browseChange": "Change…",
+    "browseTitle": "Select the Star Citizen LIVE folder"
   },
   "watcher": {
     "title": "Live watcher",

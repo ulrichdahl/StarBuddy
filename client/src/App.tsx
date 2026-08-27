@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
 import { useTranslation } from "react-i18next";
 import { LOCALE_NAMES, SUPPORTED_LOCALES, setLocale, type Locale } from "./i18n";
@@ -158,6 +159,7 @@ function App() {
   const { t, i18n } = useTranslation();
   const [liveDir, setLiveDir] = useState<string | null>(null);
   const [customDir, setCustomDir] = useState("");
+  const [liveDirError, setLiveDirError] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
@@ -379,6 +381,20 @@ function App() {
       }
     } catch (e) {
       setWatcherError(String(e));
+    }
+  };
+
+  // Native folder picker for when auto-detection fails (or picked the wrong one).
+  const browseForInstallation = async () => {
+    setLiveDirError(null);
+    try {
+      const picked = await openDialog({ directory: true, multiple: false, title: t("scan.browseTitle") });
+      if (typeof picked !== "string") return;
+      const live = await invoke<string>("set_live_dir", { path: picked });
+      setLiveDir(live);
+      setCustomDir("");
+    } catch (e) {
+      setLiveDirError(String(e));
     }
   };
 
@@ -648,12 +664,19 @@ function App() {
       <section className="panel">
         <h2>{t("scan.title")}</h2>
         {liveDir ? (
-          <p>
-            {t("scan.detected")} <code>{liveDir}</code>
-          </p>
+          <div className="row">
+            <p style={{ flex: 1, margin: 0 }}>
+              {t("scan.detected")} <code>{liveDir}</code>
+            </p>
+            <button onClick={browseForInstallation}>{t("scan.browseChange")}</button>
+          </div>
         ) : (
-          <p>{t("scan.notDetected")}</p>
+          <div className="row">
+            <p style={{ flex: 1, margin: 0 }}>{t("scan.notDetected")}</p>
+            <button onClick={browseForInstallation}>{t("scan.browse")}</button>
+          </div>
         )}
+        {liveDirError && <p className="error">{liveDirError}</p>}
         <div className="row">
           <input
             type="text"
