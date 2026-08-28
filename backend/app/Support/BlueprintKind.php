@@ -197,7 +197,26 @@ class BlueprintKind
     {
         $category = self::category($bp->type);
         $kind = self::kind($bp);
+        $label = $category === null ? $kind : ($kind === null || $kind === $category ? $category : "{$category} · {$kind}");
 
-        return $category === null ? $kind : ($kind === null || $kind === $category ? $category : "{$category} · {$kind}");
+        // Armour carries its weight class ("Armor · Helmet · Heavy"), as the
+        // game names it; ship parts carry their size elsewhere.
+        $weight = self::armorWeight($bp);
+
+        return $weight !== null && $label !== null ? "{$label} · {$weight}" : $label;
+    }
+
+    /** Light / Medium / Heavy … for character armour, null otherwise (game data, not localised). */
+    public static function armorWeight(Blueprint $bp): ?string
+    {
+        if (! str_starts_with($bp->type ?? '', 'Char_Armor_')) {
+            return null;
+        }
+        $sub = $bp->sub_type ?? '';
+        if ($sub === 'LightArmor') {
+            return 'Light';
+        }
+        // Weight classes are the sub types that are not the slot itself or a placeholder.
+        return in_array($sub, ['', 'UNDEFINED', 'Helmet', 'Personal'], true) ? null : $sub;
     }
 }

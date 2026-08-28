@@ -50,6 +50,7 @@ class BlueprintCatalogTest extends TestCase
         $this->assertSame(2, $res['data'][2]['size'], 'vehicle components carry their size');
         $this->assertNull($res['data'][1]['size'], 'armour has no size');
         $this->assertSame('Armor · Helmets', $res['data'][1]['category_label']);
+        $this->assertSame('Armor · Helmet · Heavy', $res['data'][1]['type_display'], 'armour shows its weight class');
         $this->assertTrue($res['data'][1]['owned_by_me']);
         $this->assertSame(0, $res['data'][1]['owner_count']);
         $this->assertSame('ammo', $res['categories'][0]['key']);
