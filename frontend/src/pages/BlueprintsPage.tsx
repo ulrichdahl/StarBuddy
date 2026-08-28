@@ -440,7 +440,6 @@ function MatrixView({
             <SortHeader label={t('blueprints.colBlueprint')} field="name" sort={sort} dir={dir} onSort={onSort} sx={{ minWidth: 240 }} />
             <SortHeader label={t('blueprints.colType')} field="type" sort={sort} dir={dir} onSort={onSort} />
             <SortHeader label={t('blueprints.colGrade')} field="grade" sort={sort} dir={dir} onSort={onSort} />
-            <SortHeader label={t('blueprints.colOwners')} field="owners" sort={sort} dir={dir} onSort={onSort} align="center" />
             <TableCell align="center" sx={{ ...meCol, verticalAlign: 'bottom' }}>
               <Typography variant="caption" component="span" sx={{ display: 'inline-block', writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontWeight: 700, color: 'primary.main' }}>
                 {t('blueprints.matrix.you')}
@@ -469,9 +468,6 @@ function MatrixView({
               </TableCell>
               <TableCell sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>{row.type_display ?? row.category_label}</TableCell>
               <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.grade ? t('craft.grade', { grade: gradeLabel(row.grade) }) : t('common.none')}</TableCell>
-              <TableCell align="center">
-                <OwnersCell isDefault={row.is_default} ownedByMe={false} owners={row.owners} />
-              </TableCell>
               <TableCell align="center" sx={meCol} padding="checkbox">
                 <Checkbox
                   size="small"
@@ -491,7 +487,7 @@ function MatrixView({
           ))}
           {data && rows.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5 + others.length}>
+              <TableCell colSpan={4 + others.length}>
                 <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
                   {t('blueprints.emptyFiltered')}
                 </Typography>
