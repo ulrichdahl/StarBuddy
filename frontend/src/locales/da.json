@@ -334,21 +334,19 @@
       "checklist": "Tjekliste",
       "matrix": "Matrix"
     },
-    "colMine": "Mine",
     "colBlueprint": "Blueprint",
     "colType": "Type",
     "colGrade": "Grade",
     "colOwners": "Ejere",
-    "markAllShown": "Markér alle viste som mine ({{count}})",
     "checklistHelp": "Gå din fabrikator-liste igennem i spillet og sæt hak her — hvert hak gemmes straks. Mellemrum sætter hak i den markerede række, ↑ ↓ flytter.",
     "checklistAria": "Blueprint-tjekliste",
-    "tickAria": "Jeg ejer {{name}}",
+    "tickAria": "Ejet: {{name}}",
     "emptyFiltered": "Ingen blueprints matcher filtrene.",
     "loadFailed": "Kunne ikke hente blueprints.",
     "toggleFailed": "Kunne ikke gemme ændringen — prøv igen.",
     "toast": {
-      "marked": "{{name}} markeret som dit",
-      "unmarked": "{{name}} fjernet fra dine"
+      "marked": "{{name}} markeret som ejet",
+      "unmarked": "{{name}} markeret som ikke ejet"
     },
     "quickAdd": {
       "label": "Hurtig tilføjelse — skriv, vælg, Enter",
@@ -363,10 +361,12 @@
     "ownedOnly": "Kun ejede",
     "info": {
       "ownersTitle": "Hvem har det",
-      "markMine": "Markér som mit",
-      "unmarkMine": "Fjern fra mine",
-      "openHint": "Klik på et navn for detaljer"
-    }
+      "openHint": "Klik på et navn for detaljer",
+      "markOwned": "Markér som ejet",
+      "unmarkOwned": "Markér som ikke ejet"
+    },
+    "colOwned": "Ejet",
+    "markAllShownOwned": "Markér alle viste som ejet ({{count}})"
   },
   "refinery": {
     "title": "Raffinering",

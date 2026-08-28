@@ -334,21 +334,19 @@
       "checklist": "Checklist",
       "matrix": "Matrix"
     },
-    "colMine": "Mine",
     "colBlueprint": "Blueprint",
     "colType": "Type",
     "colGrade": "Grade",
     "colOwners": "Owners",
-    "markAllShown": "Mark all shown as mine ({{count}})",
     "checklistHelp": "Walk your fabricator list in-game and tick along here — every tick saves at once. Space ticks the highlighted row, ↑ ↓ move.",
     "checklistAria": "Blueprint checklist",
-    "tickAria": "I own {{name}}",
+    "tickAria": "Owned: {{name}}",
     "emptyFiltered": "No blueprints match these filters.",
     "loadFailed": "Failed to load blueprints.",
     "toggleFailed": "Could not save the change — try again.",
     "toast": {
-      "marked": "Marked {{name}} as yours",
-      "unmarked": "Removed {{name}} from yours"
+      "marked": "{{name}} marked as owned",
+      "unmarked": "{{name}} marked as not owned"
     },
     "quickAdd": {
       "label": "Quick add — type, pick, Enter",
@@ -363,10 +361,12 @@
     "ownedOnly": "Owned only",
     "info": {
       "ownersTitle": "Who holds it",
-      "markMine": "Mark as mine",
-      "unmarkMine": "Remove from mine",
-      "openHint": "Click a name for details"
-    }
+      "openHint": "Click a name for details",
+      "markOwned": "Mark as owned",
+      "unmarkOwned": "Mark as not owned"
+    },
+    "colOwned": "Owned",
+    "markAllShownOwned": "Mark all shown as owned ({{count}})"
   },
   "refinery": {
     "title": "Refinery",

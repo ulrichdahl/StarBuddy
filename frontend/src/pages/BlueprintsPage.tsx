@@ -65,7 +65,7 @@ function useDebounced<T>(value: T, ms = 250): T {
   return v
 }
 
-/** Mark / unmark one blueprint as mine, with optimistic rows and an undo toast. */
+/** Mark / unmark one blueprint as owned, with optimistic rows and an undo toast. */
 function useToggleOwned() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -207,7 +207,7 @@ function SortHeader({
   )
 }
 
-/** Design A: every blueprint in kiosk order with a live "Mine" tick. */
+/** Design A: every blueprint in kiosk order with a live "Owned" tick. */
 function ChecklistView({
   data,
   sort,
@@ -263,7 +263,7 @@ function ChecklistView({
           disabled={unownedShown.length === 0 || bulk.isPending}
           onClick={() => bulk.mutate(unownedShown.map((r) => r.id))}
         >
-          {t('blueprints.markAllShown', { count: unownedShown.length })}
+          {t('blueprints.markAllShownOwned', { count: unownedShown.length })}
         </Button>
         <Typography variant="body2" color="text.secondary" sx={{ ml: 'auto', textAlign: 'right' }}>
           {t('blueprints.checklistHelp')}
@@ -274,7 +274,7 @@ function ChecklistView({
           <TableHead>
             <TableRow>
               <TableCell align="center" sx={{ width: 56 }}>
-                {t('blueprints.colMine')}
+                {t('blueprints.colOwned')}
               </TableCell>
               <SortHeader label={t('blueprints.colBlueprint')} field="name" sort={sort} dir={dir} onSort={onSort} />
               <SortHeader label={t('blueprints.colType')} field="type" sort={sort} dir={dir} onSort={onSort} />

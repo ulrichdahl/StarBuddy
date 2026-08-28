@@ -29,7 +29,7 @@ function craftTime(seconds: number | null, t: TFunction, locale: string): string
 interface Props {
   blueprintId: number | null
   onClose: () => void
-  /** Mark / unmark as mine from inside the dialog. */
+  /** Mark / unmark as owned from inside the dialog. */
   onToggleOwned?: (info: BlueprintInfo) => void
 }
 
@@ -119,7 +119,7 @@ export function BlueprintInfoDialog({ blueprintId, onClose, onToggleOwned }: Pro
           <DialogActions>
             {onToggleOwned && (
               <Button variant={data.owned_by_me ? 'outlined' : 'contained'} onClick={() => onToggleOwned(data)}>
-                {data.owned_by_me ? t('blueprints.info.unmarkMine') : t('blueprints.info.markMine')}
+                {data.owned_by_me ? t('blueprints.info.unmarkOwned') : t('blueprints.info.markOwned')}
               </Button>
             )}
             <Button onClick={onClose}>{t('common.close')}</Button>
