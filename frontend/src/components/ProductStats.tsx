@@ -255,10 +255,13 @@ export function ProductStats({
   stats,
   mass,
   modifierPercent,
+  rangePercent = null,
 }: {
   stats: Block
   mass?: number
   modifierPercent: number | null
+  /** Without a quality estimate: the span crafting can move quality-scaling stats across (min%, max%). */
+  rangePercent?: [number, number] | null
 }) {
   const { t, i18n } = useTranslation()
   const fmt: Fmt = { t, num: makeNum(i18n.language) }
@@ -290,9 +293,11 @@ export function ProductStats({
             </Typography>
           )}
           {section.rows.map((row) => {
-            const modified =
-              mod !== null && row.base !== undefined
-                ? (row.format ?? ((n: number) => fmt.num(n)))(row.base * (1 + mod / 100))
+            const format = row.format ?? ((n: number) => fmt.num(n))
+            const modified = mod !== null && row.base !== undefined ? format(row.base * (1 + mod / 100)) : null
+            const span =
+              mod === null && rangePercent && row.base !== undefined
+                ? `${format(row.base * (1 + rangePercent[0] / 100))} – ${format(row.base * (1 + rangePercent[1] / 100))}`
                 : null
             return (
               <Box
@@ -326,6 +331,10 @@ export function ProductStats({
                         {mod!.toLocaleString(i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%
                       </Typography>
                     </Typography>
+                  ) : span !== null ? (
+                    <Typography variant="body2" component="span" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {span}
+                    </Typography>
                   ) : (
                     <Typography variant="body2" component="span" color="text.disabled">
                       —
@@ -340,6 +349,11 @@ export function ProductStats({
       {mod !== null && (
         <Typography variant="caption" color="text.secondary">
           {t('stats.modifiedNote')}
+        </Typography>
+      )}
+      {mod === null && rangePercent && (
+        <Typography variant="caption" color="text.secondary">
+          {t('stats.rangeNote', { min: rangePercent[0], max: rangePercent[1] })}
         </Typography>
       )}
     </Box>

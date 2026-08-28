@@ -204,6 +204,34 @@ export interface CatalogRow {
   owners: string[]
 }
 
+/** GET /api/blueprints/{id}: what a blueprint is, for the info dialog. */
+export interface BlueprintInfo {
+  blueprint: {
+    id: number
+    name: string
+    item_class: string | null
+    type: string | null
+    sub_type: string | null
+    grade: string | null
+    craft_time_seconds: number | null
+    is_default: boolean
+    description: string | null
+    image_url: string | null
+    manufacturer: string | null
+    type_display: string | null
+    game_version: string | null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    item_meta: { mass?: number; size?: number; stats?: Record<string, any> } | null
+  }
+  category_label: string
+  owned_by_me: boolean
+  owners: { id: number; handle: string; mine: boolean }[]
+  /** Community approximation of how far crafting quality moves quality-scaling stats. */
+  quality_range: { min_percent: number; max_percent: number }
+  /** Missions that award the blueprint — filled in later. */
+  missions: unknown[]
+}
+
 export interface CatalogCategory {
   key: string
   label: string

@@ -210,7 +210,8 @@
     "range": "Rækkevidde ~{{value}} m",
     "magazine": "Mag: {{value}}",
     "carry": "Kapacitet: {{value}} {{unit}}",
-    "modifiedNote": "De modificerede værdier er et estimat for den fremstillede genstand ved den valgte materialekvalitet (community-målt ≈ ±1,5 % pr. 100 kvalitet; kun stats, der skalerer med kvalitet, justeres)."
+    "modifiedNote": "De modificerede værdier er et estimat for den fremstillede genstand ved den valgte materialekvalitet (community-målt ≈ ±1,5 % pr. 100 kvalitet; kun stats, der skalerer med kvalitet, justeres).",
+    "rangeNote": "Højre kolonne: det spænd fremstilling kan flytte kvalitetsskalerende stats over, fra dårligste til bedste materialekvalitet (community-målt ≈ ±1,5 % pr. 100 kvalitet → {{min}} % … +{{max}} %)."
   },
   "dashboard": {
     "welcome": "Velkommen tilbage, {{name}}",
@@ -352,7 +353,13 @@
       "you": "Dig",
       "ownedBy": "Ejes af {{member}}"
     },
-    "ownedOnly": "Kun ejede"
+    "ownedOnly": "Kun ejede",
+    "info": {
+      "ownersTitle": "Hvem har det",
+      "markMine": "Markér som mit",
+      "unmarkMine": "Fjern fra mine",
+      "openHint": "Klik på et navn for detaljer"
+    }
   },
   "refinery": {
     "title": "Raffinering",

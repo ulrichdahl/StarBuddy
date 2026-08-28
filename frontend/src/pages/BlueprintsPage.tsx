@@ -30,10 +30,11 @@ import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck'
 import SearchIcon from '@mui/icons-material/Search'
 import { api, unwrapList } from '../lib/api'
 import { useMe } from '../lib/auth'
-import type { Blueprint, CatalogResponse, CatalogRow } from '../lib/types'
+import type { Blueprint, BlueprintInfo, CatalogResponse, CatalogRow } from '../lib/types'
 import { PageHeader } from '../components/PageHeader'
 import { OwnersCell } from '../components/OwnersCell'
 import { ListPager } from '../components/ListPager'
+import { BlueprintInfoDialog } from '../components/BlueprintInfoDialog'
 import { gradeLabel } from './CraftPage'
 
 type View = 'checklist' | 'matrix'
@@ -210,12 +211,14 @@ function ChecklistView({
   dir,
   onSort,
   toggle,
+  onInfo,
 }: {
   data: CatalogResponse | undefined
   sort: SortField
   dir: 'asc' | 'desc'
   onSort: (f: SortField) => void
   toggle: (row: CatalogRow) => void
+  onInfo: (id: number) => void
 }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -297,7 +300,9 @@ function ChecklistView({
                         slotProps={{ input: { 'aria-label': t('blueprints.tickAria', { name: row.name }) } }}
                       />
                     </TableCell>
-                    <TableCell sx={{ fontWeight: row.owned_by_me ? 600 : 400 }}>{row.name}</TableCell>
+                    <TableCell sx={{ fontWeight: row.owned_by_me ? 600 : 400, cursor: 'pointer' }} onClick={() => onInfo(row.id)}>
+                      {row.name}
+                    </TableCell>
                     <TableCell sx={{ color: 'text.secondary' }}>{row.type_display ?? row.category_label}</TableCell>
                     <TableCell>{row.grade ? t('craft.grade', { grade: gradeLabel(row.grade) }) : t('common.none')}</TableCell>
                     <TableCell align="center">
@@ -411,12 +416,14 @@ function MatrixView({
   dir,
   onSort,
   toggle,
+  onInfo,
 }: {
   data: CatalogResponse | undefined
   sort: SortField
   dir: 'asc' | 'desc'
   onSort: (f: SortField) => void
   toggle: (row: CatalogRow) => void
+  onInfo: (id: number) => void
 }) {
   const { t } = useTranslation()
   const { me } = useMe()
@@ -457,7 +464,9 @@ function MatrixView({
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.id} hover>
-              <TableCell sx={{ fontWeight: row.owned_by_me ? 600 : 400 }}>{row.name}</TableCell>
+              <TableCell sx={{ fontWeight: row.owned_by_me ? 600 : 400, cursor: 'pointer' }} onClick={() => onInfo(row.id)}>
+                {row.name}
+              </TableCell>
               <TableCell sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>{row.type_display ?? row.category_label}</TableCell>
               <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.grade ? t('craft.grade', { grade: gradeLabel(row.grade) }) : t('common.none')}</TableCell>
               <TableCell align="center">
@@ -503,6 +512,7 @@ export function BlueprintsPage() {
   const [dir, setDir] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(50)
+  const [infoId, setInfoId] = useState<number | null>(null)
   const search = useDebounced(filters.search)
 
   const params = useMemo(
@@ -530,6 +540,7 @@ export function BlueprintsPage() {
     placeholderData: keepPreviousData,
   })
   const { toggle, isError: toggleError, snackbar } = useToggleOwned()
+  const queryClient = useQueryClient()
 
   const onSort = (field: SortField) => {
     if (sort === field) {
@@ -569,12 +580,37 @@ export function BlueprintsPage() {
         {isError && <Alert severity="error">{t('blueprints.loadFailed')}</Alert>}
         {toggleError && <Alert severity="error">{t('blueprints.toggleFailed')}</Alert>}
         {view === 'checklist' ? (
-          <ChecklistView data={data} sort={sort} dir={dir} onSort={onSort} toggle={toggle} />
+          <ChecklistView data={data} sort={sort} dir={dir} onSort={onSort} toggle={toggle} onInfo={setInfoId} />
         ) : (
-          <MatrixView data={data} sort={sort} dir={dir} onSort={onSort} toggle={toggle} />
+          <MatrixView data={data} sort={sort} dir={dir} onSort={onSort} toggle={toggle} onInfo={setInfoId} />
         )}
         <ListPager total={data?.total ?? 0} page={page} rowsPerPage={perPage} onPageChange={setPage} onRowsPerPageChange={setPerPage} />
       </Paper>
+      <BlueprintInfoDialog
+        blueprintId={infoId}
+        onClose={() => setInfoId(null)}
+        onToggleOwned={(info: BlueprintInfo) => {
+          const row = data?.data.find((r) => r.id === info.blueprint.id)
+          toggle(
+            row ?? {
+              id: info.blueprint.id,
+              name: info.blueprint.name,
+              category: '',
+              subcategory: '',
+              category_label: info.category_label,
+              type_display: info.blueprint.type_display,
+              grade: info.blueprint.grade,
+              is_default: info.blueprint.is_default,
+              owned_by_me: info.owned_by_me,
+              my_owned_id: null,
+              owner_ids: info.owners.map((o) => o.id),
+              owner_count: info.owners.filter((o) => !o.mine).length,
+              owners: info.owners.filter((o) => !o.mine).map((o) => o.handle),
+            },
+          )
+          queryClient.invalidateQueries({ queryKey: ['blueprint-info', info.blueprint.id] })
+        }}
+      />
       {snackbar}
     </Box>
   )

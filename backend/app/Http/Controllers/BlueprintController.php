@@ -110,6 +110,37 @@ class BlueprintController extends Controller
         ];
     }
 
+    /**
+     * What a blueprint is: lore and stats (fetched from the wiki once), the
+     * kiosk category, who in the org holds it, and how far crafting quality
+     * can move its quality-scaling stats. `missions` is reserved for the
+     * missions that award it.
+     */
+    public function show(Request $request, Blueprint $blueprint)
+    {
+        \App\Support\WikiItem::enrich($blueprint);
+        $me = $request->user();
+        $members = $this->members($me);
+        $ownerIds = BlueprintOwned::whereIn('user_id', $members->pluck('id'))
+            ->where('blueprint_id', $blueprint->id)
+            ->pluck('user_id')->unique();
+        [$cat, $sub] = FabricatorCategory::of($blueprint);
+
+        return [
+            'blueprint' => $blueprint->only([
+                'id', 'name', 'item_class', 'type', 'sub_type', 'grade', 'tags', 'craft_time_seconds', 'is_default',
+                'description', 'image_url', 'manufacturer', 'item_meta', 'game_version', 'classification', 'component_class',
+            ]) + ['type_display' => BlueprintKind::label($blueprint)],
+            'category_label' => FabricatorCategory::label($cat, $sub),
+            'owned_by_me' => $ownerIds->contains($me->id),
+            'owners' => $members->filter(fn ($u) => $ownerIds->contains($u->id))
+                ->map(fn ($u) => ['id' => $u->id, 'handle' => $u->handle ?? $u->name, 'mine' => $u->id === $me->id])->values(),
+            // Community-measured approximation: ≈ ±1.5% per 100 quality around 500, so Q0…Q1000 spans ±7.5%.
+            'quality_range' => ['min_percent' => -7.5, 'max_percent' => 7.5],
+            'missions' => [],
+        ];
+    }
+
     /** Own it or not — one blueprint per player, never consumed. */
     public function toggleOwned(Request $request)
     {

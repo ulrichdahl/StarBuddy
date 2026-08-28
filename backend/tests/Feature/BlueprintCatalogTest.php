@@ -65,6 +65,22 @@ class BlueprintCatalogTest extends TestCase
         $this->assertSame(1, $paged['last_page']);
     }
 
+    public function test_show_describes_a_blueprint(): void
+    {
+        $me = User::factory()->create(['discord_id' => '1', 'handle' => 'DK-Raven']);
+        Sanctum::actingAs($me);
+        $helmet = $this->bp('Corbel Helmet Smolder', 'Char_Armor_Helmet', 'Heavy');
+        BlueprintOwned::create(['user_id' => $me->id, 'blueprint_id' => $helmet->id, 'blueprint_name' => $helmet->name, 'source' => 'manual']);
+
+        $res = $this->getJson("/api/blueprints/{$helmet->id}")->assertOk()->json();
+        $this->assertSame('Corbel Helmet Smolder', $res['blueprint']['name']);
+        $this->assertSame('Armor · Helmets', $res['category_label']);
+        $this->assertTrue($res['owned_by_me']);
+        $this->assertSame([['id' => $me->id, 'handle' => 'DK-Raven', 'mine' => true]], $res['owners']);
+        $this->assertSame(['min_percent' => -7.5, 'max_percent' => 7.5], $res['quality_range']);
+        $this->assertSame([], $res['missions']);
+    }
+
     public function test_toggle_and_bulk_own(): void
     {
         $me = User::factory()->create(['discord_id' => '1']);

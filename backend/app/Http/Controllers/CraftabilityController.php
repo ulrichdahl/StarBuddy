@@ -23,7 +23,7 @@ class CraftabilityController extends Controller
      */
     public function show(Request $request, Blueprint $blueprint)
     {
-        $this->enrichFromWiki($blueprint);
+        \App\Support\WikiItem::enrich($blueprint);
         return \App\Support\Craftability::detail($request->user(), $blueprint);
     }
 
@@ -228,40 +228,6 @@ class CraftabilityController extends Controller
 
             return ['undone' => true, 'restored' => $details['consumed'] ?? []];
         });
-    }
-
-    // One-time fetch of the output item's lore and stat blocks from the
-    // wiki for rows the bulk item sync hasn't covered yet, cached on the row
-    // ('' description marks "fetched, nothing there" so we never refetch).
-    private function enrichFromWiki(Blueprint $blueprint): void
-    {
-        $upToDate = $blueprint->description !== null
-            && ($blueprint->item_meta['stats_v'] ?? 0) >= \App\Support\WikiItem::STATS_VERSION;
-        if ($upToDate || ! $blueprint->uuid) {
-            return;
-        }
-
-        $data = ['description' => ''];
-        try {
-            $itemUuid = $blueprint->item_uuid
-                ?? \Illuminate\Support\Facades\Http::acceptJson()->timeout(15)
-                    ->get("https://api.star-citizen.wiki/api/v2/blueprints/{$blueprint->uuid}")
-                    ->json('data.output_item_uuid');
-
-            if ($itemUuid) {
-                $item = \Illuminate\Support\Facades\Http::acceptJson()->timeout(15)
-                    ->get("https://api.star-citizen.wiki/api/v2/items/{$itemUuid}")
-                    ->json('data');
-                if (is_array($item)) {
-                    $data = \App\Support\WikiItem::attributes($item);
-                }
-            }
-        } catch (\Throwable) {
-            // Offline or wiki hiccup — leave description null to retry later.
-            return;
-        }
-
-        $blueprint->update($data);
     }
 
     public function __invoke(Request $request)

@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('blueprints', [BlueprintController::class, 'index']);
     Route::get('blueprints/catalog', [BlueprintController::class, 'catalog']);
+    Route::get('blueprints/{blueprint}', [BlueprintController::class, 'show']);
     Route::post('blueprints-owned/toggle', [BlueprintController::class, 'toggleOwned']);
     Route::post('blueprints-owned/bulk', [BlueprintController::class, 'bulkOwned']);
     Route::post('blueprints-owned', [BlueprintController::class, 'storeOwned']);

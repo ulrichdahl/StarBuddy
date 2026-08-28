@@ -210,7 +210,8 @@
     "range": "Range ~{{value}} m",
     "magazine": "Mag: {{value}}",
     "carry": "Carry: {{value}} {{unit}}",
-    "modifiedNote": "Modified values estimate the crafted item at the selected material quality (community-measured ≈ ±1.5% per 100 quality; only quality-scaling stats are adjusted)."
+    "modifiedNote": "Modified values estimate the crafted item at the selected material quality (community-measured ≈ ±1.5% per 100 quality; only quality-scaling stats are adjusted).",
+    "rangeNote": "Right column: the span crafting can move quality-scaling stats across, from the worst to the best material quality (community-measured ≈ ±1.5% per 100 quality → {{min}}% … +{{max}}%)."
   },
   "dashboard": {
     "welcome": "Welcome back, {{name}}",
@@ -352,7 +353,13 @@
       "you": "You",
       "ownedBy": "Owned by {{member}}"
     },
-    "ownedOnly": "Owned only"
+    "ownedOnly": "Owned only",
+    "info": {
+      "ownersTitle": "Who holds it",
+      "markMine": "Mark as mine",
+      "unmarkMine": "Remove from mine",
+      "openHint": "Click a name for details"
+    }
   },
   "refinery": {
     "title": "Refinery",

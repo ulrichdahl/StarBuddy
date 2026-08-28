@@ -105,4 +105,40 @@ class WikiItem
 
         return $out;
     }
+
+    /**
+     * One-time fetch of the output item's lore and stat blocks for rows the
+     * bulk item sync hasn't covered yet, cached on the row ('' description
+     * marks "fetched, nothing there" so we never refetch).
+     */
+    public static function enrich(\App\Models\Blueprint $blueprint): void
+    {
+        $upToDate = $blueprint->description !== null
+            && ($blueprint->item_meta['stats_v'] ?? 0) >= self::STATS_VERSION;
+        if ($upToDate || ! $blueprint->uuid) {
+            return;
+        }
+
+        $data = ['description' => ''];
+        try {
+            $itemUuid = $blueprint->item_uuid
+                ?? \Illuminate\Support\Facades\Http::acceptJson()->timeout(15)
+                    ->get("https://api.star-citizen.wiki/api/v2/blueprints/{$blueprint->uuid}")
+                    ->json('data.output_item_uuid');
+
+            if ($itemUuid) {
+                $item = \Illuminate\Support\Facades\Http::acceptJson()->timeout(15)
+                    ->get("https://api.star-citizen.wiki/api/v2/items/{$itemUuid}")
+                    ->json('data');
+                if (is_array($item)) {
+                    $data = self::attributes($item);
+                }
+            }
+        } catch (\Throwable) {
+            // Offline or wiki hiccup — leave description null to retry later.
+            return;
+        }
+
+        $blueprint->update($data);
+    }
 }
