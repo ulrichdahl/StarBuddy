@@ -18,6 +18,10 @@ name: starbuddy
 # Persistent data lives under ${STARBUDDY_DATA_DIR:-./data} as plain host
 # directories (postgres/, backups/) so you control placement and backup.
 #
+# Every long-running service has a Docker healthcheck, so `docker compose ps`
+# (and platforms like Coolify) report healthy/unhealthy per container, and
+# the web container only starts once PHP-FPM is accepting connections.
+#
 # First start:
 #   cp .env.example .env   # fill in Discord credentials, APP_KEY, DB password
 #   docker compose -f docker-compose.yml up -d --build
@@ -42,7 +46,7 @@ x-app: &app
     db:
       condition: service_healthy
     redis:
-      condition: service_started
+      condition: service_healthy
   volumes:
     - app-storage:/var/www/html/storage
 
@@ -56,14 +60,34 @@ services:
         # a foreign container (NPM names its own service "app").
         aliases:
           - starbuddy-app
+    healthcheck:
+      # PHP-FPM accepting connections on its pool port.
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 9000) ? 0 : 1);"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   queue:
     <<: *app
     command: php artisan queue:work redis --tries=3 --timeout=90
+    healthcheck:
+      # Exec form on purpose: a `sh -c` wrapper would match its own cmdline.
+      test: ["CMD", "pgrep", "-f", "artisan queue:work"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   scheduler:
     <<: *app
     command: php artisan schedule:work
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "artisan schedule:work"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   reverb:
     <<: *app
@@ -72,34 +96,39 @@ services:
       default:
         aliases:
           - starbuddy-reverb
+    healthcheck:
+      # Reverb's built-in health endpoint.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
+  # Caddy with the SPA bundle baked in (frontend/Dockerfile builds it).
   web:
-    image: caddy:2-alpine
+    build: ./frontend
     restart: unless-stopped
     volumes:
       - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - frontend-dist:/srv/frontend:ro
       # php_fastcgi resolves scripts against Caddy's own filesystem, so it
       # needs a read-only view of the backend's public dir at the same path
       # the FPM container uses.
       - ./backend/public:/var/www/html/public:ro
     depends_on:
       app:
-        condition: service_started
-      frontend:
-        condition: service_completed_successfully
+        condition: service_healthy
     networks:
       default: {}
       proxy:
         aliases:
           - starbuddy-web
-
-  # Builds the SPA and drops the bundle into the volume Caddy serves.
-  frontend:
-    build: ./frontend
-    command: sh -c "rm -rf /out/* && cp -r /dist/. /out/"
-    volumes:
-      - frontend-dist:/out
+    healthcheck:
+      # Laravel's /up through Caddy → FPM: proves the whole request chain.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   bot:
     build:
@@ -112,6 +141,13 @@ services:
       BACKEND_URL: http://web
       BOT_API_TOKEN: ${STARBUDDY_BOT_API_TOKEN}
       HOME_GUILD_ID: ${STARBUDDY_HOME_GUILD_ID}
+    healthcheck:
+      # 200 once the Discord gateway session is up, 503 before/without it.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:${NOTIFY_PORT:-3000}/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   db:
     image: postgres:17-alpine
@@ -133,6 +169,11 @@ services:
     restart: unless-stopped
     volumes:
       - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   # Nightly logical backups of the database, kept for 14 days.
   backup:
@@ -162,4 +203,3 @@ networks:
 volumes:
   redis-data:
   app-storage:
-  frontend-dist:

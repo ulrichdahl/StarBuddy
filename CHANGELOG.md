@@ -7,6 +7,7 @@ the client shows it under "What's new".
 
 ## Unreleased
 
+- Hosting: every long-running container has a Docker healthcheck (`web` = Laravel `/up` through Caddy, `bot` = new `GET /health` that reports the Discord session, `app` = FPM port, `queue`/`scheduler` = process, `reverb` = its `/up`, `redis` = ping), so Coolify and `docker compose ps` show real health. The SPA bundle is now baked into the `web` (Caddy) image — the one-shot `frontend` container and its volume are gone, so no container shows as *exited* after a deploy.
 - Hosting: the reverse-proxy network name is `STARBUDDY_PROXY_NETWORK` (default `proxy`, `coolify` on Coolify) and HOSTING.md gains a Coolify deployment section.
 - Hosting: `docker-compose.yml` alone is production (proxy network built in); `docker-compose.prod.yml` is gone, local development keeps its override. `update.sh` and the docs follow.
 

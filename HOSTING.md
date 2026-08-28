@@ -16,13 +16,17 @@ operator from empty server to a maintained, auto-updating production instance.
 
 | Service | Image | Purpose |
 |---|---|---|
-| `web` | caddy | Serves the SPA, routes `/api` to PHP — the only outward-facing container |
+| `web` | built from `frontend/` (caddy + SPA bundle) | Serves the SPA, routes `/api` to PHP — the only outward-facing container |
 | `app` | built from `backend/` | Laravel API (PHP-FPM) |
 | `queue` / `scheduler` / `reverb` | same image | Jobs, daily data syncs, websockets |
-| `frontend` | built from `frontend/` | One-shot: builds the SPA bundle Caddy serves |
 | `bot` | built from `bot/` | Discord bot (slash commands, notifications) |
 | `db` / `redis` | postgres 17 / redis 7 | Data & cache |
 | `backup` | postgres-backup-local | Nightly dumps, kept 14 days |
+
+Every long-running container has a Docker healthcheck (`docker compose ps`
+shows `healthy`/`unhealthy`; `web`'s check is Laravel's `/up` through Caddy,
+`bot`'s is a Discord-session check), so a platform such as Coolify reports
+the stack's real state.
 
 Persistent state lives in **`STARBUDDY_DATA_DIR`** on the host:
 `postgres/` (the database) and `backups/` (nightly + pre-update dumps).
@@ -194,11 +198,13 @@ Coolify-specific in the repo; five settings do the job.
 5. **Deploy.** Enable *Auto Deploy* on the branch if you want every push to
    redeploy, or deploy by hand from the tag you tested.
 
-Notes: the `frontend` service is a one-shot build step and shows as *exited*
-in Coolify after each deploy — that is correct, Caddy serves what it copied
-out. Backups still land under `STARBUDDY_DATA_DIR/backups`; add that path to
-Coolify's or your own off-site backup. `update.sh` is not used on Coolify —
-redeploying from the UI (or the webhook) replaces it.
+Notes: the first deploy builds three images (PHP backend, SPA + Caddy, bot)
+and takes several minutes on a small server; later deploys reuse layers. The
+deployment counts as finished when every container reports *healthy*
+(`web` waits for `app` to be healthy before it starts). Backups still land
+under `STARBUDDY_DATA_DIR/backups`; add that path to Coolify's or your own
+off-site backup. `update.sh` is not used on Coolify — redeploying from the UI
+(or the webhook) replaces it.
 
 ## 5. Maintenance
 

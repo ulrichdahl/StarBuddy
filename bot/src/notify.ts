@@ -23,6 +23,8 @@ function isNotifyPayload(value: unknown): value is NotifyPayload {
 /**
  * Tiny webhook server the Laravel queue posts notifications to:
  * POST /notify { channel_id, embed, content? } with the shared bearer token.
+ * GET /health answers 200 once the Discord gateway session is ready
+ * (503 before) — the container healthcheck in docker-compose.yml polls it.
  */
 export function startNotifyServer(client: Client): Server {
   const server = createServer((req, res) => {
@@ -31,6 +33,11 @@ export function startNotifyServer(client: Client): Server {
       res.end(JSON.stringify(body));
     };
 
+    if (req.method === "GET" && req.url === "/health") {
+      const ready = client.isReady();
+      respond(ready ? 200 : 503, { ok: ready, ready });
+      return;
+    }
     if (req.method !== "POST" || req.url !== "/notify") {
       respond(404, { error: "Not found" });
       return;

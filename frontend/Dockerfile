@@ -1,8 +1,8 @@
-# StarBuddy frontend — build-only image.
+# StarBuddy web — builds the SPA and serves it with Caddy.
 #
-# docker compose builds this image and copies /dist into a shared volume;
-# Caddy serves the SPA from that volume and proxies /api, /sanctum and
-# /auth to the Laravel backend. This image never runs a server itself.
+# Caddy serves the bundle from /srv/frontend and proxies /api, /sanctum,
+# /up, /broadcasting to PHP-FPM and /app to Reverb (docker/caddy/Caddyfile,
+# bind-mounted by compose so operators can adjust it without a rebuild).
 
 FROM node:26-alpine AS build
 WORKDIR /app
@@ -11,8 +11,5 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Minimal final stage: just holds the built assets at /dist so compose
-# can copy them out (e.g. `cp -r /dist/. /srv/spa/` into the volume).
-FROM alpine
-COPY --from=build /app/dist /dist
-CMD ["sh", "-c", "trap : TERM INT; sleep infinity & wait"]
+FROM caddy:2-alpine
+COPY --from=build /app/dist /srv/frontend
