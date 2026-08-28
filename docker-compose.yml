@@ -5,9 +5,10 @@ name: starbuddy
 #   docker compose -f docker-compose.yml up -d --build
 #
 # No ports are published: the web container joins your reverse proxy's
-# external Docker network `proxy` under the alias starbuddy-web (create it
-# once with `docker network create proxy`, or reuse your proxy's network and
-# rename it below). Point your nginx/SSL proxy at http://starbuddy-web:80 and
+# external Docker network under the alias starbuddy-web — the network named
+# by STARBUDDY_PROXY_NETWORK (default `proxy`; create it once with
+# `docker network create proxy`, or point it at your proxy's own network,
+# e.g. `coolify`). Point your nginx/SSL proxy at http://starbuddy-web:80 and
 # set APP_URL, DISCORD_REDIRECT_URI, SESSION_DOMAIN and SANCTUM_STATEFUL_DOMAINS
 # in .env to your public https domain.
 #
@@ -151,9 +152,11 @@ services:
       - ${STARBUDDY_DATA_DIR:-./data}/backups:/backups
 
 networks:
-  # Your reverse proxy's network. Local development redefines it as a
-  # private network in docker-compose.override.yml.
+  # Your reverse proxy's network (STARBUDDY_PROXY_NETWORK, default "proxy";
+  # Coolify's is "coolify"). Local development redefines it as a private
+  # network in docker-compose.override.yml.
   proxy:
+    name: ${STARBUDDY_PROXY_NETWORK:-proxy}
     external: true
 
 volumes:

@@ -7,6 +7,7 @@ the client shows it under "What's new".
 
 ## Unreleased
 
+- Hosting: the reverse-proxy network name is `STARBUDDY_PROXY_NETWORK` (default `proxy`, `coolify` on Coolify) and HOSTING.md gains a Coolify deployment section.
 - Hosting: `docker-compose.yml` alone is production (proxy network built in); `docker-compose.prod.yml` is gone, local development keeps its override. `update.sh` and the docs follow.
 
 ## 0.1.10 — 2026-08-28

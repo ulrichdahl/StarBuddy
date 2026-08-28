@@ -99,7 +99,8 @@ opt-in role instead, or leave it empty to post without pinging. The bot needs
 Production is the single `docker-compose.yml` (always run it with `-f
 docker-compose.yml` so the local override is not loaded). It publishes **no
 ports**; the `web` container joins an external Docker network named `proxy`
-under the alias **`starbuddy-web`**.
+under the alias **`starbuddy-web`** (the network name is `STARBUDDY_PROXY_NETWORK`
+in `.env`, default `proxy`; see §4b for Coolify).
 
 ```sh
 docker network create proxy   # skip if your proxy's network exists; if it
@@ -159,6 +160,45 @@ has been checked yet — the scheduler does this every minute from now on).
 **Set up your orgs:** a Discord *server admin* runs `/starbuddy org create name:…` and
 `/starbuddy org manager user:@someone org:…`. Members request to join on the website
 dashboard; managers accept there.
+
+## 4b. Deploying with Coolify
+
+Coolify runs the same `docker-compose.yml` as a **Docker Compose** resource
+and takes over the proxy, TLS, environment and redeploys. There is nothing
+Coolify-specific in the repo; five settings do the job.
+
+1. **Add the resource.** Project → *New resource* → *Docker Compose* →
+   *Public repository* (or GitHub App for a private fork). Repository
+   `https://github.com/ulrichdahl/StarBuddy`, branch `main`, compose location
+   `/docker-compose.yml`. Coolify reads the file and lists the services.
+2. **Environment variables.** Paste your filled-in `.env` into the resource's
+   *Environment Variables* (Coolify writes them to a `.env` next to the compose
+   file, which is what `env_file: .env` and the `${…}` defaults read). Set:
+   - `STARBUDDY_PROXY_NETWORK=coolify` — the web container joins Coolify's
+     proxy network instead of `proxy`.
+   - `STARBUDDY_DATA_DIR=/data/starbuddy` (any absolute path on the host) —
+     never leave the default `./data`, which sits inside the clone Coolify
+     redeploys.
+   - `STARBUDDY_VERSION=0.1.10` (the tag you deploy) — Coolify does not run
+     `update.sh`, which is what normally derives the version from git.
+   - `APP_URL`, `DISCORD_REDIRECT_URI`, `SESSION_DOMAIN`,
+     `SANCTUM_STATEFUL_DOMAINS` to your public https domain as usual.
+3. **Domain.** On the `web` service set your domain
+   (`https://starbuddy.example.org`) with port `80`; leave every other
+   service without a domain. Coolify's Traefik adds TLS and passes websockets.
+4. **Post-deployment command** (resource → *Advanced*): container `app`,
+   command `php artisan migrate --force && php artisan starbuddy:sync-scan-signatures`.
+   Run the one-time syncs from §4 through Coolify's *Terminal* on the `app`
+   container after the first deploy, and `node dist/register-commands.js` on
+   `bot`.
+5. **Deploy.** Enable *Auto Deploy* on the branch if you want every push to
+   redeploy, or deploy by hand from the tag you tested.
+
+Notes: the `frontend` service is a one-shot build step and shows as *exited*
+in Coolify after each deploy — that is correct, Caddy serves what it copied
+out. Backups still land under `STARBUDDY_DATA_DIR/backups`; add that path to
+Coolify's or your own off-site backup. `update.sh` is not used on Coolify —
+redeploying from the UI (or the webhook) replaces it.
 
 ## 5. Maintenance
 

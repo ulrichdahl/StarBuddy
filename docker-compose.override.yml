@@ -9,4 +9,5 @@ services:
 
 networks:
   proxy:
+    name: starbuddy_proxy
     external: false
