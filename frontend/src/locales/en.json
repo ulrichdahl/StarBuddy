@@ -215,7 +215,10 @@
     "colStat": "Stat",
     "colDefault": "Default",
     "colCraftable": "Craftable",
-    "colCrafted": "Crafted"
+    "colCrafted": "Crafted",
+    "laserPower": "Laser power",
+    "extractionPower": "Extraction power",
+    "power": "Power"
   },
   "dashboard": {
     "welcome": "Welcome back, {{name}}",

@@ -68,18 +68,24 @@ function weaponSections(w: Block, { t, num }: Fmt): Section[] {
   }
 
   const modes: Block[] = Array.isArray(w.modes) && w.modes.length > 0 ? w.modes : [{}]
+  // Mining lasers come from the wiki with an unlocalised "<= PLACEHOLDER =>"
+  // mode name: the first mode is the laser's power, the second its
+  // extraction power.
+  const modeTitle = (m: Block, i: number): string => {
+    const localised: string | undefined = m.localised
+    if (localised && !/PLACEHOLDER/i.test(localised)) return `${localised.replace(/[[\]]/g, '')}${m.type ? ` (${m.type})` : ''}`
+    if (m.type === 'beam' || m.type === 'collectionbeam') return t(i === 0 ? 'stats.laserPower' : 'stats.extractionPower')
+    return `${m.mode || t('stats.fire')}${m.type ? ` (${m.type})` : ''}`
+  }
   return modes.map((m: Block, i: number) => ({
-    title:
-      modes.length > 1 || m.mode
-        ? `${m.localised?.replace(/[[\]]/g, '') || m.mode || t('stats.fire')}${m.type ? ` (${m.type})` : ''}`
-        : undefined,
+    title: modes.length > 1 || m.mode || m.type ? modeTitle(m, i) : undefined,
     rows: [
       ...((m.rpm ?? w.rpm) ? [{ label: t('stats.fireRate'), value: `${num(m.rpm ?? w.rpm, 0)} RPM` }] : []),
       ...damageRows,
       ...((m.damage_per_second ?? w.damage?.dps_total)
         ? [
             {
-              label: t('stats.dps'),
+              label: t(m.type === 'beam' || m.type === 'collectionbeam' ? 'stats.power' : 'stats.dps'),
               value: num(m.damage_per_second ?? w.damage.dps_total),
               base: m.damage_per_second ?? w.damage.dps_total,
               format: (n: number) => num(n),

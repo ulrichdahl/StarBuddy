@@ -215,7 +215,10 @@
     "colStat": "Stat",
     "colDefault": "Standard",
     "colCraftable": "Fremstillet (spænd)",
-    "colCrafted": "Fremstillet"
+    "colCrafted": "Fremstillet",
+    "laserPower": "Laserstyrke",
+    "extractionPower": "Udvindingsstyrke",
+    "power": "Styrke"
   },
   "dashboard": {
     "welcome": "Velkommen tilbage, {{name}}",
