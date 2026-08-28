@@ -315,7 +315,7 @@
   },
   "blueprints": {
     "title": "Blueprints",
-    "subtitle": "Every blueprint in the fabricator's order — tick the ones you own",
+    "subtitle": "Blueprints owned across the org, in the fabricator's order — switch off “Owned only” to tick new ones",
     "searchPlaceholder": "Blueprint name…",
     "grade": "Grade",
     "allGrades": "All grades",
@@ -351,7 +351,8 @@
       "tableAria": "Blueprint ownership by member",
       "you": "You",
       "ownedBy": "Owned by {{member}}"
-    }
+    },
+    "ownedOnly": "Owned only"
   },
   "refinery": {
     "title": "Refinery",

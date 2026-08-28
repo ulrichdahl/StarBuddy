@@ -36,8 +36,8 @@ class BlueprintController extends Controller
     /**
      * Every blueprint in kiosk order with who owns it — the checklist and
      * the matrix are two views of this. Filters: search, category
-     * ("armor" or "armor/helmets"), grade, unowned_by_me, unowned (by anyone
-     * in the org). Sort: kiosk (default), name, type, grade, owners; dir.
+     * ("armor" or "armor/helmets"), grade, owned (by anyone in the org, or
+     * default), unowned_by_me, unowned (by anyone in the org). Sort: kiosk (default), name, type, grade, owners; dir.
      * Pagination: per_page (10–200), page.
      */
     public function catalog(Request $request)
@@ -83,6 +83,7 @@ class BlueprintController extends Controller
                     '_order' => FabricatorCategory::order($cat, $sub),
                 ];
             })
+            ->when($request->boolean('owned'), fn ($c) => $c->filter(fn ($r) => $r['owner_ids']->isNotEmpty() || $r['is_default']))
             ->when($request->boolean('unowned_by_me'), fn ($c) => $c->reject(fn ($r) => $r['owned_by_me']))
             ->when($request->boolean('unowned'), fn ($c) => $c->filter(fn ($r) => $r['owner_ids']->isEmpty() && ! $r['is_default']))
             ->values();

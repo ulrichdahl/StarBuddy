@@ -43,6 +43,8 @@ interface Filters {
   search: string
   category: string
   grade: string
+  /** Owned by anyone in the org (or a default blueprint) — the page's default view. */
+  owned: boolean
   unownedByMe: boolean
   unowned: boolean
 }
@@ -156,14 +158,18 @@ function FilterBar({
           </MenuItem>
         ))}
       </TextField>
+      <FormControlLabel
+        control={<Switch checked={filters.owned} onChange={(e) => onChange({ owned: e.target.checked, ...(e.target.checked ? { unownedByMe: false, unowned: false } : {}) })} />}
+        label={t('blueprints.ownedOnly')}
+      />
       {!matrix && (
         <FormControlLabel
-          control={<Switch checked={filters.unownedByMe} onChange={(e) => onChange({ unownedByMe: e.target.checked })} />}
+          control={<Switch checked={filters.unownedByMe} onChange={(e) => onChange({ unownedByMe: e.target.checked, ...(e.target.checked ? { owned: false } : {}) })} />}
           label={t('blueprints.onlyUnownedByMe')}
         />
       )}
       <FormControlLabel
-        control={<Switch checked={filters.unowned} onChange={(e) => onChange({ unowned: e.target.checked })} />}
+        control={<Switch checked={filters.unowned} onChange={(e) => onChange({ unowned: e.target.checked, ...(e.target.checked ? { owned: false } : {}) })} />}
         label={t('blueprints.unownedByAnyone')}
       />
     </Paper>
@@ -492,7 +498,7 @@ function MatrixView({
 export function BlueprintsPage() {
   const { t } = useTranslation()
   const [view, setView] = useState<View>('checklist')
-  const [filters, setFilters] = useState<Filters>({ search: '', category: '', grade: '', unownedByMe: false, unowned: false })
+  const [filters, setFilters] = useState<Filters>({ search: '', category: '', grade: '', owned: true, unownedByMe: false, unowned: false })
   const [sort, setSort] = useState<SortField>('kiosk')
   const [dir, setDir] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(0)
@@ -504,6 +510,7 @@ export function BlueprintsPage() {
       search: search || undefined,
       category: filters.category || undefined,
       grade: filters.grade || undefined,
+      owned: filters.owned ? 1 : undefined,
       unowned_by_me: view === 'checklist' && filters.unownedByMe ? 1 : undefined,
       unowned: filters.unowned ? 1 : undefined,
       sort: sort === 'kiosk' ? undefined : sort,
@@ -511,7 +518,7 @@ export function BlueprintsPage() {
       per_page: perPage,
       page: page + 1,
     }),
-    [search, filters.category, filters.grade, filters.unownedByMe, filters.unowned, view, sort, dir, perPage, page],
+    [search, filters.category, filters.grade, filters.owned, filters.unownedByMe, filters.unowned, view, sort, dir, perPage, page],
   )
   // Any change other than the page itself restarts from the first page.
   const filterKey = JSON.stringify({ ...params, page: undefined })

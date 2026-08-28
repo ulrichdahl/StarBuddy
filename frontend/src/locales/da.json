@@ -315,7 +315,7 @@
   },
   "blueprints": {
     "title": "Blueprints",
-    "subtitle": "Alle blueprints i fabrikatorens rækkefølge — sæt hak ved dem du ejer",
+    "subtitle": "Blueprints ejet på tværs af org'en, i fabrikatorens rækkefølge — slå “Kun ejede” fra for at sætte hak ved nye",
     "searchPlaceholder": "Blueprint-navn…",
     "grade": "Grade",
     "allGrades": "Alle grades",
@@ -351,7 +351,8 @@
       "tableAria": "Blueprint-ejerskab pr. medlem",
       "you": "Dig",
       "ownedBy": "Ejes af {{member}}"
-    }
+    },
+    "ownedOnly": "Kun ejede"
   },
   "refinery": {
     "title": "Raffinering",

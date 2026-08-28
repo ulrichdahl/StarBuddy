@@ -55,6 +55,7 @@ class BlueprintCatalogTest extends TestCase
         $this->assertSame([$rifle->id], array_column($this->getJson('/api/blueprints/catalog?category=weapons')->json('data'), 'id'));
         $this->assertSame([$helmet->id], array_column($this->getJson('/api/blueprints/catalog?category=armor/helmets')->json('data'), 'id'));
         $this->assertSame([$ammo->id, $rifle->id], array_column($this->getJson('/api/blueprints/catalog?unowned_by_me=1')->json('data'), 'id'));
+        $this->assertSame([$helmet->id], array_column($this->getJson('/api/blueprints/catalog?owned=1')->json('data'), 'id'), 'owned by anyone in the org');
         $this->assertSame([$ammo->id], array_column($this->getJson('/api/blueprints/catalog?grade=2')->json('data'), 'id'));
         // Name descending: "Parallax…" > "P4-AR…" > "Corbel…".
         $this->assertSame([$ammo->id, $rifle->id, $helmet->id], array_column($this->getJson('/api/blueprints/catalog?sort=name&dir=desc')->json('data'), 'id'));
