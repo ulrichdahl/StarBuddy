@@ -104,16 +104,14 @@ services:
       retries: 3
       start_period: 20s
 
-  # Caddy with the SPA bundle baked in (frontend/Dockerfile builds it).
+  # Caddy with the SPA bundle, Caddyfile and Laravel's public/ baked in
+  # (docker/web/Dockerfile). No bind mounts: platforms like Coolify relocate
+  # those and turn files into empty directories.
   web:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile
     restart: unless-stopped
-    volumes:
-      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-      # php_fastcgi resolves scripts against Caddy's own filesystem, so it
-      # needs a read-only view of the backend's public dir at the same path
-      # the FPM container uses.
-      - ./backend/public:/var/www/html/public:ro
     depends_on:
       app:
         condition: service_healthy

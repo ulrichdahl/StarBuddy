@@ -264,7 +264,7 @@ sm build && sm up -d
 | `redirect_uri mismatch` from Discord | The portal redirect must equal `DISCORD_REDIRECT_URI` byte for byte |
 | "not_a_member" after Discord auth | The account isn't in `STARBUDDY_HOME_GUILD_ID`'s server |
 | Slash commands answer twice | Two bot processes share the token (e.g. a dev instance) — stop one |
-| Blank API responses (empty 200) | `backend/public` mount missing in the web container — pull latest compose |
+| Blank API responses (empty 200) | Stale `web` image (pre-dates Laravel's `public/` being baked in) — `sm up -d --build web` |
 | Desktop client white window (Linux) | Use the current AppImage; older builds had a WebKit/EGL issue |
 
 Client downloads for your members: the

@@ -1,12 +1,14 @@
 # StarBuddy reverse proxy. Plain HTTP on :80 inside the container; put your
 # TLS-terminating proxy in front, or change this to your domain name and
 # publish 443 to let Caddy manage certificates itself.
+# Baked into the web image (docker/web/Dockerfile) — after editing, rebuild:
+#   docker compose -f docker-compose.yml up -d --build web
 :80 {
 	encode gzip
 
 	# Backend paths → PHP-FPM in the app container. The root directive must
 	# be at handle level: php_fastcgi's file matcher resolves against the
-	# site root (the dir is mounted read-only into this container).
+	# site root (a copy of backend/public baked into this image).
 	# Upstreams use starbuddy-* aliases: this container also sits on the
 	# operator's proxy network, where generic names like "app" can resolve
 	# to foreign containers.

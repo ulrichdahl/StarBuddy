@@ -1,0 +1,7 @@
+# Context for docker/web/Dockerfile (repo root). Only what that image needs.
+*
+!frontend
+frontend/node_modules
+frontend/dist
+!backend/public
+!docker/caddy
