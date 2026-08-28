@@ -28,6 +28,7 @@ import SchemaIcon from '@mui/icons-material/Schema'
 import FactoryIcon from '@mui/icons-material/Factory'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import type { Me } from '../lib/types'
 import { BrandMark } from './BrandMark'
 import { FanSiteFooter } from './FanSiteFooter'
@@ -46,6 +47,7 @@ const NAV_ITEMS = [
   { key: 'refinery', to: '/refinery', icon: <FactoryIcon /> },
   { key: 'import', to: '/import', icon: <UploadFileIcon /> },
   { key: 'admin', to: '/admin', icon: <AdminPanelSettingsIcon /> },
+  { key: 'about', to: '/about', icon: <InfoOutlinedIcon /> },
 ] as const
 
 interface AppShellProps {

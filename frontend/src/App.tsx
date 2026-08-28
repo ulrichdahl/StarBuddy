@@ -16,6 +16,7 @@ import { BlueprintsPage } from './pages/BlueprintsPage'
 import { RefineryPage } from './pages/RefineryPage'
 import { ImportPage } from './pages/ImportPage'
 import { AdminPage } from './pages/AdminPage'
+import { AboutPage } from './pages/AboutPage'
 
 /**
  * Profile locale wins once it exists; on first login (locale null) the
@@ -61,6 +62,7 @@ export default function App() {
         <Route path="/refinery" element={<RefineryPage />} />
         <Route path="/import" element={<ImportPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/about" element={<AboutPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

@@ -22,7 +22,8 @@
     "openNavigation": "Open navigation",
     "mainNavigation": "Main navigation",
     "findItem": "Find an item",
-    "findItemPlaceholder": "Find an item…"
+    "findItemPlaceholder": "Find an item…",
+    "about": "About"
   },
   "login": {
     "tagline": "Org materials and blueprint tracking for Star Citizen. Sign in with the Discord account linked to your org.",
@@ -476,5 +477,52 @@
     "page": "Page",
     "of": "of {{pages}}",
     "range": "{{lo}}–{{hi}} of {{total}}"
+  },
+  "about": {
+    "title": "About StarBuddy",
+    "subtitle": "Where the data comes from, which services we use, and who tests it",
+    "whatTitle": "What this is",
+    "whatBody": "StarBuddy is a free, self-hosted tool for a Star Citizen community: members record the materials, items and blueprints they hold, the site works out what the org can craft with what is on hand, and a desktop client reads the game log and — on your own machine — parts of the game screen to save typing. It is an unofficial fan project by United Danes, licensed AGPL-3.0.",
+    "sourcesTitle": "Where the data comes from",
+    "sourcesBody": "Game data is never translated or edited by us — it is shown as the source publishes it. Each service is polled on a schedule (daily for reference data, every minute for the RSI status) and cached on this server; your browser only talks to this server.",
+    "colSource": "Source",
+    "colUsedFor": "Used for",
+    "colHow": "How",
+    "sources": {
+      "wikiApi": {
+        "usedFor": "Blueprints and their recipes, crafted items with lore, images and stats, commodity list and rarity, and the material types you can enter.",
+        "how": "Public JSON API (v2 blueprints, items, commodities), synced daily; item lore and stats are fetched the first time a blueprint is opened and cached."
+      },
+      "wikiPages": {
+        "usedFor": "Per-material quality bands (the Ore quality tables).",
+        "how": "MediaWiki API, the page's wikitext is parsed daily."
+      },
+      "scTradeTools": {
+        "usedFor": "Stations, cities and outposts you can store things at.",
+        "how": "Public locations endpoint, synced daily."
+      },
+      "rsiStatus": {
+        "usedFor": "Maintenance and outage alerts — the banner here, the overlay window and the Discord ping.",
+        "how": "The status site's public JSON feed, polled every minute; links go to the original notice."
+      },
+      "signatures": {
+        "usedFor": "What a scan signature means: mineral, cluster size, composition, resistance.",
+        "how": "A table compiled from game-file extractions and community references (dumpers_repo, starvein / SC_Signature_Scanner, sc-ore-scanner — MIT), cross-checked and kept in our repository; the client carries a copy."
+      },
+      "ocrs": {
+        "usedFor": "Reading numbers and names off the game screen (scan signature, fabricator).",
+        "how": "Open-source OCR models (≈15 MB) downloaded once to the desktop client; all recognition runs on your machine, no screenshot leaves it."
+      },
+      "discord": {
+        "usedFor": "Signing in, knowing who is in the org, and posting alerts.",
+        "how": "Discord login (OAuth) and a bot in the community server; we store your Discord id, name and avatar only."
+      }
+    },
+    "yourDataTitle": "Your own data",
+    "yourDataBody": "Inventories, blueprints, refinery orders and crafts are yours: entered by hand, imported from CSV, or picked up from your Game.log by the desktop client. They are shared only within the orgs you are a member of, according to each stack's visibility.\nScreenshots members contribute for OCR verification are kept in the project repository with their consent and used for nothing else.",
+    "testersTitle": "Testers",
+    "testersBody": "Members who run the dev builds, break things on purpose and tell us what happened — thank you.",
+    "creditsTitle": "Credits",
+    "creditsBody": "A United Danes community project, built by DK-Raven with Claude (Anthropic). Design and code are on GitHub under AGPL-3.0; the Star Citizen Wiki, SC Trade Tools, ocrs and the signature-table authors make the data side possible.\nStar Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. This is an unofficial fan site."
   }
 }

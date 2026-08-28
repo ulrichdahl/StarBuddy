@@ -22,7 +22,8 @@
     "openNavigation": "Åbn navigation",
     "mainNavigation": "Hovednavigation",
     "findItem": "Find en genstand",
-    "findItemPlaceholder": "Find en genstand…"
+    "findItemPlaceholder": "Find en genstand…",
+    "about": "Om"
   },
   "login": {
     "tagline": "Materiale- og blueprint-styring for din org i Star Citizen. Log ind med den Discord-konto, der er knyttet til din org.",
@@ -476,5 +477,52 @@
     "page": "Side",
     "of": "af {{pages}}",
     "range": "{{lo}}–{{hi}} af {{total}}"
+  },
+  "about": {
+    "title": "Om StarBuddy",
+    "subtitle": "Hvor data kommer fra, hvilke tjenester vi bruger, og hvem der tester",
+    "whatTitle": "Hvad det er",
+    "whatBody": "StarBuddy er et gratis, selvhostet værktøj til et Star Citizen-fællesskab: medlemmer registrerer de materialer, genstande og blueprints de har, siden udregner hvad org'en kan fremstille med det der er på lager, og en desktop-klient læser spillets log og — på din egen maskine — dele af spilskærmen, så du slipper for at taste. Det er et uofficielt fanprojekt fra United Danes under AGPL-3.0-licens.",
+    "sourcesTitle": "Hvor data kommer fra",
+    "sourcesBody": "Spildata oversættes eller redigeres aldrig af os — det vises som kilden udgiver det. Hver tjeneste hentes efter en plan (dagligt for referencedata, hvert minut for RSI-status) og caches på denne server; din browser taler kun med denne server.",
+    "colSource": "Kilde",
+    "colUsedFor": "Bruges til",
+    "colHow": "Hvordan",
+    "sources": {
+      "wikiApi": {
+        "usedFor": "Blueprints og deres recepter, fremstillede genstande med lore, billeder og stats, varelisten og sjældenhed samt de materialetyper du kan indtaste.",
+        "how": "Offentligt JSON-API (v2 blueprints, items, commodities), synkroniseret dagligt; lore og stats hentes første gang et blueprint åbnes og caches."
+      },
+      "wikiPages": {
+        "usedFor": "Kvalitetsbånd pr. materiale (Ore quality-tabellerne).",
+        "how": "MediaWiki-API, sidens wikitext parses dagligt."
+      },
+      "scTradeTools": {
+        "usedFor": "Stationer, byer og udposter man kan opbevare ting på.",
+        "how": "Offentligt locations-endpoint, synkroniseret dagligt."
+      },
+      "rsiStatus": {
+        "usedFor": "Vedligeholdelses- og nedbrudsadvarsler — banneret her, overlay-vinduet og Discord-pinget.",
+        "how": "Statussidens offentlige JSON-feed, hentet hvert minut; links går til den originale meddelelse."
+      },
+      "signatures": {
+        "usedFor": "Hvad en scanningssignatur betyder: mineral, klyngestørrelse, sammensætning, modstand.",
+        "how": "En tabel samlet fra udtræk af spilfilerne og community-referencer (dumpers_repo, starvein / SC_Signature_Scanner, sc-ore-scanner — MIT), krydstjekket og opbevaret i vores repository; klienten har en kopi."
+      },
+      "ocrs": {
+        "usedFor": "Aflæsning af tal og navne fra spilskærmen (scanningssignatur, fabrikator).",
+        "how": "Open source OCR-modeller (≈15 MB) hentes én gang til desktop-klienten; al genkendelse kører på din maskine, intet skærmbillede forlader den."
+      },
+      "discord": {
+        "usedFor": "Login, hvem der er i org'en, og udsendelse af advarsler.",
+        "how": "Discord-login (OAuth) og en bot på fællesskabets server; vi gemmer kun dit Discord-id, navn og avatar."
+      }
+    },
+    "yourDataTitle": "Dine egne data",
+    "yourDataBody": "Lagre, blueprints, raffinaderiordrer og fremstillinger er dine: indtastet manuelt, importeret fra CSV eller opsamlet fra din Game.log af desktop-klienten. De deles kun inden for de orgs du er medlem af, efter hvert lagers synlighed.\nSkærmbilleder som medlemmer bidrager med til OCR-verifikation, ligger i projektets repository med deres samtykke og bruges ikke til andet.",
+    "testersTitle": "Testere",
+    "testersBody": "Medlemmer der kører dev-builds, går til for at få ting til at gå i stykker og fortæller hvad der skete — tak.",
+    "creditsTitle": "Kreditering",
+    "creditsBody": "Et United Danes-fællesskabsprojekt, bygget af DK-Raven med Claude (Anthropic). Design og kode ligger på GitHub under AGPL-3.0; Star Citizen Wiki, SC Trade Tools, ocrs og signaturtabellens forfattere gør datasiden mulig.\nStar Citizen®, Roberts Space Industries® og Cloud Imperium® er registrerede varemærker tilhørende Cloud Imperium Rights LLC. Dette er en uofficiel fanside."
   }
 }

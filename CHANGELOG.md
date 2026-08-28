@@ -7,6 +7,7 @@ the client shows it under "What's new".
 
 ## Unreleased
 
+- Website: an About page — what StarBuddy is, where every piece of data comes from and how each service is used, how your own data is shared, the testers, and credits.
 - Website blueprints page rebuilt around the in-game fabricator: a **Checklist** of every blueprint in the kiosk's category order (Ammo · Armor · Other · Vehicles · Weapons) with a live "Mine" tick, keyboard ticking, "Mark all shown as mine", and a **Matrix** with Type / Grade / Owners columns, your column clickable and a quick-add field (type, pick, Enter). Craft-list filters (search, category, grade, unowned switches), sortable columns, and a full pager (rows per page, direct page, numbered pages) on both. Grades show as A–D. One blueprint per player — no copies, no duplicate rows.
 - Owners chips (craft list and blueprints) list the owning members in their tooltip.
 - Blueprint info dialog (click a name on the blueprints page): lore, known stats with the span crafting quality can move them across, who holds it, mark/unmark as mine. Missions that award the blueprint will follow.
