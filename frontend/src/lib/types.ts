@@ -185,28 +185,40 @@ export interface BulkClearResult {
   cleared: { resource_stacks: number; item_stacks: number }
 }
 
-/** One row of GET /api/blueprints/matrix: a blueprint and which members own it. */
-export interface BlueprintMatrixRow {
-  blueprint_id: number
-  name: string
-  type_display: string | null
-  owner_ids: number[]
-}
-
-/** Active org-mate (incl. the viewer) — one column in the blueprint matrix. */
-export interface BlueprintMatrixMember {
+/** One row of GET /api/blueprints/catalog: a blueprint in kiosk order and who owns it. */
+export interface CatalogRow {
   id: number
-  handle: string
+  name: string
+  /** Fabrication-kiosk category / subcategory keys ("armor", "helmets"). */
+  category: string
+  subcategory: string
+  category_label: string
+  type_display: string | null
+  grade: string | null
+  is_default: boolean
+  owned_by_me: boolean
+  my_owned_id: number | null
+  owner_ids: number[]
+  /** Org members besides the viewer who own it. */
+  owner_count: number
+  owners: string[]
 }
 
-/** Laravel paginator envelope plus a top-level `members` list. */
-export interface BlueprintMatrixResponse {
-  data: BlueprintMatrixRow[]
-  members: BlueprintMatrixMember[]
+export interface CatalogCategory {
+  key: string
+  label: string
+  subs: { key: string; label: string }[]
+}
+
+/** Laravel paginator envelope plus the org members (matrix columns) and the kiosk categories. */
+export interface CatalogResponse {
+  data: CatalogRow[]
+  total: number
+  per_page: number
   current_page: number
   last_page: number
-  per_page: number
-  total: number
+  members: { id: number; handle: string }[]
+  categories: CatalogCategory[]
 }
 
 // ── RSI service status (mirrored from status.robertsspaceindustries.com) ──

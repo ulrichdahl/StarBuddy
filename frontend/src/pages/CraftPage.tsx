@@ -5,7 +5,6 @@ import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
-import Chip from '@mui/material/Chip'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import LinearProgress from '@mui/material/LinearProgress'
 import MenuItem from '@mui/material/MenuItem'
@@ -22,11 +21,9 @@ import TableSortLabel from '@mui/material/TableSortLabel'
 import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
-import GroupsIcon from '@mui/icons-material/Groups'
-import HowToRegIcon from '@mui/icons-material/HowToReg'
-import PublicIcon from '@mui/icons-material/Public'
 import { api } from '../lib/api'
 import { PageHeader } from '../components/PageHeader'
+import { OwnersCell } from '../components/OwnersCell'
 import { CraftDetailDialog } from '../components/CraftDetailDialog'
 import { COMPLETE_GREEN } from '../lib/rarity'
 
@@ -39,6 +36,7 @@ interface CraftResult {
   grade: string | null
   type_display: string | null
   owner_count: number
+  owners: string[]
   owned_by_me: boolean
   is_default: boolean
   craftable: boolean
@@ -254,38 +252,7 @@ export function CraftPage() {
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
-                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-                      {r.is_default && (
-                        <Tooltip title={t('craft.defaultBlueprintTooltip')}>
-                          <PublicIcon fontSize="small" color="disabled" />
-                        </Tooltip>
-                      )}
-                      {r.owned_by_me && (
-                        <Tooltip title={t('craft.youHaveTooltip')}>
-                          <HowToRegIcon fontSize="small" color="primary" />
-                        </Tooltip>
-                      )}
-                      {r.owner_count > 0 && (
-                        <Tooltip
-                          title={t(r.owned_by_me ? 'craft.ownersBesidesYouTooltip' : 'craft.ownersTooltip', {
-                            count: r.owner_count,
-                          })}
-                        >
-                          <Chip
-                            size="small"
-                            variant="outlined"
-                            icon={<GroupsIcon />}
-                            label={r.owner_count}
-                            sx={{ fontVariantNumeric: 'tabular-nums' }}
-                          />
-                        </Tooltip>
-                      )}
-                      {!r.is_default && r.owner_count === 0 && !r.owned_by_me && (
-                        <Typography variant="body2" color="text.disabled">
-                          —
-                        </Typography>
-                      )}
-                    </Box>
+                    <OwnersCell isDefault={r.is_default} ownedByMe={r.owned_by_me} owners={r.owners} />
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

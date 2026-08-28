@@ -7,7 +7,8 @@
     "delete": "Delete",
     "loading": "Loading…",
     "language": "Language",
-    "none": "—"
+    "none": "—",
+    "undo": "Undo"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -119,10 +120,10 @@
     "grade": "Grade {{grade}}",
     "defaultBlueprintTooltip": "Default blueprint — everyone has it",
     "youHaveTooltip": "You have this blueprint",
-    "ownersTooltip_one": "{{count}} org member owns this blueprint — open the row to see who",
-    "ownersTooltip_other": "{{count}} org members own this blueprint — open the row to see who",
-    "ownersBesidesYouTooltip_one": "{{count}} org member besides you owns this blueprint — open the row to see who",
-    "ownersBesidesYouTooltip_other": "{{count}} org members besides you own this blueprint — open the row to see who",
+    "ownersTooltip_one": "{{count}} org member owns this blueprint:",
+    "ownersTooltip_other": "{{count}} org members own this blueprint:",
+    "ownersBesidesYouTooltip_one": "{{count}} org member besides you owns it:",
+    "ownersBesidesYouTooltip_other": "{{count}} org members besides you own it:",
     "missingScu": "{{amount}} SCU {{name}}",
     "missingPieces": "{{count}} × {{name}}",
     "moreMissing": "+{{count}} more",
@@ -315,34 +316,41 @@
   },
   "blueprints": {
     "title": "Blueprints",
-    "subtitle": "Blueprints owned across the org",
-    "markOwnedAction": "Mark blueprint owned",
-    "loadFailed": "Failed to load owned blueprints.",
-    "tableAria": "Owned blueprints",
-    "columns": {
-      "blueprint": "Blueprint",
-      "itemClass": "Item class",
-      "owner": "Owner",
-      "acquired": "Acquired"
-    },
-    "empty": "No blueprints marked as owned yet.",
-    "dialog": {
-      "title": "Mark blueprint as owned",
-      "blueprint": "Blueprint",
-      "searchPlaceholder": "Search blueprints…",
-      "failed": "Could not mark the blueprint as owned.",
-      "confirm": "Mark owned"
-    },
+    "subtitle": "Every blueprint in the fabricator's order — tick the ones you own",
+    "searchPlaceholder": "Blueprint name…",
+    "grade": "Grade",
+    "allGrades": "All grades",
+    "onlyUnownedByMe": "Only unowned by me",
+    "unownedByAnyone": "Unowned by anyone",
     "view": {
       "aria": "View",
-      "list": "List",
+      "checklist": "Checklist",
       "matrix": "Matrix"
+    },
+    "colMine": "Mine",
+    "colBlueprint": "Blueprint",
+    "colType": "Type",
+    "colGrade": "Grade",
+    "colOwners": "Owners",
+    "markAllShown": "Mark all shown as mine ({{count}})",
+    "checklistHelp": "Walk your fabricator list in-game and tick along here — every tick saves at once. Space ticks the highlighted row, ↑ ↓ move.",
+    "checklistAria": "Blueprint checklist",
+    "tickAria": "I own {{name}}",
+    "emptyFiltered": "No blueprints match these filters.",
+    "loadFailed": "Failed to load blueprints.",
+    "toggleFailed": "Could not save the change — try again.",
+    "toast": {
+      "marked": "Marked {{name}} as yours",
+      "unmarked": "Removed {{name}} from yours"
+    },
+    "quickAdd": {
+      "label": "Quick add — type, pick, Enter",
+      "justAdded": "Just added:",
+      "hint": "The field keeps focus, so the next name goes straight in. Tab picks the next suggestion; ✕ on a chip undoes."
     },
     "matrix": {
       "tableAria": "Blueprint ownership by member",
-      "loadFailed": "Failed to load the blueprint matrix.",
-      "empty": "No blueprints to show yet.",
-      "youTooltip": "{{handle}} (you)",
+      "you": "You",
       "ownedBy": "Owned by {{member}}"
     }
   },
@@ -455,5 +463,11 @@
     "notificationTitle": "Star Citizen: {{severity}}",
     "updated": "Updated {{time}}",
     "resolved": "Resolved: {{title}}"
+  },
+  "pager": {
+    "rowsPerPage": "Rows per page",
+    "page": "Page",
+    "of": "of {{pages}}",
+    "range": "{{lo}}–{{hi}} of {{total}}"
   }
 }

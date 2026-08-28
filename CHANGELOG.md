@@ -5,6 +5,10 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## Unreleased
+
+- Website blueprints page rebuilt around the in-game fabricator: a **Checklist** of every blueprint in the kiosk's category order (Ammo · Armor · Other · Vehicles · Weapons) with a live "Mine" tick, keyboard ticking, "Mark all shown as mine", and a **Matrix** with Type / Grade / Owners columns, your column clickable and a quick-add field (type, pick, Enter). Craft-list filters (search, category, grade, unowned switches), sortable columns, and a full pager (rows per page, direct page, numbered pages) on both. Grades show as A–D. One blueprint per player — no copies, no duplicate rows.
+- Owners chips (craft list and blueprints) list the owning members in their tooltip.
 ## 0.1.9 — 2026-08-27
 
 - Scan window redesigned as the Ledger: the mineral (or Debris / deposit) is the title with the cluster count in grey after it, a row with rarity, raw signature and resistance sits above a ledger with one row per composition band (mineral · share · resistance · quality), and the signature moves out of the headline. Debris pieces (2,000 each) are recognised.

@@ -34,8 +34,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('item-stacks', ItemStackController::class)->only(['index', 'store', 'update', 'destroy']);
 
     Route::get('blueprints', [BlueprintController::class, 'index']);
-    Route::get('blueprints/matrix', [BlueprintController::class, 'matrix']);
-    Route::get('blueprints-owned', [BlueprintController::class, 'owned']);
+    Route::get('blueprints/catalog', [BlueprintController::class, 'catalog']);
+    Route::post('blueprints-owned/toggle', [BlueprintController::class, 'toggleOwned']);
+    Route::post('blueprints-owned/bulk', [BlueprintController::class, 'bulkOwned']);
     Route::post('blueprints-owned', [BlueprintController::class, 'storeOwned']);
     Route::delete('blueprints-owned/{blueprintOwned}', [BlueprintController::class, 'destroyOwned']);
 

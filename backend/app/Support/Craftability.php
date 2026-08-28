@@ -157,6 +157,8 @@ class Craftability
             ->get(['blueprint_id', 'user_id'])
             ->groupBy('blueprint_id')
             ->map(fn ($rows) => $rows->pluck('user_id')->unique());
+        $handles = \App\Models\User::whereIn('id', $orgUserIds)->get(['id', 'name', 'handle'])
+            ->mapWithKeys(fn ($u) => [$u->id => $u->handle ?? $u->name]);
 
         // ── Evaluate recipes ──
         $query = Blueprint::whereNotNull('ingredients')
@@ -173,7 +175,7 @@ class Craftability
             $query->where(fn ($q) => $q->whereIn('id', $owners->keys())->orWhere('is_default', true));
         }
 
-        $results = $query->get()->map(function (Blueprint $bp) use ($availability, $owners, $user) {
+        $results = $query->get()->map(function (Blueprint $bp) use ($availability, $owners, $handles, $user) {
             $coverage = 1.0;
             // Bar composition: how much of the covered material is private vs
             // org-shared, summed over ingredients (not a bottleneck like coverage).
@@ -235,9 +237,9 @@ class Craftability
                 'craft_time_seconds' => $bp->craft_time_seconds,
                 'is_default' => $bp->is_default,
                 'type_display' => \App\Support\BlueprintKind::label($bp),
-                // Who owns it stays in the detail endpoint — the list only
-                // needs whether the viewer has it and how many OTHERS do.
                 'owner_count' => ($owners[$bp->id] ?? collect())->reject(fn ($id) => $id === $user->id)->count(),
+                // Handles of the other owners, for the owners chip's tooltip.
+                'owners' => ($owners[$bp->id] ?? collect())->reject(fn ($id) => $id === $user->id)->map(fn ($id) => $handles[$id] ?? null)->filter()->values(),
                 'owned_by_me' => ($owners[$bp->id] ?? collect())->contains($user->id),
                 'craftable' => $coverage >= 1.0,
                 'coverage' => round($coverage, 3),

@@ -7,7 +7,8 @@
     "delete": "Slet",
     "loading": "Indlæser…",
     "language": "Sprog",
-    "none": "—"
+    "none": "—",
+    "undo": "Fortryd"
   },
   "nav": {
     "dashboard": "Oversigt",
@@ -119,10 +120,10 @@
     "grade": "Grade {{grade}}",
     "defaultBlueprintTooltip": "Standard-blueprint — alle har det",
     "youHaveTooltip": "Du har dette blueprint",
-    "ownersTooltip_one": "{{count}} org-medlem ejer dette blueprint — åbn rækken for at se hvem",
-    "ownersTooltip_other": "{{count}} org-medlemmer ejer dette blueprint — åbn rækken for at se hvem",
-    "ownersBesidesYouTooltip_one": "{{count}} org-medlem ud over dig ejer dette blueprint — åbn rækken for at se hvem",
-    "ownersBesidesYouTooltip_other": "{{count}} org-medlemmer ud over dig ejer dette blueprint — åbn rækken for at se hvem",
+    "ownersTooltip_one": "{{count}} org-medlem ejer dette blueprint:",
+    "ownersTooltip_other": "{{count}} org-medlemmer ejer dette blueprint:",
+    "ownersBesidesYouTooltip_one": "{{count}} org-medlem ud over dig ejer det:",
+    "ownersBesidesYouTooltip_other": "{{count}} org-medlemmer ud over dig ejer det:",
     "missingScu": "{{amount}} SCU {{name}}",
     "missingPieces": "{{count}} × {{name}}",
     "moreMissing": "+{{count}} flere",
@@ -315,34 +316,41 @@
   },
   "blueprints": {
     "title": "Blueprints",
-    "subtitle": "Blueprints ejet på tværs af org'en",
-    "markOwnedAction": "Markér blueprint som ejet",
-    "loadFailed": "Kunne ikke hente ejede blueprints.",
-    "tableAria": "Ejede blueprints",
-    "columns": {
-      "blueprint": "Blueprint",
-      "itemClass": "Item class",
-      "owner": "Ejer",
-      "acquired": "Erhvervet"
-    },
-    "empty": "Ingen blueprints markeret som ejet endnu.",
-    "dialog": {
-      "title": "Markér blueprint som ejet",
-      "blueprint": "Blueprint",
-      "searchPlaceholder": "Søg efter blueprints…",
-      "failed": "Kunne ikke markere blueprintet som ejet.",
-      "confirm": "Markér som ejet"
-    },
+    "subtitle": "Alle blueprints i fabrikatorens rækkefølge — sæt hak ved dem du ejer",
+    "searchPlaceholder": "Blueprint-navn…",
+    "grade": "Grade",
+    "allGrades": "Alle grades",
+    "onlyUnownedByMe": "Kun dem jeg ikke ejer",
+    "unownedByAnyone": "Ingen i org'en ejer",
     "view": {
       "aria": "Visning",
-      "list": "Liste",
+      "checklist": "Tjekliste",
       "matrix": "Matrix"
+    },
+    "colMine": "Mine",
+    "colBlueprint": "Blueprint",
+    "colType": "Type",
+    "colGrade": "Grade",
+    "colOwners": "Ejere",
+    "markAllShown": "Markér alle viste som mine ({{count}})",
+    "checklistHelp": "Gå din fabrikator-liste igennem i spillet og sæt hak her — hvert hak gemmes straks. Mellemrum sætter hak i den markerede række, ↑ ↓ flytter.",
+    "checklistAria": "Blueprint-tjekliste",
+    "tickAria": "Jeg ejer {{name}}",
+    "emptyFiltered": "Ingen blueprints matcher filtrene.",
+    "loadFailed": "Kunne ikke hente blueprints.",
+    "toggleFailed": "Kunne ikke gemme ændringen — prøv igen.",
+    "toast": {
+      "marked": "{{name}} markeret som dit",
+      "unmarked": "{{name}} fjernet fra dine"
+    },
+    "quickAdd": {
+      "label": "Hurtig tilføjelse — skriv, vælg, Enter",
+      "justAdded": "Lige tilføjet:",
+      "hint": "Feltet holder fokus, så næste navn kan skrives med det samme. Tab vælger næste forslag; ✕ på en chip fortryder."
     },
     "matrix": {
       "tableAria": "Blueprint-ejerskab pr. medlem",
-      "loadFailed": "Kunne ikke hente blueprint-matrixen.",
-      "empty": "Ingen blueprints at vise endnu.",
-      "youTooltip": "{{handle}} (dig)",
+      "you": "Dig",
       "ownedBy": "Ejes af {{member}}"
     }
   },
@@ -455,5 +463,11 @@
     "notificationTitle": "Star Citizen: {{severity}}",
     "updated": "Opdateret kl. {{time}}",
     "resolved": "Løst: {{title}}"
+  },
+  "pager": {
+    "rowsPerPage": "Rækker pr. side",
+    "page": "Side",
+    "of": "af {{pages}}",
+    "range": "{{lo}}–{{hi}} af {{total}}"
   }
 }

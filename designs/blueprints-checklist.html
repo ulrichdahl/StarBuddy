@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>StarBuddy Blueprints — Checklist</title>
+</head>
+<body>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #0C1117; color: #DCE6EE; font-family: "Inter", "Roboto", "Helvetica", "Arial", sans-serif; font-size: 14px; line-height: 1.43; }
+    a { color: #5BC8DB; } a:hover { color: #8fdbe8; }
+    .page { width: 1240px; padding: 24px 24px 32px; box-sizing: border-box; }
+    .h4 { font-size: 2.125rem; font-weight: 700; letter-spacing: 0.02em; line-height: 1.235; margin: 0; }
+    .sub { color: #8CA0B3; font-size: 0.875rem; margin-top: 4px; }
+    .paper { background: #121A23; border: 1px solid rgba(91,200,219,0.10); border-radius: 6px; }
+    .bar { padding: 16px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-bottom: 16px; }
+    .tf { position: relative; height: 40px; border: 1px solid rgba(220,230,238,0.23); border-radius: 6px; display: flex; align-items: center; padding: 0 14px; color: #DCE6EE; font-size: 1rem; box-sizing: border-box; background: transparent; }
+    .tf .lab { position: absolute; top: -9px; left: 9px; padding: 0 5px; background: #121A23; color: #8CA0B3; font-size: 0.75rem; }
+    .tf .ph { color: rgba(220,230,238,0.42); }
+    .tf .caret { margin-left: auto; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 5px solid rgba(220,230,238,0.54); }
+    .tf.focus { border: 2px solid #5BC8DB; padding: 0 13px; } .tf.focus .lab { color: #5BC8DB; }
+    .sw { display: inline-flex; align-items: center; gap: 4px; }
+    .sw .trk { position: relative; width: 34px; height: 14px; border-radius: 7px; background: rgba(220,230,238,0.3); margin: 0 12px 0 7px; }
+    .sw .trk::after { content: ""; position: absolute; top: -3px; left: -3px; width: 20px; height: 20px; border-radius: 50%; background: #E0E0E0; box-shadow: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14); }
+    .sw.on .trk { background: rgba(91,200,219,0.5); } .sw.on .trk::after { left: 17px; background: #5BC8DB; }
+    .tgl { display: inline-flex; border-radius: 6px; }
+    .tgl span { height: 32px; padding: 0 11px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(220,230,238,0.12); color: #DCE6EE; font-size: 0.8125rem; font-weight: 600; }
+    .tgl span:first-child { border-radius: 6px 0 0 6px; } .tgl span:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+    .tgl span.on { color: #5BC8DB; background: rgba(91,200,219,0.16); }
+    .btn { height: 36px; padding: 0 16px; border-radius: 6px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.875rem; box-sizing: border-box; }
+    .btn.c { background: #5BC8DB; color: #06222A; box-shadow: 0 3px 1px -2px rgba(0,0,0,.2), 0 2px 2px 0 rgba(0,0,0,.14); }
+    .btn.o { border: 1px solid rgba(91,200,219,0.5); color: #5BC8DB; }
+    .btn.t { color: #5BC8DB; padding: 0 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-weight: 500; font-size: 0.875rem; color: #DCE6EE; padding: 6px 16px; border-bottom: 1px solid rgba(91,200,219,0.12); line-height: 1.5rem; }
+    td { padding: 6px 16px; border-bottom: 1px solid rgba(91,200,219,0.12); font-size: 0.875rem; vertical-align: middle; }
+    tr.hover td { background: rgba(255,255,255,0.08); }
+    .cap { display: block; font-size: 0.75rem; color: #8CA0B3; font-family: ui-monospace, Consolas, monospace; }
+    .cap.sans { font-family: inherit; }
+    .grp td { background: rgba(91,200,219,0.06); font-weight: 700; color: #5BC8DB; font-size: 0.8125rem; letter-spacing: 0.02em; }
+    .grp td .n { float: right; color: #8CA0B3; font-weight: 500; }
+    .cb { width: 18px; height: 18px; border: 2px solid rgba(220,230,238,0.7); border-radius: 2px; display: inline-block; vertical-align: middle; box-sizing: border-box; }
+    .cb.on { background: #5BC8DB; border-color: #5BC8DB; position: relative; }
+    .cb.on::after { content: ""; position: absolute; left: 4px; top: 0px; width: 5px; height: 10px; border: solid #06222A; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+    .cb.ind { background: #5BC8DB; border-color: #5BC8DB; position: relative; }
+    .cb.ind::after { content: ""; position: absolute; left: 3px; top: 6px; width: 8px; height: 2px; background: #06222A; }
+    .chip { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: 12px; font-size: 0.8125rem; border: 1px solid rgba(220,230,238,0.23); color: #DCE6EE; gap: 6px; }
+    .chip.p { border-color: rgba(91,200,219,0.5); color: #5BC8DB; }
+    .chip.f { background: rgba(91,200,219,0.16); border-color: transparent; color: #DCE6EE; }
+    .chip .x { width: 14px; height: 14px; border-radius: 50%; background: rgba(220,230,238,0.26); display: inline-grid; place-items: center; font-size: 10px; color: #121A23; }
+    .stp { display: inline-flex; align-items: center; border: 1px solid rgba(220,230,238,0.23); border-radius: 6px; height: 28px; }
+    .stp span { width: 28px; text-align: center; color: #5BC8DB; font-weight: 700; }
+    .stp b { min-width: 24px; text-align: center; font-weight: 600; }
+    .av { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #1E2B38; color: #DCE6EE; font-size: 0.7rem; font-weight: 600; border: 1px solid rgba(91,200,219,0.25); margin-left: -6px; }
+    .avs { display: inline-flex; padding-left: 6px; align-items: center; }
+    .avs .more { margin-left: 4px; color: #8CA0B3; font-size: 0.75rem; }
+    .pag { display: flex; justify-content: flex-end; align-items: center; gap: 24px; padding: 8px 16px; color: #DCE6EE; font-size: 0.75rem; }
+    .kbd { font-family: ui-monospace, Consolas, monospace; font-size: 0.75rem; border: 1px solid rgba(220,230,238,0.3); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; color: #DCE6EE; }
+    .hint { color: #8CA0B3; font-size: 0.8125rem; }
+    .me { background: rgba(91,200,219,0.08); }
+    .vt { display: inline-block; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 0.75rem; max-height: 120px; white-space: nowrap; }
+    .chk { color: #5BC8DB; font-weight: 700; }
+    .badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #5BC8DB; color: #06222A; font-size: 0.7rem; font-weight: 700; }
+    .srt { display: inline-flex; align-items: center; gap: 4px; }
+    .srt .ar { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 5px solid #DCE6EE; opacity: 0.9; }
+    .srt.dim .ar { opacity: 0.3; }
+    .tip { position: absolute; background: #616161; color: #fff; font-size: 0.6875rem; padding: 4px 8px; border-radius: 4px; white-space: pre-line; line-height: 1.4; font-weight: 500; }
+    .pg { display: flex; align-items: center; gap: 4px; }
+    .pg span { min-width: 32px; height: 32px; padding: 0 6px; border-radius: 16px; display: inline-grid; place-items: center; font-size: 0.875rem; color: #DCE6EE; }
+    .pg span.on { background: rgba(91,200,219,0.16); color: #5BC8DB; font-weight: 600; }
+    .pg span.nav { color: #8CA0B3; }
+    .rpp { display: inline-flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #DCE6EE; }
+    .rpp .sel { display: inline-flex; align-items: center; gap: 6px; padding: 2px 4px 2px 8px; border-bottom: 1px solid rgba(220,230,238,0.42); font-size: 0.875rem; }
+    .toast { position: absolute; left: 24px; bottom: 24px; background: #1E2B38; color: #DCE6EE; padding: 10px 16px; border-radius: 6px; font-size: 0.875rem; box-shadow: 0 3px 5px -1px rgba(0,0,0,.3), 0 6px 10px 0 rgba(0,0,0,.2); display: flex; gap: 16px; align-items: center; }
+</style>
+<div class="page" style="position: relative; min-height: 960px;"><div style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;">
+  <div style="flex-grow: 1; min-width: 0;"><h2 class="h4">Blueprints</h2><div class="sub">Blueprints owned across the org</div></div>
+  <div class="tgl"><span class="on"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"></path></svg> Checklist</span><span class=""><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1"></rect><path d="M3 9h18M3 15h18M9 3v18M15 3v18"></path></svg> Matrix</span></div>
+</div><div class="paper bar">
+  <div class="tf" style="min-width: 240px;"><span class="lab">Search</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8CA0B3" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><span class="ph" style="margin-left: 8px;">Blueprint name…</span></div>
+  <div class="tf" style="min-width: 260px;"><span class="lab">Type</span><span>Character armor › Helmet · Heavy</span><span class="caret"></span></div>
+  <div class="tf" style="min-width: 140px;"><span class="lab">Grade</span><span>All grades</span><span class="caret"></span></div>
+  <div class="sw on"><span class="trk"></span>Only unowned by me</div><div class="sw"><span class="trk"></span>Unowned by anyone</div>
+</div>
+<div class="paper">
+  <div style="display: flex; align-items: center; gap: 16px; padding: 8px 16px; border-bottom: 1px solid rgba(91,200,219,0.12);">
+    <span class="btn o" style="flex: none;">Mark all shown as mine (66)</span>
+    <span class="hint" style="margin-left: auto; text-align: right;">Walk your fabricator list in-game and tick along here — every tick saves at once. <span class="kbd">Space</span> ticks the highlighted row, <span class="kbd">↑</span> <span class="kbd">↓</span> move.</span>
+  </div>
+  <table>
+    <thead><tr><th style="text-align: center; width: 56px;"><span class="srt dim">Mine<span class="ar" style=""></span></span></th><th style="text-align: left;"><span class="srt ">Blueprint<span class="ar" style=""></span></span></th><th style="text-align: left;"><span class="srt dim">Type<span class="ar" style=""></span></span></th><th style="text-align: left; width: 90px;"><span class="srt dim">Grade<span class="ar" style=""></span></span></th><th style="text-align: center; width: 150px;"><span class="srt dim">Owners<span class="ar" style=""></span></span></th></tr></thead>
+    <tbody>
+      <tr class="grp"><td colspan="5">Character armor › Helmet · Heavy <span class="n">66 blueprints · you own 12 · org 31</span></td></tr>
+      <tr class=""><td style="width: 56px; text-align: center;"><span class="cb on"></span></td><td style="font-weight: 600;">Corbel Helmet Smolder</td><td style="color: #8CA0B3;">Character armor · Helmet · Heavy</td><td style="width: 90px;">Grade A</td><td style="width: 150px; text-align: center;"><span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5BC8DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"></path><path d="M15.5 11.5l2 2 4-4.5"></path></svg><span class="chip" style="position: relative; height: 24px; font-variant-numeric: tabular-nums;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="9" r="3"></circle><circle cx="17" cy="9" r="2.5"></circle><path d="M2 19c0-3 2.7-5 6-5s6 2 6 5M14.5 19c0-2.4 1.6-4 4-4s4 1.6 4 4"></path></svg>2</span></span></td></tr><tr class=""><td style="width: 56px; text-align: center;"><span class="cb on"></span></td><td style="font-weight: 600;">Balor HCH Helmet Twilight</td><td style="color: #8CA0B3;">Character armor · Helmet · Heavy</td><td style="width: 90px;">Grade A</td><td style="width: 150px; text-align: center;"><span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5BC8DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"></path><path d="M15.5 11.5l2 2 4-4.5"></path></svg></span></td></tr><tr class="hover"><td style="width: 56px; text-align: center;"><span class="cb "></span></td><td style="">Balor HCH Helmet Ember</td><td style="color: #8CA0B3;">Character armor · Helmet · Heavy</td><td style="width: 90px;">Grade A</td><td style="width: 150px; text-align: center;"><span style="display: inline-flex; align-items: center; gap: 6px;"><span class="chip" style="position: relative; height: 24px; font-variant-numeric: tabular-nums;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="9" r="3"></circle><circle cx="17" cy="9" r="2.5"></circle><path d="M2 19c0-3 2.7-5 6-5s6 2 6 5M14.5 19c0-2.4 1.6-4 4-4s4 1.6 4 4"></path></svg>2<span class="tip" style="left: 50%; transform: translateX(-50%); top: 30px; z-index: 2;">SBone
+LordMarcus</span></span></span></td></tr><tr class=""><td style="width: 56px; text-align: center;"><span class="cb "></span></td><td style="">Corbel Helmet Cinder</td><td style="color: #8CA0B3;">Character armor · Helmet · Heavy</td><td style="width: 90px;">Grade A</td><td style="width: 150px; text-align: center;"><span style="display: inline-flex; align-items: center; gap: 6px;"><span style="color: rgba(220,230,238,0.38);">—</span></span></td></tr><tr class=""><td style="width: 56px; text-align: center;"><span class="cb on"></span></td><td style="font-weight: 600;">ADP-mk4 Helmet Ash</td><td style="color: #8CA0B3;">Character armor · Helmet · Heavy</td><td style="width: 90px;">Grade A</td><td style="width: 150px; text-align: center;"><span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5BC8DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"></path><path d="M15.5 11.5l2 2 4-4.5"></path></svg><span class="chip" style="position: relative; height: 24px; font-variant-numeric: tabular-nums;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="9" r="3"></circle><circle cx="17" cy="9" r="2.5"></circle><path d="M2 19c0-3 2.7-5 6-5s6 2 6 5M14.5 19c0-2.4 1.6-4 4-4s4 1.6 4 4"></path></svg>3</span></span></td></tr><tr class=""><td style="width: 56px; text-align: center;"><span class="cb "></span></td><td style="">ADP-mk4 Helmet Tundra</td><td style="color: #8CA0B3;">Character armor · Helmet · Heavy</td><td style="width: 90px;">Grade B</td><td style="width: 150px; text-align: center;"><span style="display: inline-flex; align-items: center; gap: 6px;"><span class="chip" style="position: relative; height: 24px; font-variant-numeric: tabular-nums;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="9" r="3"></circle><circle cx="17" cy="9" r="2.5"></circle><path d="M2 19c0-3 2.7-5 6-5s6 2 6 5M14.5 19c0-2.4 1.6-4 4-4s4 1.6 4 4"></path></svg>1</span></span></td></tr><tr class=""><td style="width: 56px; text-align: center;"><span class="cb "></span></td><td style="">Aves Helmet Voyager</td><td style="color: #8CA0B3;">Character armor · Helmet · Heavy</td><td style="width: 90px;">Grade A</td><td style="width: 150px; text-align: center;"><span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(220,230,238,0.3)" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"></path></svg></span></td></tr>
+      <tr class="grp"><td colspan="5">Character armor › Helmet · Medium <span class="n">65 blueprints · you own 4 · org 22</span></td></tr>
+      <tr class=""><td style="width: 56px; text-align: center;"><span class="cb on"></span></td><td style="font-weight: 600;">Inquisitor Helmet Seagreen</td><td style="color: #8CA0B3;">Character armor · Helmet · Medium</td><td style="width: 90px;">Grade A</td><td style="width: 150px; text-align: center;"><span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5BC8DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"></path><path d="M15.5 11.5l2 2 4-4.5"></path></svg><span class="chip" style="position: relative; height: 24px; font-variant-numeric: tabular-nums;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="9" r="3"></circle><circle cx="17" cy="9" r="2.5"></circle><path d="M2 19c0-3 2.7-5 6-5s6 2 6 5M14.5 19c0-2.4 1.6-4 4-4s4 1.6 4 4"></path></svg>2</span></span></td></tr><tr class=""><td style="width: 56px; text-align: center;"><span class="cb "></span></td><td style="">ORC-mkX Helmet SecondWind</td><td style="color: #8CA0B3;">Character armor · Helmet · Medium</td><td style="width: 90px;">Grade C</td><td style="width: 150px; text-align: center;"><span style="display: inline-flex; align-items: center; gap: 6px;"><span class="chip" style="position: relative; height: 24px; font-variant-numeric: tabular-nums;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="9" r="3"></circle><circle cx="17" cy="9" r="2.5"></circle><path d="M2 19c0-3 2.7-5 6-5s6 2 6 5M14.5 19c0-2.4 1.6-4 4-4s4 1.6 4 4"></path></svg>1</span></span></td></tr>
+    </tbody>
+  </table>
+  <div style="display: flex; align-items: center; gap: 24px; padding: 8px 16px; border-top: 1px solid rgba(91,200,219,0.12); flex-wrap: wrap;">
+  <span class="rpp">Rows per page: <span class="sel">50<span class="caret" style="border-top-color: rgba(220,230,238,0.54);"></span></span></span>
+  <span class="rpp">Page <span class="sel" style="min-width: 36px; justify-content: center;">3</span> of 27</span>
+  <span class="pg" style="margin-left: auto;"><span class="nav">‹</span><span class="">1</span><span class="">2</span><span class="on">3</span><span class="">4</span><span>…</span><span>27</span><span class="nav">›</span></span>
+  <span style="font-size: 0.75rem; color: #DCE6EE; font-variant-numeric: tabular-nums;">101–150 of 1,331</span>
+</div>
+</div>
+<div class="toast"><span>Marked <b>ADP-mk4 Helmet Ash</b> as yours</span><span class="btn t" style="height: 28px;">UNDO</span></div></div>
+</body>
+</html>
