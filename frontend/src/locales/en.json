@@ -211,7 +211,11 @@
     "magazine": "Mag: {{value}}",
     "carry": "Carry: {{value}} {{unit}}",
     "modifiedNote": "Modified values estimate the crafted item at the selected material quality (community-measured ≈ ±1.5% per 100 quality; only quality-scaling stats are adjusted).",
-    "rangeNote": "Right column: the span crafting can move quality-scaling stats across, from the worst to the best material quality (community-measured ≈ ±1.5% per 100 quality → {{min}}% … +{{max}}%)."
+    "rangeNote": "Right column: the span crafting can move quality-scaling stats across, from the worst to the best material quality (community-measured ≈ ±1.5% per 100 quality → {{min}}% … +{{max}}%).",
+    "colStat": "Stat",
+    "colDefault": "Default",
+    "colCraftable": "Craftable",
+    "colCrafted": "Crafted"
   },
   "dashboard": {
     "welcome": "Welcome back, {{name}}",

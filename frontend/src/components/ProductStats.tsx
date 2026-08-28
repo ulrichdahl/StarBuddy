@@ -285,6 +285,19 @@ export function ProductStats({
           ))}
         </Stack>
       )}
+      {(rangePercent || mod !== null) && (
+        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 2, pb: 0.5, mb: 0.5, borderBottom: 2, borderColor: 'divider' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ flex: 1, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+            {t('stats.colStat')}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+            {t('stats.colDefault')}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ width: 130, textAlign: 'right', flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+            {t(mod !== null ? 'stats.colCrafted' : 'stats.colCraftable')}
+          </Typography>
+        </Box>
+      )}
       {sections.map((section, si) => (
         <Box key={si} sx={{ mb: 1.5 }}>
           {section.title && (
