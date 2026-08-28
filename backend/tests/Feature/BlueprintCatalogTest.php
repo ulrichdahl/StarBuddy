@@ -42,23 +42,26 @@ class BlueprintCatalogTest extends TestCase
         $rifle = $this->bp('P4-AR Rifle', 'WeaponPersonal', 'Medium');
         $helmet = $this->bp('Corbel Helmet Smolder', 'Char_Armor_Helmet', 'Heavy');
         $ammo = $this->bp('Parallax Rifle Battery (80 Cap)', 'WeaponAttachment', 'Magazine', '2');
+        $cooler = Blueprint::create(['name' => 'MIL-3B "Tempest"', 'type' => 'Cooler', 'grade' => '1', 'item_meta' => ['size' => 2]]);
         BlueprintOwned::create(['user_id' => $me->id, 'blueprint_id' => $helmet->id, 'blueprint_name' => $helmet->name, 'source' => 'manual']);
 
         $res = $this->getJson('/api/blueprints/catalog')->assertOk()->json();
-        $this->assertSame([$ammo->id, $helmet->id, $rifle->id], array_column($res['data'], 'id'), 'Ammo, Armor, Weapons — kiosk order');
+        $this->assertSame([$ammo->id, $helmet->id, $cooler->id, $rifle->id], array_column($res['data'], 'id'), 'Ammo, Armor, Vehicles, Weapons — kiosk order');
+        $this->assertSame(2, $res['data'][2]['size'], 'vehicle components carry their size');
+        $this->assertNull($res['data'][1]['size'], 'armour has no size');
         $this->assertSame('Armor · Helmets', $res['data'][1]['category_label']);
         $this->assertTrue($res['data'][1]['owned_by_me']);
         $this->assertSame(0, $res['data'][1]['owner_count']);
         $this->assertSame('ammo', $res['categories'][0]['key']);
-        $this->assertSame(3, $res['total']);
+        $this->assertSame(4, $res['total']);
 
         $this->assertSame([$rifle->id], array_column($this->getJson('/api/blueprints/catalog?category=weapons')->json('data'), 'id'));
         $this->assertSame([$helmet->id], array_column($this->getJson('/api/blueprints/catalog?category=armor/helmets')->json('data'), 'id'));
-        $this->assertSame([$ammo->id, $rifle->id], array_column($this->getJson('/api/blueprints/catalog?unowned_by_me=1')->json('data'), 'id'));
+        $this->assertSame([$ammo->id, $cooler->id, $rifle->id], array_column($this->getJson('/api/blueprints/catalog?unowned_by_me=1')->json('data'), 'id'));
         $this->assertSame([$helmet->id], array_column($this->getJson('/api/blueprints/catalog?owned=1')->json('data'), 'id'), 'owned by anyone in the org');
         $this->assertSame([$ammo->id], array_column($this->getJson('/api/blueprints/catalog?grade=2')->json('data'), 'id'));
         // Name descending: "Parallax…" > "P4-AR…" > "Corbel…".
-        $this->assertSame([$ammo->id, $rifle->id, $helmet->id], array_column($this->getJson('/api/blueprints/catalog?sort=name&dir=desc')->json('data'), 'id'));
+        $this->assertSame([$ammo->id, $rifle->id, $cooler->id, $helmet->id], array_column($this->getJson('/api/blueprints/catalog?sort=name&dir=desc')->json('data'), 'id'));
 
         $paged = $this->getJson('/api/blueprints/catalog?per_page=10&page=1')->assertOk()->json();
         $this->assertSame(10, $paged['per_page']);

@@ -52,6 +52,9 @@ interface Filters {
 
 const CATALOG_KEY = 'blueprints-catalog'
 
+/** Type column: the kiosk/type label, with the size for ship parts ("Cooler · S2"). */
+const typeText = (row: CatalogRow) => `${row.type_display ?? row.category_label}${row.size !== null ? ` · S${row.size}` : ''}`
+
 /** Debounce typed text so the catalog is not refetched on every keystroke. */
 function useDebounced<T>(value: T, ms = 250): T {
   const [v, setV] = useState(value)
@@ -303,7 +306,7 @@ function ChecklistView({
                     <TableCell sx={{ fontWeight: row.owned_by_me ? 600 : 400, cursor: 'pointer' }} onClick={() => onInfo(row.id)}>
                       {row.name}
                     </TableCell>
-                    <TableCell sx={{ color: 'text.secondary' }}>{row.type_display ?? row.category_label}</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>{typeText(row)}</TableCell>
                     <TableCell>{row.grade ? t('craft.grade', { grade: gradeLabel(row.grade) }) : t('common.none')}</TableCell>
                     <TableCell align="center">
                       <OwnersCell isDefault={row.is_default} ownedByMe={row.owned_by_me} owners={row.owners} />
@@ -355,6 +358,7 @@ function QuickAdd({ toggle, rows }: { toggle: (row: CatalogRow) => void; rows: C
       category_label: '',
       type_display: null,
       grade: null,
+      size: null,
       is_default: false,
       owned_by_me: false,
       my_owned_id: null,
@@ -466,7 +470,7 @@ function MatrixView({
               <TableCell sx={{ fontWeight: row.owned_by_me ? 600 : 400, cursor: 'pointer' }} onClick={() => onInfo(row.id)}>
                 {row.name}
               </TableCell>
-              <TableCell sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>{row.type_display ?? row.category_label}</TableCell>
+              <TableCell sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>{typeText(row)}</TableCell>
               <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.grade ? t('craft.grade', { grade: gradeLabel(row.grade) }) : t('common.none')}</TableCell>
               <TableCell align="center" sx={meCol} padding="checkbox">
                 <Checkbox
@@ -596,6 +600,7 @@ export function BlueprintsPage() {
               category_label: info.category_label,
               type_display: info.blueprint.type_display,
               grade: info.blueprint.grade,
+              size: info.blueprint.item_meta?.size ?? null,
               is_default: info.blueprint.is_default,
               owned_by_me: info.owned_by_me,
               my_owned_id: null,

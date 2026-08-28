@@ -195,6 +195,8 @@ export interface CatalogRow {
   category_label: string
   type_display: string | null
   grade: string | null
+  /** Ship components and vehicle weapons only. */
+  size: number | null
   is_default: boolean
   owned_by_me: boolean
   my_owned_id: number | null

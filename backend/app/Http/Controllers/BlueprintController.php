@@ -74,6 +74,10 @@ class BlueprintController extends Controller
                     'category_label' => FabricatorCategory::label($cat, $sub),
                     'type_display' => BlueprintKind::label($b),
                     'grade' => $b->grade,
+                    // Size matters for ship parts: components and vehicle weapons.
+                    'size' => in_array(BlueprintKind::group($b->type), ['vehicle_components', 'vehicle_weapons'], true)
+                        ? ($b->item_meta['size'] ?? null)
+                        : null,
                     'is_default' => (bool) $b->is_default,
                     'owned_by_me' => $mine !== null,
                     'my_owned_id' => $mine?->id,
