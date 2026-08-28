@@ -13,7 +13,7 @@ import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
-import TablePagination from '@mui/material/TablePagination'
+import TableSortLabel from '@mui/material/TableSortLabel'
 import TableRow from '@mui/material/TableRow'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
@@ -23,12 +23,30 @@ import { useMe } from '../lib/auth'
 import type { ItemStack } from '../lib/types'
 import { usePaginatedList } from '../lib/usePaginatedList'
 import { PageHeader } from '../components/PageHeader'
+import { ListPager } from '../components/ListPager'
 import { ItemEntryForm } from '../components/ItemEntryForm'
 
 export function ItemsPage() {
   const { t, i18n } = useTranslation()
-  const { rows: stacks, total, page, setPage, rowsPerPage, isLoading, isError } =
-    usePaginatedList<ItemStack>('item-stacks', '/api/item-stacks')
+  type SortField = 'updated_at' | 'item' | 'quantity' | 'location' | 'visibility'
+  const [sort, setSort] = useState<SortField>('updated_at')
+  const [dir, setDir] = useState<'asc' | 'desc'>('desc')
+  const sortBy = (field: SortField) => {
+    if (sort === field) setDir(dir === 'asc' ? 'desc' : 'asc')
+    else {
+      setSort(field)
+      setDir(field === 'updated_at' || field === 'quantity' ? 'desc' : 'asc')
+    }
+  }
+  const header = (label: string, field: SortField, align?: 'right') => (
+    <TableCell align={align} sortDirection={sort === field ? dir : false}>
+      <TableSortLabel active={sort === field} direction={sort === field ? dir : 'asc'} onClick={() => sortBy(field)}>
+        {label}
+      </TableSortLabel>
+    </TableCell>
+  )
+  const { rows: stacks, total, page, setPage, rowsPerPage, setRowsPerPage, isLoading, isError } =
+    usePaginatedList<ItemStack>('item-stacks', '/api/item-stacks', 50, { sort, dir })
   const { me } = useMe()
   const queryClient = useQueryClient()
   // Undo is two-click: the first click arms the row, the second confirms.
@@ -73,11 +91,11 @@ export function ItemsPage() {
             <Table size="small" aria-label={t('items.tableAria')}>
               <TableHead>
                 <TableRow>
-                  <TableCell>{t('items.columns.item')}</TableCell>
-                  <TableCell align="right">{t('items.columns.quantity')}</TableCell>
-                  <TableCell>{t('items.columns.location')}</TableCell>
-                  <TableCell>{t('items.columns.visibility')}</TableCell>
-                  <TableCell>{t('items.columns.updated')}</TableCell>
+                  {header(t('items.columns.item'), 'item')}
+                  {header(t('items.columns.quantity'), 'quantity', 'right')}
+                  {header(t('items.columns.location'), 'location')}
+                  {header(t('items.columns.visibility'), 'visibility')}
+                  {header(t('items.columns.updated'), 'updated_at')}
                   <TableCell align="right" />
                 </TableRow>
               </TableHead>
@@ -143,16 +161,7 @@ export function ItemsPage() {
               </TableBody>
             </Table>
           </TableContainer>
-          {total > rowsPerPage && (
-            <TablePagination
-              component="div"
-              count={total}
-              page={page}
-              onPageChange={(_, p) => setPage(p)}
-              rowsPerPage={rowsPerPage}
-              rowsPerPageOptions={[rowsPerPage]}
-            />
-          )}
+          <ListPager total={total} page={page} rowsPerPage={rowsPerPage} onPageChange={setPage} onRowsPerPageChange={setRowsPerPage} />
         </Paper>
         <ItemEntryForm />
       </Box>

@@ -15,7 +15,6 @@ import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
-import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
 import TableSortLabel from '@mui/material/TableSortLabel'
 import TextField from '@mui/material/TextField'
@@ -24,6 +23,7 @@ import Typography from '@mui/material/Typography'
 import { api } from '../lib/api'
 import { PageHeader } from '../components/PageHeader'
 import { OwnersCell } from '../components/OwnersCell'
+import { ListPager } from '../components/ListPager'
 import { CraftDetailDialog } from '../components/CraftDetailDialog'
 import { COMPLETE_GREEN } from '../lib/rarity'
 
@@ -99,7 +99,7 @@ export function CraftPage() {
   }
   const [detailId, setDetailId] = useState<number | null>(null)
   const [page, setPage] = useState(0)
-  const rowsPerPage = 50
+  const [rowsPerPage, setRowsPerPage] = useState(50)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['craftability', search, type, craftableOnly, includeUnowned],
@@ -324,18 +324,16 @@ export function CraftPage() {
             </TableBody>
           </Table>
         </TableContainer>
-        {(data?.results ?? []).length > rowsPerPage && (
-          <TablePagination
-            component="div"
-            count={data?.results.length ?? 0}
-            page={page}
-            onPageChange={(_, p) => setPage(p)}
-            rowsPerPage={rowsPerPage}
-            rowsPerPageOptions={[rowsPerPage]}
-            labelDisplayedRows={({ from, to, count }) => t('craft.displayedRows', { from, to, count })}
-            getItemAriaLabel={(kind) => t(`craft.page.${kind}`)}
-          />
-        )}
+        <ListPager
+          total={sorted.length}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          onPageChange={setPage}
+          onRowsPerPageChange={(n) => {
+            setRowsPerPage(n)
+            setPage(0)
+          }}
+        />
       </Paper>
       {detailId !== null && <CraftDetailDialog blueprintId={detailId} onClose={() => setDetailId(null)} />}
     </Box>

@@ -32,7 +32,7 @@ class ResourceStackController extends Controller
             default => $query->orderBy('updated_at', $dir),
         };
 
-        return $query->paginate(50)->appends($request->query());
+        return $query->paginate($this->perPage($request))->appends($request->query());
     }
 
     public function store(Request $request)

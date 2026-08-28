@@ -9,9 +9,14 @@ class RefineryOrderController extends Controller
 {
     public function index(Request $request)
     {
+        $dir = $request->query('dir') === 'asc' ? 'asc' : 'desc';
+        $sort = $request->query('sort');
+        $column = in_array($sort, ['station', 'method', 'completed_at', 'eta', 'source'], true) ? $sort : 'placed_at';
+
         return RefineryOrder::where('user_id', $request->user()->id)
-            ->latest('placed_at')
-            ->paginate(50);
+            ->orderBy($column, $dir)
+            ->paginate($this->perPage($request))
+            ->appends($request->query());
     }
 
     public function store(Request $request)

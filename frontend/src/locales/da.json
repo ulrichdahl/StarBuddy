@@ -128,7 +128,6 @@
     "missingPieces": "{{count}} × {{name}}",
     "moreMissing": "+{{count}} flere",
     "emptyState": "Intet at vise — tilføj ressourcer til lageret, synkronisér blueprints fra desktop-klienten, eller udvid filtrene.",
-    "displayedRows": "{{from}}–{{to}} af {{count}}",
     "page": {
       "first": "Gå til første side",
       "last": "Gå til sidste side",
@@ -415,13 +414,6 @@
     "visibilityChip": {
       "private": "privat",
       "org": "org"
-    },
-    "pagination": {
-      "displayedRows": "{{from}}–{{to}} af {{total}}",
-      "firstPage": "Første side",
-      "previousPage": "Forrige side",
-      "nextPage": "Næste side",
-      "lastPage": "Sidste side"
     },
     "edit": {
       "title": "rediger stak",

@@ -22,7 +22,6 @@ import TableSortLabel from '@mui/material/TableSortLabel'
 import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
-import TablePagination from '@mui/material/TablePagination'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
 import ToggleButton from '@mui/material/ToggleButton'
@@ -38,6 +37,7 @@ import { api, unwrapList } from '../lib/api'
 import type { Location, ResourceStack, Visibility } from '../lib/types'
 import { usePaginatedList } from '../lib/usePaginatedList'
 import { PageHeader } from '../components/PageHeader'
+import { ListPager } from '../components/ListPager'
 import { ResourceEntryForm } from '../components/ResourceEntryForm'
 
 /** Desaturated WoW ladder, shared by both rarity axes. */
@@ -194,7 +194,7 @@ export function ResourcesPage() {
     queryFn: async () => unwrapList<Location>((await api.get('/api/locations')).data),
   })
 
-  const { rows: stacks, total, page, setPage, rowsPerPage, isLoading, isError } =
+  const { rows: stacks, total, page, setPage, rowsPerPage, setRowsPerPage, isLoading, isError } =
     usePaginatedList<ResourceStack>('resource-stacks', '/api/resource-stacks', 50, {
       search: search || undefined,
       quality_min: qualityMin || undefined,
@@ -353,24 +353,7 @@ export function ResourcesPage() {
               </TableBody>
             </Table>
           </TableContainer>
-          {total > rowsPerPage && (
-            <TablePagination
-              component="div"
-              count={total}
-              page={page}
-              onPageChange={(_, p) => setPage(p)}
-              rowsPerPage={rowsPerPage}
-              rowsPerPageOptions={[rowsPerPage]}
-              labelDisplayedRows={({ from, to, count }) =>
-                t('materials.pagination.displayedRows', {
-                  from: from.toLocaleString(i18n.language),
-                  to: to.toLocaleString(i18n.language),
-                  total: count.toLocaleString(i18n.language),
-                })
-              }
-              getItemAriaLabel={(type) => t(`materials.pagination.${type}Page`)}
-            />
-          )}
+          <ListPager total={total} page={page} rowsPerPage={rowsPerPage} onPageChange={setPage} onRowsPerPageChange={setRowsPerPage} />
         </Paper>
         <ResourceEntryForm />
       </Box>

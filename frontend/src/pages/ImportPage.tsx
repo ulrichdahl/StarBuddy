@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
@@ -22,6 +22,7 @@ import ErrorOutlinedIcon from '@mui/icons-material/ErrorOutlined'
 import { api } from '../lib/api'
 import type { ImportPreview } from '../lib/types'
 import { PageHeader } from '../components/PageHeader'
+import { ListPager } from '../components/ListPager'
 
 /**
  * CSV resource import: pick a file, preview it server-side (per-row
@@ -32,6 +33,10 @@ export function ImportPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [fileName, setFileName] = useState<string | null>(null)
   const [preview, setPreview] = useState<ImportPreview | null>(null)
+  const [previewPage, setPreviewPage] = useState(0)
+  const [previewRows, setPreviewRows] = useState(50)
+  // A new preview starts on its first page.
+  useEffect(() => setPreviewPage(0), [preview])
 
   const previewMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -137,7 +142,7 @@ export function ImportPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {preview.rows.map((row) => (
+                {preview.rows.slice(previewPage * previewRows, (previewPage + 1) * previewRows).map((row) => (
                   <TableRow
                     key={row.line}
                     sx={row.errors.length > 0 ? { bgcolor: 'rgba(244, 67, 54, 0.08)' } : undefined}
@@ -159,6 +164,16 @@ export function ImportPage() {
                 ))}
               </TableBody>
             </Table>
+            <ListPager
+              total={preview.rows.length}
+              page={previewPage}
+              rowsPerPage={previewRows}
+              onPageChange={setPreviewPage}
+              onRowsPerPageChange={(n) => {
+                setPreviewRows(n)
+                setPreviewPage(0)
+              }}
+            />
           </TableContainer>
 
           {commitMutation.isSuccess ? (

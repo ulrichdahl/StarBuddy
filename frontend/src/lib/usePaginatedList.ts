@@ -19,17 +19,18 @@ export function usePaginatedList<T>(
   params: Record<string, string | number | undefined> = {},
 ) {
   const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPageState] = useState(defaultRowsPerPage)
 
-  // New filters or sorting restart from the first page.
+  // New filters, sorting or page size restart from the first page.
   const paramsKey = JSON.stringify(params)
-  useEffect(() => setPage(0), [paramsKey])
+  useEffect(() => setPage(0), [paramsKey, rowsPerPage])
 
   const query = useQuery({
-    queryKey: [key, page, paramsKey],
+    queryKey: [key, page, rowsPerPage, paramsKey],
     queryFn: async () => {
-      const { data } = await api.get(url, { params: { ...params, page: page + 1 } })
+      const { data } = await api.get(url, { params: { ...params, page: page + 1, per_page: rowsPerPage } })
       if (Array.isArray(data)) {
-        return { data, total: data.length, per_page: defaultRowsPerPage } as Paginated<T>
+        return { data, total: data.length, per_page: rowsPerPage } as Paginated<T>
       }
       return data as Paginated<T>
     },
@@ -41,7 +42,8 @@ export function usePaginatedList<T>(
     total: query.data?.total ?? 0,
     page,
     setPage,
-    rowsPerPage: query.data?.per_page ?? defaultRowsPerPage,
+    rowsPerPage,
+    setRowsPerPage: setRowsPerPageState,
     isLoading: query.isLoading,
     isError: query.isError,
   }

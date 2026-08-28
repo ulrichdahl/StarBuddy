@@ -9,10 +9,18 @@ class ItemStackController extends Controller
 {
     public function index(Request $request)
     {
-        return ItemStack::visibleTo($request->user())
-            ->with(['location', 'user:id,name,handle'])
-            ->latest('updated_at')
-            ->paginate(50);
+        $query = ItemStack::visibleTo($request->user())->with(['location', 'user:id,name,handle']);
+        $dir = $request->query('dir') === 'asc' ? 'asc' : 'desc';
+        match ($request->query('sort')) {
+            'item' => $query->orderByRaw('coalesce(item_name, item_class) '.$dir),
+            'location' => $query->select('item_stacks.*')
+                ->join('locations', 'locations.id', '=', 'item_stacks.location_id')
+                ->orderBy('locations.name', $dir),
+            'quantity', 'visibility' => $query->orderBy($request->query('sort'), $dir),
+            default => $query->orderBy('updated_at', $dir),
+        };
+
+        return $query->paginate($this->perPage($request))->appends($request->query());
     }
 
     public function store(Request $request)

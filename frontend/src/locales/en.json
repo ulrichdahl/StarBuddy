@@ -128,7 +128,6 @@
     "missingPieces": "{{count}} × {{name}}",
     "moreMissing": "+{{count}} more",
     "emptyState": "Nothing to show — add resources to the ledger, sync blueprints from the desktop client, or widen the filters.",
-    "displayedRows": "{{from}}–{{to}} of {{count}}",
     "page": {
       "first": "Go to first page",
       "last": "Go to last page",
@@ -415,13 +414,6 @@
     "visibilityChip": {
       "private": "private",
       "org": "org"
-    },
-    "pagination": {
-      "displayedRows": "{{from}}–{{to}} of {{total}}",
-      "firstPage": "First page",
-      "previousPage": "Previous page",
-      "nextPage": "Next page",
-      "lastPage": "Last page"
     },
     "edit": {
       "title": "edit stack",
