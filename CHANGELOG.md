@@ -5,7 +5,9 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
-## Unreleased
+## 0.1.10 — 2026-08-28
+
+**Blueprints handling.**
 
 - Website: an About page — what StarBuddy is, where every piece of data comes from and how each service is used, how your own data is shared, the testers, and credits.
 - Website blueprints page rebuilt around the in-game fabricator: a **Checklist** of every blueprint in the kiosk's category order (Ammo · Armor · Other · Vehicles · Weapons) with a live "Mine" tick, keyboard ticking, "Mark all shown as mine", and a **Matrix** with Type / Grade / Owners columns, your column clickable and a quick-add field (type, pick, Enter). Craft-list filters (search, category, grade, unowned switches), sortable columns, and a full pager (rows per page, direct page, numbered pages) on both. Grades show as A–D. One blueprint per player — no copies, no duplicate rows.
