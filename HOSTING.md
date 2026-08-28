@@ -96,12 +96,14 @@ opt-in role instead, or leave it empty to post without pinging. The bot needs
 
 ## 3. Reverse proxy
 
-The production compose publishes **no ports**; the `web` container joins an
-external Docker network named `proxy` under the alias **`starbuddy-web`**.
+Production is the single `docker-compose.yml` (always run it with `-f
+docker-compose.yml` so the local override is not loaded). It publishes **no
+ports**; the `web` container joins an external Docker network named `proxy`
+under the alias **`starbuddy-web`**.
 
 ```sh
 docker network create proxy   # skip if your proxy's network exists; if it
-                              # has another name, edit docker-compose.prod.yml
+                              # has another name, edit docker-compose.yml
 ```
 
 Attach your proxy container to that network and point the vhost at
@@ -132,10 +134,10 @@ enable *Websockets Support*.)
 ## 4. First start
 
 ```sh
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.yml up -d --build
 
 # initialize (once)
-alias sm='docker compose -f docker-compose.yml -f docker-compose.prod.yml'
+alias sm='docker compose -f docker-compose.yml'
 sm exec app php artisan migrate --seed --force
 sm exec app php artisan starbuddy:sync-blueprints
 sm exec app php artisan starbuddy:sync-items          # item classes/stats, ~1 min

@@ -1,26 +1,34 @@
 name: starbuddy
 
-# StarBuddy community instance — base definition. No ports are published
-# here: local development gets its port from docker-compose.override.yml
-# (auto-loaded), production attaches the web container to your reverse
-# proxy's network via docker-compose.prod.yml:
+# StarBuddy community instance — this ONE file is production.
 #
-#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.yml up -d --build
+#
+# No ports are published: the web container joins your reverse proxy's
+# external Docker network `proxy` under the alias starbuddy-web (create it
+# once with `docker network create proxy`, or reuse your proxy's network and
+# rename it below). Point your nginx/SSL proxy at http://starbuddy-web:80 and
+# set APP_URL, DISCORD_REDIRECT_URI, SESSION_DOMAIN and SANCTUM_STATEFUL_DOMAINS
+# in .env to your public https domain.
+#
+# Local development runs plain `docker compose up`, which also loads
+# docker-compose.override.yml (publishes a port, no external network).
 #
 # Persistent data lives under ${STARBUDDY_DATA_DIR:-./data} as plain host
 # directories (postgres/, backups/) so you control placement and backup.
 #
 # First start:
 #   cp .env.example .env   # fill in Discord credentials, APP_KEY, DB password
-#   docker compose up -d --build
-#   docker compose exec app php artisan migrate --seed --force
-#   docker compose exec app php artisan starbuddy:sync-blueprints
-#   docker compose exec app php artisan starbuddy:sync-items
-#   docker compose exec app php artisan starbuddy:sync-resource-types
-#   docker compose exec app php artisan starbuddy:sync-locations
-#   docker compose exec app php artisan starbuddy:sync-quality-bands
-#   docker compose exec app php artisan starbuddy:sync-rarity
-#   docker compose run --rm bot node dist/register-commands.js
+#   docker compose -f docker-compose.yml up -d --build
+#   docker compose -f docker-compose.yml exec app php artisan migrate --seed --force
+#   docker compose -f docker-compose.yml exec app php artisan starbuddy:sync-blueprints
+#   docker compose -f docker-compose.yml exec app php artisan starbuddy:sync-items
+#   docker compose -f docker-compose.yml exec app php artisan starbuddy:sync-resource-types
+#   docker compose -f docker-compose.yml exec app php artisan starbuddy:sync-locations
+#   docker compose -f docker-compose.yml exec app php artisan starbuddy:sync-quality-bands
+#   docker compose -f docker-compose.yml exec app php artisan starbuddy:sync-rarity
+#   docker compose -f docker-compose.yml exec app php artisan starbuddy:sync-scan-signatures
+#   docker compose -f docker-compose.yml run --rm bot node dist/register-commands.js
 
 x-app: &app
   build:
@@ -79,6 +87,11 @@ services:
         condition: service_started
       frontend:
         condition: service_completed_successfully
+    networks:
+      default: {}
+      proxy:
+        aliases:
+          - starbuddy-web
 
   # Builds the SPA and drops the bundle into the volume Caddy serves.
   frontend:
@@ -136,6 +149,12 @@ services:
       BACKUP_KEEP_DAYS: "14"
     volumes:
       - ${STARBUDDY_DATA_DIR:-./data}/backups:/backups
+
+networks:
+  # Your reverse proxy's network. Local development redefines it as a
+  # private network in docker-compose.override.yml.
+  proxy:
+    external: true
 
 volumes:
   redis-data:

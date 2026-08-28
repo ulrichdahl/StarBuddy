@@ -55,12 +55,12 @@ Discord developer portal in sync with it.
 
 ### Production (behind your own SSL proxy)
 
-The base compose file publishes **no ports**. In production, attach the web
-container to your reverse proxy's external Docker network instead:
+`docker-compose.yml` alone is production: it publishes **no ports** and attaches
+the web container to your reverse proxy's external Docker network:
 
 ```sh
 docker network create proxy        # once, or reuse your proxy's network
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml up -d
 ```
 
 Point your nginx/SSL proxy at `http://starbuddy-web:80` on that network, and

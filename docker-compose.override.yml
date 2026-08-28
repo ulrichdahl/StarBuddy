@@ -1,7 +1,12 @@
-# Local development override — auto-loaded by `docker compose up`.
-# Publishes the web port on localhost. Production does NOT load this file;
-# it uses docker-compose.prod.yml instead (see docker-compose.yml header).
+# Local development — auto-loaded by plain `docker compose up`, never by
+# production (which runs `docker compose -f docker-compose.yml …`).
+# Publishes the web port on localhost and turns the reverse-proxy network
+# into a private one so nothing external is required.
 services:
   web:
     ports:
       - "${HTTP_PORT:-8080}:80"
+
+networks:
+  proxy:
+    external: false

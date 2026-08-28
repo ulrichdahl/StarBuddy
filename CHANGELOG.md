@@ -5,6 +5,10 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## Unreleased
+
+- Hosting: `docker-compose.yml` alone is production (proxy network built in); `docker-compose.prod.yml` is gone, local development keeps its override. `update.sh` and the docs follow.
+
 ## 0.1.10 — 2026-08-28
 
 **Blueprints handling.**

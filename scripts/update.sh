@@ -31,7 +31,7 @@ done
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
 
-COMPOSE=${STARBUDDY_COMPOSE:-"docker compose -f docker-compose.yml -f docker-compose.prod.yml"}
+COMPOSE=${STARBUDDY_COMPOSE:-"docker compose -f docker-compose.yml"}
 BRANCH=${STARBUDDY_BRANCH:-main}
 # Compose project name before the StarBuddy rename; its containers are
 # taken down once and replaced by the "starbuddy" project (data lives in
@@ -71,7 +71,7 @@ DUMP="$DATA_DIR/backups/pre-update-$(date +%Y%m%d-%H%M%S).sql.gz"
 DB_USER=$(grep -E '^DB_USERNAME=' .env | cut -d= -f2- || true)
 DB_NAME=$(grep -E '^DB_DATABASE=' .env | cut -d= -f2- || true)
 DUMP_COMPOSE=$COMPOSE
-if old_stack_running; then DUMP_COMPOSE="docker compose -p $OLD_PROJECT -f docker-compose.yml -f docker-compose.prod.yml"; fi
+if old_stack_running; then DUMP_COMPOSE="docker compose -p $OLD_PROJECT -f docker-compose.yml"; fi
 if $DUMP_COMPOSE ps --status running db --quiet 2>/dev/null | grep -q .; then
     $DUMP_COMPOSE exec -T db pg_dump -U "${DB_USER:-starmaker}" "${DB_NAME:-starmaker}" | gzip > "$DUMP"
     log "database dumped to $DUMP"
@@ -100,7 +100,7 @@ $COMPOSE build --pull --quiet
 
 if old_stack_running; then
     log "stopping the pre-rename stack (compose project $OLD_PROJECT)"
-    docker compose -p "$OLD_PROJECT" -f docker-compose.yml -f docker-compose.prod.yml down --remove-orphans \
+    docker compose -p "$OLD_PROJECT" -f docker-compose.yml down --remove-orphans \
         || docker ps -aq --filter "label=com.docker.compose.project=$OLD_PROJECT" | xargs -r docker rm -f
 fi
 
