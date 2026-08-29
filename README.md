@@ -44,7 +44,7 @@ Prerequisites: Docker with Compose, and a [Discord application](https://discord.
 git clone https://github.com/ulrichdahl/StarBuddy.git && cd StarBuddy
 cp .env.example .env        # fill in Discord credentials, guild id, DB password,
                             # and APP_KEY (echo "base64:$(openssl rand -base64 32)")
-docker compose up -d --build
+docker compose up -d --build   # local: Caddy on http://localhost:8080 with the Vite dev server (hot reload) behind it
 docker compose exec app php artisan migrate --seed --force
 docker compose run --rm bot node dist/register-commands.js   # register slash commands
 ```

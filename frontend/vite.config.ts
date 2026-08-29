@@ -5,13 +5,16 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   server: {
-    // Local dev: the Laravel backend (behind Caddy or `php artisan serve`)
-    // listens on :8080. In production Caddy serves the built SPA and
-    // proxies these prefixes itself, so the app always talks same-origin.
+    // `docker compose up` runs this dev server in the `frontend` container
+    // behind Caddy (docker-compose.override.yml): Caddy routes the API
+    // itself and proxies the rest here, HMR websocket included, so the
+    // browser sees one origin. The proxy below only matters when you run
+    // `npm run dev` directly on the host against a stack on HTTP_PORT.
     proxy: {
-      '/api': 'http://localhost:8080',
-      '/sanctum': 'http://localhost:8080',
-      '/auth': 'http://localhost:8080',
+      '/api': `http://localhost:${process.env.HTTP_PORT ?? 8080}`,
+      '/sanctum': `http://localhost:${process.env.HTTP_PORT ?? 8080}`,
+      '/broadcasting': `http://localhost:${process.env.HTTP_PORT ?? 8080}`,
+      '/app': { target: `http://localhost:${process.env.HTTP_PORT ?? 8080}`, ws: true },
     },
   },
 })

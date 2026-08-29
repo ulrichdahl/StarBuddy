@@ -1,0 +1,22 @@
+# Local development only (mounted over the baked-in Caddyfile by
+# docker-compose.override.yml): same backend routing as production, but the
+# SPA comes from the Vite dev server in the `frontend` container — hot module
+# reload included, since reverse_proxy passes the HMR websocket through.
+:80 {
+	encode gzip
+
+	@backend path /api/* /sanctum/* /up /broadcasting/*
+	handle @backend {
+		root * /var/www/html/public
+		php_fastcgi starbuddy-app:9000
+	}
+
+	handle /app/* {
+		reverse_proxy starbuddy-reverb:8081
+	}
+
+	# Everything else: Vite (assets, /@vite/client, index.html fallback, HMR ws).
+	handle {
+		reverse_proxy frontend:5173
+	}
+}

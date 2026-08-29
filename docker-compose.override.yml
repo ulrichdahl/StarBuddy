@@ -1,11 +1,40 @@
 # Local development — auto-loaded by plain `docker compose up`, never by
 # production (which runs `docker compose -f docker-compose.yml …`).
-# Publishes the web port on localhost and turns the reverse-proxy network
-# into a private one so nothing external is required.
+#
+# Publishes the web port on localhost, turns the reverse-proxy network into a
+# private one so nothing external is required, and swaps the built SPA for a
+# Vite dev server with hot module reload: Caddy keeps serving on
+# http://localhost:${HTTP_PORT} (one origin, so cookies and Discord login
+# behave exactly like production) and proxies everything that isn't the API
+# to the `frontend` container. Edit files under frontend/ and the browser
+# updates in place. `docker compose logs -f frontend` shows Vite's output.
 services:
   web:
     ports:
       - "${HTTP_PORT:-8080}:80"
+    volumes:
+      - ./docker/caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+    depends_on:
+      frontend:
+        condition: service_started
+
+  # Vite dev server over the host's frontend/ checkout. node_modules lives in
+  # a named volume (the host's copy is built for the host platform, not this
+  # container) and is reinstalled whenever package-lock.json changes.
+  frontend:
+    image: node:26-alpine
+    working_dir: /app
+    command: >
+      sh -c 'h=$$(md5sum package-lock.json | cut -c1-32);
+             [ "$$(cat node_modules/.lock-hash 2>/dev/null)" = "$$h" ] || { npm ci && echo "$$h" > node_modules/.lock-hash; };
+             exec npm run dev -- --host 0.0.0.0 --port 5173 --strictPort'
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    restart: unless-stopped
+
+volumes:
+  frontend-node-modules:
 
 networks:
   proxy:
