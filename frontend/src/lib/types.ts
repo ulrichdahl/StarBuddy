@@ -115,9 +115,25 @@ export interface ItemStack {
 
 export interface CreateItemStack {
   item_class: string
+  /** Display name from the catalog; null for a free-typed class. */
+  item_name?: string | null
   quantity: number
   location_id: number
   visibility: Visibility
+}
+
+/** Game item from the synced wiki catalog (`/api/items`). All fields are game data, shown verbatim. */
+export interface Item {
+  id: number
+  uuid: string
+  name: string
+  class_name: string | null
+  type: string | null
+  type_label: string | null
+  sub_type_label: string | null
+  manufacturer: string | null
+  size: number | null
+  grade: string | null
 }
 
 export interface Blueprint {
@@ -283,4 +299,41 @@ export interface RsiStatus {
   status_url: string
   active: StatusIncident[]
   recent: StatusIncident[]
+}
+
+/** One org member as a column in the Org matrix views. */
+export interface MatrixMember {
+  id: number
+  handle: string
+}
+
+/** What one member holds of a grouped row. */
+export interface OrgHolding {
+  quantity: number
+  stacks: number
+}
+
+interface OrgRowBase {
+  key: string
+  total: number
+  stacks: number
+  holder_count: number
+  /** Keyed by user id (JSON object keys are strings). */
+  holders: Record<string, OrgHolding>
+}
+
+/** `/api/org/items`: org-visible item stacks grouped per item class. */
+export interface OrgItemRow extends OrgRowBase {
+  name: string
+  item_class: string
+}
+
+/** `/api/org/materials`: org-visible resource stacks grouped per material + quality. */
+export interface OrgMaterialRow extends OrgRowBase {
+  resource_type: Pick<ResourceType, 'id' | 'name' | 'category' | 'unit' | 'rarity'> | null
+  quality: number
+}
+
+export interface OrgInventoryExtra {
+  members: MatrixMember[]
 }

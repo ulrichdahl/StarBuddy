@@ -52,9 +52,13 @@ class ResourceStack extends Model
             ->where('status', 'active')
             ->pluck('user_id');
 
-        return $query->where(function (Builder $q) use ($user, $orgMateIds) {
-            $q->where('user_id', $user->id)
-                ->orWhere(fn (Builder $q) => $q->where('visibility', 'org')->whereIn('user_id', $orgMateIds));
+        // Qualified: list sorts join `locations`, which has its own user_id.
+        $userId = $query->qualifyColumn('user_id');
+        $visibility = $query->qualifyColumn('visibility');
+
+        return $query->where(function (Builder $q) use ($user, $orgMateIds, $userId, $visibility) {
+            $q->where($userId, $user->id)
+                ->orWhere(fn (Builder $q) => $q->where($visibility, 'org')->whereIn($userId, $orgMateIds));
         });
     }
 }

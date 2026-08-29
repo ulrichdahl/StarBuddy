@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\IngestController;
+use App\Http\Controllers\ItemController;
 use App\Http\Controllers\ItemStackController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\RefineryOrderController;
@@ -32,6 +33,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('locations', LocationController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::apiResource('resource-stacks', ResourceStackController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::apiResource('item-stacks', ItemStackController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::get('items', [ItemController::class, 'index']);
+    // Org view: org-visible stacks grouped per item / material+quality, with per-member holdings.
+    Route::get('org/items', [\App\Http\Controllers\OrgInventoryController::class, 'items']);
+    Route::get('org/materials', [\App\Http\Controllers\OrgInventoryController::class, 'materials']);
 
     Route::get('blueprints', [BlueprintController::class, 'index']);
     Route::get('blueprints/catalog', [BlueprintController::class, 'catalog']);

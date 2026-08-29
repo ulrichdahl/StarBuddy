@@ -9,7 +9,8 @@ Artisan::command('inspire', function () {
 
 use Illuminate\Support\Facades\Schedule;
 
-// Keep the recipe database current; game patches change blueprints.
+// Keep the game data current; patches change items and blueprints.
+Schedule::command('starbuddy:sync-item-catalog')->dailyAt('04:40'); // ~125 wiki pages, done well before 05:00
 Schedule::command('starbuddy:sync-blueprints')->dailyAt('05:00');
 Schedule::command('starbuddy:sync-items')->dailyAt('05:10');
 Schedule::command('starbuddy:sync-resource-types')->dailyAt('05:15');

@@ -144,6 +144,7 @@ docker compose -f docker-compose.yml up -d --build
 # initialize (once)
 alias sm='docker compose -f docker-compose.yml'
 sm exec app php artisan migrate --seed --force
+sm exec app php artisan starbuddy:sync-item-catalog   # game item catalog for the item picker, ~1 min
 sm exec app php artisan starbuddy:sync-blueprints
 sm exec app php artisan starbuddy:sync-items          # item classes/stats, ~1 min
 sm exec app php artisan starbuddy:sync-resource-types
@@ -219,7 +220,7 @@ off-site backup. `update.sh` is not used on Coolify — redeploying from the UI
 
 - **Logs** — `sm logs -f app` (Laravel logs to stderr), `sm logs bot`,
   `sm logs web`.
-- **Game data syncs** run automatically (daily 05:00–05:50, rarity weekly).
+- **Game data syncs** run automatically (daily 04:40–05:50, rarity weekly).
   After a big game patch you can run the sync commands from §4 manually.
 - **Health** — `https://YOUR-DOMAIN/up` is an uptime-check endpoint;
   `/starbuddy ping` in Discord checks bot ↔ backend.

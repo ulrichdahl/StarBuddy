@@ -25,12 +25,7 @@ class BlueprintController extends Controller
     /** Org-mates including the viewer, as the matrix/catalog columns. */
     private function members(User $me)
     {
-        return $me->orgs()->with('members:users.id,users.name,users.handle')->get()
-            ->flatMap(fn ($org) => $org->members)
-            ->push($me)
-            ->unique('id')
-            ->sortBy(fn ($u) => strtolower($u->handle ?? $u->name))
-            ->values();
+        return \App\Support\OrgMembers::of($me);
     }
 
     /**

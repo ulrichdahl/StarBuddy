@@ -13,6 +13,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import { api, unwrapList } from '../lib/api'
 import type { CreateResourceStack, Location, ResourceType, Visibility } from '../lib/types'
+import { LocationSelect } from './LocationSelect'
 
 /**
  * Sticky quick-entry form for resource stacks, tuned for keyboard-only
@@ -50,19 +51,6 @@ export function ResourceEntryForm() {
       ),
   })
 
-  const { data: locations = [] } = useQuery({
-    queryKey: ['locations'],
-    queryFn: async () => unwrapList<Location>((await api.get('/api/locations')).data),
-  })
-  // Within each system: major landing zones first, then stations, then the rest.
-  const kindRank = (l: Location) => (l.kind === 'landing_zone' ? 0 : l.kind === 'station' ? 1 : 2)
-  const sortedLocations = [...locations].sort(
-    (a, b) =>
-      (a.system ?? '￿').localeCompare(b.system ?? '￿') ||
-      kindRank(a) - kindRank(b) ||
-      a.name.localeCompare(b.name),
-  )
-
   const isPieces = resource?.unit === 'pieces'
   const knownQualities = resource?.known_qualities ?? []
 
@@ -70,6 +58,7 @@ export function ResourceEntryForm() {
     mutationFn: (body: CreateResourceStack) => api.post('/api/resource-stacks', body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resource-stacks'] })
+      queryClient.invalidateQueries({ queryKey: ['org-materials'] })
       queryClient.invalidateQueries({ queryKey: ['resource-types'] })
       setResource(null)
       setResourceSearch('')
@@ -209,23 +198,12 @@ export function ResourceEntryForm() {
           helperText={isPieces ? t('materials.entry.quantityHintPieces') : t('materials.entry.quantityHintScu')}
         />
 
-        <Autocomplete
-          options={sortedLocations}
+        <LocationSelect
           value={location}
-          onChange={(_, value) => setLocation(value)}
-          getOptionLabel={(option) => option.name}
-          isOptionEqualToValue={(a, b) => a.id === b.id}
-          groupBy={(option) => option.system ?? t('materials.locationGroupPersonal')}
-          autoHighlight
-          openOnFocus
-          renderInput={(params) => (
-            <TextField
-              {...params}
-              label={t('materials.fields.location')}
-              required
-              helperText={t('materials.entry.locationKept')}
-            />
-          )}
+          onChange={setLocation}
+          label={t('materials.fields.location')}
+          required
+          helperText={t('materials.entry.locationKept')}
         />
 
         <ToggleButtonGroup

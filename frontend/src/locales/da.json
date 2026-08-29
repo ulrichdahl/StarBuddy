@@ -252,43 +252,25 @@
     "revoke": "Fjern {{name}}"
   },
   "org": {
-    "title": "Organisationer",
-    "help": "Bliv medlem af en org for at dele materialer, items og blueprints med dine org-kammerater.",
-    "loadError": "Kunne ikke indlæse organisationer.",
-    "empty": "Ingen organisationer registreret endnu.",
-    "members_one": "{{count, number}} medlem",
-    "members_other": "{{count, number}} medlemmer",
-    "scu": "{{count, number}} SCU",
-    "pieces": "{{count, number}} stk.",
-    "blueprints_one": "{{count, number}} blueprint",
-    "blueprints_other": "{{count, number}} blueprints",
-    "requestJoin": "Anmod om medlemskab",
-    "pendingApproval": "Afventer godkendelse",
-    "manageMembers": "Administrér medlemmer",
-    "leave": "Forlad",
-    "leaveConfirm": "Forlad {{org}}?",
-    "role": {
-      "member": "medlem",
-      "manager": "manager",
-      "officer": "officer",
-      "admin": "admin"
-    },
-    "status": {
-      "pending": "afventer",
-      "active": "aktiv"
-    },
-    "membersTitle": "{{org}} — medlemmer",
-    "membersLoadError": "Kunne ikke indlæse medlemslisten — du skal have manager-rollen i denne org.",
-    "actionFailed": "Handlingen mislykkedes — medlemslisten kan have ændret sig. Den er blevet opdateret.",
-    "noMembers": "Ingen medlemmer endnu.",
-    "accept": "Godkend",
-    "decline": "Afvis",
-    "kick": "Smid {{name}} ud",
-    "kickConfirm": "Smid {{name}} ud af {{org}}?"
+    "total": "I alt",
+    "stacks": "Stakke",
+    "you": "Dig",
+    "heldBy_one": "{{member}}: i {{count}} stak",
+    "heldBy_other": "{{member}}: i {{count}} stakke"
   },
   "items": {
     "title": "Genstande",
     "subtitle": "Komponenter, våben og andre registrerede items",
+    "view": {
+      "aria": "Visning",
+      "stacks": "Stakke",
+      "org": "Org"
+    },
+    "org": {
+      "tableAria": "Org-genstande pr. medlem",
+      "empty": "Intet er synligt for org endnu — sæt en stak til Synlig for org for at dele den.",
+      "subtitle": "Alt medlemmer har gjort synligt for org, summeret pr. genstand"
+    },
     "loadFailed": "Kunne ikke hente item-stakke.",
     "undoSuccess": "Craft fortrudt — materialerne er tilbage i materialeoversigten, og blueprint-brugen er rullet tilbage.",
     "undoFailed": "Kunne ikke fortryde craftet.",
@@ -296,6 +278,7 @@
     "columns": {
       "item": "Genstand",
       "quantity": "Antal",
+      "system": "System",
       "location": "Lokation",
       "visibility": "Synlighed",
       "updated": "Opdateret"
@@ -309,12 +292,25 @@
     "undoConfirm": "Fortryd craft?",
     "undoTooltip": "Fortryd dette craft — fjern itemet og gendan materialerne",
     "empty": "Ingen item-stakke endnu.",
+    "filters": {
+      "search": "Søg genstand",
+      "all": "Alle"
+    },
+    "edit": {
+      "title": "rediger stak",
+      "zeroRemoves": "Sæt til 0 for at fjerne stakken",
+      "saveError": "Ændringen kunne ikke gemmes. Prøv igen."
+    },
+    "editStack": "Rediger stak",
     "entry": {
-      "title": "Hurtig registrering",
-      "itemClass": "Item class",
-      "itemClassPlaceholder": "f.eks. Quantum Drive — Atlas",
+      "title": "Tilføj genstand",
+      "item": "Genstand",
+      "itemPlaceholder": "Søg genstande efter navn eller class…",
+      "noMatch": "Intet match i kataloget — Enter beholder det indtastede som class",
       "quantity": "Antal",
+      "quantityHint": "↑↓ = 1 · Ctrl+↑↓ = 10 · Shift+↑↓ = 100 — Enter gemmer",
       "location": "Lokation",
+      "locationKept": "Bevares mellem indtastninger",
       "visibilityAria": "Synlighed",
       "private": "Privat",
       "orgVisible": "Synlig for org",
@@ -391,11 +387,20 @@
   "materials": {
     "title": "Materialer",
     "subtitle": "Rå og raffinerede materialestakke på tværs af dine lokationer",
+    "view": {
+      "aria": "Visning",
+      "stacks": "Stakke",
+      "org": "Org"
+    },
+    "org": {
+      "tableAria": "Org-materialer pr. medlem",
+      "empty": "Intet er synligt for org endnu — sæt en stak til Synlig for org for at dele den.",
+      "subtitle": "Alt medlemmer har gjort synligt for org, summeret pr. materiale og kvalitet"
+    },
     "tableLabel": "Materialestakke",
     "loadError": "Kunne ikke hente materialestakke.",
     "empty": "Ingen stakke endnu — tilføj din første med hurtigindtastningen.",
     "editStack": "Rediger stak",
-    "locationGroupPersonal": "Personlig",
     "filters": {
       "search": "Søg materiale",
       "qualityMin": "Kvalitet min.",
@@ -407,6 +412,7 @@
       "quality": "Kvalitet",
       "quantity": "Mængde",
       "quantityWithUnit": "Mængde ({{unit}})",
+      "system": "System",
       "location": "Lokation",
       "visibility": "Synlighed"
     },
@@ -447,6 +453,10 @@
       "saveError": "Stakken kunne ikke gemmes. Prøv igen.",
       "addStack": "Tilføj stak"
     }
+  },
+  "locations": {
+    "label": "Lokation",
+    "groupPersonal": "Personlig"
   },
   "status": {
     "region": "Star Citizen-servicestatus",

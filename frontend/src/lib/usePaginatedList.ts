@@ -10,13 +10,15 @@ interface Paginated<T> {
 
 /**
  * Server-side paginated list backed by a Laravel paginator endpoint.
- * Invalidating [key] refetches the current page.
+ * Invalidating [key] refetches the current page. `extra` is whatever the
+ * endpoint returns beside the paginator (e.g. the org member columns).
  */
-export function usePaginatedList<T>(
+export function usePaginatedList<T, E = object>(
   key: string,
   url: string,
   defaultRowsPerPage = 50,
   params: Record<string, string | number | undefined> = {},
+  options: { enabled?: boolean } = {},
 ) {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPageState] = useState(defaultRowsPerPage)
@@ -32,14 +34,16 @@ export function usePaginatedList<T>(
       if (Array.isArray(data)) {
         return { data, total: data.length, per_page: rowsPerPage } as Paginated<T>
       }
-      return data as Paginated<T>
+      return data as Paginated<T> & E
     },
     placeholderData: keepPreviousData,
+    enabled: options.enabled ?? true,
   })
 
   return {
     rows: query.data?.data ?? [],
     total: query.data?.total ?? 0,
+    extra: query.data as (Paginated<T> & E) | undefined,
     page,
     setPage,
     rowsPerPage,

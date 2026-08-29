@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import Alert from '@mui/material/Alert'
-import Autocomplete from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
@@ -31,14 +30,20 @@ import Typography from '@mui/material/Typography'
 import DeleteIcon from '@mui/icons-material/Delete'
 import DiamondIcon from '@mui/icons-material/Diamond'
 import EditIcon from '@mui/icons-material/Edit'
+import GroupsIcon from '@mui/icons-material/Groups'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
+import ViewListIcon from '@mui/icons-material/ViewList'
 import { qualityColor, rarityColor as resourceRarityColor } from '../lib/rarity'
-import { api, unwrapList } from '../lib/api'
-import type { Location, ResourceStack, Visibility } from '../lib/types'
+import { api } from '../lib/api'
+import type { Location, OrgInventoryExtra, OrgMaterialRow, ResourceStack, Visibility } from '../lib/types'
+import { formatResourceQuantity } from '../lib/quantity'
 import { usePaginatedList } from '../lib/usePaginatedList'
 import { PageHeader } from '../components/PageHeader'
 import { ListPager } from '../components/ListPager'
 import { ResourceEntryForm } from '../components/ResourceEntryForm'
+import { LocationSelect } from '../components/LocationSelect'
+import { OrgMatrixTable } from '../components/OrgMatrixTable'
+import { useSystems } from '../lib/locations'
 
 /** Desaturated WoW ladder, shared by both rarity axes. */
 
@@ -58,10 +63,8 @@ function categoryLabel(t: TFunction, category: string): string {
 }
 
 function formatQuantity(stack: ResourceStack, t: TFunction, lang: string): string {
-  if (stack.resource_type.unit === 'pieces') {
-    return `${(stack.quantity_pieces ?? 0).toLocaleString(lang)} ${t('materials.units.pcs')}`
-  }
-  return `${((stack.quantity_mscu ?? 0) / 1000).toLocaleString(lang, { maximumFractionDigits: 3 })} ${t('materials.units.scu')}`
+  const raw = stack.resource_type.unit === 'pieces' ? stack.quantity_pieces : stack.quantity_mscu
+  return formatResourceQuantity(stack.resource_type.unit, raw ?? 0, t, lang)
 }
 
 function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: () => void }) {
@@ -75,11 +78,6 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
   const [location, setLocation] = useState<Location | null>(stack.location)
   const [visibility, setVisibility] = useState<Visibility>(stack.visibility)
 
-  const { data: locations = [] } = useQuery({
-    queryKey: ['locations'],
-    queryFn: async () => unwrapList<Location>((await api.get('/api/locations')).data),
-  })
-
   const save = useMutation({
     mutationFn: () =>
       api.patch(`/api/resource-stacks/${stack.id}`, {
@@ -92,6 +90,7 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resource-stacks'] })
+      queryClient.invalidateQueries({ queryKey: ['org-materials'] })
       onClose()
     },
   })
@@ -100,6 +99,7 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
     mutationFn: () => api.delete(`/api/resource-stacks/${stack.id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['resource-stacks'] })
+      queryClient.invalidateQueries({ queryKey: ['org-materials'] })
       onClose()
     },
   })
@@ -131,15 +131,7 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
             slotProps={{ htmlInput: { min: 0, step: isPieces ? 1 : 0.001 } }}
             helperText={t('materials.edit.zeroConsumes')}
           />
-          <Autocomplete
-            options={locations}
-            value={location}
-            onChange={(_, value) => setLocation(value)}
-            getOptionLabel={(o) => o.name}
-            isOptionEqualToValue={(a, b) => a.id === b.id}
-            groupBy={(o) => o.system ?? t('materials.locationGroupPersonal')}
-            renderInput={(params) => <TextField {...params} label={t('materials.fields.location')} />}
-          />
+          <LocationSelect value={location} onChange={setLocation} label={t('materials.fields.location')} />
           <ToggleButtonGroup
             exclusive
             fullWidth
@@ -176,34 +168,56 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
   )
 }
 
-type SortField = 'resource' | 'quality' | 'quantity' | 'location' | 'visibility' | 'updated_at'
+type SortField = 'resource' | 'quality' | 'quantity' | 'system' | 'location' | 'visibility' | 'updated_at'
+type OrgSortField = 'name' | 'quality' | 'total' | 'stacks' | 'holders'
+type View = 'stacks' | 'org'
 
 export function ResourcesPage() {
   const { t, i18n } = useTranslation()
+  const [view, setView] = useState<View>('stacks')
   const [editing, setEditing] = useState<ResourceStack | null>(null)
   const [search, setSearch] = useState('')
   const [qualityMin, setQualityMin] = useState('')
   const [qualityMax, setQualityMax] = useState('')
+  const [filterSystem, setFilterSystem] = useState('')
   const [filterLocation, setFilterLocation] = useState<Location | null>(null)
   const [filterVisibility, setFilterVisibility] = useState('')
+  const systems = useSystems()
   const [sort, setSort] = useState<SortField>('resource')
   const [dir, setDir] = useState<'asc' | 'desc'>('asc')
-
-  const { data: locations = [] } = useQuery({
-    queryKey: ['locations'],
-    queryFn: async () => unwrapList<Location>((await api.get('/api/locations')).data),
-  })
 
   const { rows: stacks, total, page, setPage, rowsPerPage, setRowsPerPage, isLoading, isError } =
     usePaginatedList<ResourceStack>('resource-stacks', '/api/resource-stacks', 50, {
       search: search || undefined,
       quality_min: qualityMin || undefined,
       quality_max: qualityMax || undefined,
+      system: filterSystem || undefined,
       location_id: filterLocation?.id,
       visibility: filterVisibility || undefined,
       sort,
       dir,
-    })
+    }, { enabled: view === 'stacks' })
+
+  // Org view: org-visible stacks of every member, one row per material + quality.
+  const [orgSort, setOrgSort] = useState<OrgSortField>('name')
+  const [orgDir, setOrgDir] = useState<'asc' | 'desc'>('asc')
+  const orgSortBy = (field: OrgSortField) => {
+    if (orgSort === field) setOrgDir(orgDir === 'asc' ? 'desc' : 'asc')
+    else {
+      setOrgSort(field)
+      setOrgDir(field === 'name' ? 'asc' : 'desc')
+    }
+  }
+  const org = usePaginatedList<OrgMaterialRow, OrgInventoryExtra>('org-materials', '/api/org/materials', 50, {
+    search: search || undefined,
+    quality_min: qualityMin || undefined,
+    quality_max: qualityMax || undefined,
+    system: filterSystem || undefined,
+    location_id: filterLocation?.id,
+    sort: orgSort,
+    dir: orgDir,
+  }, { enabled: view === 'org' })
+  const orgUnit: Record<string, string> = Object.fromEntries(org.rows.map((r) => [r.key, r.resource_type?.unit ?? 'mscu']))
 
   const sortBy = (field: SortField) => {
     if (sort === field) {
@@ -224,7 +238,22 @@ export function ResourcesPage() {
 
   return (
     <Box>
-      <PageHeader title={t('materials.title')} subtitle={t('materials.subtitle')} />
+      <PageHeader
+        title={t('materials.title')}
+        subtitle={view === 'org' ? t('materials.org.subtitle') : t('materials.subtitle')}
+        action={
+          <ToggleButtonGroup size="small" exclusive value={view} onChange={(_, v: View | null) => v && setView(v)} aria-label={t('materials.view.aria')}>
+            <ToggleButton value="stacks">
+              <ViewListIcon fontSize="small" sx={{ mr: 0.5 }} />
+              {t('materials.view.stacks')}
+            </ToggleButton>
+            <ToggleButton value="org">
+              <GroupsIcon fontSize="small" sx={{ mr: 0.5 }} />
+              {t('materials.view.org')}
+            </ToggleButton>
+          </ToggleButtonGroup>
+        }
+      />
       <Paper sx={{ p: 1.5, mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
         <TextField
           size="small"
@@ -251,30 +280,85 @@ export function ResourcesPage() {
           sx={{ width: 110 }}
           slotProps={{ htmlInput: { min: 0, max: 1000 } }}
         />
-        <Autocomplete
-          size="small"
-          options={locations}
-          value={filterLocation}
-          onChange={(_, v) => setFilterLocation(v)}
-          getOptionLabel={(o) => o.name}
-          isOptionEqualToValue={(a, b) => a.id === b.id}
-          groupBy={(o) => o.system ?? t('materials.locationGroupPersonal')}
-          sx={{ minWidth: 200 }}
-          renderInput={(p) => <TextField {...p} label={t('materials.fields.location')} />}
-        />
         <TextField
           size="small"
           select
-          label={t('materials.fields.visibility')}
-          value={filterVisibility}
-          onChange={(e) => setFilterVisibility(e.target.value)}
-          sx={{ width: 130 }}
+          label={t('materials.fields.system')}
+          value={filterSystem}
+          onChange={(e) => setFilterSystem(e.target.value)}
+          sx={{ width: 150 }}
         >
           <MenuItem value="">{t('materials.filters.all')}</MenuItem>
-          <MenuItem value="private">{t('materials.visibility.private')}</MenuItem>
-          <MenuItem value="org">{t('materials.visibility.org')}</MenuItem>
+          {systems.map((s) => (
+            <MenuItem key={s} value={s}>
+              {s}
+            </MenuItem>
+          ))}
         </TextField>
+        <LocationSelect
+          size="small"
+          value={filterLocation}
+          onChange={setFilterLocation}
+          label={t('materials.fields.location')}
+          sx={{ minWidth: 220 }}
+        />
+        {view === 'stacks' && (
+          <TextField
+            size="small"
+            select
+            label={t('materials.fields.visibility')}
+            value={filterVisibility}
+            onChange={(e) => setFilterVisibility(e.target.value)}
+            sx={{ width: 130 }}
+          >
+            <MenuItem value="">{t('materials.filters.all')}</MenuItem>
+            <MenuItem value="private">{t('materials.visibility.private')}</MenuItem>
+            <MenuItem value="org">{t('materials.visibility.org')}</MenuItem>
+          </TextField>
+        )}
       </Paper>
+      {view === 'org' ? (
+        <Paper>
+          {org.isLoading && <LinearProgress />}
+          {org.isError && <Alert severity="error">{t('materials.loadError')}</Alert>}
+          <OrgMatrixTable<OrgSortField>
+            columns={[
+              { label: t('materials.columns.material'), field: 'name', sx: { minWidth: 200 } },
+              { label: '', align: 'center', sx: { width: 40 } },
+              { label: t('materials.fields.quality'), field: 'quality', align: 'right' },
+            ]}
+            rows={org.rows.map((row) => ({
+              key: row.key,
+              cells: [
+                row.resource_type?.name ?? '—',
+                row.resource_type ? (
+                  <Tooltip key="cat" title={categoryLabel(t, row.resource_type.category)}>
+                    <Box component="span" sx={{ display: 'inline-flex', verticalAlign: 'middle' }}>
+                      <CategoryIcon category={row.resource_type.category} />
+                    </Box>
+                  </Tooltip>
+                ) : null,
+                <Box key="q" component="span" sx={{ color: qualityColor(row.quality), fontVariantNumeric: 'tabular-nums' }}>
+                  {row.quality}
+                </Box>,
+              ],
+              total: row.total,
+              stacks: row.stacks,
+              holders: row.holders,
+              sx: { '& td:first-of-type': { borderLeft: `4px solid ${resourceRarityColor(row.resource_type?.rarity)}` } },
+            }))}
+            members={org.extra?.members ?? []}
+            format={(row, quantity) => formatResourceQuantity(orgUnit[row.key] ?? 'mscu', quantity, t, i18n.language)}
+            sort={orgSort}
+            dir={orgDir}
+            onSort={orgSortBy}
+            loaded={!org.isLoading}
+            emptyText={t('materials.org.empty')}
+            ariaLabel={t('materials.org.tableAria')}
+          />
+          <ListPager total={org.total} page={org.page} rowsPerPage={org.rowsPerPage} onPageChange={org.setPage} onRowsPerPageChange={org.setRowsPerPage} />
+        </Paper>
+      ) : (
       <Box
         sx={{
           display: 'grid',
@@ -294,6 +378,7 @@ export function ResourcesPage() {
                   <TableCell align="center" sx={{ width: 40 }} aria-label={t('materials.columns.category')} />
                   {header(t('materials.fields.quality'), 'quality', 'right')}
                   {header(t('materials.fields.quantity'), 'quantity', 'right')}
+                  {header(t('materials.fields.system'), 'system')}
                   {header(t('materials.fields.location'), 'location')}
                   {header(t('materials.fields.visibility'), 'visibility')}
                   <TableCell sx={{ width: 40 }} />
@@ -325,6 +410,7 @@ export function ResourcesPage() {
                     <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
                       {formatQuantity(stack, t, i18n.language)}
                     </TableCell>
+                    <TableCell>{stack.location.system ?? t('locations.groupPersonal')}</TableCell>
                     <TableCell>{stack.location.name}</TableCell>
                     <TableCell>
                       <Chip
@@ -343,7 +429,7 @@ export function ResourcesPage() {
                 ))}
                 {!isLoading && stacks.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={8}>
                       <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
                         {t('materials.empty')}
                       </Typography>
@@ -357,6 +443,7 @@ export function ResourcesPage() {
         </Paper>
         <ResourceEntryForm />
       </Box>
+      )}
       {editing && <EditStackDialog stack={editing} onClose={() => setEditing(null)} />}
     </Box>
   )

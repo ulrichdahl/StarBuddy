@@ -15,10 +15,11 @@ class ResourceStackController extends Controller
             ->when($request->query('search'), fn ($q, $s) => $q->whereHas(
                 'resourceType', fn ($t) => $t->whereLike('name', "%{$s}%", caseSensitive: false),
             ))
-            ->when($request->query('quality_min'), fn ($q, $v) => $q->where('quality', '>=', (int) $v))
-            ->when($request->query('quality_max'), fn ($q, $v) => $q->where('quality', '<=', (int) $v))
-            ->when($request->query('location_id'), fn ($q, $v) => $q->where('location_id', (int) $v))
-            ->when($request->query('visibility'), fn ($q, $v) => $q->where('visibility', $v));
+            ->when($request->query('quality_min'), fn ($q, $v) => $q->where('resource_stacks.quality', '>=', (int) $v))
+            ->when($request->query('quality_max'), fn ($q, $v) => $q->where('resource_stacks.quality', '<=', (int) $v))
+            ->when($request->query('location_id'), fn ($q, $v) => $q->where('resource_stacks.location_id', (int) $v))
+            ->when($request->query('system'), fn ($q, $s) => $q->whereHas('location', fn ($l) => $l->where('system', $s)))
+            ->when($request->query('visibility'), fn ($q, $v) => $q->where('resource_stacks.visibility', $v));
 
         $dir = $request->query('dir') === 'asc' ? 'asc' : 'desc';
         match ($request->query('sort')) {
@@ -28,8 +29,11 @@ class ResourceStackController extends Controller
             'location' => $query->select('resource_stacks.*')
                 ->join('locations', 'locations.id', '=', 'resource_stacks.location_id')
                 ->orderBy('locations.name', $dir),
-            'quality', 'quantity', 'visibility' => $query->orderBy($request->query('sort'), $dir),
-            default => $query->orderBy('updated_at', $dir),
+            'system' => $query->select('resource_stacks.*')
+                ->join('locations', 'locations.id', '=', 'resource_stacks.location_id')
+                ->orderBy('locations.system', $dir)->orderBy('locations.name', $dir),
+            'quality', 'quantity', 'visibility' => $query->orderBy('resource_stacks.'.$request->query('sort'), $dir),
+            default => $query->orderBy('resource_stacks.updated_at', $dir),
         };
 
         return $query->paginate($this->perPage($request))->appends($request->query());

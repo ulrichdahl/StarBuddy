@@ -252,43 +252,25 @@
     "revoke": "Revoke {{name}}"
   },
   "org": {
-    "title": "Organizations",
-    "help": "Join an org to pool materials, items and blueprints with your org mates.",
-    "loadError": "Could not load organizations.",
-    "empty": "No organizations registered yet.",
-    "members_one": "{{count, number}} member",
-    "members_other": "{{count, number}} members",
-    "scu": "{{count, number}} SCU",
-    "pieces": "{{count, number}} pcs",
-    "blueprints_one": "{{count, number}} blueprint",
-    "blueprints_other": "{{count, number}} blueprints",
-    "requestJoin": "Request to join",
-    "pendingApproval": "Pending approval",
-    "manageMembers": "Manage members",
-    "leave": "Leave",
-    "leaveConfirm": "Leave {{org}}?",
-    "role": {
-      "member": "member",
-      "manager": "manager",
-      "officer": "officer",
-      "admin": "admin"
-    },
-    "status": {
-      "pending": "pending",
-      "active": "active"
-    },
-    "membersTitle": "{{org}} — members",
-    "membersLoadError": "Could not load the member list — you need a manager role in this org.",
-    "actionFailed": "That action failed — the roster may have changed. It has been refreshed.",
-    "noMembers": "No members yet.",
-    "accept": "Accept",
-    "decline": "Decline",
-    "kick": "Kick {{name}}",
-    "kickConfirm": "Kick {{name}} from {{org}}?"
+    "total": "Total",
+    "stacks": "Stacks",
+    "you": "You",
+    "heldBy_one": "{{member}}: in {{count}} stack",
+    "heldBy_other": "{{member}}: in {{count}} stacks"
   },
   "items": {
     "title": "Items",
     "subtitle": "Components, weapons and other tracked items",
+    "view": {
+      "aria": "View",
+      "stacks": "Stacks",
+      "org": "Org"
+    },
+    "org": {
+      "tableAria": "Org items by member",
+      "empty": "Nothing is org-visible yet — switch a stack to Org-visible to pool it.",
+      "subtitle": "Everything members have made org-visible, summed per item"
+    },
     "loadFailed": "Failed to load item stacks.",
     "undoSuccess": "Craft undone — the materials are back in the materials ledger and the blueprint use was rolled back.",
     "undoFailed": "Could not undo the craft.",
@@ -296,6 +278,7 @@
     "columns": {
       "item": "Item",
       "quantity": "Quantity",
+      "system": "System",
       "location": "Location",
       "visibility": "Visibility",
       "updated": "Updated"
@@ -309,12 +292,25 @@
     "undoConfirm": "Undo craft?",
     "undoTooltip": "Undo this craft — remove the item and restore the materials",
     "empty": "No item stacks yet.",
+    "filters": {
+      "search": "Search item",
+      "all": "All"
+    },
+    "edit": {
+      "title": "edit stack",
+      "zeroRemoves": "Set to 0 to remove the stack",
+      "saveError": "Could not save the change. Try again."
+    },
+    "editStack": "Edit stack",
     "entry": {
-      "title": "Quick entry",
-      "itemClass": "Item class",
-      "itemClassPlaceholder": "e.g. Quantum Drive — Atlas",
+      "title": "Add item",
+      "item": "Item",
+      "itemPlaceholder": "Search items by name or class…",
+      "noMatch": "No catalog match — Enter keeps what you typed as the class",
       "quantity": "Quantity",
+      "quantityHint": "↑↓ = 1 · Ctrl+↑↓ = 10 · Shift+↑↓ = 100 — Enter saves",
       "location": "Location",
+      "locationKept": "Kept between entries",
       "visibilityAria": "Visibility",
       "private": "Private",
       "orgVisible": "Org-visible",
@@ -391,11 +387,20 @@
   "materials": {
     "title": "Materials",
     "subtitle": "Raw and refined material stacks across your locations",
+    "view": {
+      "aria": "View",
+      "stacks": "Stacks",
+      "org": "Org"
+    },
+    "org": {
+      "tableAria": "Org materials by member",
+      "empty": "Nothing is org-visible yet — switch a stack to Org-visible to pool it.",
+      "subtitle": "Everything members have made org-visible, summed per material and quality"
+    },
     "tableLabel": "Material stacks",
     "loadError": "Failed to load material stacks.",
     "empty": "No stacks yet — add your first one with the quick-entry form.",
     "editStack": "Edit stack",
-    "locationGroupPersonal": "Personal",
     "filters": {
       "search": "Search material",
       "qualityMin": "Quality min",
@@ -407,6 +412,7 @@
       "quality": "Quality",
       "quantity": "Quantity",
       "quantityWithUnit": "Quantity ({{unit}})",
+      "system": "System",
       "location": "Location",
       "visibility": "Visibility"
     },
@@ -447,6 +453,10 @@
       "saveError": "Could not save the stack. Try again.",
       "addStack": "Add stack"
     }
+  },
+  "locations": {
+    "label": "Location",
+    "groupPersonal": "Personal"
   },
   "status": {
     "region": "Star Citizen service status",

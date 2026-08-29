@@ -9,15 +9,24 @@ class ItemStackController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ItemStack::visibleTo($request->user())->with(['location', 'user:id,name,handle']);
+        $query = ItemStack::visibleTo($request->user())->with(['location', 'user:id,name,handle'])
+            ->when($request->query('search'), fn ($q, $s) => $q->where(fn ($q) => $q
+                ->whereLike('item_stacks.item_name', "%{$s}%", caseSensitive: false)
+                ->orWhereLike('item_stacks.item_class', "%{$s}%", caseSensitive: false)))
+            ->when($request->query('location_id'), fn ($q, $id) => $q->where('item_stacks.location_id', $id))
+            ->when($request->query('system'), fn ($q, $s) => $q->whereHas('location', fn ($l) => $l->where('system', $s)))
+            ->when($request->query('visibility'), fn ($q, $v) => $q->where('item_stacks.visibility', $v));
         $dir = $request->query('dir') === 'asc' ? 'asc' : 'desc';
         match ($request->query('sort')) {
             'item' => $query->orderByRaw('coalesce(item_name, item_class) '.$dir),
             'location' => $query->select('item_stacks.*')
                 ->join('locations', 'locations.id', '=', 'item_stacks.location_id')
                 ->orderBy('locations.name', $dir),
-            'quantity', 'visibility' => $query->orderBy($request->query('sort'), $dir),
-            default => $query->orderBy('updated_at', $dir),
+            'system' => $query->select('item_stacks.*')
+                ->join('locations', 'locations.id', '=', 'item_stacks.location_id')
+                ->orderBy('locations.system', $dir)->orderBy('locations.name', $dir),
+            'quantity', 'visibility' => $query->orderBy('item_stacks.'.$request->query('sort'), $dir),
+            default => $query->orderBy('item_stacks.updated_at', $dir),
         };
 
         return $query->paginate($this->perPage($request))->appends($request->query());

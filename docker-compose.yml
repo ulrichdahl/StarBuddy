@@ -13,7 +13,8 @@ name: starbuddy
 # in .env to your public https domain.
 #
 # Local development runs plain `docker compose up`, which also loads
-# docker-compose.override.yml (publishes a port, no external network).
+# docker-compose.override.yml (publishes a port, no external network, and a
+# Vite dev server with hot reload in place of the built SPA).
 #
 # Persistent data lives under ${STARBUDDY_DATA_DIR:-./data} as plain host
 # directories (postgres/, backups/) so you control placement and backup.
@@ -26,6 +27,7 @@ name: starbuddy
 #   cp .env.example .env   # fill in Discord credentials, APP_KEY, DB password
 #   docker compose -f docker-compose.yml up -d --build
 #   docker compose -f docker-compose.yml exec app php artisan migrate --seed --force
+#   docker compose -f docker-compose.yml exec app php artisan starbuddy:sync-item-catalog
 #   docker compose -f docker-compose.yml exec app php artisan starbuddy:sync-blueprints
 #   docker compose -f docker-compose.yml exec app php artisan starbuddy:sync-items
 #   docker compose -f docker-compose.yml exec app php artisan starbuddy:sync-resource-types
