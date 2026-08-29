@@ -1,4 +1,15 @@
 import "dotenv/config";
+import { readFileSync } from "node:fs";
+
+/** Release version from package.json (next to dist/ in the image, next to src/ in dev). */
+function packageVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version?: string };
+    return pkg.version ?? "dev";
+  } catch {
+    return "dev";
+  }
+}
 
 function required(name: string): string {
   const value = process.env[name];
@@ -25,8 +36,8 @@ export const config = {
   botApiToken: required("BOT_API_TOKEN"),
   /** Port for the notification webhook server. */
   notifyPort: Number(process.env["NOTIFY_PORT"] ?? 3000),
-  /** Deployed version, baked into the image by update.sh (git describe). */
-  version: process.env["STARBUDDY_VERSION"] ?? "dev",
+  /** Deployed version: update.sh bakes a git-describe string in via the build arg; otherwise the release version. */
+  version: process.env["STARBUDDY_VERSION"] || packageVersion(),
 } as const;
 
 export type Config = typeof config;

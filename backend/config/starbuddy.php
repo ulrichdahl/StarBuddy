@@ -3,8 +3,11 @@
 // Instance configuration. Keys read STARBUDDY_* and fall back to the
 // pre-rename STARMAKER_* names so an un-migrated .env keeps working.
 return [
-    // Deployed version, baked into the image by update.sh (git describe).
-    'version' => env('STARBUDDY_VERSION', 'dev'),
+    // Deployed version. update.sh bakes a git-describe string into the image
+    // via the STARBUDDY_VERSION build arg; without one (Coolify, plain
+    // `docker compose build`) fall back to the release version in composer.json.
+    'version' => env('STARBUDDY_VERSION')
+        ?: (json_decode((string) file_get_contents(base_path('composer.json')), true)['version'] ?? 'dev'),
 
     // The Discord server (guild) this instance belongs to. Only members of
     // this guild can sign in. Everything community-specific hangs off this.

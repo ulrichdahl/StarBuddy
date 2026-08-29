@@ -39,7 +39,7 @@ x-app: &app
   build:
     context: ./backend
     args:
-      STARBUDDY_VERSION: ${STARBUDDY_VERSION:-dev}
+      STARBUDDY_VERSION: ${STARBUDDY_VERSION:-}
   env_file: .env
   restart: unless-stopped
   depends_on:
@@ -132,7 +132,7 @@ services:
     build:
       context: ./bot
       args:
-        STARBUDDY_VERSION: ${STARBUDDY_VERSION:-dev}
+        STARBUDDY_VERSION: ${STARBUDDY_VERSION:-}
     env_file: .env
     restart: unless-stopped
     environment:

@@ -183,8 +183,9 @@ Coolify-specific in the repo; five settings do the job.
    - `STARBUDDY_DATA_DIR=/data/starbuddy` (any absolute path on the host) —
      never leave the default `./data`, which sits inside the clone Coolify
      redeploys.
-   - `STARBUDDY_VERSION=0.1.10` (the tag you deploy) — Coolify does not run
-     `update.sh`, which is what normally derives the version from git.
+   - `STARBUDDY_VERSION` can stay unset: the images report the release
+     version from `composer.json` / `package.json`. Set it only to override
+     (e.g. `0.1.10+3` for a deploy from an untagged commit).
    - `APP_URL`, `DISCORD_REDIRECT_URI`, `SESSION_DOMAIN`,
      `SANCTUM_STATEFUL_DOMAINS` to your public https domain as usual.
 3. **Domain.** On the `web` service set your domain
