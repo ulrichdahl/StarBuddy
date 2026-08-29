@@ -31,11 +31,24 @@ done
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
 
-COMPOSE=${STARBUDDY_COMPOSE:-"docker compose -f docker-compose.yml"}
+# Host data directory (database + dumps). Installs that keep it as plain
+# directories get docker-compose.hostdata.yml added automatically, with the
+# path made absolute (Docker's bind driver requires that).
+DATA_DIR=$(grep -E '^STAR(BUDDY|MAKER)_DATA_DIR=' .env | head -1 | cut -d= -f2- || true)
+DATA_DIR=${DATA_DIR:-./data}
+COMPOSE_FILES="-f docker-compose.yml"
+if [ -d "$DATA_DIR/postgres" ]; then
+    export STARBUDDY_DATA_DIR
+    STARBUDDY_DATA_DIR=$(cd "$DATA_DIR" && pwd)
+    DATA_DIR=$STARBUDDY_DATA_DIR
+    mkdir -p "$DATA_DIR/backups"
+    COMPOSE_FILES="$COMPOSE_FILES -f docker-compose.hostdata.yml"
+fi
+COMPOSE=${STARBUDDY_COMPOSE:-"docker compose $COMPOSE_FILES"}
 BRANCH=${STARBUDDY_BRANCH:-main}
 # Compose project name before the StarBuddy rename; its containers are
 # taken down once and replaced by the "starbuddy" project (data lives in
-# bind mounts, so nothing is lost).
+# host directories, so nothing is lost).
 OLD_PROJECT=starmaker
 old_stack_running() { docker ps -q --filter "label=com.docker.compose.project=$OLD_PROJECT" | grep -q .; }
 
@@ -64,8 +77,6 @@ else
 fi
 
 # Pre-update database dump, kept next to the nightly backups.
-DATA_DIR=$(grep -E '^STAR(BUDDY|MAKER)_DATA_DIR=' .env | head -1 | cut -d= -f2- || true)
-DATA_DIR=${DATA_DIR:-./data}
 mkdir -p "$DATA_DIR/backups"
 DUMP="$DATA_DIR/backups/pre-update-$(date +%Y%m%d-%H%M%S).sql.gz"
 DB_USER=$(grep -E '^DB_USERNAME=' .env | cut -d= -f2- || true)

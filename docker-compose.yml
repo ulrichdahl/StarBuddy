@@ -16,8 +16,12 @@ name: starbuddy
 # docker-compose.override.yml (publishes a port, no external network, and a
 # Vite dev server with hot reload in place of the built SPA).
 #
-# Persistent data lives under ${STARBUDDY_DATA_DIR:-./data} as plain host
-# directories (postgres/, backups/) so you control placement and backup.
+# Persistent data: the database (pg-data) and the nightly dumps (backups)
+# are Docker named volumes — the one form every platform (plain Docker,
+# Coolify) persists across redeploys. Prefer host directories you control?
+# Add docker-compose.hostdata.yml (see there). Never put ${VAR:-default}
+# inside a mount path here: Coolify splits mounts on the first colon and
+# silently ends up with an anonymous volume that is wiped every deploy.
 #
 # Every long-running service has a Docker healthcheck, so `docker compose ps`
 # (and platforms like Coolify) report healthy/unhealthy per container, and
@@ -157,7 +161,7 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-starbuddy}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
     volumes:
-      - ${STARBUDDY_DATA_DIR:-./data}/postgres:/var/lib/postgresql/data
+      - pg-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-starbuddy} -d ${DB_DATABASE:-starbuddy}"]
       interval: 5s
@@ -190,7 +194,7 @@ services:
       SCHEDULE: "@daily"
       BACKUP_KEEP_DAYS: "14"
     volumes:
-      - ${STARBUDDY_DATA_DIR:-./data}/backups:/backups
+      - backups:/backups
 
 networks:
   # Your reverse proxy's network (STARBUDDY_PROXY_NETWORK, default "proxy";
@@ -201,5 +205,7 @@ networks:
     external: true
 
 volumes:
+  pg-data:
+  backups:
   redis-data:
   app-storage:

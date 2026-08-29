@@ -28,9 +28,11 @@ shows `healthy`/`unhealthy`; `web`'s check is Laravel's `/up` through Caddy,
 `bot`'s is a Discord-session check), so a platform such as Coolify reports
 the stack's real state.
 
-Persistent state lives in **`STARBUDDY_DATA_DIR`** on the host:
-`postgres/` (the database) and `backups/` (nightly + pre-update dumps).
-That one directory is your backup surface.
+Persistent state is the database and the dump archive. On a self-hosted
+server this guide keeps both as plain directories under
+**`STARBUDDY_DATA_DIR`** (`postgres/`, `backups/`) via
+`docker-compose.hostdata.yml` — one directory to back up. On Coolify (§4b)
+they are Docker named volumes instead.
 
 ## Requirements
 
@@ -57,7 +59,7 @@ At <https://discord.com/developers/applications> create an application:
 ## 2. Server setup
 
 ```sh
-sudo mkdir -p /srv/starbuddy/data
+sudo mkdir -p /srv/starbuddy/data/postgres /srv/starbuddy/data/backups
 cd /srv/starbuddy
 git clone https://github.com/ulrichdahl/StarBuddy.git
 cd StarBuddy
@@ -100,9 +102,9 @@ opt-in role instead, or leave it empty to post without pinging. The bot needs
 
 ## 3. Reverse proxy
 
-Production is the single `docker-compose.yml` (always run it with `-f
-docker-compose.yml` so the local override is not loaded). It publishes **no
-ports**; the `web` container joins an external Docker network named `proxy`
+Production is `docker-compose.yml` plus `docker-compose.hostdata.yml` (the
+host-directory data layout; always pass the files with `-f` so the local
+override is not loaded). It publishes **no ports**; the `web` container joins an external Docker network named `proxy`
 under the alias **`starbuddy-web`** (the network name is `STARBUDDY_PROXY_NETWORK`
 in `.env`, default `proxy`; see §4b for Coolify).
 
@@ -139,10 +141,10 @@ enable *Websockets Support*.)
 ## 4. First start
 
 ```sh
-docker compose -f docker-compose.yml up -d --build
+alias sm='docker compose -f docker-compose.yml -f docker-compose.hostdata.yml'
+sm up -d --build
 
 # initialize (once)
-alias sm='docker compose -f docker-compose.yml'
 sm exec app php artisan migrate --seed --force
 sm exec app php artisan starbuddy:sync-item-catalog   # game item catalog for the item picker, ~1 min
 sm exec app php artisan starbuddy:sync-blueprints
@@ -181,9 +183,11 @@ Coolify-specific in the repo; five settings do the job.
    file, which is what `env_file: .env` and the `${…}` defaults read). Set:
    - `STARBUDDY_PROXY_NETWORK=coolify` — the web container joins Coolify's
      proxy network instead of `proxy`.
-   - `STARBUDDY_DATA_DIR=/data/starbuddy` (any absolute path on the host) —
-     never leave the default `./data`, which sits inside the clone Coolify
-     redeploys.
+   - Leave `STARBUDDY_DATA_DIR` out (or ignore it): on Coolify the database
+     and dumps live in the named volumes `pg-data` and `backups`, which
+     Coolify keeps across redeploys. Do **not** add `docker-compose.hostdata.yml`
+     — Coolify mis-parses bind sources that contain variables and ends up
+     with an anonymous volume that is wiped on every deploy.
    - `STARBUDDY_VERSION` can stay unset: the images report the release
      version from `composer.json` / `package.json`. Set it only to override
      (e.g. `0.1.10+3` for a deploy from an untagged commit).
@@ -203,16 +207,19 @@ Coolify-specific in the repo; five settings do the job.
 Notes: the first deploy builds three images (PHP backend, SPA + Caddy, bot)
 and takes several minutes on a small server; later deploys reuse layers. The
 deployment counts as finished when every container reports *healthy*
-(`web` waits for `app` to be healthy before it starts). Backups still land
-under `STARBUDDY_DATA_DIR/backups`; add that path to Coolify's or your own
-off-site backup. `update.sh` is not used on Coolify — redeploying from the UI
+(`web` waits for `app` to be healthy before it starts). Nightly dumps land
+in the `backups` volume (`docker volume ls | grep backups`); copy them out
+with e.g. `docker run --rm -v <volume>:/backups:ro -v /srv/backups:/out
+alpine cp -a /backups/. /out/` from your off-site backup job, or add
+Coolify's own scheduled database backup on the `db` service as well. `update.sh` is not used on Coolify — redeploying from the UI
 (or the webhook) replaces it.
 
 ## 5. Maintenance
 
-- **Backups** — everything is in `STARBUDDY_DATA_DIR`: `backups/` holds
-  nightly dumps (14 days) and pre-update dumps; `postgres/` is the live
-  database. Back up the whole directory off-site. Restore a dump:
+- **Backups** — self-hosted: everything is in `STARBUDDY_DATA_DIR`:
+  `backups/` holds nightly dumps (14 days) and pre-update dumps; `postgres/`
+  is the live database. Back up the whole directory off-site. (Coolify: see
+  §4b for the volume.) Restore a dump:
 
   ```sh
   gunzip -c data/backups/DUMPFILE.sql.gz | sm exec -T db psql -U starbuddy starbuddy   # your DB_USERNAME / DB_DATABASE from .env

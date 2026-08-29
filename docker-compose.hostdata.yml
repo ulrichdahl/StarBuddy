@@ -1,0 +1,25 @@
+# Optional: keep the database and the nightly dumps in host directories you
+# control instead of Docker named volumes.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.hostdata.yml up -d
+#
+# STARBUDDY_DATA_DIR must be an ABSOLUTE path and the two directories must
+# exist (mkdir -p "$STARBUDDY_DATA_DIR"/{postgres,backups}) — Docker's local
+# driver refuses to bind otherwise. scripts/update.sh adds this file on its
+# own when it finds an existing ${STARBUDDY_DATA_DIR}/postgres.
+#
+# Not for Coolify: it manages named volumes itself and mis-parses bind
+# sources that contain variables.
+volumes:
+  pg-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${STARBUDDY_DATA_DIR}/postgres
+  backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${STARBUDDY_DATA_DIR}/backups

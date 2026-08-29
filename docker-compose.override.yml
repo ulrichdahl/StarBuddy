@@ -9,6 +9,15 @@
 # to the `frontend` container. Edit files under frontend/ and the browser
 # updates in place. `docker compose logs -f frontend` shows Vite's output.
 services:
+  # Dev data stays in plain ./data host directories (postgres/, backups/),
+  # replacing the named volumes production uses.
+  db:
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+  backup:
+    volumes:
+      - ./data/backups:/backups
+
   web:
     ports:
       - "${HTTP_PORT:-8080}:80"
