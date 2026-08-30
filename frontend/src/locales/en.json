@@ -252,6 +252,39 @@
     "revoke": "Revoke {{name}}"
   },
   "org": {
+    "title": "Organizations",
+    "help": "Join an org to pool materials, items and blueprints with your org mates.",
+    "loadError": "Could not load organizations.",
+    "empty": "No organizations registered yet.",
+    "members_one": "{{count, number}} member",
+    "members_other": "{{count, number}} members",
+    "scu": "{{count, number}} SCU",
+    "pieces": "{{count, number}} pcs",
+    "blueprints_one": "{{count, number}} blueprint",
+    "blueprints_other": "{{count, number}} blueprints",
+    "requestJoin": "Request to join",
+    "pendingApproval": "Pending approval",
+    "manageMembers": "Manage members",
+    "leave": "Leave",
+    "leaveConfirm": "Leave {{org}}?",
+    "role": {
+      "member": "member",
+      "manager": "manager",
+      "officer": "officer",
+      "admin": "admin"
+    },
+    "status": {
+      "pending": "pending",
+      "active": "active"
+    },
+    "membersTitle": "{{org}} — members",
+    "membersLoadError": "Could not load the member list — you need a manager role in this org.",
+    "actionFailed": "That action failed — the roster may have changed. It has been refreshed.",
+    "noMembers": "No members yet.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "kick": "Kick {{name}}",
+    "kickConfirm": "Kick {{name}} from {{org}}?",
     "total": "Total",
     "stacks": "Stacks",
     "you": "You",
@@ -401,6 +434,7 @@
     "loadError": "Failed to load material stacks.",
     "empty": "No stacks yet — add your first one with the quick-entry form.",
     "editStack": "Edit stack",
+    "ownedBy": "{{handle}}'s stack — only they can edit it",
     "filters": {
       "search": "Search material",
       "qualityMin": "Quality min",

@@ -7,6 +7,10 @@ the client shows it under "What's new".
 
 ## Unreleased
 
+- Fix: the dashboard's organization card and members dialog showed raw keys (`org.title`, `org.leave`, …) — the Org-view strings had replaced the old `org` block in both languages instead of joining it. All 22 strings are back.
+- Fix: the materials list offered the edit pencil (and double-click) on org mates' org-visible stacks too; the server refused with 403 and the dialog only said "could not save". Only your own stacks are editable now — other rows show who owns them, as on the items page.
+- Materials and items edit dialogs: a failed save or delete now shows the server's answer (status and message) after the generic text, so the cause is visible without opening the browser's network tab.
+- Materials entry: after saving a stack the material stays selected (focus returns to it with the text pre-selected) and only quality + quantity clear — a run of the same material is Enter → quality → quantity → Enter; a different one is just typed over.
 - Hosting fix: the database and dump storage are Docker named volumes (`pg-data`, `backups`); self-hosted installs keep host directories via the new `docker-compose.hostdata.yml`, which `update.sh` adds automatically when `${STARBUDDY_DATA_DIR}/postgres` exists. Coolify split the old `${STARBUDDY_DATA_DIR:-./data}/postgres:…` mount on the colon inside the variable default, leaving Postgres on an anonymous volume that was wiped on every deploy.
 - Items and Materials pages get an **Org** view: everything members have made org-visible, one row per item (or material + quality) with the org total, how many stacks it sits in, and — blueprint-matrix style — a column per member showing how much they hold (hover: in how many stacks). Same search/system/location (and quality) filters as the stack list; sortable by name, quality, total, stacks, holders. New `/api/org/items` and `/api/org/materials`.
 - Dev: `docker compose up` now runs the frontend through a Vite dev server with hot module reload — Caddy on `localhost:8080` proxies everything but the API to it, so cookies and Discord login work as in production. Production builds are untouched.

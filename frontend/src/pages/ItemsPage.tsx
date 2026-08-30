@@ -31,7 +31,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import GroupsIcon from '@mui/icons-material/Groups'
 import UndoIcon from '@mui/icons-material/Undo'
 import ViewListIcon from '@mui/icons-material/ViewList'
-import { api } from '../lib/api'
+import { api, apiErrorDetail } from '../lib/api'
 import { useMe } from '../lib/auth'
 import type { ItemStack, Location, OrgInventoryExtra, OrgItemRow, Visibility } from '../lib/types'
 import { usePaginatedList } from '../lib/usePaginatedList'
@@ -104,7 +104,11 @@ function EditItemStackDialog({ stack, onClose }: { stack: ItemStack; onClose: ()
             <ToggleButton value="private">{t('items.entry.private')}</ToggleButton>
             <ToggleButton value="org">{t('items.entry.orgVisible')}</ToggleButton>
           </ToggleButtonGroup>
-          {(save.isError || remove.isError) && <Alert severity="error">{t('items.edit.saveError')}</Alert>}
+          {(save.isError || remove.isError) && (
+            <Alert severity="error">
+              {t('items.edit.saveError')} {apiErrorDetail(save.error ?? remove.error)}
+            </Alert>
+          )}
         </Stack>
       </DialogContent>
       <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>

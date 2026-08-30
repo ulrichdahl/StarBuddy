@@ -80,6 +80,9 @@ export type Visibility = 'private' | 'org'
 
 export interface ResourceStack {
   id: number
+  user_id: number
+  /** Owner (id, name, handle) — org-visible stacks of org mates are listed too. */
+  user: { id: number; name: string | null; handle: string | null } | null
   resource_type: Pick<ResourceType, 'name' | 'category' | 'unit' | 'rarity'>
   quality: number | null
   /** Quantity in milli-SCU (1 crate = 1 mSCU = 0.001 SCU). */

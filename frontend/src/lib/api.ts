@@ -1,4 +1,4 @@
-import axios, { type InternalAxiosRequestConfig } from 'axios'
+import axios, { isAxiosError, type InternalAxiosRequestConfig } from 'axios'
 
 /**
  * Same-origin axios instance for the Laravel Sanctum SPA cookie flow.
@@ -48,4 +48,17 @@ export function unwrapList<T>(payload: unknown): T[] {
     if (Array.isArray(inner)) return inner as T[]
   }
   return []
+}
+
+/**
+ * Short, user-showable detail for a failed request — "403 Forbidden" plus
+ * Laravel's `message` when it sent one — so an error alert says what went
+ * wrong instead of only that something did. Undefined when there is nothing
+ * more specific than the generic text.
+ */
+export function apiErrorDetail(error: unknown): string | undefined {
+  if (!isAxiosError(error)) return error instanceof Error ? error.message : undefined
+  const status = error.response ? `${error.response.status} ${error.response.statusText}`.trim() : error.message
+  const message = (error.response?.data as { message?: string } | undefined)?.message
+  return message ? `${status}: ${message}` : status
 }

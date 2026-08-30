@@ -18,8 +18,10 @@ import { LocationSelect } from './LocationSelect'
 /**
  * Sticky quick-entry form for resource stacks, tuned for keyboard-only
  * bulk entry: resource → quality → quantity → Enter, and focus jumps
- * forward on every selection. After submit, location, visibility and
- * quality stay; resource + quantity clear; focus returns to resource.
+ * forward on every selection. After submit, location, visibility and the
+ * resource stay; quality + quantity clear; focus returns to the resource
+ * field (text pre-selected) so a run of the same material is Enter →
+ * quality → quantity → Enter, and a different one is just typed over.
  */
 export function ResourceEntryForm() {
   const { t } = useTranslation()
@@ -31,11 +33,11 @@ export function ResourceEntryForm() {
   // Sticky fields — survive submits.
   const [location, setLocation] = useState<Location | null>(null)
   const [visibility, setVisibility] = useState<Visibility>('private')
-  const [quality, setQuality] = useState('')
-
-  // Cleared on each submit.
   const [resource, setResource] = useState<ResourceType | null>(null)
   const [resourceSearch, setResourceSearch] = useState('')
+
+  // Cleared on each submit.
+  const [quality, setQuality] = useState('')
   const [quantity, setQuantity] = useState('')
 
   const { data: resourceOptions = [], isFetching: searching } = useQuery({
@@ -60,10 +62,14 @@ export function ResourceEntryForm() {
       queryClient.invalidateQueries({ queryKey: ['resource-stacks'] })
       queryClient.invalidateQueries({ queryKey: ['org-materials'] })
       queryClient.invalidateQueries({ queryKey: ['resource-types'] })
-      setResource(null)
-      setResourceSearch('')
+      setQuality('')
       setQuantity('')
-      resourceInputRef.current?.focus()
+      // Back to the (kept) material with its text fully selected: typing
+      // replaces it, Tab/Enter keep it. MUI only selects on a mouse click,
+      // so a programmatic focus has to select explicitly.
+      const input = resourceInputRef.current
+      input?.focus()
+      input?.select()
     },
   })
 
@@ -121,6 +127,15 @@ export function ResourceEntryForm() {
           }}
           inputValue={resourceSearch}
           onInputChange={(_, value) => setResourceSearch(value)}
+          // Enter on an untouched, kept material: skip re-selecting it (MUI
+          // ignores same-value picks, so focus would stall) and move on.
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && resource && resourceSearch === resource.name) {
+              event.preventDefault()
+              event.defaultMuiPrevented = true
+              qualityInputRef.current?.focus()
+            }
+          }}
           getOptionLabel={(option) => option.name}
           isOptionEqualToValue={(a, b) => a.id === b.id}
           // Category group headers are UI labels; unknown categories shown verbatim.

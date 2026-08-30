@@ -252,6 +252,39 @@
     "revoke": "Fjern {{name}}"
   },
   "org": {
+    "title": "Organisationer",
+    "help": "Bliv medlem af en org for at dele materialer, items og blueprints med dine org-kammerater.",
+    "loadError": "Kunne ikke indlæse organisationer.",
+    "empty": "Ingen organisationer registreret endnu.",
+    "members_one": "{{count, number}} medlem",
+    "members_other": "{{count, number}} medlemmer",
+    "scu": "{{count, number}} SCU",
+    "pieces": "{{count, number}} stk.",
+    "blueprints_one": "{{count, number}} blueprint",
+    "blueprints_other": "{{count, number}} blueprints",
+    "requestJoin": "Anmod om medlemskab",
+    "pendingApproval": "Afventer godkendelse",
+    "manageMembers": "Administrér medlemmer",
+    "leave": "Forlad",
+    "leaveConfirm": "Forlad {{org}}?",
+    "role": {
+      "member": "medlem",
+      "manager": "manager",
+      "officer": "officer",
+      "admin": "admin"
+    },
+    "status": {
+      "pending": "afventer",
+      "active": "aktiv"
+    },
+    "membersTitle": "{{org}} — medlemmer",
+    "membersLoadError": "Kunne ikke indlæse medlemslisten — du skal have manager-rollen i denne org.",
+    "actionFailed": "Handlingen mislykkedes — medlemslisten kan have ændret sig. Den er blevet opdateret.",
+    "noMembers": "Ingen medlemmer endnu.",
+    "accept": "Godkend",
+    "decline": "Afvis",
+    "kick": "Smid {{name}} ud",
+    "kickConfirm": "Smid {{name}} ud af {{org}}?",
     "total": "I alt",
     "stacks": "Stakke",
     "you": "Dig",
@@ -401,6 +434,7 @@
     "loadError": "Kunne ikke hente materialestakke.",
     "empty": "Ingen stakke endnu — tilføj din første med hurtigindtastningen.",
     "editStack": "Rediger stak",
+    "ownedBy": "{{handle}}s stak — kun ejeren kan redigere den",
     "filters": {
       "search": "Søg materiale",
       "qualityMin": "Kvalitet min.",

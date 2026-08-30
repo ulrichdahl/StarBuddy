@@ -34,7 +34,7 @@ import GroupsIcon from '@mui/icons-material/Groups'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import ViewListIcon from '@mui/icons-material/ViewList'
 import { qualityColor, rarityColor as resourceRarityColor } from '../lib/rarity'
-import { api } from '../lib/api'
+import { api, apiErrorDetail } from '../lib/api'
 import type { Location, OrgInventoryExtra, OrgMaterialRow, ResourceStack, Visibility } from '../lib/types'
 import { formatResourceQuantity } from '../lib/quantity'
 import { usePaginatedList } from '../lib/usePaginatedList'
@@ -44,6 +44,7 @@ import { ResourceEntryForm } from '../components/ResourceEntryForm'
 import { LocationSelect } from '../components/LocationSelect'
 import { OrgMatrixTable } from '../components/OrgMatrixTable'
 import { useSystems } from '../lib/locations'
+import { useMe } from '../lib/auth'
 
 /** Desaturated WoW ladder, shared by both rarity axes. */
 
@@ -149,7 +150,11 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
             <ToggleButton value="org">{t('materials.visibility.org')}</ToggleButton>
           </ToggleButtonGroup>
           {(save.isError || remove.isError) && (
-            <Alert severity="error">{t('materials.edit.saveError')}</Alert>
+            <Alert severity="error">
+              {t('materials.edit.saveError')}
+              {' '}
+              {apiErrorDetail(save.error ?? remove.error)}
+            </Alert>
           )}
         </Stack>
       </DialogContent>
@@ -183,6 +188,9 @@ export function ResourcesPage() {
   const [filterLocation, setFilterLocation] = useState<Location | null>(null)
   const [filterVisibility, setFilterVisibility] = useState('')
   const systems = useSystems()
+  const { me } = useMe()
+  // Org mates' org-visible stacks are listed too; only your own can be edited.
+  const isMine = (stack: ResourceStack) => me?.id === stack.user_id
   const [sort, setSort] = useState<SortField>('resource')
   const [dir, setDir] = useState<'asc' | 'desc'>('asc')
 
@@ -389,7 +397,7 @@ export function ResourcesPage() {
                   <TableRow
                     key={stack.id}
                     hover
-                    onDoubleClick={() => setEditing(stack)}
+                    onDoubleClick={() => isMine(stack) && setEditing(stack)}
                     sx={{
                       '& td:first-of-type': {
                         borderLeft: `4px solid ${resourceRarityColor(stack.resource_type.rarity)}`,
@@ -421,9 +429,17 @@ export function ResourcesPage() {
                       />
                     </TableCell>
                     <TableCell>
-                      <IconButton size="small" aria-label={t('materials.editStack')} onClick={() => setEditing(stack)}>
-                        <EditIcon fontSize="inherit" />
-                      </IconButton>
+                      {isMine(stack) ? (
+                        <IconButton size="small" aria-label={t('materials.editStack')} onClick={() => setEditing(stack)}>
+                          <EditIcon fontSize="inherit" />
+                        </IconButton>
+                      ) : (
+                        <Tooltip title={t('materials.ownedBy', { handle: stack.user?.handle ?? stack.user?.name ?? '?' })}>
+                          <Box component="span" sx={{ display: 'inline-flex', p: 0.5, color: 'text.disabled' }}>
+                            <GroupsIcon fontSize="small" />
+                          </Box>
+                        </Tooltip>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
