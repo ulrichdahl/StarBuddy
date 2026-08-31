@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
 import Button from '@mui/material/Button'
+import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd'
 import InputAdornment from '@mui/material/InputAdornment'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
@@ -23,7 +24,7 @@ import { LocationSelect } from './LocationSelect'
  * field (text pre-selected) so a run of the same material is Enter →
  * quality → quantity → Enter, and a different one is just typed over.
  */
-export function ResourceEntryForm() {
+export function ResourceEntryForm({ onAddMultiple }: { onAddMultiple?: () => void }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const resourceInputRef = useRef<HTMLInputElement>(null)
@@ -108,9 +109,21 @@ export function ResourceEntryForm() {
 
   return (
     <Paper component="form" onSubmit={handleSubmit} sx={{ p: 2.5 }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        {t('materials.entry.title')}
-      </Typography>
+      <Stack direction="row" spacing={1} sx={{ mb: 2, alignItems: 'center' }}>
+        <Typography variant="h6" noWrap sx={{ flexGrow: 1, minWidth: 0 }}>
+          {t('materials.entry.title')}
+        </Typography>
+        {onAddMultiple && (
+          <Button
+            size="small"
+            startIcon={<PlaylistAddIcon />}
+            onClick={onAddMultiple}
+            sx={{ ml: 'auto', flexShrink: 0 }}
+          >
+            {t('materials.bulk.open')}
+          </Button>
+        )}
+      </Stack>
       <Stack spacing={2}>
         <Autocomplete
           options={resourceOptions}

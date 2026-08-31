@@ -23,6 +23,7 @@ import HowToRegIcon from '@mui/icons-material/HowToReg'
 import CloseIcon from '@mui/icons-material/Close'
 import { api, apiErrorDetail, unwrapList } from '../lib/api'
 import { qualityColor, rarityColor } from '../lib/rarity'
+import type { Theme } from '@mui/material/styles'
 import type { CreateResourceStack, Location, ResourceType, Visibility } from '../lib/types'
 import { LocationSelect } from './LocationSelect'
 
@@ -398,7 +399,7 @@ export function MaterialGridDialog({ open, onClose }: { open: boolean; onClose: 
       border: '1px solid',
       borderColor: on ? 'primary.main' : 'transparent',
       bgcolor: on && !mode ? 'rgba(91, 200, 219, 0.07)' : 'transparent',
-      boxShadow: on && mode ? (theme) => `0 0 0 1px ${theme.palette.primary.main}` : 'none',
+      boxShadow: on && mode ? (theme: Theme) => `0 0 0 1px ${theme.palette.primary.main}` : 'none',
     }
   }
 
@@ -426,7 +427,7 @@ export function MaterialGridDialog({ open, onClose }: { open: boolean; onClose: 
       </DialogTitle>
 
       <DialogContent>
-        <Stack direction="row" spacing={2} alignItems="flex-end" sx={{ mt: 1, mb: 2, flexWrap: 'wrap' }}>
+        <Stack direction="row" spacing={2} sx={{ mt: 1, mb: 2, alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1, minWidth: 200 }}>
             {t('materials.bulk.help')}
           </Typography>
@@ -613,7 +614,7 @@ export function MaterialGridDialog({ open, onClose }: { open: boolean; onClose: 
                   )
                 })}
 
-                <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
                   <Tooltip title={t('materials.bulk.repeat')}>
                     <IconButton size="small" onMouseDown={(e) => { e.preventDefault(); repeatRow(r) }}>
                       <ContentCopyIcon sx={{ fontSize: 15 }} />

@@ -33,7 +33,6 @@ import EditIcon from '@mui/icons-material/Edit'
 import GroupsIcon from '@mui/icons-material/Groups'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import ViewListIcon from '@mui/icons-material/ViewList'
-import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd'
 import { qualityColor, rarityColor as resourceRarityColor } from '../lib/rarity'
 import { api, apiErrorDetail } from '../lib/api'
 import type { Location, OrgInventoryExtra, OrgMaterialRow, ResourceStack, Visibility } from '../lib/types'
@@ -253,10 +252,6 @@ export function ResourcesPage() {
         title={t('materials.title')}
         subtitle={view === 'org' ? t('materials.org.subtitle') : t('materials.subtitle')}
         action={
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
-          <Button size="small" variant="outlined" startIcon={<PlaylistAddIcon />} onClick={() => setBulkOpen(true)}>
-            {t('materials.bulk.open')}
-          </Button>
           <ToggleButtonGroup size="small" exclusive value={view} onChange={(_, v: View | null) => v && setView(v)} aria-label={t('materials.view.aria')}>
             <ToggleButton value="stacks">
               <ViewListIcon fontSize="small" sx={{ mr: 0.5 }} />
@@ -267,7 +262,6 @@ export function ResourcesPage() {
               {t('materials.view.org')}
             </ToggleButton>
           </ToggleButtonGroup>
-          </Stack>
         }
       />
       <Paper sx={{ p: 1.5, mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
@@ -465,7 +459,7 @@ export function ResourcesPage() {
           </TableContainer>
           <ListPager total={total} page={page} rowsPerPage={rowsPerPage} onPageChange={setPage} onRowsPerPageChange={setRowsPerPage} />
         </Paper>
-        <ResourceEntryForm />
+        <ResourceEntryForm onAddMultiple={() => setBulkOpen(true)} />
       </Box>
       )}
       {editing && <EditStackDialog stack={editing} onClose={() => setEditing(null)} />}
