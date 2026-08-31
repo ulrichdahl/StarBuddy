@@ -486,6 +486,20 @@
       "locationKept": "Bevares mellem indtastninger",
       "saveError": "Stakken kunne ikke gemmes. Prøv igen.",
       "addStack": "Tilføj stak"
+    },
+    "bulk": {
+      "open": "Tilføj flere",
+      "title": "Tilføj flere materialer",
+      "help": "Én linje pr. stak. Lokation gælder hele holdet; synlighed er pr. linje, og en ny linje arver den fra linjen ovenfor.",
+      "keys": "↑↓←→ flytter · skriv for at redigere · Enter gemmer linjen og går til næste · Ctrl+Enter gentager linjen med mængden ryddet · Tab går gennem cellerne · i Mængde springer Ctrl+↑↓ 0,01 og Shift+↑↓ 0,1 · Mellemrum skifter linjens synlighed",
+      "repeat": "Gentag denne linje, mængden ryddet",
+      "remove": "Fjern denne linje",
+      "save_one": "Gem {{count}} linje",
+      "save_other": "Gem {{count}} linjer",
+      "saved_one": "Gemte {{count}} stak.",
+      "saved_other": "Gemte {{count}} stakke.",
+      "failedHint": "Linjer serveren afviste står her stadig med årsagen — ret dem og gem igen.",
+      "noMatch": "Intet materiale med det navn"
     }
   },
   "locations": {

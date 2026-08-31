@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
@@ -45,6 +45,23 @@ export function ItemEntryForm() {
   const [quantity, setQuantity] = useState('')
 
   const { data: itemOptions = [], isFetching: searching } = useItemSearch(itemSearch)
+
+  // The API orders by match relevance and name so the LIMIT keeps the best
+  // hits; MUI's groupBy needs the list ordered by group or headers repeat.
+  // Stable sort: categories alphabetical (unknown last), server order kept
+  // within each category.
+  const groupedOptions = useMemo(
+    () =>
+      [...itemOptions].sort((a, b) => {
+        const ga = a.type_label ?? ''
+        const gb = b.type_label ?? ''
+        if (ga === gb) return 0
+        if (ga === '') return 1
+        if (gb === '') return -1
+        return ga.localeCompare(gb)
+      }),
+    [itemOptions],
+  )
 
   const createStack = useMutation({
     mutationFn: (body: CreateItemStack) => api.post('/api/item-stacks', body),
@@ -95,7 +112,7 @@ export function ItemEntryForm() {
       <Stack spacing={2}>
         <Autocomplete<Item, false, false, true>
           freeSolo
-          options={itemOptions}
+          options={groupedOptions}
           value={item}
           onChange={(_, value) => {
             setItem(value)

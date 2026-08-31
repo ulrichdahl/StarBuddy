@@ -33,6 +33,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import GroupsIcon from '@mui/icons-material/Groups'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import ViewListIcon from '@mui/icons-material/ViewList'
+import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd'
 import { qualityColor, rarityColor as resourceRarityColor } from '../lib/rarity'
 import { api, apiErrorDetail } from '../lib/api'
 import type { Location, OrgInventoryExtra, OrgMaterialRow, ResourceStack, Visibility } from '../lib/types'
@@ -41,6 +42,7 @@ import { usePaginatedList } from '../lib/usePaginatedList'
 import { PageHeader } from '../components/PageHeader'
 import { ListPager } from '../components/ListPager'
 import { ResourceEntryForm } from '../components/ResourceEntryForm'
+import { MaterialGridDialog } from '../components/MaterialGridDialog'
 import { LocationSelect } from '../components/LocationSelect'
 import { OrgMatrixTable } from '../components/OrgMatrixTable'
 import { useSystems } from '../lib/locations'
@@ -191,6 +193,7 @@ export function ResourcesPage() {
   const { me } = useMe()
   // Org mates' org-visible stacks are listed too; only your own can be edited.
   const isMine = (stack: ResourceStack) => me?.id === stack.user_id
+  const [bulkOpen, setBulkOpen] = useState(false)
   const [sort, setSort] = useState<SortField>('resource')
   const [dir, setDir] = useState<'asc' | 'desc'>('asc')
 
@@ -250,6 +253,10 @@ export function ResourcesPage() {
         title={t('materials.title')}
         subtitle={view === 'org' ? t('materials.org.subtitle') : t('materials.subtitle')}
         action={
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: 'wrap' }}>
+          <Button size="small" variant="outlined" startIcon={<PlaylistAddIcon />} onClick={() => setBulkOpen(true)}>
+            {t('materials.bulk.open')}
+          </Button>
           <ToggleButtonGroup size="small" exclusive value={view} onChange={(_, v: View | null) => v && setView(v)} aria-label={t('materials.view.aria')}>
             <ToggleButton value="stacks">
               <ViewListIcon fontSize="small" sx={{ mr: 0.5 }} />
@@ -260,6 +267,7 @@ export function ResourcesPage() {
               {t('materials.view.org')}
             </ToggleButton>
           </ToggleButtonGroup>
+          </Stack>
         }
       />
       <Paper sx={{ p: 1.5, mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
@@ -461,6 +469,7 @@ export function ResourcesPage() {
       </Box>
       )}
       {editing && <EditStackDialog stack={editing} onClose={() => setEditing(null)} />}
+      <MaterialGridDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
     </Box>
   )
 }

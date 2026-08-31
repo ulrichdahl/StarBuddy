@@ -163,7 +163,7 @@
     "colMember": "Member",
     "colLocation": "Location",
     "colQuality": "Quality",
-    "colQuantity": "Quantity",
+    "colQuantity": "Amount",
     "you": "(you)",
     "showMore": "Show {{count}} more ({{hidden}} hidden)",
     "nobodyHasAny": "Nobody has any — this is the missing piece.",
@@ -310,7 +310,7 @@
     "tableAria": "Item stacks",
     "columns": {
       "item": "Item",
-      "quantity": "Quantity",
+      "quantity": "Amount",
       "system": "System",
       "location": "Location",
       "visibility": "Visibility",
@@ -340,7 +340,7 @@
       "item": "Item",
       "itemPlaceholder": "Search items by name or class…",
       "noMatch": "No catalog match — Enter keeps what you typed as the class",
-      "quantity": "Quantity",
+      "quantity": "Amount",
       "quantityHint": "↑↓ = 1 · Ctrl+↑↓ = 10 · Shift+↑↓ = 100 — Enter saves",
       "location": "Location",
       "locationKept": "Kept between entries",
@@ -444,8 +444,8 @@
     "fields": {
       "material": "Material",
       "quality": "Quality",
-      "quantity": "Quantity",
-      "quantityWithUnit": "Quantity ({{unit}})",
+      "quantity": "Amount",
+      "quantityWithUnit": "Amount ({{unit}})",
       "system": "System",
       "location": "Location",
       "visibility": "Visibility"
@@ -486,6 +486,20 @@
       "locationKept": "Kept between entries",
       "saveError": "Could not save the stack. Try again.",
       "addStack": "Add stack"
+    },
+    "bulk": {
+      "open": "Add multiple",
+      "title": "Add multiple materials",
+      "help": "One line per stack. Location applies to the whole batch; visibility is per line and a new line inherits the one above.",
+      "keys": "↑↓←→ move · type to edit · Enter saves the line and moves to the next · Ctrl+Enter repeats the line with the amount cleared · Tab walks the cells · inside Amount, Ctrl+↑↓ steps 0.01 and Shift+↑↓ steps 0.1 · Space toggles the visibility of a line",
+      "repeat": "Repeat this line, amount cleared",
+      "remove": "Remove this line",
+      "save_one": "Save {{count}} line",
+      "save_other": "Save {{count}} lines",
+      "saved_one": "Saved {{count}} stack.",
+      "saved_other": "Saved {{count}} stacks.",
+      "failedHint": "Lines the server refused are still here with the reason — fix them and save again.",
+      "noMatch": "No material of that name"
     }
   },
   "locations": {

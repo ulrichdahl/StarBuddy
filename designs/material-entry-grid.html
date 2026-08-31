@@ -1,0 +1,717 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>StarBuddy Material Entry — Spreadsheet Grid</title>
+</head>
+<body>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0C1117; --paper: #121A23; --line: rgba(91,200,219,0.10); --line2: rgba(91,200,219,0.06);
+    --cyan: #5BC8DB; --cyan-ink: #06222A; --amber: #E8B45A;
+    --text: #DCE6EE; --muted: #8CA0B3; --dim: #59697A;
+    --font: "Inter", "Roboto", "Helvetica", "Arial", sans-serif;
+  }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); }
+  a { color: var(--cyan); } a:hover { color: #8FDDEB; }
+  .page { max-width: 1120px; margin: 0 auto; padding: 32px 24px 64px; display: flex; flex-direction: column; gap: 32px; }
+  .lead h1 { font: 700 26px var(--font); letter-spacing: 0.02em; margin: 0 0 8px; }
+  .lead p { font: 400 14px var(--font); color: var(--muted); line-height: 1.6; margin: 0; max-width: 76ch; }
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 20px; }
+  .h6 { font: 600 15.2px var(--font); letter-spacing: 0.04em; text-transform: uppercase; }
+  .sub { font: 400 12.5px var(--font); color: var(--muted); }
+  .colhead { font: 600 11.52px var(--font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .sec-title { display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+  .sec-title .n { width: 22px; height: 22px; border-radius: 11px; background: rgba(91,200,219,0.12);
+    color: var(--cyan); font: 700 12px var(--font); display: flex; align-items: center; justify-content: center; flex: none; }
+
+  /* ---- entry grid ---- */
+  .gridwrap:focus { outline: none; }
+  .grow { display: grid; grid-template-columns: 40px minmax(0,1fr) 200px 148px 88px; gap: 10px; align-items: center; }
+  .grow.head { padding: 0 4px 8px; border-bottom: 1px solid rgba(91,200,219,0.12); }
+  .grow.body { padding: 3px 4px; border-bottom: 1px solid var(--line2); }
+  .rown { width: 26px; height: 26px; border-radius: 4px; background: rgba(91,200,219,0.08);
+    display: flex; align-items: center; justify-content: center; font: 600 11.5px var(--font); color: var(--muted); }
+  .cell { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px;
+    border: 1px solid transparent; cursor: pointer; min-height: 22px; box-sizing: border-box; }
+  .cell.right { justify-content: flex-end; }
+  .cell.sel { border-color: var(--cyan); background: rgba(91,200,219,0.07); }
+  .cell.edit { border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan); background: var(--bg); }
+  .cell input { width: 100%; min-width: 0; background: transparent; color: var(--text); border: none; outline: none;
+    font: 500 14px var(--font); font-variant-numeric: tabular-nums; padding: 0; }
+  .cell input.right { text-align: right; }
+  .val { font: 500 14px var(--font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .val.right { flex-grow: 1; text-align: right; font-variant-numeric: tabular-nums; }
+  .val.q { font-weight: 600; }
+  .val.empty { color: var(--dim); }
+  .bar { width: 3px; height: 20px; border-radius: 2px; flex: none; }
+  .unit { font: 500 12.5px var(--font); color: var(--muted); width: 30px; flex: none; text-align: left; }
+  .caret { flex: none; opacity: 0.75; }
+  .wrap { position: relative; }
+
+  /* popovers: material suggestions and quality bands */
+  .pop { position: absolute; top: 100%; z-index: 6; background: var(--paper); border: 1px solid rgba(91,200,219,0.28);
+    border-radius: 6px; padding: 5px; margin-top: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.55);
+    max-height: 232px; overflow-y: auto; }
+  .pop.left { left: 0; min-width: 240px; }
+  .pop.rightside { right: 0; min-width: 132px; }
+  .pop .lbl { font: 600 9.5px var(--font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+    padding: 5px 12px 4px; }
+  .pop .lbl.r { text-align: right; }
+  .opt { padding: 6px 12px; border-radius: 4px; cursor: pointer; font: 500 13.5px var(--font);
+    display: flex; align-items: center; gap: 9px; }
+  .opt.on { background: rgba(91,200,219,0.16); }
+  .opt .u { margin-left: auto; font: 500 11px var(--font); color: var(--muted); }
+  .band { padding: 6px 12px; border-radius: 4px; cursor: pointer; text-align: right;
+    font: 600 13px var(--font); font-variant-numeric: tabular-nums; }
+  .band.on { background: rgba(91,200,219,0.16); }
+  .none { padding: 8px 12px; font: 400 12.5px var(--font); color: var(--dim); }
+
+  .rowbtn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: transparent;
+    border: 1px solid rgba(91,200,219,0.20); border-radius: 6px; color: var(--muted); cursor: pointer; padding: 0; }
+  .rowbtn:hover { color: var(--cyan); border-color: rgba(91,200,219,0.55); background: rgba(91,200,219,0.06); }
+  .acts { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+
+  .btn { background: var(--cyan); color: var(--cyan-ink); border: none; border-radius: 6px; padding: 11px 22px;
+    font: 600 14px var(--font); cursor: pointer; white-space: nowrap; }
+  .kbd { display: inline-block; padding: 2px 7px; border-radius: 4px; background: var(--bg);
+    border: 1px solid rgba(91,200,219,0.22); color: #A8BDCE; font: 500 11px var(--font); white-space: nowrap; }
+  .legend { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+  .legend .t { font: 400 12px var(--font); color: var(--muted); }
+  .legend .pipe { color: rgba(91,200,219,0.22); }
+  .foot { display: flex; align-items: center; gap: 20px; margin-top: 18px; padding-top: 16px; border-top: 1px solid rgba(91,200,219,0.12); }
+  .toprow { display: flex; align-items: flex-end; gap: 24px; margin-bottom: 20px; }
+  .fieldlbl { font: 600 10.5px var(--font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .fakeinput { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 6px; padding: 7px 10px; min-width: 200px; font: 500 14px var(--font); }
+  .seg { display: flex; border: 1px solid rgba(91,200,219,0.22); border-radius: 6px; overflow: hidden; }
+  .seg div { padding: 8px 16px; font: 600 13px var(--font); color: var(--muted); }
+  .seg div.on { color: var(--cyan-ink); background: var(--cyan); }
+
+  /* ---- comparison table ---- */
+  .cmp { display: grid; grid-template-columns: minmax(0,1fr) 110px 110px; gap: 10px; align-items: center; }
+  .cmp.head { padding: 10px 0 8px; border-bottom: 1px solid rgba(91,200,219,0.12); }
+  .cmp.body { padding: 11px 0; border-bottom: 1px solid var(--line2); }
+  .cmp.body:last-child { border-bottom: none; }
+  .cmp .lab { font: 400 13.5px var(--font); }
+  .cmp .fig { font: 600 17px var(--font); text-align: right; font-variant-numeric: tabular-nums; }
+  .good { color: #35B9A0; } .bad { color: #D65A50; } .plain { color: var(--text); }
+  .note { display: flex; gap: 12px; padding: 14px 16px; background: rgba(232,180,90,0.06);
+    border: 1px solid rgba(232,180,90,0.22); border-radius: 6px; }
+  .note .edge { width: 3px; border-radius: 2px; background: var(--amber); flex: none; }
+  .note p { margin: 0; font: 400 13px var(--font); line-height: 1.6; }
+
+  /* ---- as-proposed reference ---- */
+  .trow { display: grid; grid-template-columns: 44px minmax(0,1fr) 96px 128px 116px 152px; gap: 10px;
+    align-items: center; padding: 11px 16px; border-bottom: 1px solid var(--line2); }
+  .trow.head { border-bottom: 1px solid rgba(91,200,219,0.12); padding: 12px 16px; }
+  .trow.tmpl { background: rgba(91,200,219,0.03); border-bottom: none; }
+  .plus { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(91,200,219,0.22); border-radius: 6px; color: var(--cyan); }
+  .badge { width: 18px; height: 18px; border-radius: 9px; background: var(--amber); color: #2A1E06;
+    display: flex; align-items: center; justify-content: center; font: 700 11px var(--font); flex: none; }
+  .cellv { font: 500 14px var(--font); font-variant-numeric: tabular-nums; }
+  .cellv.mut { font-weight: 400; font-size: 13.5px; }
+  .cellv.ph { font-weight: 400; color: var(--dim); }
+</style>
+
+<div class="page">
+
+  <div class="lead">
+    <h1>Material entry — spreadsheet grid</h1>
+    <p>Assessment of the tester's multi-line entry idea against StarBuddy's fast-manual-input philosophy, with the
+      refinements from 2026-08-31 built in: arrows are pure navigation, only the focused cell edits, Enter saves the line and moves to the next, Ctrl+Enter repeats the current line with the amount cleared, and Amount sits before Quality. Material is
+      an autocomplete over the resource catalog; Quality is a plain select of that material's known bands. The first
+      grid is live — click a cell and type.</p>
+  </div>
+
+  <!-- 1 · recommended -->
+  <div>
+    <div class="sec-title"><div class="n">1</div><div class="h6">Recommended</div>
+      <div class="sub">keyboard-driven grid, batch header instead of per-row Location and Visibility</div></div>
+
+    <div class="card">
+      <div class="toprow">
+        <div style="display:flex;flex-direction:column;gap:4px;flex-grow:1;min-width:0">
+          <div class="h6">Add materials</div>
+          <div class="sub">Click a cell and type — arrows move, Enter opens a new line, Ctrl+Enter repeats this one</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div class="fieldlbl">Location</div>
+          <div class="fakeinput"><span style="flex-grow:1">Nyx – Levski</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8CA0B3" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div class="fieldlbl">Visibility</div>
+          <div class="seg"><div class="on">Private</div><div>Org</div></div>
+        </div>
+      </div>
+
+      <div class="gridwrap" id="grid" tabindex="0">
+        <div class="grow head">
+          <div></div><div class="colhead">Material</div>
+          <div class="colhead" style="text-align:right">Amount</div>
+          <div class="colhead" style="text-align:right">Quality</div><div></div>
+        </div>
+        <div id="rows"></div>
+      </div>
+
+      <div class="foot">
+        <div style="display:flex;flex-direction:column;gap:8px;flex-grow:1;min-width:0">
+          <div class="legend">
+            <span class="kbd">← ↑ → ↓</span><span class="t">move</span><span class="pipe">|</span>
+            <span class="kbd">Enter</span><span class="t">save the line, move to the next</span><span class="pipe">|</span>
+            <span class="kbd">Ctrl+Enter</span><span class="t">repeat line, amount cleared</span><span class="pipe">|</span>
+            <span class="kbd">Esc</span><span class="t">cancel</span>
+          </div>
+          <div class="t" style="font-size:12px;color:var(--muted)">Material filters as you type and only takes a catalog
+            hit; picking one jumps to Amount. Quality opens as a band list — <span class="kbd">↑↓</span> walks it, a digit
+            jumps to the first band starting with it. Inside Amount <span class="kbd">Ctrl+↑↓</span> still steps 0,01 and
+            <span class="kbd">Shift+↑↓</span> steps 0,1; the plain arrows belong to the grid now.</div>
+        </div>
+        <button class="btn" id="savebtn">Save 0 rows</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 · as proposed -->
+  <div>
+    <div class="sec-title"><div class="n">2</div><div class="h6">As proposed</div>
+      <div class="sub">the tester's sketch, drawn in the real app style so it can be judged fairly</div></div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="trow head">
+        <div></div><div class="colhead">Material</div><div class="colhead">Quality</div>
+        <div class="colhead">Amount</div><div class="colhead">Location</div><div class="colhead">Private / Org</div>
+      </div>
+      <div class="trow">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+          <div class="badge">2</div>
+        </div>
+        <div class="cellv">Iron</div><div class="cellv" style="color:#A87BEA">874</div><div class="cellv">1 SCU</div>
+        <div class="cellv mut">Levski</div>
+        <div class="cellv mut"><span style="color:#8CA0B3">Private</span><span style="color:rgba(91,200,219,0.25)"> / </span><span style="color:#5BC8DB">Org</span></div>
+      </div>
+      <div class="trow">
+        <div class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+        <div class="cellv">Iron</div><div class="cellv" style="color:#A87BEA">874</div><div class="cellv">0,75 SCU</div>
+        <div class="cellv mut">Levski</div>
+        <div class="cellv mut"><span style="color:#8CA0B3">Private</span><span style="color:rgba(91,200,219,0.25)"> / </span><span style="color:#5BC8DB">Org</span></div>
+      </div>
+      <div class="trow">
+        <div class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+        <div class="cellv">Iron</div><div class="cellv" style="color:#35B9A0">664</div><div class="cellv">0,562 SCU</div>
+        <div class="cellv mut">Levski</div>
+        <div class="cellv mut"><span style="color:#8CA0B3">Private</span><span style="color:rgba(91,200,219,0.25)"> / </span><span style="color:#5BC8DB">Org</span></div>
+      </div>
+      <div class="trow">
+        <div class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+        <div class="cellv">Hephaestanite</div><div class="cellv" style="color:#D65A50">916</div><div class="cellv">0,74 SCU</div>
+        <div class="cellv mut">Levski</div>
+        <div class="cellv mut"><span style="color:#8CA0B3">Private</span><span style="color:rgba(91,200,219,0.25)"> / </span><span style="color:#5BC8DB">Org</span></div>
+      </div>
+      <div class="trow">
+        <div class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+        <div class="cellv">Aphorite</div><div class="cellv" style="color:#D65A50">916</div><div class="cellv">3 pcs</div>
+        <div class="cellv mut">Area 18</div>
+        <div class="cellv mut"><span style="color:#5BC8DB">Private</span><span style="color:rgba(91,200,219,0.25)"> / </span><span style="color:#8CA0B3">Org</span></div>
+      </div>
+      <div class="trow tmpl">
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="plus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+          <div class="badge">1</div>
+        </div>
+        <div class="cellv ph">Material *</div><div class="cellv ph">Quality *</div><div class="cellv ph">Amount *</div>
+        <div class="cellv ph">Location *</div><div class="cellv ph">Private / Org</div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;padding:14px 16px;border-top:1px solid rgba(91,200,219,0.12)">
+        <button class="btn">Add Materials</button>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:16px">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div class="badge">1</div>
+        <div class="sub" style="line-height:1.5">Adds a new empty line — every cell typed from scratch.</div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div class="badge">2</div>
+        <div style="font:400 13px var(--font);line-height:1.5">Copies its own line with Amount cleared.
+          <span style="color:var(--amber)">This is the idea worth keeping</span> — it is the only one that removes typing
+          rather than moving it. In the recommended grid it is <span class="kbd">Ctrl+Enter</span>, so it costs no mouse trip.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 · keystrokes -->
+  <div>
+    <div class="sec-title"><div class="n">3</div><div class="h6">What it costs to type</div>
+      <div class="sub">counted the same way throughout</div></div>
+
+    <p class="sub" style="margin:0 0 16px;line-height:1.55;max-width:82ch">A fresh material is three letters plus Enter, a
+      quality band is one digit plus Enter, an amount is its digits. Moving between cells costs one key. Location and
+      visibility are set once per batch, not per row.</p>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="sec-title" style="margin-bottom:4px">
+        <div style="font:600 13.5px var(--font)">Mixed haul</div>
+        <div class="sub">the five rows in the screenshot — two materials, four different qualities</div>
+      </div>
+      <div class="cmp head"><div></div>
+        <div class="colhead" style="text-align:right">Keystrokes</div>
+        <div class="colhead" style="text-align:right">Mouse trips</div></div>
+      <div class="cmp body"><div class="lab">Today, one form at a time</div>
+        <div class="fig plain">44</div><div class="fig good">0</div></div>
+      <div class="cmp body"><div class="lab">Grid as proposed, duplicating with the +</div>
+        <div class="fig good">37</div><div class="fig bad">4</div></div>
+      <div class="cmp body"><div class="lab">Recommended grid, keyboard only</div>
+        <div class="fig plain">45</div><div class="fig good">0</div></div>
+    </div>
+
+    <div class="card">
+      <div class="sec-title" style="margin-bottom:4px">
+        <div style="font:600 13.5px var(--font)">Repeat haul</div>
+        <div class="sub">twelve crates off one rock — same material, same quality, different amounts</div>
+      </div>
+      <div class="cmp head"><div></div>
+        <div class="colhead" style="text-align:right">Keystrokes</div>
+        <div class="colhead" style="text-align:right">Mouse trips</div></div>
+      <div class="cmp body"><div class="lab">Today, one form at a time</div>
+        <div class="fig bad">96</div><div class="fig good">0</div></div>
+      <div class="cmp body"><div class="lab">Grid as proposed, duplicating with the +</div>
+        <div class="fig good">55</div><div class="fig bad">11</div></div>
+      <div class="cmp body"><div class="lab">Recommended grid, keyboard only</div>
+        <div class="fig good">78</div><div class="fig good">0</div></div>
+    </div>
+
+    <div class="note" style="margin-top:18px">
+      <div class="edge"></div>
+      <p>Mixed entry is a wash — 45 against today's 44. The win is repeats: 78 against 96, with the hands never leaving
+        the keyboard. Nearly all of it comes from <span style="color:var(--amber)">not retyping a repeated material and
+        quality</span>. What the grid uniquely buys on top is seeing and correcting the whole batch before it is committed.</p>
+    </div>
+  </div>
+
+  <!-- 4 · open decisions -->
+  <div>
+    <div class="sec-title"><div class="n">4</div><div class="h6">Still open</div></div>
+    <div class="card">
+      <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:10px;font:400 13.5px var(--font);line-height:1.6">
+        <li><strong>Column order disagrees with the list.</strong> The Materials table reads Material · Quality · Amount;
+          this grid reads Material · Amount · Quality. Putting Amount second means the repeat flow only ever moves
+          forward — Ctrl+Enter lands on Amount, and Quality, the other field that sometimes changes, is the next stop
+          rather than a step backwards. The cost is that the entry grid and the list beneath it no longer line up.</li>
+        <li><strong>Plain arrow stepping is gone.</strong> ±0,001 on the bare arrows was the finest step; only Ctrl
+          (0,01) and Shift (0,1) survive. If 0,001 is used in practice, it needs another home.</li>
+        <li><strong>Materials with no bands yet.</strong> Roughly a third of the catalog has an empty
+          <code>known_qualities</code> — Antium, Carbon, Cobalt and the rest. Those rows fall back to a typed number, as
+          the current form does. Try Antium in the grid to see it.</li>
+        <li><strong>Per-row overrides.</strong> Location and Visibility move to the batch header. A row that differs
+          needs an escape hatch — most likely editing it in the list after saving.</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  // Catalog subset, names / units / bands straight out of resource_types.
+  var MATERIALS = [
+    { name: 'Agricium',        cat: 'Refined', unit: 'SCU', bands: [346, 588, 667, 796, 852, 943, 971, 1000] },
+    { name: 'Aluminum',        cat: 'Refined', unit: 'SCU', bands: [318, 511, 614, 783, 896, 919, 953, 1000] },
+    { name: 'Antium',          cat: 'Refined', unit: 'SCU', bands: [] },
+    { name: 'Aslarite',        cat: 'Refined', unit: 'SCU', bands: [287, 575, 602, 741, 854, 927, 963, 1000] },
+    { name: 'Beryl',           cat: 'Refined', unit: 'SCU', bands: [324, 547, 677, 717, 860, 937, 955, 1000] },
+    { name: 'Bexalite',        cat: 'Refined', unit: 'SCU', bands: [302, 597, 632, 756, 875, 941, 959, 1000] },
+    { name: 'Borase',          cat: 'Refined', unit: 'SCU', bands: [359, 500, 584, 676, 743, 892, 903, 976, 1000] },
+    { name: 'Carbon',          cat: 'Refined', unit: 'SCU', bands: [] },
+    { name: 'Copper',          cat: 'Refined', unit: 'SCU', bands: [359, 593, 652, 742, 855, 917, 958, 1000] },
+    { name: 'Corundum',        cat: 'Refined', unit: 'SCU', bands: [318, 504, 665, 793, 886, 904, 971, 1000] },
+    { name: 'Gold',            cat: 'Refined', unit: 'SCU', bands: [359, 553, 644, 786, 864, 916, 959, 1000] },
+    { name: 'Hephaestanite',   cat: 'Refined', unit: 'SCU', bands: [330, 572, 692, 758, 896, 916, 975, 1000] },
+    { name: 'Iron',            cat: 'Refined', unit: 'SCU', bands: [325, 521, 664, 710, 874, 907, 970, 1000] },
+    { name: 'Laranite',        cat: 'Refined', unit: 'SCU', bands: [298, 510, 698, 707, 858, 910, 975, 1000] },
+    { name: 'Lindinium',       cat: 'Refined', unit: 'SCU', bands: [305, 585, 618, 729, 853, 930, 954, 1000] },
+    { name: 'Ouratite',        cat: 'Refined', unit: 'SCU', bands: [310, 523, 647, 779, 860, 912, 960, 1000] },
+    { name: 'Aphorite',        cat: 'Gem',     unit: 'pcs', bands: [348, 500, 523, 686, 717, 861, 916, 975, 1000] },
+    { name: 'Beradom',         cat: 'Gem',     unit: 'pcs', bands: [287, 500, 578, 656, 723, 881, 937, 969, 1000] },
+    { name: 'Carinite',        cat: 'Gem',     unit: 'pcs', bands: [554, 647, 716, 880, 909, 959, 1000] },
+    { name: 'Dolivine',        cat: 'Gem',     unit: 'pcs', bands: [304, 577, 621, 743, 886, 901, 957, 1000] },
+    { name: 'Feynmaline',      cat: 'Gem',     unit: 'pcs', bands: [371, 561, 682, 769, 880, 906, 965, 1000] },
+    { name: 'Hadanite',        cat: 'Gem',     unit: 'pcs', bands: [274, 526, 665, 762, 867, 916, 959, 1000] },
+    { name: 'Janalite',        cat: 'Gem',     unit: 'pcs', bands: [269, 596, 623, 732, 898, 929, 964, 1000] },
+    { name: 'Sadaryx',         cat: 'Gem',     unit: 'pcs', bands: [258, 510, 688, 797, 865, 940, 971, 1000] }
+  ];
+
+  function material(name) {
+    for (var i = 0; i < MATERIALS.length; i++) if (MATERIALS[i].name === name) return MATERIALS[i];
+    return null;
+  }
+  function bandsFor(name) { var m = material(name); return m ? m.bands : []; }
+  function unitFor(name) { var m = material(name); return m ? m.unit : 'SCU'; }
+
+  function rarity(q) {
+    q = Number(q);
+    if (!q) return '#8A9C99';
+    if (q >= 900) return '#D65A50';
+    if (q >= 800) return '#A87BEA';
+    if (q >= 700) return '#D9A431';
+    if (q >= 600) return '#35B9A0';
+    if (q >= 500) return '#DCE5E3';
+    return '#8A9C99';
+  }
+
+  var FIELDS = ['material', 'amount', 'quality'];
+  var nextId = 6;
+  var rows = [
+    { id: 1, material: 'Iron',          amount: '1',     quality: '874' },
+    { id: 2, material: 'Iron',          amount: '0,75',  quality: '874' },
+    { id: 3, material: 'Iron',          amount: '0,562', quality: '664' },
+    { id: 4, material: 'Hephaestanite', amount: '0,74',  quality: '916' },
+    { id: 5, material: 'Aphorite',      amount: '3',     quality: '916' }
+  ];
+
+  var sel = { row: 0, col: 0 };
+  var mode = false;      // false | 'text' | 'select'
+  var listIdx = 0;       // highlighted suggestion / band
+  var filter = '';       // material search text
+
+  var grid = document.getElementById('grid');
+  var host = document.getElementById('rows');
+  var saveBtn = document.getElementById('savebtn');
+
+  var SVG_DUP = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  var SVG_DEL = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  var SVG_CARET = '<svg class="caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8CA0B3" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>';
+
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+  function isBlank(row) { return !row.material && !row.amount && !row.quality; }
+  function isComplete(row) { return !!(row.material && row.amount && row.quality); }
+
+  function blankRow() { return { id: nextId++, material: '', amount: '', quality: '' }; }
+
+  /**
+   * The grid ends on one empty line so there is always somewhere to type next.
+   * It appears only once the last line is finished — filling the bottom line in
+   * must not make a second one pop up under the cursor while it is half typed.
+   */
+  function ensureBlank() {
+    if (!rows.length || isComplete(rows[rows.length - 1])) rows.push(blankRow());
+  }
+
+  /** Catalog hits for the current filter, best-prefix first, catalog order within. */
+  function suggestions() {
+    var q = filter.trim().toLowerCase();
+    if (!q) return MATERIALS.slice();
+    var starts = [], has = [];
+    for (var i = 0; i < MATERIALS.length; i++) {
+      var n = MATERIALS[i].name.toLowerCase();
+      if (n.indexOf(q) === 0) starts.push(MATERIALS[i]);
+      else if (n.indexOf(q) > 0) has.push(MATERIALS[i]);
+    }
+    return starts.concat(has);
+  }
+
+  function cellClass(r, c) {
+    var cls = 'cell';
+    if (c > 0) cls += ' right';
+    if (sel.row === r && sel.col === c) cls += mode ? ' edit' : ' sel';
+    return cls;
+  }
+
+  function matPopHtml() {
+    var list = suggestions();
+    if (!list.length) return '<div class="pop left"><div class="none">No catalog match</div></div>';
+    var out = '<div class="pop left">', lastCat = '';
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].cat !== lastCat) { out += '<div class="lbl">' + list[i].cat + '</div>'; lastCat = list[i].cat; }
+      out += '<div class="opt' + (i === listIdx ? ' on' : '') + '" data-mat="' + esc(list[i].name) + '">' +
+        '<span>' + esc(list[i].name) + '</span><span class="u">' + list[i].unit + '</span></div>';
+    }
+    return out + '</div>';
+  }
+
+  function bandPopHtml(r) {
+    var list = bandsFor(rows[r].material);
+    if (!list.length) return '';
+    var out = '<div class="pop rightside"><div class="lbl r">Known bands</div>';
+    for (var i = 0; i < list.length; i++) {
+      out += '<div class="band' + (i === listIdx ? ' on' : '') + '" data-band="' + list[i] + '" style="color:' + rarity(list[i]) + '">' + list[i] + '</div>';
+    }
+    return out + '</div>';
+  }
+
+  function render() {
+    ensureBlank();
+    if (sel.row > rows.length - 1) sel.row = rows.length - 1;
+
+    var html = '';
+    for (var r = 0; r < rows.length; r++) {
+      var row = rows[r];
+      var unit = unitFor(row.material);
+      var mEdit = mode && sel.row === r && sel.col === 0;
+      var qEdit = mode && sel.row === r && sel.col === 2;
+      var noBands = bandsFor(row.material).length === 0;
+
+      html += '<div class="grow body" data-row="' + r + '">';
+      html += '<div class="rown">' + (r + 1) + '</div>';
+
+      // material — autocomplete
+      html += '<div class="wrap"><div class="' + cellClass(r, 0) + '" data-c="0">';
+      html += '<div class="bar" style="background:' + rarity(row.quality) + '"></div>';
+      html += '<span class="val' + (row.material ? '' : ' empty') + '">' + (row.material ? esc(row.material) : '—') + '</span>';
+      html += SVG_CARET + '</div>' + (mEdit ? matPopHtml() : '') + '</div>';
+
+      // amount — free text
+      html += '<div class="' + cellClass(r, 1) + '" data-c="1">';
+      html += '<span class="val right' + (row.amount ? '' : ' empty') + '">' + (row.amount ? esc(row.amount) : '—') + '</span>';
+      html += '<span class="unit">' + unit + '</span></div>';
+
+      // quality — select over the material's bands (typed when it has none)
+      html += '<div class="wrap"><div class="' + cellClass(r, 2) + '" data-c="2">';
+      html += '<span class="val right q' + (row.quality ? '' : ' empty') + '" style="color:' + (row.quality ? rarity(row.quality) : '') + '">' + (row.quality ? esc(row.quality) : '—') + '</span>';
+      html += noBands ? '' : SVG_CARET;
+      html += '</div>' + (qEdit ? bandPopHtml(r) : '') + '</div>';
+
+      html += '<div class="acts"><button class="rowbtn" data-dup="' + r + '" title="Repeat this line, amount cleared (Ctrl+Enter)">' + SVG_DUP + '</button>';
+      html += '<button class="rowbtn" data-del="' + r + '" title="Remove this line">' + SVG_DEL + '</button></div>';
+      html += '</div>';
+    }
+    host.innerHTML = html;
+
+    var ready = rows.filter(function (x) { return x.material && x.amount && x.quality; }).length;
+    saveBtn.textContent = 'Save ' + ready + ' rows';
+
+    if (mode === 'text') mountInput();
+    else grid.focus();
+  }
+
+  function mountInput() {
+    var box = host.querySelector('[data-row="' + sel.row + '"] [data-c="' + sel.col + '"]');
+    if (!box) return;
+    var span = box.querySelector('.val');
+    var input = document.createElement('input');
+    input.className = sel.col > 0 ? 'right' : '';
+    input.value = sel.col === 0 ? filter : rows[sel.row][FIELDS[sel.col]];
+    if (span) box.replaceChild(input, span); else box.insertBefore(input, box.firstChild);
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+    input.addEventListener('keydown', onEditKey);
+    if (sel.col === 0) input.addEventListener('input', function () { filter = input.value; listIdx = 0; render(); });
+  }
+
+  function liveInput() { return host.querySelector('[data-row="' + sel.row + '"] input'); }
+
+  function select(r, c) {
+    sel.row = Math.max(0, Math.min(rows.length - 1, r));
+    sel.col = Math.max(0, Math.min(2, c));
+    mode = false;
+    render();
+  }
+
+  /** Quality is a select unless the material has no bands yet; material is always a filter box. */
+  function beginEdit(seed) {
+    var row = rows[sel.row];
+    if (sel.col === 0) {
+      filter = seed === undefined ? '' : seed;
+      listIdx = 0;
+      mode = 'text';
+      render();
+      return;
+    }
+    if (sel.col === 2) {
+      var list = bandsFor(row.material);
+      if (list.length) {
+        var at = list.indexOf(Number(row.quality));
+        listIdx = at < 0 ? 0 : at;
+        if (seed !== undefined) jumpBand(seed);
+        mode = 'select';
+        render();
+        return;
+      }
+    }
+    mode = 'text';
+    render();
+    if (seed !== undefined) {
+      var input = liveInput();
+      if (input) { input.value = seed; input.setSelectionRange(seed.length, seed.length); }
+    }
+  }
+
+  function jumpBand(digit) {
+    var list = bandsFor(rows[sel.row].material);
+    for (var i = 0; i < list.length; i++) {
+      if (String(list[i]).indexOf(digit) === 0) { listIdx = i; return; }
+    }
+  }
+
+  function write(col, value) { rows[sel.row][FIELDS[col]] = value; }
+
+  /** Land on a row at the material cell; an untouched row opens its picker. */
+  function goRow(n) {
+    sel = { row: Math.max(0, Math.min(rows.length - 1, n)), col: 0 };
+    mode = false;
+    if (isBlank(rows[sel.row])) beginEdit('');
+    else render();
+  }
+
+  /** Enter: this line is done, move to the next one, making it if needed. */
+  function completeRow() {
+    if (sel.row === rows.length - 1) rows.push(blankRow());
+    goRow(sel.row + 1);
+  }
+
+  function pickMaterial(name) {
+    var row = rows[sel.row];
+    row.material = name;
+    // Bands differ per material — a quality the new one does not have cannot stand.
+    if (bandsFor(name).length && bandsFor(name).indexOf(Number(row.quality)) < 0) row.quality = '';
+    sel.col = 1;
+    mode = false;
+    // A fresh line carries straight on into the amount; an existing line is
+    // only re-pointed, so the row keeps whatever it already had.
+    if (row.amount === '') beginEdit('');
+    else render();
+  }
+
+  function pickBand(value) {
+    write(2, String(value));
+    mode = false;
+    render();
+  }
+
+  function repeatLine(from) {
+    var src = rows[from];
+    rows.splice(from + 1, 0, { id: nextId++, material: src.material, amount: '', quality: src.quality });
+    sel = { row: from + 1, col: 1 };
+    mode = false;
+    beginEdit('');
+  }
+
+  function step(delta) {
+    var input = liveInput();
+    if (!input) return;
+    var n = Number(String(input.value).replace(',', '.')) || 0;
+    var next = Math.max(0, n + delta);
+    input.value = next.toFixed(3).replace(/0+$/, '').replace(/\.$/, '').replace('.', ',');
+  }
+
+  function moveCell(back) {
+    if (back) {
+      if (sel.col > 0) select(sel.row, sel.col - 1);
+      else select(sel.row - 1, 2);
+      return;
+    }
+    if (sel.col < 2) {
+      select(sel.row, sel.col + 1);
+      // Arriving on Quality opens the band list straight away.
+      if (sel.col === 2 && bandsFor(rows[sel.row].material).length) beginEdit();
+      return;
+    }
+    select(sel.row + 1, 0);
+  }
+
+  grid.addEventListener('keydown', function (e) {
+    var k = e.key;
+
+    // The band list has no input of its own, so the grid drives it.
+    if (mode === 'select') {
+      var list = bandsFor(rows[sel.row].material);
+      if (k === 'Escape') { e.preventDefault(); mode = false; render(); return; }
+      if (k === 'ArrowUp') { e.preventDefault(); listIdx = Math.max(0, listIdx - 1); render(); return; }
+      if (k === 'ArrowDown') { e.preventDefault(); listIdx = Math.min(list.length - 1, listIdx + 1); render(); return; }
+      if (k === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); pickBand(list[listIdx]); repeatLine(sel.row); return; }
+      if (k === 'Enter') { e.preventDefault(); pickBand(list[listIdx]); completeRow(); return; }
+      if (k === 'Tab') { e.preventDefault(); pickBand(list[listIdx]); moveCell(e.shiftKey); return; }
+      if (k >= '0' && k <= '9') { e.preventDefault(); jumpBand(k); render(); return; }
+      return;
+    }
+
+    if (mode) return; // a text cell owns its keys
+
+    if (k === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); repeatLine(sel.row); return; }
+    if (k === 'Enter') { e.preventDefault(); completeRow(); return; }
+    if (k === 'ArrowUp') { e.preventDefault(); select(sel.row - 1, sel.col); return; }
+    if (k === 'ArrowDown') { e.preventDefault(); select(sel.row + 1, sel.col); return; }
+    if (k === 'ArrowLeft') { e.preventDefault(); select(sel.row, sel.col - 1); return; }
+    if (k === 'ArrowRight') { e.preventDefault(); select(sel.row, sel.col + 1); return; }
+    if (k === 'Tab') { e.preventDefault(); moveCell(e.shiftKey); return; }
+    if (k === ' ') { e.preventDefault(); beginEdit(); return; }
+    if (k === 'Backspace' || k === 'Delete') { e.preventDefault(); write(sel.col, ''); render(); return; }
+    if (k.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); beginEdit(k); }
+  });
+
+  function onEditKey(e) {
+    // The input sits inside the grid: without this the grid handler would run
+    // again on the state this one just changed, and act twice on one key.
+    e.stopPropagation();
+
+    var k = e.key, input = e.target;
+
+    if (k === 'Escape') { e.preventDefault(); mode = false; render(); return; }
+
+    // material: the list is the value — arrows walk it, Enter or Tab takes the highlight
+    if (sel.col === 0) {
+      var list = suggestions();
+      if (k === 'ArrowUp') { e.preventDefault(); listIdx = Math.max(0, listIdx - 1); render(); return; }
+      if (k === 'ArrowDown') { e.preventDefault(); listIdx = Math.min(list.length - 1, listIdx + 1); render(); return; }
+      if (k === 'Enter' || k === 'Tab') {
+        e.preventDefault();
+        if (list.length) pickMaterial(list[listIdx].name);
+        return;
+      }
+      return;
+    }
+
+    if (sel.col === 1 && (k === 'ArrowUp' || k === 'ArrowDown') && (e.ctrlKey || e.shiftKey)) {
+      e.preventDefault();
+      step((k === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? 0.1 : 0.01));
+      return;
+    }
+
+    if (k === 'Tab') { e.preventDefault(); write(sel.col, input.value); mode = false; moveCell(e.shiftKey); return; }
+    if (k === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); write(sel.col, input.value); repeatLine(sel.row); return; }
+    if (k === 'Enter') { e.preventDefault(); write(sel.col, input.value); mode = false; completeRow(); return; }
+  }
+
+  host.addEventListener('mousedown', function (e) {
+    var dup = e.target.closest('[data-dup]');
+    if (dup) { e.preventDefault(); repeatLine(Number(dup.getAttribute('data-dup'))); return; }
+
+    var del = e.target.closest('[data-del]');
+    if (del) {
+      e.preventDefault();
+      var i = Number(del.getAttribute('data-del'));
+      rows.splice(i, 1);
+      select(Math.max(0, i - 1), sel.col);
+      return;
+    }
+
+    var mat = e.target.closest('[data-mat]');
+    if (mat) { e.preventDefault(); pickMaterial(mat.getAttribute('data-mat')); return; }
+
+    var band = e.target.closest('[data-band]');
+    if (band) { e.preventDefault(); pickBand(band.getAttribute('data-band')); return; }
+
+    var cell = e.target.closest('[data-c]');
+    if (!cell) return;
+    var r = Number(cell.closest('[data-row]').getAttribute('data-row'));
+    var c = Number(cell.getAttribute('data-c'));
+    if (mode && sel.row === r && sel.col === c) return; // clicking inside the open editor
+    e.preventDefault();
+    if (sel.row === r && sel.col === c && !mode) { beginEdit(); return; }
+    select(r, c);
+  });
+
+  ensureBlank();
+  sel = { row: rows.length - 1, col: 0 };
+  render();
+})();
+</script>
+</body>
+</html>

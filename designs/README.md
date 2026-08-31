@@ -12,6 +12,7 @@ Tech Mono — the same faces the client bundles).
 | `scan-window-cluster.html` | The same window in its cluster state (Lindinium × 3, legendary) | same canvas |
 | `blueprints-checklist.html` | Website blueprints page, option A · Fabricator checklist (approved 2026-08-28): all blueprints grouped in fabricator order, live Mine tick, craft-list filters and owners column, full pager | https://claude.ai/code/artifact/baf435b3-321f-497b-9f59-1be1d4c42674 |
 | `blueprints-matrix.html` | Website blueprints page, option B · Matrix + quick add (approved 2026-08-28): grid with Type/Grade columns, your column clickable, quick-add field | same canvas |
+| `material-entry-grid.html` | Materials quick entry as a spreadsheet grid (tester proposal, assessed 2026-08-31): live keyboard-driven grid — arrows navigate, only the focused cell edits, Material is an autocomplete over the resource catalog and Quality a select of that material's known bands, Enter opens a new line, Ctrl+Enter repeats the line with Amount cleared, Amount before Quality — beside the sketch as proposed, the keystroke comparison and the open decisions | local only |
 
 The scan-window pages are the artboards of the design canvas exported as plain
 HTML; the canvas itself (editable) lives at the artifact link. Design decisions
