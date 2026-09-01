@@ -5,7 +5,9 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
-## Unreleased
+## 0.1.11 — 2026-09-01
+
+**Bulk entry.**
 
 - **Add multiple** now covers items too: the entry grid is one shared component, configured per page. Items get a free-solo catalog picker (an unknown name is kept as the class), whole-piece amounts, and a **quality** — typed rather than picked from bands, since bought and crafted gear carries a grade the catalog cannot know. Item stacks gain a nullable `quality` column, shown as a sortable list column and editable in the stack dialog; the single Add item form gains the field too, sticky between entries. Fresh item lines start on 500, the in-game spawn grade.
 - The entry grid closes on a successful save and reports it in a snackbar; only lines the server refused keep it open, with their reason.
