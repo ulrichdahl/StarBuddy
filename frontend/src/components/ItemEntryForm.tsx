@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Autocomplete from '@mui/material/Autocomplete'
 import Button from '@mui/material/Button'
+import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
@@ -27,9 +28,11 @@ function useItemSearch(search: string) {
  * item → quantity → Enter, focus moving forward on every pick. Items come
  * from the synced wiki catalog; a name with no match is kept verbatim as
  * the class (freeSolo). After submit, location and visibility stay; item +
- * quantity clear; focus returns to the item field.
+ * quantity clear; focus returns to the item field. Quality stays too — it
+ * starts at the in-game spawn grade of 500 and a run of gear usually shares
+ * one.
  */
-export function ItemEntryForm() {
+export function ItemEntryForm({ onAddMultiple }: { onAddMultiple?: () => void }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const itemInputRef = useRef<HTMLInputElement>(null)
@@ -38,6 +41,8 @@ export function ItemEntryForm() {
   // Sticky fields — survive submits.
   const [location, setLocation] = useState<Location | null>(null)
   const [visibility, setVisibility] = useState<Visibility>('private')
+  // Items spawn at 500 in game; crafted or bought gear is typed over it.
+  const [quality, setQuality] = useState('500')
 
   // Cleared on each submit. `item` is a catalog row or the free-typed class.
   const [item, setItem] = useState<Item | string | null>(null)
@@ -83,10 +88,18 @@ export function ItemEntryForm() {
     if (chosen === null || !location || !canSubmit) return
     createStack.mutate(
       typeof chosen === 'string'
-        ? { item_class: chosen, item_name: null, quantity: Math.round(Number(quantity)), location_id: location.id, visibility }
+        ? {
+            item_class: chosen,
+            item_name: null,
+            quality: quality === '' ? null : Number(quality),
+            quantity: Math.round(Number(quantity)),
+            location_id: location.id,
+            visibility,
+          }
         : {
             item_class: chosen.class_name ?? chosen.name,
             item_name: chosen.name,
+            quality: quality === '' ? null : Number(quality),
             quantity: Math.round(Number(quantity)),
             location_id: location.id,
             visibility,
@@ -106,9 +119,21 @@ export function ItemEntryForm() {
 
   return (
     <Paper component="form" onSubmit={handleSubmit} sx={{ p: 2.5 }}>
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        {t('items.entry.title')}
-      </Typography>
+      <Stack direction="row" spacing={1} sx={{ mb: 2, alignItems: 'center' }}>
+        <Typography variant="h6" noWrap sx={{ flexGrow: 1, minWidth: 0 }}>
+          {t('items.entry.title')}
+        </Typography>
+        {onAddMultiple && (
+          <Button
+            size="small"
+            startIcon={<PlaylistAddIcon />}
+            onClick={onAddMultiple}
+            sx={{ ml: 'auto', flexShrink: 0 }}
+          >
+            {t('items.bulk.open')}
+          </Button>
+        )}
+      </Stack>
       <Stack spacing={2}>
         <Autocomplete<Item, false, false, true>
           freeSolo
@@ -167,6 +192,15 @@ export function ItemEntryForm() {
           onKeyDown={handleQuantityKeys}
           slotProps={{ htmlInput: { min: 1, step: 1 } }}
           helperText={t('items.entry.quantityHint')}
+        />
+
+        <TextField
+          label={t('items.columns.quality')}
+          type="number"
+          value={quality}
+          onChange={(e) => setQuality(e.target.value)}
+          slotProps={{ htmlInput: { min: 0, max: 1000, step: 1 } }}
+          helperText={t('items.entry.qualityHint')}
         />
 
         <LocationSelect

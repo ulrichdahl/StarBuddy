@@ -107,6 +107,7 @@ export interface ItemStack {
   user_id: number
   item_class: string
   item_name: string | null
+  quality: number | null
   quantity: number
   location: Location
   visibility: Visibility
@@ -120,6 +121,8 @@ export interface CreateItemStack {
   item_class: string
   /** Display name from the catalog; null for a free-typed class. */
   item_name?: string | null
+  /** Crafted and bought gear carries a grade; null for plain items. */
+  quality?: number | null
   quantity: number
   location_id: number
   visibility: Visibility

@@ -314,7 +314,8 @@
       "system": "System",
       "location": "Lokation",
       "visibility": "Synlighed",
-      "updated": "Opdateret"
+      "updated": "Opdateret",
+      "quality": "Kvalitet"
     },
     "crafted": "craftet",
     "visibility": {
@@ -332,7 +333,8 @@
     "edit": {
       "title": "rediger stak",
       "zeroRemoves": "Sæt til 0 for at fjerne stakken",
-      "saveError": "Ændringen kunne ikke gemmes. Prøv igen."
+      "saveError": "Ændringen kunne ikke gemmes. Prøv igen.",
+      "qualityOptional": "Valgfri — craftet eller købt udstyr"
     },
     "editStack": "Rediger stak",
     "entry": {
@@ -348,7 +350,13 @@
       "private": "Privat",
       "orgVisible": "Synlig for org",
       "saveFailed": "Kunne ikke gemme item-stakken. Prøv igen.",
-      "submit": "Tilføj stak"
+      "submit": "Tilføj stak",
+      "qualityHint": "Bevares mellem indtastninger — 500 er spillets standardkvalitet"
+    },
+    "bulk": {
+      "open": "Tilføj flere",
+      "title": "Tilføj flere genstande",
+      "help": "Én linje pr. stak. Lokation gælder hele holdet; synlighed er pr. linje, og en ny linje arver den fra linjen ovenfor. Kvalitet er valgfri — til craftet eller købt udstyr."
     }
   },
   "blueprints": {
@@ -491,14 +499,6 @@
       "open": "Tilføj flere",
       "title": "Tilføj flere materialer",
       "help": "Én linje pr. stak. Lokation gælder hele holdet; synlighed er pr. linje, og en ny linje arver den fra linjen ovenfor.",
-      "keys": "↑↓←→ flytter · skriv for at redigere · Enter gemmer linjen og går til næste · Ctrl+Enter gentager linjen med mængden ryddet · Tab går gennem cellerne · i Mængde springer Ctrl+↑↓ 0,01 og Shift+↑↓ 0,1 · Mellemrum skifter linjens synlighed",
-      "repeat": "Gentag denne linje, mængden ryddet",
-      "remove": "Fjern denne linje",
-      "save_one": "Gem {{count}} linje",
-      "save_other": "Gem {{count}} linjer",
-      "saved_one": "Gemte {{count}} stak.",
-      "saved_other": "Gemte {{count}} stakke.",
-      "failedHint": "Linjer serveren afviste står her stadig med årsagen — ret dem og gem igen.",
       "noMatch": "Intet materiale med det navn"
     }
   },
@@ -582,5 +582,22 @@
     "testersBody": "Medlemmer der kører dev-builds, går til for at få ting til at gå i stykker og fortæller hvad der skete — tak.",
     "creditsTitle": "Kreditering",
     "creditsBody": "Et United Danes-fællesskabsprojekt, bygget af DK-Raven med Claude (Anthropic). Design og kode ligger på GitHub under AGPL-3.0; Star Citizen Wiki, SC Trade Tools, ocrs og signaturtabellens forfattere gør datasiden mulig.\nStar Citizen®, Roberts Space Industries® og Cloud Imperium® er registrerede varemærker tilhørende Cloud Imperium Rights LLC. Dette er en uofficiel fanside."
+  },
+  "bulk": {
+    "amount": "Mængde",
+    "quality": "Kvalitet",
+    "visibility": "Synlighed",
+    "location": "Lokation",
+    "bands": "Kendte bånd",
+    "private": "Kun dig",
+    "org": "Synlig for org",
+    "repeat": "Gentag denne linje, mængden ryddet",
+    "remove": "Fjern denne linje",
+    "keys": "↑↓←→ flytter · skriv for at redigere · Enter gemmer linjen og går til næste · Ctrl+Enter gentager linjen med mængden ryddet · Tab går gennem cellerne · Mellemrum skifter linjens synlighed · i Mængde springer Ctrl+↑↓ og Shift+↑↓",
+    "save_one": "Gem {{count}} linje",
+    "save_other": "Gem {{count}} linjer",
+    "saved_one": "Gemte {{count}} stak.",
+    "saved_other": "Gemte {{count}} stakke.",
+    "failedHint": "Linjer serveren afviste står her stadig med årsagen — ret dem og gem igen."
   }
 }

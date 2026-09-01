@@ -31,6 +31,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import GroupsIcon from '@mui/icons-material/Groups'
 import UndoIcon from '@mui/icons-material/Undo'
 import ViewListIcon from '@mui/icons-material/ViewList'
+import { qualityColor } from '../lib/rarity'
 import { api, apiErrorDetail } from '../lib/api'
 import { useMe } from '../lib/auth'
 import type { ItemStack, Location, OrgInventoryExtra, OrgItemRow, Visibility } from '../lib/types'
@@ -38,6 +39,7 @@ import { usePaginatedList } from '../lib/usePaginatedList'
 import { PageHeader } from '../components/PageHeader'
 import { ListPager } from '../components/ListPager'
 import { ItemEntryForm } from '../components/ItemEntryForm'
+import { ItemGridDialog } from '../components/ItemGridDialog'
 import { LocationSelect } from '../components/LocationSelect'
 import { OrgMatrixTable } from '../components/OrgMatrixTable'
 import { useSystems } from '../lib/locations'
@@ -46,6 +48,7 @@ function EditItemStackDialog({ stack, onClose }: { stack: ItemStack; onClose: ()
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [quantity, setQuantity] = useState(String(stack.quantity))
+  const [quality, setQuality] = useState(stack.quality === null ? '' : String(stack.quality))
   const [location, setLocation] = useState<Location | null>(stack.location)
   const [visibility, setVisibility] = useState<Visibility>(stack.visibility)
 
@@ -58,6 +61,7 @@ function EditItemStackDialog({ stack, onClose }: { stack: ItemStack; onClose: ()
     mutationFn: () =>
       api.patch(`/api/item-stacks/${stack.id}`, {
         quantity: Math.max(0, Math.round(Number(quantity))),
+        quality: quality === '' ? null : Number(quality),
         location_id: location?.id,
         visibility,
       }),
@@ -86,6 +90,14 @@ function EditItemStackDialog({ stack, onClose }: { stack: ItemStack; onClose: ()
             onChange={(e) => setQuantity(e.target.value)}
             slotProps={{ htmlInput: { min: 0, step: 1 } }}
             helperText={t('items.edit.zeroRemoves')}
+          />
+          <TextField
+            label={t('items.columns.quality')}
+            type="number"
+            value={quality}
+            onChange={(e) => setQuality(e.target.value)}
+            slotProps={{ htmlInput: { min: 0, max: 1000, step: 1 } }}
+            helperText={t('items.edit.qualityOptional')}
           />
           <LocationSelect value={location} onChange={setLocation} label={t('items.columns.location')} />
           <ToggleButtonGroup
@@ -130,7 +142,7 @@ function EditItemStackDialog({ stack, onClose }: { stack: ItemStack; onClose: ()
   )
 }
 
-type SortField = 'updated_at' | 'item' | 'quantity' | 'system' | 'location' | 'visibility'
+type SortField = 'updated_at' | 'item' | 'quantity' | 'quality' | 'system' | 'location' | 'visibility'
 type OrgSortField = 'name' | 'total' | 'stacks' | 'holders'
 type View = 'stacks' | 'org'
 
@@ -187,6 +199,7 @@ export function ItemsPage() {
     dir: orgDir,
   }, { enabled: view === 'org' })
   const { me } = useMe()
+  const [bulkOpen, setBulkOpen] = useState(false)
   const queryClient = useQueryClient()
   // Undo is two-click: the first click arms the row, the second confirms.
   const [armedId, setArmedId] = useState<number | null>(null)
@@ -323,6 +336,7 @@ export function ItemsPage() {
                 <TableRow>
                   {header(t('items.columns.item'), 'item')}
                   {header(t('items.columns.quantity'), 'quantity', 'right')}
+                  {header(t('items.columns.quality'), 'quality', 'right')}
                   {header(t('items.columns.system'), 'system')}
                   {header(t('items.columns.location'), 'location')}
                   {header(t('items.columns.visibility'), 'visibility')}
@@ -349,6 +363,9 @@ export function ItemsPage() {
                     </TableCell>
                     <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
                       {stack.quantity.toLocaleString(i18n.language)}
+                    </TableCell>
+                    <TableCell align="right" sx={{ color: qualityColor(stack.quality), fontVariantNumeric: 'tabular-nums' }}>
+                      {stack.quality ?? t('common.none')}
                     </TableCell>
                     <TableCell>{stack.location.system ?? t('locations.groupPersonal')}</TableCell>
                     <TableCell>{stack.location.name}</TableCell>
@@ -392,7 +409,7 @@ export function ItemsPage() {
                 ))}
                 {!isLoading && stacks.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={8}>
                       <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
                         {t('items.empty')}
                       </Typography>
@@ -404,9 +421,10 @@ export function ItemsPage() {
           </TableContainer>
           <ListPager total={total} page={page} rowsPerPage={rowsPerPage} onPageChange={setPage} onRowsPerPageChange={setRowsPerPage} />
         </Paper>
-        <ItemEntryForm />
+        <ItemEntryForm onAddMultiple={() => setBulkOpen(true)} />
       </Box>
       )}
+      <ItemGridDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
       {editing && <EditItemStackDialog stack={editing} onClose={() => setEditing(null)} />}
     </Box>
   )

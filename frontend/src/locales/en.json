@@ -314,7 +314,8 @@
       "system": "System",
       "location": "Location",
       "visibility": "Visibility",
-      "updated": "Updated"
+      "updated": "Updated",
+      "quality": "Quality"
     },
     "crafted": "crafted",
     "visibility": {
@@ -332,7 +333,8 @@
     "edit": {
       "title": "edit stack",
       "zeroRemoves": "Set to 0 to remove the stack",
-      "saveError": "Could not save the change. Try again."
+      "saveError": "Could not save the change. Try again.",
+      "qualityOptional": "Optional — crafted or bought gear"
     },
     "editStack": "Edit stack",
     "entry": {
@@ -348,7 +350,13 @@
       "private": "Private",
       "orgVisible": "Org-visible",
       "saveFailed": "Could not save the item stack. Try again.",
-      "submit": "Add stack"
+      "submit": "Add stack",
+      "qualityHint": "Kept between entries — 500 is the in-game spawn grade"
+    },
+    "bulk": {
+      "open": "Add multiple",
+      "title": "Add multiple items",
+      "help": "One line per stack. Location applies to the whole batch; visibility is per line and a new line inherits the one above. Quality is optional — for crafted or bought gear."
     }
   },
   "blueprints": {
@@ -491,14 +499,6 @@
       "open": "Add multiple",
       "title": "Add multiple materials",
       "help": "One line per stack. Location applies to the whole batch; visibility is per line and a new line inherits the one above.",
-      "keys": "↑↓←→ move · type to edit · Enter saves the line and moves to the next · Ctrl+Enter repeats the line with the amount cleared · Tab walks the cells · inside Amount, Ctrl+↑↓ steps 0.01 and Shift+↑↓ steps 0.1 · Space toggles the visibility of a line",
-      "repeat": "Repeat this line, amount cleared",
-      "remove": "Remove this line",
-      "save_one": "Save {{count}} line",
-      "save_other": "Save {{count}} lines",
-      "saved_one": "Saved {{count}} stack.",
-      "saved_other": "Saved {{count}} stacks.",
-      "failedHint": "Lines the server refused are still here with the reason — fix them and save again.",
       "noMatch": "No material of that name"
     }
   },
@@ -582,5 +582,22 @@
     "testersBody": "Members who run the dev builds, break things on purpose and tell us what happened — thank you.",
     "creditsTitle": "Credits",
     "creditsBody": "A United Danes community project, built by DK-Raven with Claude (Anthropic). Design and code are on GitHub under AGPL-3.0; the Star Citizen Wiki, SC Trade Tools, ocrs and the signature-table authors make the data side possible.\nStar Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. This is an unofficial fan site."
+  },
+  "bulk": {
+    "amount": "Amount",
+    "quality": "Quality",
+    "visibility": "Visibility",
+    "location": "Location",
+    "bands": "Known bands",
+    "private": "Only you",
+    "org": "Org-visible",
+    "repeat": "Repeat this line, amount cleared",
+    "remove": "Remove this line",
+    "keys": "↑↓←→ move · type to edit · Enter saves the line and moves to the next · Ctrl+Enter repeats the line with the amount cleared · Tab walks the cells · Space toggles the visibility of a line · in Amount, Ctrl+↑↓ and Shift+↑↓ step it",
+    "save_one": "Save {{count}} line",
+    "save_other": "Save {{count}} lines",
+    "saved_one": "Saved {{count}} stack.",
+    "saved_other": "Saved {{count}} stacks.",
+    "failedHint": "Lines the server refused are still here with the reason — fix them and save again."
   }
 }

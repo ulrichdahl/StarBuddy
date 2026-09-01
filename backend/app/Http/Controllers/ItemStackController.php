@@ -25,7 +25,7 @@ class ItemStackController extends Controller
             'system' => $query->select('item_stacks.*')
                 ->join('locations', 'locations.id', '=', 'item_stacks.location_id')
                 ->orderBy('locations.system', $dir)->orderBy('locations.name', $dir),
-            'quantity', 'visibility' => $query->orderBy('item_stacks.'.$request->query('sort'), $dir),
+            'quantity', 'quality', 'visibility' => $query->orderBy('item_stacks.'.$request->query('sort'), $dir),
             default => $query->orderBy('item_stacks.updated_at', $dir),
         };
 
@@ -37,6 +37,7 @@ class ItemStackController extends Controller
         $data = $request->validate([
             'item_class' => ['required', 'string', 'max:255'],
             'item_name' => ['nullable', 'string', 'max:255'],
+            'quality' => ['nullable', 'integer', 'min:0', 'max:1000'],
             'location_id' => ['required', 'exists:locations,id'],
             'quantity' => ['required', 'integer', 'min:1'],
             'visibility' => ['sometimes', 'in:private,org'],
@@ -54,6 +55,7 @@ class ItemStackController extends Controller
         abort_unless($itemStack->user_id === $request->user()->id, 403);
 
         $data = $request->validate([
+            'quality' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:1000'],
             'quantity' => ['sometimes', 'integer', 'min:0'],
             'location_id' => ['sometimes', 'exists:locations,id'],
             'visibility' => ['sometimes', 'in:private,org'],
