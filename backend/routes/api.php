@@ -13,6 +13,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\RefineryOrderController;
 use App\Http\Controllers\ResourceStackController;
 use App\Http\Controllers\ResourceTypeController;
+use App\Http\Controllers\ScreenshotSubmissionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -72,6 +73,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Game.log event ingestion from paired desktop clients (idempotent)
     Route::post('ingest/events', [IngestController::class, 'store']);
+
+    // Contributed screenshots for training the panel detector. Members submit
+    // and see their own; managers review the queue and export the approved set.
+    Route::get('training/labels', [ScreenshotSubmissionController::class, 'labels']);
+    Route::get('training/screenshots', [ScreenshotSubmissionController::class, 'index']);
+    Route::post('training/screenshots', [ScreenshotSubmissionController::class, 'store'])
+        ->middleware('throttle:60,1');
+    Route::get('training/screenshots/queue', [ScreenshotSubmissionController::class, 'queue']);
+    Route::get('training/screenshots/export', [ScreenshotSubmissionController::class, 'export']);
+    Route::get('training/screenshots/{submission}/image', [ScreenshotSubmissionController::class, 'image']);
+    Route::patch('training/screenshots/{submission}', [ScreenshotSubmissionController::class, 'update']);
+    Route::post('training/screenshots/{submission}/review', [ScreenshotSubmissionController::class, 'review']);
 });
 
 // Deployed version for footers and support requests — public, no auth needed.

@@ -6,6 +6,9 @@ FROM php:8.5-fpm-alpine AS base
 RUN apk add --no-cache postgresql-dev icu-dev libzip-dev \
     && docker-php-ext-install pdo_pgsql intl zip pcntl
 
+# Upload limits big enough for a game screenshot; see the file for why.
+COPY docker/uploads.ini /usr/local/etc/php/conf.d/zz-uploads.ini
+
 WORKDIR /var/www/html
 
 FROM composer:2 AS deps

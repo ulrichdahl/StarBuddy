@@ -8,7 +8,8 @@
     "loading": "Indlæser…",
     "language": "Sprog",
     "none": "—",
-    "undo": "Fortryd"
+    "undo": "Fortryd",
+    "clear": "Ryd"
   },
   "nav": {
     "dashboard": "Oversigt",
@@ -23,7 +24,8 @@
     "mainNavigation": "Hovednavigation",
     "findItem": "Find en genstand",
     "findItemPlaceholder": "Find en genstand…",
-    "about": "Om"
+    "about": "Om",
+    "training": "Scanningstræning"
   },
   "login": {
     "tagline": "Materiale- og blueprint-styring for din org i Star Citizen. Log ind med den Discord-konto, der er knyttet til din org.",
@@ -601,5 +603,100 @@
     "saved_one": "Gemte {{count}} stak.",
     "saved_other": "Gemte {{count}} stakke.",
     "failedHint": "Linjer serveren afviste står her stadig med årsagen — ret dem og gem igen."
+  },
+  "training": {
+    "title": "Scanningstræning",
+    "subtitle": "Bidrag med skærmbilleder, der lærer StarBuddy at læse panelerne i spillet",
+    "tabs": {
+      "contribute": "Bidrag",
+      "mine": "Mine bidrag ({{count}})",
+      "review": "Til gennemsyn"
+    },
+    "help": {
+      "title": "Hvad er et brugbart skærmbillede",
+      "body": "Skæve, akavede og delvist dækkede billeder er mere værd end pæne, lige forfra — det er sådan, panelerne ser ud i praksis. Send hele billedet direkte fra spillet, uden beskæring og uden HUD-mods. Undgå andre spilleres navne, hvor du kan."
+    },
+    "chooseScreenshot": "Vælg skærmbillede",
+    "tooBig": "Filen er større end {{limit}} MB. Send den originale PNG eller JPEG direkte fra spillet.",
+    "submit": "Send til gennemsyn",
+    "submitting": "Sender…",
+    "submitted": "Tak — dit skærmbillede ligger nu til gennemsyn.",
+    "submitFailed": "Kunne ikke sende skærmbilledet.",
+    "submitBlocked": "Markér alle fire hjørner, og vælg skærm og HUD-farve først.",
+    "noneYet": "Du har ikke bidraget med skærmbilleder endnu.",
+    "reviewNote": "Bemærkning fra gennemsyn",
+    "submittedBy": "Indsendt af {{who}}",
+    "occludedChip": "Delvist dækket",
+    "approve": "Godkend",
+    "reject": "Afvis",
+    "fixCorners": "Ret hjørner",
+    "saveCorners": "Gem hjørner",
+    "correctFailed": "Kunne ikke gemme rettelsen.",
+    "reviewFailed": "Kunne ikke registrere afgørelsen.",
+    "queueEmpty": "Der venter ingenting her.",
+    "alreadyExported": "Var med i et tidligere datasæt-download.",
+    "export": "Hent datasæt ({{count}})",
+    "picker": {
+      "imageAlt": "Skærmbillede der markeres",
+      "clickHint": "Klik på hjørnerne af den oplyste skærm — {{remaining}} tilbage. Rækkefølgen er fri.",
+      "adjustHint": "Træk en markør for at justere, eller vælg den og flyt med piletasterne.",
+      "cornerHandle": "Hjørne {{number}}",
+      "startOver": "Start forfra",
+      "sampleHint": "Klik på den lyseste del af HUD'et — en oplyst kant, en overskrift, et tal."
+    },
+    "fields": {
+      "screen": "Hvilken skærm er det?",
+      "screenHelp": "Hvad panelet viser. Vælg en, eller skriv et navn ingen har brugt endnu.",
+      "hudColour": "HUD-farve",
+      "hudColourHelp": "Panelets dominerende farve.",
+      "ship": "Skib",
+      "shipHelp": "Vælg dit skib eller skriv det. Lad feltet stå tomt, hvis du var til fods.",
+      "occluded": "Delvist dækket",
+      "occludedHelp": "Din figur, skibets geometri, genskin eller et værktøjstip dækker en del af panelet.",
+      "note": "Noget værd at nævne (valgfrit)",
+      "patchNote": "Registreres på spilversion {{patch}}.",
+      "notUsedYet": "ny",
+      "sampleColour": "Udtag HUD-farve fra skærmbilledet",
+      "samplingActive": "Klik nu på HUD'et…",
+      "sampledSwatch": "Udtaget farve {{hex}}",
+      "sampledHelp": "Udtog {{hex}} fra panelet. Ret det kun, hvis det ser forkert ud."
+    },
+    "status": {
+      "pending": "Afventer",
+      "approved": "Godkendt",
+      "rejected": "Afvist"
+    },
+    "screens": {
+      "freight_manager": "Fragtterminal",
+      "fabrication_kiosk_blueprints": "Fabrikationskiosk — blueprints",
+      "fabrication_kiosk_materials": "Fabrikationskiosk — materialer",
+      "scanning_signature": "Scanningssignatur",
+      "scan_result": "Scanningsresultat",
+      "refinery_order": "Rafinaderiordre",
+      "inventory": "Personlig beholdning",
+      "other": "Noget andet",
+      "kiosk_prices": "Kioskpriser",
+      "refinery_status": "Rafinaderistatus",
+      "ship_cargo": "Skibslast",
+      "shop_inventory": "Butiksbeholdning"
+    },
+    "hudColours": {
+      "amber": "Ravgul",
+      "teal": "Turkis",
+      "blue": "Blå",
+      "green": "Grøn",
+      "white": "Hvid",
+      "mixed": "Blandet",
+      "unknown": "Ikke sikker"
+    },
+    "sampledColour": "Udtaget farve",
+    "editScreen": "Skærmnavn",
+    "correct": "Ret",
+    "editScreenHelp": "Ved at skrive navnet om samler du to navne for samme panel.",
+    "coverage": {
+      "title": "Dækning pr. skærm",
+      "subtitle": "{{approved}} godkendt i alt, {{target}} nødvendige pr. skærm. {{short}} er begyndt, men mangler stadig.",
+      "waiting": "{{count}} venter"
+    }
   }
 }

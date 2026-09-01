@@ -1,0 +1,62 @@
+# Stage A: panel quad + coarse screen classification.
+
+data:
+  labels: datasets/scan-v1/labels.jsonl
+  images: datasets/scan-v1/images
+  val_fraction: 0.25
+  seed: 7
+
+# Order is the label encoding — append only, never reorder, or old checkpoints
+# and old runs stop being comparable.
+screens:
+  - other
+  - freight_manager
+  - fabrication_kiosk_blueprints
+  - fabrication_kiosk_materials
+  - scanning_signature
+  - scan_result
+  - refinery_order
+  - inventory
+
+hud_colours:
+  - unknown
+  - amber
+  - teal
+  - blue
+  - green
+  - white
+  - mixed
+
+model:
+  backbone: resnet18   # resnet18 | resnet34
+  pretrained: true
+  input_size: 512
+
+train:
+  epochs: 60
+  batch_size: 8
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+  num_workers: 4
+  amp: true            # bf16 on ROCm; fp16 loss scaling is not worth the trouble here
+  warmup_epochs: 3
+
+loss:
+  quad: 1.0
+  screen: 0.2
+  hud_colour: 0.1
+  occluded: 0.1
+
+augment:
+  perspective: 0.25    # extra warp on top of the panel's own perspective
+  rotate_deg: 4.0
+  scale: [0.85, 1.15]
+  translate: 0.04
+  brightness: 0.35
+  contrast: 0.35
+  saturation: 0.25
+  # Hue jitter is off by default: it destroys the hud_colour label. Turn it on
+  # only after dropping that head, if colour-agnostic quad detection needs it.
+  hue: 0.0
+  noise: 0.02
+  hflip: false         # game UI is never mirrored; flipping teaches a lie

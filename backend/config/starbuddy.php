@@ -9,6 +9,11 @@ return [
     'version' => env('STARBUDDY_VERSION')
         ?: (json_decode((string) file_get_contents(base_path('composer.json')), true)['version'] ?? 'dev'),
 
+    // Current Star Citizen patch. Prefills the game version on contributed
+    // training screenshots, so a member never has to know it; bump it here
+    // when the game updates.
+    'game_patch' => env('STARBUDDY_GAME_PATCH', '4.10.0'),
+
     // The Discord server (guild) this instance belongs to. Only members of
     // this guild can sign in. Everything community-specific hangs off this.
     'home_guild_id' => env('STARBUDDY_HOME_GUILD_ID', env('STARMAKER_HOME_GUILD_ID')),

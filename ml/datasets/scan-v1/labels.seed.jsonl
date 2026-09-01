@@ -1,0 +1,2 @@
+{"image": "4.10.0-freight_terminal_inventory_scan-2.png", "patch": "4.10.0", "screen": "freight_manager", "hud_colour": "mixed", "occluded": true, "session": "seed-freight", "quad": [[0.145, 0.204], [0.79, 0.111], [0.81, 0.804], [0.165, 0.835]]}
+{"image": "4.10.0-fabricator-blueprints-1.png", "patch": "4.10.0", "screen": "fabrication_kiosk_blueprints", "hud_colour": "teal", "occluded": false, "session": "seed-fabricator", "quad": [[0.095, 0.058], [0.92, 0.055], [0.92, 0.915], [0.097, 0.918]]}

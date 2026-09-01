@@ -1,0 +1,8 @@
+# Captures and checkpoints stay out of git; only labels and code are versioned.
+datasets/*/images
+datasets/*/rectified/
+runs/
+.venv/
+__pycache__/
+*.onnx
+*.pt

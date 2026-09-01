@@ -16,6 +16,7 @@ import { BlueprintsPage } from './pages/BlueprintsPage'
 import { RefineryPage } from './pages/RefineryPage'
 import { ImportPage } from './pages/ImportPage'
 import { AdminPage } from './pages/AdminPage'
+import { TrainingPage } from './pages/TrainingPage'
 import { AboutPage } from './pages/AboutPage'
 
 /**
@@ -62,6 +63,7 @@ export default function App() {
         <Route path="/refinery" element={<RefineryPage />} />
         <Route path="/import" element={<ImportPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/training" element={<TrainingPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

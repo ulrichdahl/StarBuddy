@@ -27,6 +27,7 @@ import Inventory2Icon from '@mui/icons-material/Inventory2'
 import SchemaIcon from '@mui/icons-material/Schema'
 import FactoryIcon from '@mui/icons-material/Factory'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import type { Me } from '../lib/types'
@@ -46,6 +47,7 @@ const NAV_ITEMS = [
   { key: 'blueprints', to: '/blueprints', icon: <SchemaIcon /> },
   { key: 'refinery', to: '/refinery', icon: <FactoryIcon /> },
   { key: 'import', to: '/import', icon: <UploadFileIcon /> },
+  { key: 'training', to: '/training', icon: <PhotoCameraIcon /> },
   { key: 'admin', to: '/admin', icon: <AdminPanelSettingsIcon /> },
   { key: 'about', to: '/about', icon: <InfoOutlinedIcon /> },
 ] as const

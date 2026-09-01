@@ -8,7 +8,8 @@
     "loading": "Loading…",
     "language": "Language",
     "none": "—",
-    "undo": "Undo"
+    "undo": "Undo",
+    "clear": "Clear"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -23,7 +24,8 @@
     "mainNavigation": "Main navigation",
     "findItem": "Find an item",
     "findItemPlaceholder": "Find an item…",
-    "about": "About"
+    "about": "About",
+    "training": "Scan training"
   },
   "login": {
     "tagline": "Org materials and blueprint tracking for Star Citizen. Sign in with the Discord account linked to your org.",
@@ -601,5 +603,100 @@
     "saved_one": "Saved {{count}} stack.",
     "saved_other": "Saved {{count}} stacks.",
     "failedHint": "Lines the server refused are still here with the reason — fix them and save again."
+  },
+  "training": {
+    "title": "Scan training",
+    "subtitle": "Contribute screenshots that teach StarBuddy to read in-game panels",
+    "tabs": {
+      "contribute": "Contribute",
+      "mine": "My submissions ({{count}})",
+      "review": "Review queue"
+    },
+    "help": {
+      "title": "What makes a useful screenshot",
+      "body": "Off-angle, awkward and partly blocked captures are worth more than clean head-on ones — they are what real use looks like. Send the whole frame, straight from the game, no cropping and no HUD mods. Avoid other players' names where you can."
+    },
+    "chooseScreenshot": "Choose screenshot",
+    "tooBig": "That file is larger than {{limit}} MB. Send the original PNG or JPEG straight from the game.",
+    "submit": "Submit for review",
+    "submitting": "Submitting…",
+    "submitted": "Thank you — your screenshot is in the review queue.",
+    "submitFailed": "Could not submit that screenshot.",
+    "submitBlocked": "Mark all four corners and pick the screen and HUD colour first.",
+    "noneYet": "You have not contributed any screenshots yet.",
+    "reviewNote": "Reviewer note",
+    "submittedBy": "Submitted by {{who}}",
+    "occludedChip": "Partly blocked",
+    "approve": "Approve",
+    "reject": "Reject",
+    "fixCorners": "Fix corners",
+    "saveCorners": "Save corners",
+    "correctFailed": "Could not save that correction.",
+    "reviewFailed": "Could not record that decision.",
+    "queueEmpty": "Nothing waiting here.",
+    "alreadyExported": "Included in an earlier dataset download.",
+    "export": "Download dataset ({{count}})",
+    "picker": {
+      "imageAlt": "Screenshot being marked up",
+      "clickHint": "Click the corners of the lit screen — {{remaining}} to go. Any order.",
+      "adjustHint": "Drag a marker to adjust it, or select one and nudge with the arrow keys.",
+      "cornerHandle": "Corner {{number}}",
+      "startOver": "Start over",
+      "sampleHint": "Click the brightest part of the HUD — a lit border, a heading, a number."
+    },
+    "fields": {
+      "screen": "Which screen is it?",
+      "screenHelp": "What the panel is showing. Pick one, or type a name nobody has used yet.",
+      "hudColour": "HUD colour",
+      "hudColourHelp": "The dominant colour of the panel itself.",
+      "ship": "Ship",
+      "shipHelp": "Pick your ship or type it in. Leave empty if you were on foot.",
+      "occluded": "Partly blocked",
+      "occludedHelp": "Your character, ship geometry, glare or a tooltip covering part of the panel.",
+      "note": "Anything worth mentioning (optional)",
+      "patchNote": "Recorded against game patch {{patch}}.",
+      "notUsedYet": "new",
+      "sampleColour": "Sample HUD colour from the screenshot",
+      "samplingActive": "Now click the HUD…",
+      "sampledSwatch": "Sampled colour {{hex}}",
+      "sampledHelp": "Sampled {{hex}} from the panel. Change it only if that looks wrong."
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "screens": {
+      "freight_manager": "Freight manager",
+      "fabrication_kiosk_blueprints": "Fabrication kiosk — blueprints",
+      "fabrication_kiosk_materials": "Fabrication kiosk — materials",
+      "scanning_signature": "Scanning signature",
+      "scan_result": "Scan result",
+      "refinery_order": "Refinery order",
+      "inventory": "Personal inventory",
+      "other": "Something else",
+      "kiosk_prices": "Kiosk prices",
+      "refinery_status": "Refinery status",
+      "ship_cargo": "Ship cargo",
+      "shop_inventory": "Shop inventory"
+    },
+    "hudColours": {
+      "amber": "Amber",
+      "teal": "Teal",
+      "blue": "Blue",
+      "green": "Green",
+      "white": "White",
+      "mixed": "Mixed",
+      "unknown": "Not sure"
+    },
+    "sampledColour": "Sampled colour",
+    "editScreen": "Screen name",
+    "correct": "Correct",
+    "editScreenHelp": "Retyping this is how two names for one panel get merged.",
+    "coverage": {
+      "title": "Coverage per screen",
+      "subtitle": "{{approved}} approved in total, {{target}} needed per screen. {{short}} started but still short.",
+      "waiting": "{{count}} waiting"
+    }
   }
 }

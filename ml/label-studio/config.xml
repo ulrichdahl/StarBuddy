@@ -1,0 +1,46 @@
+<!-- Stage A labelling interface. Import into a Label Studio project as the
+     Labeling Interface config. Click the four panel corners in any order; the
+     converter reorders them to TL/TR/BR/BL. -->
+<View>
+  <Image name="image" value="$image" zoom="true" zoomControl="true" rotateControl="false"/>
+
+  <Header value="Panel quad — click the four corners of the game panel's display area"/>
+  <PolygonLabels name="panel" toName="image" pointSize="small" strokeWidth="2">
+    <Label value="panel" background="#00e5ff"/>
+  </PolygonLabels>
+
+  <Header value="Which screen is it?"/>
+  <Choices name="screen" toName="image" choice="single" showInLine="false">
+    <Choice value="freight_manager"/>
+    <Choice value="fabrication_kiosk_blueprints"/>
+    <Choice value="fabrication_kiosk_materials"/>
+    <Choice value="scanning_signature"/>
+    <Choice value="scan_result"/>
+    <Choice value="refinery_order"/>
+    <Choice value="inventory"/>
+    <Choice value="other"/>
+  </Choices>
+
+  <Header value="Dominant HUD colour of the panel"/>
+  <Choices name="hud_colour" toName="image" choice="single" showInLine="true">
+    <Choice value="amber"/>
+    <Choice value="teal"/>
+    <Choice value="blue"/>
+    <Choice value="green"/>
+    <Choice value="white"/>
+    <Choice value="mixed"/>
+    <Choice value="unknown"/>
+  </Choices>
+
+  <Header value="Is the panel partly blocked (player model, ship geometry, glare)?"/>
+  <Choices name="occluded" toName="image" choice="single" showInLine="true">
+    <Choice value="no"/>
+    <Choice value="yes"/>
+  </Choices>
+
+  <Header value="Game patch"/>
+  <Choices name="patch" toName="image" choice="single" showInLine="true">
+    <Choice value="4.10.0"/>
+    <Choice value="unknown"/>
+  </Choices>
+</View>
