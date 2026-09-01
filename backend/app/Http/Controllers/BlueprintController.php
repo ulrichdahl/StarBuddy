@@ -118,6 +118,7 @@ class BlueprintController extends Controller
     public function show(Request $request, Blueprint $blueprint)
     {
         \App\Support\WikiItem::enrich($blueprint);
+        \App\Support\CraftModifiers::enrich($blueprint);
         $me = $request->user();
         $members = $this->members($me);
         $ownerIds = BlueprintOwned::whereIn('user_id', $members->pluck('id'))
@@ -134,8 +135,15 @@ class BlueprintController extends Controller
             'owned_by_me' => $ownerIds->contains($me->id),
             'owners' => $members->filter(fn ($u) => $ownerIds->contains($u->id))
                 ->map(fn ($u) => ['id' => $u->id, 'handle' => $u->handle ?? $u->name, 'mine' => $u->id === $me->id])->values(),
-            // Community-measured approximation: ≈ ±1.5% per 100 quality around 500, so Q0…Q1000 spans ±7.5%.
-            'quality_range' => ['min_percent' => -7.5, 'max_percent' => 7.5],
+            // The recipe's slots and the stats their materials modify.
+            'requirement_groups' => \App\Support\CraftModifiers::groups($blueprint->requirement_groups),
+            // What crafting can do to each modified property, worst to best
+            // material in every recipe slot: property_key → [min%, max%].
+            'stat_ranges' => collect(\App\Support\CraftModifiers::extremes($blueprint->requirement_groups))
+                ->map(fn (array $ends) => [
+                    'min_percent' => round(($ends[0] - 1) * 100, 2),
+                    'max_percent' => round(($ends[1] - 1) * 100, 2),
+                ])->all(),
             'missions' => [],
         ];
     }

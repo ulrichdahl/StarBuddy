@@ -28,6 +28,7 @@ import { api } from '../lib/api'
 import { gradeLabel } from '../pages/CraftPage'
 import { ProductStats } from './ProductStats'
 import { qualityColor as qualityTierColor } from '../lib/rarity'
+import { statFactors, type RequirementGroup, type StatFactors } from '../lib/craftModifiers'
 
 interface Holding {
   id: number
@@ -84,7 +85,10 @@ interface CraftDetail {
   ingredients: IngredientDetail[]
   craftable: boolean
   est_output_quality: number | null
-  est_stat_modifier_percent: number | null
+  /** The recipe's slots and the stats their materials modify. */
+  requirement_groups: RequirementGroup[]
+  /** property_key → multiplier for the server's best-quality estimate. */
+  est_stat_factors: StatFactors
 }
 
 
@@ -151,12 +155,14 @@ interface Plan {
   perIngredient: Record<string, { need: number; selected: number; covered: boolean }>
   craftable: boolean
   estQuality: number | null
-  modifierPercent: number | null
+  /** Average quality of what each material contributes, per material name. */
+  qualityByMaterial: Record<string, number>
 }
 
 /** Simulate consumption of the selected stacks the way the backend will. */
 function planCraft(ingredients: IngredientDetail[], sel: Selection, qty: number): Plan {
   const perIngredient: Plan['perIngredient'] = {}
+  const qualityByMaterial: Record<string, number> = {}
   let craftable = true
   let weighted = 0
   let consumedMscu = 0
@@ -166,16 +172,27 @@ function planCraft(ingredients: IngredientDetail[], sel: Selection, qty: number)
     const chosen = sel[ing.name] ?? new Set()
     let left = need
     let selectedTotal = 0
+    let materialWeighted = 0
+    let materialUsed = 0
     for (const h of ing.holdings) {
       if (!chosen.has(h.id)) continue
       selectedTotal += h.quantity
       if (left <= 0) continue
       const use = Math.min(left, h.quantity)
       left -= use
+      materialWeighted += use * h.quality
+      materialUsed += use
       if (ing.unit === 'mscu') {
         weighted += use * h.quality
         consumedMscu += use
       }
+    }
+    // The stat modifiers read the quality of the material in each slot, so
+    // keep them apart instead of blending everything into one figure. Gems
+    // are logged without a quality reading: 0 there means "unknown", not "as
+    // bad as it gets", so leave that slot out entirely.
+    if (materialUsed > 0 && materialWeighted / materialUsed >= 1) {
+      qualityByMaterial[ing.name] = materialWeighted / materialUsed
     }
     const covered = need <= 0 || left <= 0
     if (!covered) craftable = false
@@ -183,12 +200,7 @@ function planCraft(ingredients: IngredientDetail[], sel: Selection, qty: number)
   }
 
   const estQuality = consumedMscu > 0 ? Math.round(weighted / consumedMscu) : null
-  return {
-    perIngredient,
-    craftable,
-    estQuality,
-    modifierPercent: estQuality !== null ? Math.round((estQuality - 500) * 1.5) / 100 : null,
-  }
+  return { perIngredient, craftable, estQuality, qualityByMaterial }
 }
 
 export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: number; onClose: () => void }) {
@@ -231,6 +243,15 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
     () => (data ? planCraft(data.ingredients, selection, qty) : null),
     [data, selection, qty],
   )
+
+  // What the ticked stacks do to the item's stats: each slot's material
+  // quality, run through that slot's modifiers. Falls back to the server's
+  // best-quality estimate before the first selection is planned.
+  const factors = useMemo(() => {
+    if (!data) return null
+    if (!plan) return data.est_stat_factors ?? null
+    return statFactors(data.requirement_groups ?? [], plan.qualityByMaterial)
+  }, [data, plan])
 
   const invalidateLedgers = () => {
     queryClient.invalidateQueries({ queryKey: ['craft-detail', blueprintId] })
@@ -304,69 +325,73 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
             </Stack>
           </DialogTitle>
           <DialogContent>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mt: 1.5, flexWrap: 'wrap' }}>
-              {bp.image_url && (
-                <Tooltip title={t('craft.clickToZoom')}>
-                  <Box
-                    component="img"
-                    src={bp.image_url}
-                    alt={bp.name}
-                    onClick={() => setImageZoom(true)}
-                    sx={{
-                      maxWidth: { xs: '40%', sm: 220 },
-                      maxHeight: 180,
-                      objectFit: 'contain',
-                      borderRadius: 1,
-                      border: 1,
-                      borderColor: 'divider',
-                      cursor: 'zoom-in',
-                    }}
+            {/* Stats carry the height here, so the picture and the lore sit
+                beside them instead of pushing the material lists down. */}
+            <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', mt: 1.5, flexWrap: 'wrap' }}>
+              <Box sx={{ flex: '0 1 61%', minWidth: 300 }}>
+                {bp.item_meta?.stats && (
+                  <ProductStats
+                    stats={bp.item_meta.stats}
+                    mass={bp.item_meta.mass}
+                    factors={factors}
+                    groups={data?.requirement_groups ?? []}
                   />
-                </Tooltip>
-              )}
-              <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 240 }}>
-                {bp.description || t('craft.noDescription')}
-              </Typography>
-            </Box>
-
-            {bp.item_meta?.stats && (
-              <>
-                <Divider sx={{ my: 2 }} />
-                <ProductStats
-                  stats={bp.item_meta.stats}
-                  mass={bp.item_meta.mass}
-                  modifierPercent={plan.modifierPercent ?? data.est_stat_modifier_percent}
-                />
-              </>
-            )}
-
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              {t('craft.holdersTitle')}
-              <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                {t('craft.holdersHint')}
-              </Typography>
-            </Typography>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-              {bp.is_default && (
-                <Chip size="small" label={t('craft.everyoneDefault')} color="primary" variant="outlined" />
-              )}
-              {(data?.owners ?? []).map((o) => (
-                <Chip
-                  key={o.id}
-                  size="small"
-                  label={t('craft.ownerUses', { member: o.member, personal: o.uses_personal, org: o.uses_org })}
-                  color={ownedId === o.id ? 'primary' : 'default'}
-                  variant={ownedId === o.id ? 'filled' : 'outlined'}
-                  onClick={() => setOwnedId(o.id)}
-                />
-              ))}
-              {!bp.is_default && (data?.owners ?? []).length === 0 && (
+                )}
+              </Box>
+              <Box sx={{ flex: '1 1 300px', minWidth: 240 }}>
+                {bp.image_url && (
+                  <Tooltip title={t('craft.clickToZoom')}>
+                    <Box
+                      component="img"
+                      src={bp.image_url}
+                      alt={bp.name}
+                      onClick={() => setImageZoom(true)}
+                      sx={{
+                        width: '100%',
+                        maxHeight: 180,
+                        objectFit: 'contain',
+                        borderRadius: 1,
+                        border: 1,
+                        borderColor: 'divider',
+                        cursor: 'zoom-in',
+                        mb: 1.5,
+                      }}
+                    />
+                  </Tooltip>
+                )}
                 <Typography variant="body2" color="text.secondary">
-                  {t('craft.nobodyOwns')}
+                  {bp.description || t('craft.noDescription')}
                 </Typography>
-              )}
-            </Stack>
+
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  {t('craft.holdersTitle')}
+                </Typography>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+                  {bp.is_default && (
+                    <Chip size="small" label={t('craft.everyoneDefault')} color="primary" variant="outlined" />
+                  )}
+                  {(data?.owners ?? []).map((o) => (
+                    <Chip
+                      key={o.id}
+                      size="small"
+                      label={o.member}
+                      color={ownedId === o.id ? 'primary' : 'default'}
+                      variant={ownedId === o.id ? 'filled' : 'outlined'}
+                      onClick={() => setOwnedId(o.id)}
+                    />
+                  ))}
+                  {!bp.is_default && (data?.owners ?? []).length === 0 && (
+                    <Typography variant="body2" color="text.secondary">
+                      {t('craft.nobodyOwns')}
+                    </Typography>
+                  )}
+                </Stack>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
+                  {t('craft.holdersHint')}
+                </Typography>
+              </Box>
+            </Box>
 
             <Divider sx={{ my: 2 }} />
             <Stack direction="row" spacing={2} sx={{ mb: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -415,12 +440,23 @@ export function CraftDetailDialog({ blueprintId, onClose }: { blueprintId: numbe
                 const rows = sortHoldings(ing.holdings, pref)
                 const shown = visible[ing.name] ?? LIST_STEP
                 const hidden = Math.max(0, rows.length - shown)
+                // Which recipe slots this material fills, and what its
+                // quality does there.
+                const slots = (data?.requirement_groups ?? []).filter(
+                  (g) => (g.material ?? '').toLowerCase() === ing.name.toLowerCase(),
+                )
                 return (
                   <Box key={ing.name}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5, flexWrap: 'wrap' }}>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {ing.name}
                       </Typography>
+                      {slots.map((g, i) => (
+                        <Typography key={`${g.key}-${i}`} variant="caption" color="text.secondary">
+                          {g.name}
+                          {g.modifiers.length > 0 && ` · ${g.modifiers.map((m) => m.label).join(', ')}`}
+                        </Typography>
+                      ))}
                       {ing.holdings.length > 1 && (
                         <ToggleButtonGroup
                           size="small"

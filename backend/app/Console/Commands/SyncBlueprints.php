@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
  */
 class SyncBlueprints extends Command
 {
-    protected $signature = 'starbuddy:sync-blueprints {--page-size=100}';
+    protected $signature = 'starbuddy:sync-blueprints {--page-size=100} {--no-slots : Skip the per-blueprint slot/modifier fetch}';
 
     // Pre-rename name, kept so old habits and scripts keep working.
 
@@ -45,7 +45,7 @@ class SyncBlueprints extends Command
             }
 
             foreach ($response->json('data', []) as $bp) {
-                Blueprint::updateOrCreate(
+                $row = Blueprint::updateOrCreate(
                     ['uuid' => $bp['uuid']],
                     [
                         // A few internal entries (e.g. *_TEMP) have no output
@@ -80,6 +80,12 @@ class SyncBlueprints extends Command
                         'dismantle_returns' => $bp['dismantle_returns'] ?? null,
                     ],
                 );
+                // The recipe's slots and their stat modifiers only come from
+                // the detail route, one request per blueprint — skipped for
+                // rows already holding the current shape.
+                if (! $this->option('no-slots') && \App\Support\CraftModifiers::enrich($row)) {
+                    usleep(120_000);
+                }
                 $synced++;
             }
 

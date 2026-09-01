@@ -1,4 +1,5 @@
 /** Entities exposed by the StarBuddy Laravel API. */
+import type { RequirementGroup } from './craftModifiers'
 
 export interface Org {
   id: number
@@ -250,8 +251,10 @@ export interface BlueprintInfo {
   category_label: string
   owned_by_me: boolean
   owners: { id: number; handle: string; mine: boolean }[]
-  /** Community approximation of how far crafting quality moves quality-scaling stats. */
-  quality_range: { min_percent: number; max_percent: number }
+  /** The recipe's slots and the stats their materials modify. */
+  requirement_groups: RequirementGroup[]
+  /** How far crafting can move each modified game property: property_key → span. */
+  stat_ranges: Record<string, { min_percent: number; max_percent: number }>
   /** Missions that award the blueprint — filled in later. */
   missions: unknown[]
 }

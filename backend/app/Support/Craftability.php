@@ -72,17 +72,21 @@ class Craftability
 
         // Best achievable output quality: greedily consume the highest-
         // quality stacks per crated ingredient, weighted by recipe share.
+        // The per-material averages feed the stat modifiers, which read the
+        // quality of the material in each recipe slot, not one blended figure.
         $weighted = 0;
         $weight = 0;
         $craftable = true;
+        $qualityByMaterial = [];
         foreach ($ingredients as $ing) {
             if ($ing['available'] < $ing['need']) {
                 $craftable = false;
             }
-            if ($ing['unit'] !== 'mscu' || $ing['need'] <= 0) {
+            if ($ing['need'] <= 0) {
                 continue;
             }
             $left = min($ing['need'], $ing['available']);
+            $used = $left;
             $sum = 0;
             foreach ($ing['holdings'] as $h) { // already sorted best-first
                 if ($left <= 0) {
@@ -91,6 +95,14 @@ class Craftability
                 $use = min($left, $h['quantity']);
                 $sum += $use * $h['quality'];
                 $left -= $use;
+            }
+            // Gems are logged without a quality reading; quality 0 there
+            // means "unknown", not "as bad as it gets", so leave the slot out.
+            if ($used > 0 && $sum / $used >= 1) {
+                $qualityByMaterial[Str::lower($ing['name'])] = $sum / $used;
+            }
+            if ($ing['unit'] !== 'mscu') {
+                continue;
             }
             $weighted += $sum;
             $weight += $ing['need'];
@@ -108,11 +120,11 @@ class Craftability
             'ingredients' => $ingredients,
             'craftable' => $craftable,
             'est_output_quality' => $estQuality,
-            // Community-measured approximation: stats shift roughly linearly
-            // with quality around a ~500 baseline (≈ ±1.5% per 100 quality).
-            'est_stat_modifier_percent' => $estQuality !== null
-                ? round(($estQuality - 500) * 0.015, 1)
-                : null,
+            // The recipe's slots and the stat modifiers their materials
+            // apply — the client recomputes these live as stacks are ticked.
+            'requirement_groups' => CraftModifiers::groups($blueprint->requirement_groups),
+            // property_key → multiplier for the greedy best-quality plan above.
+            'est_stat_factors' => CraftModifiers::factors($blueprint->requirement_groups, $qualityByMaterial),
         ];
     }
 

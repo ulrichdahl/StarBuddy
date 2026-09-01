@@ -24,6 +24,8 @@ class CraftabilityController extends Controller
     public function show(Request $request, Blueprint $blueprint)
     {
         \App\Support\WikiItem::enrich($blueprint);
+        \App\Support\CraftModifiers::enrich($blueprint);
+
         return \App\Support\Craftability::detail($request->user(), $blueprint);
     }
 

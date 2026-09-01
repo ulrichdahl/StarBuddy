@@ -21,7 +21,7 @@ class WikiItem
 
     // Bump when the captured shape changes — rows with an older (or no)
     // marker re-fetch on next open.
-    public const STATS_VERSION = 2;
+    public const STATS_VERSION = 3;
 
     public static function attributes(array $item): array
     {
@@ -77,7 +77,7 @@ class WikiItem
             $keep = array_flip([
                 'mode', 'localised', 'type', 'rpm', 'ammo_per_shot',
                 'pellets_per_shot', 'damage_per_second', 'shot_count',
-                'drive_speed_formatted', 'cooldown_time', 'spool_up_time',
+                'drive_speed', 'drive_speed_formatted', 'cooldown_time', 'spool_up_time',
             ]);
             $block['modes'] = array_values(array_map(
                 fn ($m) => is_array($m) ? array_intersect_key($m, $keep) : $m,

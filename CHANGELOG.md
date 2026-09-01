@@ -5,6 +5,15 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## Unreleased
+
+- Craft stats are computed from the recipe itself instead of one blended percentage. A recipe is a set of slots (Frame, Barrel, Cycler, Cabling, …), each holding one material, and each slot's game data says which item properties that material's quality moves and how far — the CQ7's barrel, for example, scales fire rate ×0.88…×1.12 and impact force ×0.925…×1.075 across quality 0…1000, while its frame and stock only touch recoil. Properties several slots touch multiply together, so the crafted value is the default times that product. StarBuddy used to average every material's quality into one figure and apply ≈1.5% per 100 quality to every scaling stat, which was wrong in both directions: fire rate never moved when it should have, and damage moved when only recoil was affected. Fire Rate and Integrity are now their own scaling rows, temperature resistance is split into min and max (they come from different slots), and each material in the craft dialog lists the slot it fills and what it modifies. Percentages are green when the change helps and red when it hurts (recoil and fuel burn improve by going down). Power pips are left alone: they step in whole numbers the wiki API does not spell out.
+- Properties the recipe modifies that the wiki publishes no base value for — recoil, tractor force, power pips — are rows in the product stats table like everything else, with `—` for the default and the multiplier as the crafted value (`Recoil Kick · — · ×0.857 −14.32%`). Without them a rifle's frame and stock looked inert when in fact they are all recoil.
+- Craft dialog: the blueprint holders moved up under the lore, in the same column as the picture, and their pills are just the member's name — the craft counters ("3× personal / 0× org") were noise on a control whose only job is picking whose copy the craft counts against.
+- The craft and blueprint dialogs put the stats table and the picture side by side: the stats carry the height, so the image and lore no longer leave a column of empty space that pushed the material lists down the modal.
+- Quantum drives now scale their **Drive Speed** with `quantum_speed`; the cached wiki stat blocks keep the numeric drive speed for it (stats version 3, so open blueprints refresh themselves).
+- The recipe slots only exist on the wiki's per-blueprint detail route, so they are fetched once per blueprint and cached on the row (`requirement_groups`), lazily when a blueprint is opened and in bulk during `starbuddy:sync-blueprints` (`--no-slots` skips it).
+
 ## 0.1.11 — 2026-09-01
 
 **Bulk entry.**

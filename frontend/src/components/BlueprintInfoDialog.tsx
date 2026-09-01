@@ -70,34 +70,35 @@ export function BlueprintInfoDialog({ blueprintId, onClose, onToggleOwned }: Pro
             </Stack>
           </DialogTitle>
           <DialogContent>
-            <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', mt: 1.5, flexWrap: 'wrap' }}>
-              {bp.image_url && (
-                <Tooltip title={t('craft.clickToZoom')}>
-                  <Box
-                    component="img"
-                    src={bp.image_url}
-                    alt={bp.name}
-                    onClick={() => setImageZoom(true)}
-                    sx={{ maxWidth: { xs: '40%', sm: 220 }, maxHeight: 180, objectFit: 'contain', borderRadius: 1, border: 1, borderColor: 'divider', cursor: 'zoom-in' }}
+            <Box sx={{ display: 'flex', gap: 3, alignItems: 'flex-start', mt: 1.5, flexWrap: 'wrap' }}>
+              <Box sx={{ flex: '0 1 61%', minWidth: 300 }}>
+                {bp.item_meta?.stats && (
+                  <ProductStats
+                    stats={bp.item_meta.stats}
+                    mass={bp.item_meta.mass}
+                    factors={null}
+                    ranges={data.stat_ranges}
+                    groups={data.requirement_groups ?? []}
                   />
-                </Tooltip>
-              )}
-              <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 240 }}>
-                {bp.description || t('craft.noDescription')}
-              </Typography>
+                )}
+              </Box>
+              <Box sx={{ flex: '1 1 300px', minWidth: 240 }}>
+                {bp.image_url && (
+                  <Tooltip title={t('craft.clickToZoom')}>
+                    <Box
+                      component="img"
+                      src={bp.image_url}
+                      alt={bp.name}
+                      onClick={() => setImageZoom(true)}
+                      sx={{ width: '100%', maxHeight: 180, objectFit: 'contain', borderRadius: 1, border: 1, borderColor: 'divider', cursor: 'zoom-in', mb: 1.5 }}
+                    />
+                  </Tooltip>
+                )}
+                <Typography variant="body2" color="text.secondary">
+                  {bp.description || t('craft.noDescription')}
+                </Typography>
+              </Box>
             </Box>
-
-            {bp.item_meta?.stats && (
-              <>
-                <Divider sx={{ my: 2 }} />
-                <ProductStats
-                  stats={bp.item_meta.stats}
-                  mass={bp.item_meta.mass}
-                  modifierPercent={null}
-                  rangePercent={[data.quality_range.min_percent, data.quality_range.max_percent]}
-                />
-              </>
-            )}
 
             <Divider sx={{ my: 2 }} />
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
