@@ -196,13 +196,56 @@ Coolify-specific in the repo; five settings do the job.
 3. **Domain.** On the `web` service set your domain
    (`https://starbuddy.example.org`) with port `80`; leave every other
    service without a domain. Coolify's Traefik adds TLS and passes websockets.
-4. **Post-deployment command** (resource → *Advanced*): container `app`,
-   command `php artisan migrate --force && php artisan starbuddy:sync-scan-signatures`.
+4. **Post-deployment command** (resource → *Advanced*): fill in **both**
+   fields — *Container name* `app` **and** command
+   `php artisan migrate --force && php artisan starbuddy:sync-scan-signatures`.
+   With the container name left blank Coolify skips the command silently: the
+   deploy goes green while migrations never run, so the first release that
+   adds a column takes the site down with "column does not exist". Check with
+   `docker exec $(docker ps -qf name=app-<resource uuid>) php artisan
+   migrate:status` after a release that carries one.
    Run the one-time syncs from §4 through Coolify's *Terminal* on the `app`
    container after the first deploy, and `node dist/register-commands.js` on
    `bot`.
 5. **Deploy.** Enable *Auto Deploy* on the branch if you want every push to
    redeploy, or deploy by hand from the tag you tested.
+
+**If a deploy fails with "Failed to read the Docker Compose file from the
+repository"** and the repository is fine (public, reachable, compose file at
+the configured path), suspect the clone rather than the file. Coolify builds
+that clone with `git -c http.version=HTTP/1.1`, hard-coded, and on a network
+where something mangles git's HTTP/1.1 `POST /git-upload-pack` the fetch comes
+back 401; git then asks for a username, gets no terminal, and dies. The
+generic error hides all of it. Reproduce it by hand on the server — with the
+flag it fails, without it the same clone succeeds:
+
+```sh
+git -c http.version=HTTP/1.1 clone --depth=1 --no-checkout -b main \
+  https://github.com/ulrichdahl/StarBuddy /tmp/probe   # fails
+git clone --depth=1 --no-checkout -b main \
+  https://github.com/ulrichdahl/StarBuddy /tmp/probe2  # works
+```
+
+The fix is to clone over SSH instead, which never touches that path: create a
+private key in Coolify (*Keys & Tokens*), add its public half to the repo's
+*Deploy keys* (read-only), and point the resource at `git@github.com:<owner>/
+<repo>.git` with that key. A resource created against the built-in *Public
+GitHub* source offers no key picker, and Coolify has no UI to change the
+source of an existing resource — set it on the row instead, which is enough
+because `deploymentType()` prefers a private key over the source:
+
+```sh
+docker exec coolify-db psql -U coolify -d coolify -c \
+  "update applications set private_key_id = <id from private_keys>,
+   git_repository = 'git@github.com:<owner>/<repo>.git'
+   where uuid = '<resource uuid>';"
+```
+
+Check `nc -zv github.com 22` first; where port 22 is blocked, use
+`ssh.github.com:443` via `/etc/ssh/ssh_config`. As a stopgap on HTTPS,
+`git config --system http.https://github.com/.version HTTP/2` outranks
+Coolify's command-line flag, but it papers over a network fault rather than
+avoiding it.
 
 Notes: the first deploy builds three images (PHP backend, SPA + Caddy, bot)
 and takes several minutes on a small server; later deploys reuse layers. The
