@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Blueprint;
 use App\Models\BlueprintOwned;
 use App\Models\User;
+use App\Support\CraftModifiers;
 use App\Support\FabricatorCategory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -81,8 +82,71 @@ class BlueprintCatalogTest extends TestCase
         $this->assertSame('Armor · Helmets', $res['category_label']);
         $this->assertTrue($res['owned_by_me']);
         $this->assertSame([['id' => $me->id, 'handle' => 'DK-Raven', 'mine' => true]], $res['owners']);
-        $this->assertSame(['min_percent' => -7.5, 'max_percent' => 7.5], $res['quality_range']);
+        // No recipe slots cached, so there is nothing crafting could move.
+        $this->assertSame([], $res['stat_ranges']);
         $this->assertSame([], $res['missions']);
+    }
+
+    /**
+     * `stat_ranges` is what crafting can do to each property, worst material to
+     * best, in percent off the default value.
+     *
+     * The arithmetic itself is pinned by CraftModifiersTest; what this covers is
+     * the endpoint's contract, and in particular that a property two slots both
+     * touch compounds instead of being averaged or overwritten — the bug the
+     * per-slot model was introduced to fix.
+     */
+    public function test_show_reports_what_crafting_can_do_to_each_stat(): void
+    {
+        $me = User::factory()->create(['discord_id' => '1', 'handle' => 'DK-Raven']);
+        Sanctum::actingAs($me);
+
+        // Frame and stock both scale recoil kick x0.8…x1.2; the barrel scales
+        // damage x0.925…x1.075 on its own. Power pips step in whole numbers
+        // ('linear_integer_additive'), which carries no percentage at all.
+        $recoil = [[
+            'property_key' => 'weapon_recoil_kick',
+            'label' => 'Recoil Kick',
+            'better_when' => 'lower',
+            'quality_range' => ['min' => 0, 'max' => 1000],
+            'modifier_range' => ['at_min_quality' => 1.2, 'at_max_quality' => 0.8],
+            'value_range_type' => 'linear',
+            'value_segments' => null,
+        ]];
+        $rifle = $this->bp('CQ7 Rifle', 'WeaponPersonal', 'Medium');
+        $rifle->update(['requirement_groups' => ['v' => CraftModifiers::VERSION, 'groups' => [
+            ['key' => 'FRAME', 'name' => 'Frame', 'material' => 'Aluminum', 'kind' => 'resource', 'min_quality' => 0, 'modifiers' => $recoil],
+            ['key' => 'STOCK', 'name' => 'Stock', 'material' => 'Hephaestanite', 'kind' => 'resource', 'min_quality' => 0, 'modifiers' => $recoil],
+            ['key' => 'BARREL', 'name' => 'Barrel', 'material' => 'Iron', 'kind' => 'resource', 'min_quality' => 0, 'modifiers' => [
+                [
+                    'property_key' => 'weapon_damage',
+                    'label' => 'Damage',
+                    'better_when' => 'higher',
+                    'quality_range' => ['min' => 0, 'max' => 1000],
+                    'modifier_range' => ['at_min_quality' => 0.925, 'at_max_quality' => 1.075],
+                    'value_range_type' => 'linear',
+                    'value_segments' => null,
+                ],
+                [
+                    'property_key' => 'weapon_power_pips',
+                    'label' => 'Power Pips',
+                    'better_when' => 'higher',
+                    'quality_range' => ['min' => 0, 'max' => 1000],
+                    'modifier_range' => ['at_min_quality' => 0, 'at_max_quality' => 2],
+                    'value_range_type' => 'linear_integer_additive',
+                    'value_segments' => null,
+                ],
+            ]],
+        ]]]);
+
+        $ranges = $this->getJson("/api/blueprints/{$rifle->id}")->assertOk()->json('stat_ranges');
+
+        // Two slots at x0.8 and at x1.2 compound to x0.64 and x1.44. Whole
+        // percentages arrive as ints, not floats: json_encode drops the zero
+        // fraction, so -36.0 goes over the wire as -36.
+        $this->assertSame(['min_percent' => -36, 'max_percent' => 44], $ranges['weapon_recoil_kick']);
+        $this->assertSame(['min_percent' => -7.5, 'max_percent' => 7.5], $ranges['weapon_damage']);
+        $this->assertArrayNotHasKey('weapon_power_pips', $ranges, 'whole-number steps carry no percentage');
     }
 
     public function test_toggle_and_bulk_own(): void
