@@ -8,7 +8,36 @@
 # behave exactly like production) and proxies everything that isn't the API
 # to the `frontend` container. Edit files under frontend/ and the browser
 # updates in place. `docker compose logs -f frontend` shows Vite's output.
+# PHP over the host's backend/ checkout, running as the host user.
+#
+# Production bakes the code into the image and runs it as www-data (uid 82).
+# In dev that means every backend edit needs an image rebuild before the
+# container sees it — which is how `artisan migrate` can truthfully report
+# nothing pending while new migration files sit on disk. Mounting the checkout
+# fixes that, but only if the process can write to it, so the user is set here
+# at run time. The image itself is untouched, so what is deployed is exactly
+# what is tested.
+#
+# DEV_UID/DEV_GID come from the ./dev script (bash makes UID readonly, so they
+# cannot be named after it); the defaults cover the usual first user.
+x-dev-app: &dev-app
+  user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
+  volumes:
+    # storage/ stays a named volume so uploads survive, and because the
+    # container writes there constantly.
+    - ./backend:/var/www/html
+    - app-storage:/var/www/html/storage
+
 services:
+  app:
+    <<: *dev-app
+  queue:
+    <<: *dev-app
+  scheduler:
+    <<: *dev-app
+  reverb:
+    <<: *dev-app
+
   # Dev data stays in plain ./data host directories (postgres/, backups/),
   # replacing the named volumes production uses.
   db:

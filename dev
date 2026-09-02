@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# StarBuddy's development stack.
+#
+# Wraps the compose commands this project needs, the way Laravel Sail does for
+# its own: the containers run as you, over the checkout, so an edit is live and
+# the files a container writes stay yours.
+#
+#   ./dev up                 start everything (add -d to detach is implied)
+#   ./dev down               stop it
+#   ./dev restart [service]  restart one service, or the PHP ones
+#   ./dev build              rebuild the app image (only needed for Dockerfile
+#                            or composer changes — PHP files are mounted)
+#   ./dev artisan <args>     php artisan …
+#   ./dev migrate            php artisan migrate
+#   ./dev test [args]        the backend test suite
+#   ./dev composer <args>    composer …
+#   ./dev tinker             an interactive shell on the app
+#   ./dev shell [service]    a shell in a container (default: app)
+#   ./dev logs [service]     follow logs
+#   ./dev psql               a psql prompt on the dev database
+#   ./dev npm <args>         npm in the frontend container
+#   ./dev ps                 what is running
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+# The containers run as the host user so a mounted checkout stays writable from
+# both sides; compose reads these two. Not named UID/GID because bash makes UID
+# readonly, and assigning it fails the moment the script is run under bash.
+DEV_UID="$(id -u)"
+DEV_GID="$(id -g)"
+export DEV_UID DEV_GID
+
+compose() { docker compose "$@"; }
+
+# The testing environment, spelled out.
+#
+# phpunit.xml declares all of this with force="true", but compose passes the
+# dev stack's own DB_*, APP_ENV and cache settings into the container as real
+# environment variables, and those win. Left alone, `artisan test` runs against
+# the live dev database — and with APP_ENV still "production", RefreshDatabase's
+# migrate:fresh refuses to run, so tests fail against real data instead of a
+# clean sqlite one. Passing them here makes the test environment explicit rather
+# than dependent on which layer happens to win.
+TEST_ENV=(
+  -e APP_ENV=testing
+  -e DB_CONNECTION=sqlite
+  -e DB_DATABASE=:memory:
+  -e DB_URL=
+  -e CACHE_STORE=array
+  -e QUEUE_CONNECTION=sync
+  -e SESSION_DRIVER=array
+  -e MAIL_MAILER=array
+  -e BROADCAST_CONNECTION=null
+  -e BCRYPT_ROUNDS=4
+)
+
+# Run in the app container: exec into the running one when it is up, otherwise
+# start a throwaway. Tests and one-off commands then work on a stopped stack.
+app() {
+  if [ -n "$(compose ps -q app 2>/dev/null)" ]; then
+    compose exec app "$@"
+  else
+    compose run --rm --no-deps app "$@"
+  fi
+}
+
+command="${1:-help}"
+[ $# -gt 0 ] && shift || true
+
+case "$command" in
+  up)        compose up -d "$@" && compose ps ;;
+  down)      compose down "$@" ;;
+  restart)   compose restart "${@:-app queue scheduler reverb}" ;;
+  build)     compose build "${@:-app}" && compose up -d app queue scheduler reverb ;;
+  artisan)   app php artisan "$@" ;;
+  migrate)   app php artisan migrate "$@" ;;
+  test)
+    if [ -n "$(compose ps -q app 2>/dev/null)" ]; then
+      compose exec "${TEST_ENV[@]}" app php artisan test "$@"
+    else
+      compose run --rm --no-deps "${TEST_ENV[@]}" app php artisan test "$@"
+    fi
+    ;;
+  composer)  app composer "$@" ;;
+  tinker)    app php artisan tinker ;;
+  shell)     compose exec "${1:-app}" sh ;;
+  logs)      compose logs -f "$@" ;;
+  psql)      compose exec db psql -U "${DB_USERNAME:-starbuddy}" "${DB_DATABASE:-starbuddy}" ;;
+  npm)       compose exec frontend npm "$@" ;;
+  ps)        compose ps ;;
+  help|--help|-h)
+    # Everything from the first comment line to the last, so the block above is
+    # the single source of truth for what this script does.
+    awk 'NR>1 && /^#/ { sub(/^# ?/, ""); print; next } NR>1 { exit }' "$0"
+    ;;
+  *)
+    echo "Unknown command: $command" >&2
+    echo "Try ./dev help" >&2
+    exit 2
+    ;;
+esac

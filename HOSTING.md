@@ -12,6 +12,43 @@ One StarBuddy instance serves **one Discord community**. Members sign in with
 Discord; only members of your configured server can join. This guide takes an
 operator from empty server to a maintained, auto-updating production instance.
 
+## Local development
+
+`./dev` wraps the compose commands this project needs:
+
+```sh
+./dev up                 # start everything
+./dev migrate            # run migrations
+./dev test               # the backend suite
+./dev artisan <args>     # anything else
+./dev help               # the rest
+```
+
+Two things it takes care of, both of which have bitten this project:
+
+**The backend is mounted, and runs as you.** Production bakes the code into the
+image and runs it as `www-data` (uid 82). The dev override mounts `backend/`
+instead and sets the container's user to yours, so an edit is live and files the
+container writes stay yours. Without the mount, `artisan migrate` truthfully
+reports nothing pending while new migration files sit on disk — the container
+simply does not have them. `./dev build` is then only needed for Dockerfile or
+composer changes.
+
+The named `app-storage` volume predates this and is owned by uid 82. If writes
+to `storage/` start failing after a fresh clone, hand it over once:
+
+```sh
+docker run --rm -v starbuddy_app-storage:/s alpine chown -R "$(id -u):$(id -g)" /s
+```
+
+**Tests get an explicit testing environment.** `phpunit.xml` declares one with
+`force="true"`, but compose passes the dev stack's own `DB_*` and `APP_ENV` into
+the container as real environment variables and those win. Run bare,
+`artisan test` talks to the live dev database — and because `APP_ENV` is still
+`production`, `RefreshDatabase` cannot run `migrate:fresh` and the suite fails
+against real data. `./dev test` passes the testing environment explicitly, so
+use it rather than `artisan test` directly.
+
 ## What runs
 
 | Service | Image | Purpose |
