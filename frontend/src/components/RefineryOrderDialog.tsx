@@ -34,10 +34,11 @@ import type { Location, RefineryOrderDetail, Visibility } from '../lib/types'
 export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClose: () => void }) {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
-  const [destination, setDestination] = useState<Location | null>(null)
-  // Null until the player touches it, so collecting an order they had kept
-  // private does not quietly reshare it.
-  const [visibility, setVisibility] = useState<Visibility | null>(null)
+  // Both controls start from the order and only hold a value once the player
+  // changes one, and the order they were changed for is remembered — the
+  // dialog is reused for every order, so a pick made for one must not carry
+  // into the next.
+  const [picked, setPicked] = useState<{ order: number; destination?: Location | null; visibility?: Visibility }>()
   const [showLines, setShowLines] = useState(false)
 
   const order = useQuery({
@@ -51,7 +52,9 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
       (
         await api.post<RefineryOrderDetail>(`/api/refinery-orders/${id}/collect`, {
           location_id: locationId,
-          ...(visibility === null ? {} : { visibility }),
+          // Left alone unless the player changed it, so collecting does not
+          // quietly reshare a haul they had kept to themselves.
+          ...(mine?.visibility ? { visibility: mine.visibility } : {}),
         })
       ).data,
     onSuccess: () => {
@@ -65,6 +68,12 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
   })
 
   const data = order.data
+  const mine = picked?.order === id ? picked : undefined
+  // The materials are at the refinery until someone moves them, so that is
+  // the honest default: collecting without touching this records where they
+  // already are, and changing it records the transfer.
+  const destination = mine && 'destination' in mine ? mine.destination ?? null : data?.location ?? null
+  const visibility = mine?.visibility ?? data?.visibility ?? 'private'
   const fmt = (n: number | null | undefined) => (n === null || n === undefined ? '—' : n.toLocaleString(i18n.language))
 
   // Ticks, so an order counts down while the dialog is open.
@@ -212,7 +221,7 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
               <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr auto' } }}>
                 <LocationSelect
                   value={destination}
-                  onChange={setDestination}
+                  onChange={(next) => setPicked({ ...mine, order: id!, destination: next })}
                   label={t('refinery.dialog.destination')}
                   helperText={t('refinery.dialog.destinationHelp')}
                   required
@@ -220,8 +229,8 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
                 />
                 <Box>
                   <VisibilitySelect
-                    value={visibility ?? data.visibility ?? 'private'}
-                    onChange={setVisibility}
+                    value={visibility}
+                    onChange={(next) => setPicked({ ...mine, order: id!, visibility: next })}
                     label={t('refinery.dialog.visibility')}
                     fullWidth={false}
                   />
