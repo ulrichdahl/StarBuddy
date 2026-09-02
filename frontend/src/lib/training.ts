@@ -107,6 +107,70 @@ export function useReviewQueue(status: SubmissionStatus, enabled: boolean) {
   })
 }
 
+/** One capture the desktop client sent, still waiting to be labelled. */
+export interface ScreenshotCapture {
+  id: number
+  status: 'captured'
+  origin: string
+  patch: string
+  width: number
+  height: number
+  bytes: number
+  image_url: string
+  submitter_note: string | null
+  created_at: string | null
+}
+
+/** The caller's own unlabelled captures, oldest first. */
+export function useMyCaptures() {
+  return useQuery({
+    queryKey: ['training', 'captures'],
+    queryFn: async () =>
+      (await api.get<{ data: ScreenshotCapture[]; meta: { total: number } }>('/api/training/captures')).data,
+  })
+}
+
+/** Label a capture the client already sent, which files it for review. */
+export function useContributeCapture() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (input: {
+      id: number
+      screen: string
+      hud_colour: string
+      hud_hex: string | null
+      ship: string
+      occluded: boolean
+      submitter_note: string
+      quad: Point[]
+    }) => {
+      const { id, ...labels } = input
+      const { data } = await api.post<ScreenshotSubmission>(
+        `/api/training/captures/${id}/contribute`,
+        { ...labels, ship: labels.ship.trim() || null, submitter_note: labels.submitter_note.trim() || null },
+      )
+      return data
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['training'] })
+    },
+  })
+}
+
+export function useDiscardCapture() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/api/training/captures/${id}`)
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['training'] })
+    },
+  })
+}
+
 export function useSubmitScreenshot() {
   const queryClient = useQueryClient()
 

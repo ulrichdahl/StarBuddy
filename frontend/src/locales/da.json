@@ -610,7 +610,8 @@
     "tabs": {
       "contribute": "Bidrag",
       "mine": "Mine bidrag ({{count}})",
-      "review": "Til gennemsyn"
+      "review": "Til gennemsyn",
+      "captures": "Optagelser ({{count}})"
     },
     "help": {
       "title": "Hvad er et brugbart skærmbillede",
@@ -697,6 +698,14 @@
       "title": "Dækning pr. skærm",
       "subtitle": "{{approved}} godkendt i alt, {{target}} nødvendige pr. skærm. {{short}} er begyndt, men mangler stadig.",
       "waiting": "{{count}} venter"
+    },
+    "captures": {
+      "emptyTitle": "Ingen optagelser endnu",
+      "emptyBody": "Tryk på optagetasten i spillet (F9 som standard), så lander billedet her, klar til at markere.",
+      "waiting": "{{count}} venter på at blive markeret. Markér hjørnerne og navngiv skærmen som ved en upload.",
+      "labelling": "Optaget {{when}}",
+      "label": "Markér",
+      "discard": "Kassér"
     }
   }
 }

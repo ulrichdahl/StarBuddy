@@ -217,7 +217,78 @@
       }
     },
     "liveScanStart": "Start live-scanning (F7)",
-    "liveScanStop": "Stop live-scanning (F7)"
+    "liveScanStop": "Stop live-scanning (F7)",
+    "hotkeyRefinery": "Aflæs rafinaderiordre",
+    "hotkeyCapture": "Send skærmbillede til træning",
+    "region": {
+      "title": {
+        "refinery": "Træk hen over rafinaderiets ordrepanel",
+        "scan": "Træk hen over scanningens signaturmærke"
+      },
+      "hint": "Escape beholder det område, du havde før."
+    },
+    "refinery": {
+      "eyebrow": "Rafinaderi",
+      "title": "Rafinaderiordre",
+      "empty": "Tryk på rafinaderitasten med en ordre på skærmen.",
+      "read": "Aflæs nu",
+      "reading": "Aflæser…",
+      "pickArea": "Vælg område",
+      "save": "Gem ordre",
+      "saving": "Gemmer…",
+      "savedShort": "Gemt",
+      "saved": "Ordren er gemt i StarBuddy.",
+      "materials": "Materialer",
+      "material": "Materiale",
+      "in": "Ind",
+      "out": "Ud",
+      "yield": "Udbytte",
+      "duration": "Behandlingstid",
+      "cost": "Pris",
+      "unknown": "—",
+      "readIn": "Aflæst på {{ms}} ms",
+      "showLines": "Vis {{count}} aflæste linjer",
+      "hideLines": "Skjul aflæste linjer",
+      "check": "Tjek: {{fields}}",
+      "stationPlaceholder": "Hvor ordren blev afgivet",
+      "field": {
+        "station": "Station",
+        "method": "Metode",
+        "materials": "Materialer",
+        "orders": "Arbejdsordrer"
+      },
+      "phase": {
+        "downloading": "Henter OCR-modellerne…",
+        "capturing": "Tager billede af panelet…",
+        "ocr": "Aflæser panelet…",
+        "error": "{{detail}}"
+      },
+      "orderCount": "{{count}} arbejdsordre(r)",
+      "captures": "{{count}} optagelser lagt sammen",
+      "readMore": "Aflæs flere rækker",
+      "startOver": "Start forfra",
+      "remaining": "Tid tilbage",
+      "yieldTotal": "Samlet udbytte",
+      "state": {
+        "setup": "Opsætning",
+        "processing": "Under behandling",
+        "completed": "Færdig"
+      },
+      "column": {
+        "quality": "Kvalitet",
+        "qty": "Mængde",
+        "yield_amount": "Udbytte",
+        "to_do": "Mangler",
+        "done": "Færdig"
+      },
+      "notRefined": "Bliver ikke raffineret (intet udbytte)"
+    },
+    "capture": {
+      "capturing": "Tager billede af spilvinduet…",
+      "uploading": "Sender…",
+      "sent": "{{detail}}",
+      "error": "{{detail}}"
+    }
   },
   "changes": {
     "sinceLive_one": "Nyheder — {{count}} ændring siden v{{version}}",

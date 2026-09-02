@@ -217,7 +217,78 @@
       }
     },
     "liveScanStart": "Start live scan (F7)",
-    "liveScanStop": "Stop live scan (F7)"
+    "liveScanStop": "Stop live scan (F7)",
+    "hotkeyRefinery": "Read refinery order",
+    "hotkeyCapture": "Send screenshot for training",
+    "region": {
+      "title": {
+        "refinery": "Drag across the refinery order panel",
+        "scan": "Drag across the scan signature badge"
+      },
+      "hint": "Escape keeps the area you had before."
+    },
+    "refinery": {
+      "eyebrow": "Refinery",
+      "title": "Refinery order",
+      "empty": "Press the refinery key with an order on screen.",
+      "read": "Read now",
+      "reading": "Reading…",
+      "pickArea": "Pick area",
+      "save": "Save order",
+      "saving": "Saving…",
+      "savedShort": "Saved",
+      "saved": "Order saved to StarBuddy.",
+      "materials": "Materials",
+      "material": "Material",
+      "in": "In",
+      "out": "Out",
+      "yield": "Yield",
+      "duration": "Processing time",
+      "cost": "Cost",
+      "unknown": "—",
+      "readIn": "Read in {{ms}} ms",
+      "showLines": "Show {{count}} read lines",
+      "hideLines": "Hide read lines",
+      "check": "Check: {{fields}}",
+      "stationPlaceholder": "Where the order was placed",
+      "field": {
+        "station": "Station",
+        "method": "Method",
+        "materials": "Materials",
+        "orders": "Work orders"
+      },
+      "phase": {
+        "downloading": "Getting the OCR models…",
+        "capturing": "Capturing the panel…",
+        "ocr": "Reading the panel…",
+        "error": "{{detail}}"
+      },
+      "orderCount": "{{count}} work order(s)",
+      "captures": "{{count}} captures merged",
+      "readMore": "Read more rows",
+      "startOver": "Start over",
+      "remaining": "Time remaining",
+      "yieldTotal": "Total yield",
+      "state": {
+        "setup": "Setup",
+        "processing": "Processing",
+        "completed": "Completed"
+      },
+      "column": {
+        "quality": "Quality",
+        "qty": "Qty",
+        "yield_amount": "Yield",
+        "to_do": "To do",
+        "done": "Done"
+      },
+      "notRefined": "Not being refined (no yield)"
+    },
+    "capture": {
+      "capturing": "Capturing the game window…",
+      "uploading": "Sending…",
+      "sent": "{{detail}}",
+      "error": "{{detail}}"
+    }
   },
   "changes": {
     "sinceLive_one": "What’s new — {{count}} change since v{{version}}",

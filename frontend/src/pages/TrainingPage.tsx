@@ -30,6 +30,9 @@ import {
   useMySubmissions,
   useReviewQueue,
   useReviewSubmission,
+  useContributeCapture,
+  useDiscardCapture,
+  useMyCaptures,
   useSubmitScreenshot,
   useTrainingLabels,
   OversizeError,
@@ -52,6 +55,7 @@ export function TrainingPage() {
   const [tab, setTab] = useState(0)
   const labels = useTrainingLabels()
   const mine = useMySubmissions()
+  const captures = useMyCaptures()
   const canReview = mine.data?.can_review ?? false
 
   return (
@@ -64,13 +68,15 @@ export function TrainingPage() {
         sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}
       >
         <Tab label={t('training.tabs.contribute')} />
+        <Tab label={t('training.tabs.captures', { count: captures.data?.meta.total ?? 0 })} />
         <Tab label={t('training.tabs.mine', { count: mine.data?.meta.total ?? 0 })} />
         {canReview && <Tab label={t('training.tabs.review')} />}
       </Tabs>
 
       {tab === 0 && <ContributeTab labels={labels.data} loading={labels.isLoading} />}
-      {tab === 1 && <MySubmissionsTab />}
-      {tab === 2 && canReview && <ReviewTab />}
+      {tab === 1 && <CapturesTab labels={labels.data} />}
+      {tab === 2 && <MySubmissionsTab />}
+      {tab === 3 && canReview && <ReviewTab />}
     </Box>
   )
 }
@@ -87,14 +93,7 @@ function ContributeTab({
   const { t } = useTranslation()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
-  const [corners, setCorners] = useState<Point[]>([])
-  const [screen, setScreen] = useState('')
-  const [hudColour, setHudColour] = useState('')
-  const [hudHex, setHudHex] = useState<string | null>(null)
-  const [sampling, setSampling] = useState(false)
-  const [ship, setShip] = useState('')
-  const [occluded, setOccluded] = useState(false)
-  const [note, setNote] = useState('')
+  const [draft, setDraft] = useState<LabelDraft>(emptyDraft)
   const submit = useSubmitScreenshot()
 
   // Derive the object URL from the file rather than storing it, and release
@@ -104,12 +103,7 @@ function ContributeTab({
 
   const reset = () => {
     setFile(null)
-    setCorners([])
-    setShip('')
-    setHudHex(null)
-    setSampling(false)
-    setOccluded(false)
-    setNote('')
+    setDraft(emptyDraft)
     submit.reset()
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
@@ -117,26 +111,26 @@ function ContributeTab({
   const chooseFile = (chosen: File | undefined) => {
     if (!chosen) return
     submit.reset()
-    setCorners([])
+    setDraft(emptyDraft)
     setFile(chosen)
   }
 
   const tooBig = file !== null && labels !== undefined && file.size > labels.max_bytes
-  const ready = file !== null && corners.length === 4 && screen !== '' && hudColour !== '' && !tooBig
+  const ready = file !== null && draftIsComplete(draft) && !tooBig
 
   const handleSubmit = () => {
     if (!ready || !file || !labels) return
     submit.mutate(
       {
         image: file,
-        screen,
-        hud_colour: hudColour,
-        hud_hex: hudHex,
+        screen: draft.screen,
+        hud_colour: draft.hudColour,
+        hud_hex: draft.hudHex,
         patch: labels.patch,
-        ship,
-        occluded,
-        submitter_note: note,
-        quad: corners,
+        ship: draft.ship,
+        occluded: draft.occluded,
+        submitter_note: draft.note,
+        quad: draft.corners,
       },
       { onSuccess: reset },
     )
@@ -201,86 +195,13 @@ function ContributeTab({
       </Paper>
 
       {preview && (
-        <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '1.6fr 1fr' } }}>
-          <Box>
-            <PanelCornerPicker
-              src={preview}
-              corners={corners}
-              onChange={setCorners}
-              mode={sampling ? 'eyedropper' : 'corners'}
-              onSample={({ r, g, b }) => {
-                const sampled = sampleToColour(r, g, b)
-                setHudHex(sampled.hex)
-                setHudColour(sampled.bucket)
-                setSampling(false)
-              }}
-            />
-            {corners.length > 0 && !sampling && (
-              <Button size="small" sx={{ mt: 1 }} onClick={() => setCorners([])}>
-                {t('training.picker.startOver')}
-              </Button>
-            )}
-          </Box>
-
-          <Stack spacing={2}>
-            <NameAutocomplete
-              label={t('training.fields.screen')}
-              helperText={t('training.fields.screenHelp')}
-              options={labels?.screens ?? []}
-              value={screen}
-              onChange={setScreen}
-              required
-              translateKnown="training.screens"
-            />
-
-            <HudColourField
-              colours={labels?.hud_colours ?? []}
-              value={hudColour}
-              hex={hudHex}
-              sampling={sampling}
-              onSampleToggle={() => setSampling((on) => !on)}
-              onChange={(value) => {
-                setHudColour(value)
-                // A hand-picked name and a sampled hex would contradict each
-                // other, so overriding the name drops the measurement.
-                setHudHex(null)
-              }}
-            />
-
-            <NameAutocomplete
-              label={t('training.fields.ship')}
-              helperText={t('training.fields.shipHelp')}
-              options={labels?.ships ?? []}
-              value={ship}
-              onChange={setShip}
-            />
-
-            <FormControlLabel
-              control={<Switch checked={occluded} onChange={(event) => setOccluded(event.target.checked)} />}
-              label={t('training.fields.occluded')}
-            />
-            <Typography variant="caption" color="text.secondary" sx={{ mt: -1.5 }}>
-              {t('training.fields.occludedHelp')}
-            </Typography>
-
-            <TextField
-              label={t('training.fields.note')}
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              multiline
-              minRows={2}
-            />
-
+        <>
+          <LabelEditor src={preview} labels={labels} draft={draft} onChange={setDraft} />
+          <Stack spacing={1} sx={{ maxWidth: 420 }}>
             <Typography variant="caption" color="text.secondary">
               {t('training.fields.patchNote', { patch: labels?.patch ?? '' })}
             </Typography>
-
-            <Button
-              variant="contained"
-              size="large"
-              disabled={!ready || submit.isPending}
-              onClick={handleSubmit}
-            >
+            <Button variant="contained" size="large" disabled={!ready || submit.isPending} onClick={handleSubmit}>
               {submit.isPending ? t('training.submitting') : t('training.submit')}
             </Button>
             {!ready && (
@@ -289,9 +210,286 @@ function ContributeTab({
               </Typography>
             )}
           </Stack>
-        </Box>
+        </>
       )}
     </Stack>
+  )
+}
+
+/* ----------------------------------------------------------------- captures */
+
+/**
+ * Screenshots the desktop client sent on its hotkey, waiting to be labelled.
+ *
+ * The point of the hotkey is that nothing has to be decided mid-flight: the
+ * frame goes up, and the corners get marked here afterwards. So this is a work
+ * queue — one capture open at a time, oldest first.
+ */
+function CapturesTab({ labels }: { labels: ReturnType<typeof useTrainingLabels>['data'] }) {
+  const { t } = useTranslation()
+  const captures = useMyCaptures()
+  const contribute = useContributeCapture()
+  const discard = useDiscardCapture()
+  const [openId, setOpenId] = useState<number | null>(null)
+  const [draft, setDraft] = useState<LabelDraft>(emptyDraft)
+
+  const open = (id: number) => {
+    setOpenId(id)
+    setDraft(emptyDraft)
+    contribute.reset()
+  }
+
+  const rows = captures.data?.data ?? []
+  const current = rows.find((capture) => capture.id === openId) ?? null
+
+  const send = () => {
+    if (!current || !draftIsComplete(draft)) return
+    contribute.mutate(
+      {
+        id: current.id,
+        screen: draft.screen,
+        hud_colour: draft.hudColour,
+        hud_hex: draft.hudHex,
+        ship: draft.ship,
+        occluded: draft.occluded,
+        submitter_note: draft.note,
+        quad: draft.corners,
+      },
+      {
+        onSuccess: () => {
+          setOpenId(null)
+          setDraft(emptyDraft)
+        },
+      },
+    )
+  }
+
+  if (captures.isLoading) return <CircularProgress aria-label={t('common.loading')} />
+
+  if (rows.length === 0) {
+    return (
+      <Alert severity="info" icon={false}>
+        <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+          {t('training.captures.emptyTitle')}
+        </Typography>
+        <Typography variant="body2">{t('training.captures.emptyBody')}</Typography>
+      </Alert>
+    )
+  }
+
+  return (
+    <Stack spacing={3} sx={{ maxWidth: 1100 }}>
+      <Typography variant="body2" color="text.secondary">
+        {t('training.captures.waiting', { count: rows.length })}
+      </Typography>
+
+      {contribute.isError && (
+        <Alert severity="error">{apiErrorDetail(contribute.error) ?? t('training.submitFailed')}</Alert>
+      )}
+
+      {current && (
+        <Paper variant="outlined" sx={{ p: 2 }}>
+          <Stack direction="row" sx={{ alignItems: 'center', mb: 2, gap: 1, flexWrap: 'wrap' }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, flexGrow: 1 }}>
+              {t('training.captures.labelling', {
+                when: current.created_at ? new Date(current.created_at).toLocaleString() : '',
+              })}
+            </Typography>
+            <Chip size="small" label={`${current.width}×${current.height}`} />
+            <Chip size="small" label={current.patch} />
+            <Button size="small" onClick={() => setOpenId(null)}>
+              {t('common.cancel')}
+            </Button>
+          </Stack>
+
+          <LabelEditor src={current.image_url} labels={labels} draft={draft} onChange={setDraft} />
+
+          <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap', gap: 1 }}>
+            <Button
+              variant="contained"
+              disabled={!draftIsComplete(draft) || contribute.isPending}
+              onClick={send}
+            >
+              {contribute.isPending ? t('training.submitting') : t('training.submit')}
+            </Button>
+            <Button
+              color="error"
+              disabled={discard.isPending}
+              onClick={() => {
+                discard.mutate(current.id)
+                setOpenId(null)
+              }}
+            >
+              {t('training.captures.discard')}
+            </Button>
+            {!draftIsComplete(draft) && (
+              <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center' }}>
+                {t('training.submitBlocked')}
+              </Typography>
+            )}
+          </Stack>
+        </Paper>
+      )}
+
+      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1fr 1fr 1fr' } }}>
+        {rows.map((capture) => (
+          <Paper
+            key={capture.id}
+            variant="outlined"
+            sx={{
+              p: 1.5,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+              outline: capture.id === openId ? 2 : 0,
+              outlineColor: 'primary.main',
+            }}
+          >
+            <Box
+              component="img"
+              src={capture.image_url}
+              alt=""
+              loading="lazy"
+              sx={{ display: 'block', width: '100%', borderRadius: 1 }}
+            />
+            <Typography variant="caption" color="text.secondary">
+              {capture.created_at ? new Date(capture.created_at).toLocaleString() : ''} · {capture.width}×
+              {capture.height}
+            </Typography>
+            <Stack direction="row" spacing={1}>
+              <Button size="small" variant="contained" onClick={() => open(capture.id)}>
+                {t('training.captures.label')}
+              </Button>
+              <Button size="small" color="error" onClick={() => discard.mutate(capture.id)}>
+                {t('training.captures.discard')}
+              </Button>
+            </Stack>
+          </Paper>
+        ))}
+      </Box>
+    </Stack>
+  )
+}
+
+/* ------------------------------------------------------------------ labelling */
+
+/** Everything a contributor says about one screenshot. */
+interface LabelDraft {
+  corners: Point[]
+  screen: string
+  hudColour: string
+  hudHex: string | null
+  ship: string
+  occluded: boolean
+  note: string
+}
+
+const emptyDraft: LabelDraft = {
+  corners: [],
+  screen: '',
+  hudColour: '',
+  hudHex: null,
+  ship: '',
+  occluded: false,
+  note: '',
+}
+
+function draftIsComplete(draft: LabelDraft): boolean {
+  return draft.corners.length === 4 && draft.screen !== '' && draft.hudColour !== ''
+}
+
+/**
+ * Mark the panel's corners and say what the screen is.
+ *
+ * Used both by the upload form and by the queue of captures the desktop client
+ * sent, because the job is the same either way — the only difference is whether
+ * the image is still on disk or already on the server.
+ */
+function LabelEditor({
+  src,
+  labels,
+  draft,
+  onChange,
+}: {
+  src: string
+  labels: ReturnType<typeof useTrainingLabels>['data']
+  draft: LabelDraft
+  onChange: (next: LabelDraft) => void
+}) {
+  const { t } = useTranslation()
+  const [sampling, setSampling] = useState(false)
+  const patch = (change: Partial<LabelDraft>) => onChange({ ...draft, ...change })
+
+  return (
+    <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '1.6fr 1fr' } }}>
+      <Box>
+        <PanelCornerPicker
+          src={src}
+          corners={draft.corners}
+          onChange={(corners) => patch({ corners })}
+          mode={sampling ? 'eyedropper' : 'corners'}
+          onSample={({ r, g, b }) => {
+            const sampled = sampleToColour(r, g, b)
+            patch({ hudHex: sampled.hex, hudColour: sampled.bucket })
+            setSampling(false)
+          }}
+        />
+        {draft.corners.length > 0 && !sampling && (
+          <Button size="small" sx={{ mt: 1 }} onClick={() => patch({ corners: [] })}>
+            {t('training.picker.startOver')}
+          </Button>
+        )}
+      </Box>
+
+      <Stack spacing={2}>
+        <NameAutocomplete
+          label={t('training.fields.screen')}
+          helperText={t('training.fields.screenHelp')}
+          options={labels?.screens ?? []}
+          value={draft.screen}
+          onChange={(screen) => patch({ screen })}
+          required
+          translateKnown="training.screens"
+        />
+
+        <HudColourField
+          colours={labels?.hud_colours ?? []}
+          value={draft.hudColour}
+          hex={draft.hudHex}
+          sampling={sampling}
+          onSampleToggle={() => setSampling((on) => !on)}
+          onChange={(hudColour) =>
+            // A hand-picked name and a sampled hex would contradict each other,
+            // so overriding the name drops the measurement.
+            patch({ hudColour, hudHex: null })
+          }
+        />
+
+        <NameAutocomplete
+          label={t('training.fields.ship')}
+          helperText={t('training.fields.shipHelp')}
+          options={labels?.ships ?? []}
+          value={draft.ship}
+          onChange={(ship) => patch({ ship })}
+        />
+
+        <FormControlLabel
+          control={<Switch checked={draft.occluded} onChange={(event) => patch({ occluded: event.target.checked })} />}
+          label={t('training.fields.occluded')}
+        />
+        <Typography variant="caption" color="text.secondary" sx={{ mt: -1.5 }}>
+          {t('training.fields.occludedHelp')}
+        </Typography>
+
+        <TextField
+          label={t('training.fields.note')}
+          value={draft.note}
+          onChange={(event) => patch({ note: event.target.value })}
+          multiline
+          minRows={2}
+        />
+      </Stack>
+    </Box>
   )
 }
 

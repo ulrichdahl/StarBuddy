@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ScreenshotSubmission extends Model
 {
     protected $fillable = [
-        'user_id', 'org_id', 'status', 'image_path', 'image_hash', 'mime',
+        'user_id', 'org_id', 'status', 'origin', 'image_path', 'image_hash', 'mime',
         'width', 'height', 'bytes', 'patch', 'ship', 'screen', 'hud_colour', 'hud_hex',
         'occluded', 'quad', 'submitter_note', 'review_note', 'reviewed_by',
         'reviewed_at', 'exported_at',
@@ -38,6 +38,12 @@ class ScreenshotSubmission extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    /** True once the contributor has told us what the image shows. */
+    public function isLabelled(): bool
+    {
+        return $this->screen !== null && $this->quad !== null;
     }
 
     /**

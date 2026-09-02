@@ -11,8 +11,11 @@ use tauri::{Emitter, Manager};
 mod changes;
 mod kde_rule;
 mod overlay;
+mod refinery;
+mod region;
 pub mod scan;
 pub mod sigs;
+mod training;
 
 // Notification lines are duplicated in the log (queued + displayed); events
 // are deduplicated on (timestamp, detail). Names can contain quotes
@@ -148,6 +151,8 @@ pub(crate) struct ClientPrefs {
     live_dir: Option<String>,
     /// Where on screen the scan signature badge is looked for (relative).
     pub(crate) scan_region: Option<scan::ScanRegion>,
+    /// Where the refinery order panel sits, framed by the player (relative).
+    pub(crate) refinery_region: Option<scan::ScanRegion>,
 }
 
 fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -359,7 +364,7 @@ fn settings_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("settings.json"))
 }
 
-fn load_settings(app: &tauri::AppHandle) -> Option<StoredSettings> {
+pub(crate) fn load_settings(app: &tauri::AppHandle) -> Option<StoredSettings> {
     let bytes = fs::read(settings_path(app).ok()?).ok()?;
     serde_json::from_slice(&bytes).ok()
 }
@@ -391,7 +396,7 @@ fn unpair(app: tauri::AppHandle) -> Result<ConnectionView, String> {
     Ok(view(None))
 }
 
-async fn error_body(resp: reqwest::Response) -> String {
+pub(crate) async fn error_body(resp: reqwest::Response) -> String {
     let status = resp.status();
     let msg = resp
         .json::<serde_json::Value>()
@@ -977,6 +982,7 @@ pub fn run() {
             migrate_old_config_dir(&handle);
             app.manage(overlay::OverlayState::load(&handle));
             app.manage(scan::ScanState::default());
+            app.manage(refinery::RefineryState::default());
             if let Err(e) = overlay::register_hotkeys(&handle) {
                 log::warn!("overlay hotkeys: {e}");
             }
@@ -1020,6 +1026,15 @@ pub fn run() {
             kde_rule::overlay_set_kde_rule,
             scan::scan_now,
             scan::scan_last,
+            refinery::refinery_read,
+            refinery::refinery_last,
+            refinery::refinery_save,
+            refinery::refinery_clear,
+            region::region_select,
+            region::region_selected,
+            region::region_current,
+            region::region_clear,
+            training::training_capture,
             start_watcher,
             stop_watcher,
             watcher_status,

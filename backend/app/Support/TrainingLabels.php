@@ -48,7 +48,17 @@ class TrainingLabels
      */
     public const HUD_COLOURS = ['amber', 'teal', 'blue', 'green', 'white', 'mixed', 'unknown'];
 
-    public const STATUSES = ['pending', 'approved', 'rejected'];
+    /**
+     * Statuses a submission moves through.
+     *
+     * `captured` is the desktop client's hotkey grab: an image with no labels
+     * yet, visible only to the person who took it. Labelling it makes it
+     * `pending`, which is when a reviewer first sees it.
+     */
+    public const STATUSES = ['captured', 'pending', 'approved', 'rejected'];
+
+    /** The statuses a reviewer works with; `captured` is not one of them. */
+    public const REVIEW_STATUSES = ['pending', 'approved', 'rejected'];
 
     /**
      * Approved captures a screen needs before its class is worth trusting.

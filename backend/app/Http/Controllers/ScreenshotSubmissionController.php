@@ -64,6 +64,7 @@ class ScreenshotSubmissionController extends Controller
     private function vocabulary(string $column, array $seeded = []): array
     {
         $counts = ScreenshotSubmission::query()
+            ->whereIn('status', TrainingLabels::REVIEW_STATUSES)
             ->whereNotNull($column)
             ->where($column, '!=', '')
             ->selectRaw("{$column} as name, count(*) as total")
@@ -89,6 +90,7 @@ class ScreenshotSubmissionController extends Controller
     public function index(Request $request)
     {
         $submissions = ScreenshotSubmission::where('user_id', $request->user()->id)
+            ->whereIn('status', TrainingLabels::REVIEW_STATUSES)
             ->latest()
             ->paginate(24);
 
@@ -191,7 +193,7 @@ class ScreenshotSubmissionController extends Controller
         $orgIds = $this->authorizeReviewer($request->user());
 
         $status = $request->query('status', 'pending');
-        abort_unless(in_array($status, TrainingLabels::STATUSES, true), 422, 'Unknown status.');
+        abort_unless(in_array($status, TrainingLabels::REVIEW_STATUSES, true), 422, 'Unknown status.');
 
         $submissions = ScreenshotSubmission::reviewableBy($orgIds)
             ->where('status', $status)
@@ -225,6 +227,8 @@ class ScreenshotSubmissionController extends Controller
     private function coverage(array $orgIds): array
     {
         $rows = ScreenshotSubmission::reviewableBy($orgIds)
+            ->whereIn('status', TrainingLabels::REVIEW_STATUSES)
+            ->whereNotNull('screen')
             ->selectRaw('screen, status, count(*) as total')
             ->groupBy('screen', 'status')
             ->get();
@@ -474,6 +478,7 @@ class ScreenshotSubmissionController extends Controller
     private function queueCounts(array $orgIds): array
     {
         return ScreenshotSubmission::reviewableBy($orgIds)
+            ->whereIn('status', TrainingLabels::REVIEW_STATUSES)
             ->selectRaw('status, count(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status')
@@ -528,6 +533,7 @@ class ScreenshotSubmissionController extends Controller
         $payload = [
             'id' => $submission->id,
             'status' => $submission->status,
+            'origin' => $submission->origin,
             'screen' => $submission->screen,
             'hud_colour' => $submission->hud_colour,
             'hud_hex' => $submission->hud_hex,

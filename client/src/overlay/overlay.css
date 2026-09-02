@@ -331,3 +331,161 @@ html.overlay-mode body {
 .ov-btn:hover { background: rgba(60, 201, 240, 0.2); }
 .ov-btn:disabled { opacity: 0.4; cursor: default; }
 .ov-btn.on { background: rgba(47, 191, 164, 0.16); border-color: rgba(47, 191, 164, 0.6); color: var(--green); }
+
+/* ── Region selector ──────────────────────────────────────────────────────
+   A full-screen sheet over the live game. Only the dim is painted, so the
+   chosen area stays the real game frame rather than a copy of it. */
+
+.region-root {
+  position: fixed;
+  inset: 0;
+  cursor: crosshair;
+  user-select: none;
+  outline: none;
+  background: transparent;
+}
+
+.region-dim {
+  position: absolute;
+  background: rgba(6, 12, 18, 0.55);
+}
+
+.region-box {
+  position: absolute;
+  border: 1.5px solid #4fc9be;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.region-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 8%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  background: rgba(8, 16, 22, 0.9);
+  border: 1px solid rgba(79, 201, 190, 0.4);
+  color: #e4edf4;
+  font-size: 0.9rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* ── Refinery window ───────────────────────────────────────────────────── */
+
+.ov-field {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+.ov-field > span {
+  flex: 0 0 5.5rem;
+  opacity: 0.75;
+  font-size: 0.85em;
+}
+.ov-field input,
+.ov-table input {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  padding: 0.2rem 0.4rem;
+  color: inherit;
+  font: inherit;
+  font-size: 0.9em;
+}
+.ov-field input:focus,
+.ov-table input:focus {
+  outline: 1px solid #4fc9be;
+  outline-offset: 0;
+}
+
+.ov-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88em;
+}
+.ov-table th {
+  text-align: left;
+  font-weight: 500;
+  opacity: 0.6;
+  padding-bottom: 0.25rem;
+}
+.ov-table td {
+  padding: 0.1rem 0.2rem 0.1rem 0;
+}
+.ov-table td:first-child {
+  width: 45%;
+}
+
+.ov-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.ov-actions button {
+  flex: 1 1 auto;
+  padding: 0.35rem 0.6rem;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font: inherit;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+.ov-actions button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+.ov-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.ov-actions .ov-primary {
+  border-color: rgba(79, 201, 190, 0.6);
+  background: rgba(79, 201, 190, 0.18);
+}
+
+.ov-warn {
+  color: #f0a94f;
+  font-size: 0.85em;
+  margin-bottom: 0.35rem;
+}
+.ov-ok {
+  color: #4fc9be;
+  font-size: 0.9em;
+}
+.ov-dim {
+  opacity: 0.6;
+  font-size: 0.82em;
+}
+.ov-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: #4fc9be;
+  font: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.ov-lines {
+  margin-top: 0.4rem;
+  max-height: 9rem;
+  overflow-y: auto;
+  font-size: 0.8em;
+  opacity: 0.75;
+  line-height: 1.5;
+}
+
+/* A material row the panel is not refining: shown, but plainly inactive. */
+.ov-table tr.ov-off input {
+  opacity: 0.45;
+}

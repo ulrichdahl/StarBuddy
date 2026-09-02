@@ -25,7 +25,7 @@ pub const SCAN: &str = "scan";
 const DETECTION_URL: &str = "https://ocrs-models.s3-accelerate.amazonaws.com/text-detection.rten";
 const RECOGNITION_URL: &str = "https://ocrs-models.s3-accelerate.amazonaws.com/text-recognition.rten";
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct OcrLine {
     pub text: String,
     pub x: i32,
@@ -133,7 +133,7 @@ fn models_dir(app: &AppHandle) -> Result<PathBuf, String> {
 
 /// Download the two OCR models on first use (≈ 15 MB total). Written to a
 /// temp name and renamed so a torn download never poses as a model.
-async fn ensure_models(app: &AppHandle) -> Result<(PathBuf, PathBuf), String> {
+pub(crate) async fn ensure_models(app: &AppHandle) -> Result<(PathBuf, PathBuf), String> {
     let dir = models_dir(app)?;
     let targets = [("text-detection.rten", DETECTION_URL), ("text-recognition.rten", RECOGNITION_URL)];
     for (i, (name, url)) in targets.iter().enumerate() {
@@ -174,7 +174,7 @@ pub struct Captured {
 
 /// Windows: the game window if it is up, else the primary monitor.
 #[cfg(windows)]
-fn capture() -> Result<Captured, String> {
+pub(crate) fn capture() -> Result<Captured, String> {
     let game = xcap::Window::all()
         .map_err(|e| e.to_string())?
         .into_iter()
@@ -205,7 +205,7 @@ fn capture() -> Result<Captured, String> {
 /// read. If the game is not an X client (native Wayland Wine) or the read
 /// fails, fall back to the desktop's screenshot tool.
 #[cfg(target_os = "linux")]
-fn capture() -> Result<Captured, String> {
+pub(crate) fn capture() -> Result<Captured, String> {
     match capture_x11_window() {
         Ok(c) => Ok(c),
         Err(x11_err) => capture_with_tool().map_err(|tool_err| format!("{x11_err}; {tool_err}")),
@@ -284,7 +284,7 @@ fn capture_x11_rect(region: Option<ScanRegion>) -> Result<Captured, String> {
 }
 
 /// Region fractions → pixel rect inside a frame of the given size.
-fn region_px(r: ScanRegion, width: u32, height: u32) -> (i32, i32, i32, i32) {
+pub(crate) fn region_px(r: ScanRegion, width: u32, height: u32) -> (i32, i32, i32, i32) {
     let x = (r.x.clamp(0.0, 0.95) * width as f32) as i32;
     let y = (r.y.clamp(0.0, 0.95) * height as f32) as i32;
     let w = ((r.w.clamp(0.02, 1.0) * width as f32) as i32).min(width as i32 - x);
@@ -311,7 +311,7 @@ fn capture_region(region: ScanRegion) -> Result<Captured, String> {
     }
 }
 
-fn crop_region(full: Captured, region: ScanRegion) -> Result<Captured, String> {
+pub(crate) fn crop_region(full: Captured, region: ScanRegion) -> Result<Captured, String> {
     let (x, y, w, h) = region_px(region, full.width, full.height);
     let img = image::RgbImage::from_raw(full.width, full.height, full.rgb).ok_or("bad frame")?;
     let crop = image::imageops::crop_imm(&img, x as u32, y as u32, w as u32, h as u32).to_image();
@@ -372,11 +372,11 @@ fn capture_with_tool() -> Result<Captured, String> {
 }
 
 #[cfg(not(any(windows, target_os = "linux")))]
-fn capture() -> Result<Captured, String> {
+pub(crate) fn capture() -> Result<Captured, String> {
     Err("screen capture is not supported on this platform yet".into())
 }
 
-fn load_engine(det: &PathBuf, rec: &PathBuf) -> Result<OcrEngine, String> {
+pub(crate) fn load_engine(det: &PathBuf, rec: &PathBuf) -> Result<OcrEngine, String> {
     let detection_model = rten::Model::load_file(det).map_err(|e| format!("detection model: {e}"))?;
     let recognition_model = rten::Model::load_file(rec).map_err(|e| format!("recognition model: {e}"))?;
     OcrEngine::new(OcrEngineParams {
@@ -387,7 +387,7 @@ fn load_engine(det: &PathBuf, rec: &PathBuf) -> Result<OcrEngine, String> {
     .map_err(|e| e.to_string())
 }
 
-fn run_ocr(engine: &OcrEngine, cap: &Captured) -> Result<Vec<OcrLine>, String> {
+pub(crate) fn run_ocr(engine: &OcrEngine, cap: &Captured) -> Result<Vec<OcrLine>, String> {
     let source = ImageSource::from_bytes(&cap.rgb, (cap.width, cap.height)).map_err(|e| e.to_string())?;
     let input = engine.prepare_input(source).map_err(|e| e.to_string())?;
     let words = engine.detect_words(&input).map_err(|e| e.to_string())?;

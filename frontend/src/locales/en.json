@@ -610,7 +610,8 @@
     "tabs": {
       "contribute": "Contribute",
       "mine": "My submissions ({{count}})",
-      "review": "Review queue"
+      "review": "Review queue",
+      "captures": "Captures ({{count}})"
     },
     "help": {
       "title": "What makes a useful screenshot",
@@ -697,6 +698,14 @@
       "title": "Coverage per screen",
       "subtitle": "{{approved}} approved in total, {{target}} needed per screen. {{short}} started but still short.",
       "waiting": "{{count}} waiting"
+    },
+    "captures": {
+      "emptyTitle": "Nothing captured yet",
+      "emptyBody": "Press the capture key in game (F9 by default) and the frame lands here, ready to mark up.",
+      "waiting": "{{count}} waiting to be labelled. Mark the corners and name the screen, same as an upload.",
+      "labelling": "Captured {{when}}",
+      "label": "Mark it up",
+      "discard": "Discard"
     }
   }
 }

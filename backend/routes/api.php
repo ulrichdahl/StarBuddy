@@ -13,6 +13,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\RefineryOrderController;
 use App\Http\Controllers\ResourceStackController;
 use App\Http\Controllers\ResourceTypeController;
+use App\Http\Controllers\ScreenshotCaptureController;
 use App\Http\Controllers\ScreenshotSubmissionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -83,6 +84,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('training/screenshots/queue', [ScreenshotSubmissionController::class, 'queue']);
     Route::get('training/screenshots/export', [ScreenshotSubmissionController::class, 'export']);
     Route::get('training/screenshots/{submission}/image', [ScreenshotSubmissionController::class, 'image']);
+
+    // Hotkey grabs from the desktop client: they arrive unlabelled, wait in the
+    // player's own queue, and become ordinary submissions once labelled.
+    Route::post('training/captures', [ScreenshotCaptureController::class, 'store'])
+        ->middleware('throttle:120,1');
+    Route::get('training/captures', [ScreenshotCaptureController::class, 'index']);
+    Route::post('training/captures/{submission}/contribute', [ScreenshotCaptureController::class, 'contribute']);
+    Route::delete('training/captures/{submission}', [ScreenshotCaptureController::class, 'destroy']);
     Route::patch('training/screenshots/{submission}', [ScreenshotSubmissionController::class, 'update']);
     Route::post('training/screenshots/{submission}/review', [ScreenshotSubmissionController::class, 'review']);
 });
