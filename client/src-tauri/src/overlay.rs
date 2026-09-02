@@ -537,15 +537,25 @@ pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
         .iter()
         .find(|(s, _)| s == shortcut)
         .map(|(_, a)| a.clone());
-    match action.as_deref() {
+    // The plugin calls this from its own listener thread, and anything that
+    // may build or show a window has to be on the main thread — on Linux the
+    // toolkit is not thread-safe, so a hotkey that opens a window silently
+    // does nothing from here. A hotkey whose window already exists appears to
+    // work, which is what made this look like two broken keys rather than one
+    // broken thread.
+    let app2 = app.clone();
+    let dispatch = move || match action.as_deref() {
         Some("status") => {
-            if let Err(e) = toggle(app, STATUS) {
+            if let Err(e) = toggle(&app2, STATUS) {
                 log::error!("overlay toggle failed: {e}");
             }
         }
-        Some("scan") => crate::scan::trigger(app),
-        Some("refinery") => crate::refinery::trigger(app),
-        Some("capture") => crate::training::trigger(app),
+        Some("scan") => crate::scan::trigger(&app2),
+        Some("refinery") => crate::refinery::trigger(&app2),
+        Some("capture") => crate::training::trigger(&app2),
         other => log::warn!("unhandled shortcut action {other:?}"),
+    };
+    if let Err(e) = app.run_on_main_thread(dispatch) {
+        log::error!("shortcut dispatch failed: {e}");
     }
 }

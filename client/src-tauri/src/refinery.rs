@@ -141,7 +141,9 @@ pub fn current_region(app: &AppHandle) -> Option<ScanRegion> {
 
 /// Hotkey entry point: show the window and read whatever is on screen.
 pub fn trigger(app: &AppHandle) {
-    let _ = crate::overlay::show(app, REFINERY);
+    if let Err(e) = crate::overlay::show(app, REFINERY) {
+        log::error!("refinery window failed to open: {e}");
+    }
     let app2 = app.clone();
     tauri::async_runtime::spawn(async move {
         if let Err(e) = read(app2.clone()).await {
