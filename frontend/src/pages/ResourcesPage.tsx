@@ -43,6 +43,7 @@ import { ListPager } from '../components/ListPager'
 import { ResourceEntryForm } from '../components/ResourceEntryForm'
 import { MaterialGridDialog } from '../components/MaterialGridDialog'
 import { LocationSelect } from '../components/LocationSelect'
+import { VisibilitySelect } from '../components/VisibilitySelect'
 import { OrgMatrixTable } from '../components/OrgMatrixTable'
 import { useSystems } from '../lib/locations'
 import { useMe } from '../lib/auth'
@@ -134,22 +135,7 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
             helperText={t('materials.edit.zeroConsumes')}
           />
           <LocationSelect value={location} onChange={setLocation} label={t('materials.fields.location')} />
-          <ToggleButtonGroup
-            exclusive
-            fullWidth
-            size="small"
-            value={visibility}
-            onChange={(_, v: Visibility | null) => v && setVisibility(v)}
-            onKeyDown={(e) => {
-              if (e.key.startsWith('Arrow')) {
-                e.preventDefault()
-                setVisibility(visibility === 'private' ? 'org' : 'private')
-              }
-            }}
-          >
-            <ToggleButton value="private">{t('materials.visibility.private')}</ToggleButton>
-            <ToggleButton value="org">{t('materials.visibility.org')}</ToggleButton>
-          </ToggleButtonGroup>
+          <VisibilitySelect value={visibility} onChange={setVisibility} />
           {(save.isError || remove.isError) && (
             <Alert severity="error">
               {t('materials.edit.saveError')}

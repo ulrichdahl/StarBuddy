@@ -9,12 +9,11 @@ import InputAdornment from '@mui/material/InputAdornment'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
-import ToggleButton from '@mui/material/ToggleButton'
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import { api, unwrapList } from '../lib/api'
 import type { CreateResourceStack, Location, ResourceType, Visibility } from '../lib/types'
 import { LocationSelect } from './LocationSelect'
+import { VisibilitySelect } from './VisibilitySelect'
 
 /**
  * Sticky quick-entry form for resource stacks, tuned for keyboard-only
@@ -234,24 +233,7 @@ export function ResourceEntryForm({ onAddMultiple }: { onAddMultiple?: () => voi
           helperText={t('materials.entry.locationKept')}
         />
 
-        <ToggleButtonGroup
-          exclusive
-          fullWidth
-          size="small"
-          value={visibility}
-          onChange={(_, value: Visibility | null) => value && setVisibility(value)}
-          // Arrows switch the value directly — no Space needed.
-          onKeyDown={(e) => {
-            if (e.key.startsWith('Arrow')) {
-              e.preventDefault()
-              setVisibility(visibility === 'private' ? 'org' : 'private')
-            }
-          }}
-          aria-label={t('materials.fields.visibility')}
-        >
-          <ToggleButton value="private">{t('materials.visibility.private')}</ToggleButton>
-          <ToggleButton value="org">{t('materials.visibility.org')}</ToggleButton>
-        </ToggleButtonGroup>
+        <VisibilitySelect value={visibility} onChange={setVisibility} />
 
         {createStack.isError && <Alert severity="error">{t('materials.entry.saveError')}</Alert>}
 

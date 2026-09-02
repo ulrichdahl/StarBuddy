@@ -459,9 +459,7 @@
       "collectFailed": "Kunne ikke hente ordren.",
       "collectedTo": "Hentet til {{location}}.",
       "visibility": "Synlig for",
-      "visibilityHelp": "Hvem kan se udbyttet",
-      "private": "Kun mig",
-      "org": "Min org"
+      "visibilityHelp": "Hvem kan se udbyttet"
     }
   },
   "materials": {

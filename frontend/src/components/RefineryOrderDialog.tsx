@@ -10,16 +10,16 @@ import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
-import MenuItem from '@mui/material/MenuItem'
 import Stack from '@mui/material/Stack'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
-import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { api, apiErrorDetail } from '../lib/api'
+import { LocationSelect } from './LocationSelect'
+import { VisibilitySelect } from './VisibilitySelect'
 import { useNow } from '../lib/useNow'
 import type { Location, RefineryOrderDetail, Visibility } from '../lib/types'
 
@@ -34,8 +34,10 @@ import type { Location, RefineryOrderDetail, Visibility } from '../lib/types'
 export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClose: () => void }) {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
-  const [destination, setDestination] = useState<number | ''>('')
-  const [visibility, setVisibility] = useState<Visibility | ''>('')
+  const [destination, setDestination] = useState<Location | null>(null)
+  // Null until the player touches it, so collecting an order they had kept
+  // private does not quietly reshare it.
+  const [visibility, setVisibility] = useState<Visibility | null>(null)
   const [showLines, setShowLines] = useState(false)
 
   const order = useQuery({
@@ -44,22 +46,12 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
     enabled: id !== null,
   })
 
-  // Collecting can put the materials anywhere, so the full location list is
-  // offered here — unlike placing an order, which only makes sense at a refinery.
-  const locations = useQuery({
-    queryKey: ['locations'],
-    queryFn: async () => (await api.get<Location[]>('/api/locations')).data,
-    enabled: id !== null,
-  })
-
   const collect = useMutation({
     mutationFn: async (locationId: number) =>
       (
         await api.post<RefineryOrderDetail>(`/api/refinery-orders/${id}/collect`, {
           location_id: locationId,
-          // Left alone unless the player changed it, so collecting does not
-          // quietly reshare a haul they had kept to themselves.
-          ...(visibility === '' ? {} : { visibility }),
+          ...(visibility === null ? {} : { visibility }),
         })
       ).data,
     onSuccess: () => {
@@ -213,6 +205,33 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
               </Alert>
             )}
 
+            {/* Collecting is a decision about the haul, so its two controls
+                sit with the order they describe rather than in the button
+                row, where a picker cannot carry its own helper text. */}
+            {data.open && (
+              <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr auto' } }}>
+                <LocationSelect
+                  value={destination}
+                  onChange={setDestination}
+                  label={t('refinery.dialog.destination')}
+                  helperText={t('refinery.dialog.destinationHelp')}
+                  required
+                  size="small"
+                />
+                <Box>
+                  <VisibilitySelect
+                    value={visibility ?? data.visibility ?? 'private'}
+                    onChange={setVisibility}
+                    label={t('refinery.dialog.visibility')}
+                    fullWidth={false}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                    {t('refinery.dialog.visibilityHelp')}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+
             {collect.isError && (
               <Alert severity="error">{apiErrorDetail(collect.error) ?? t('refinery.dialog.collectFailed')}</Alert>
             )}
@@ -222,43 +241,13 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
 
       <DialogActions sx={{ gap: 1, flexWrap: 'wrap' }}>
         {data?.open && (
-          <>
-            <TextField
-              select
-              size="small"
-              required
-              label={t('refinery.dialog.destination')}
-              value={destination}
-              onChange={(event) => setDestination(Number(event.target.value))}
-              helperText={t('refinery.dialog.destinationHelp')}
-              sx={{ minWidth: 240 }}
-            >
-              {(locations.data ?? []).map((location) => (
-                <MenuItem key={location.id} value={location.id}>
-                  {location.name}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select
-              size="small"
-              label={t('refinery.dialog.visibility')}
-              value={visibility === '' ? (data?.visibility ?? 'private') : visibility}
-              onChange={(event) => setVisibility(event.target.value as Visibility)}
-              helperText={t('refinery.dialog.visibilityHelp')}
-              sx={{ minWidth: 160 }}
-            >
-              <MenuItem value="private">{t('refinery.dialog.private')}</MenuItem>
-              <MenuItem value="org">{t('refinery.dialog.org')}</MenuItem>
-            </TextField>
-            <Button
-              variant="contained"
-              disabled={destination === '' || collect.isPending}
-              onClick={() => destination !== '' && collect.mutate(destination)}
-            >
-              {collect.isPending ? t('refinery.dialog.collecting') : t('refinery.dialog.collect')}
-            </Button>
-          </>
+          <Button
+            variant="contained"
+            disabled={destination === null || collect.isPending}
+            onClick={() => destination !== null && collect.mutate(destination.id)}
+          >
+            {collect.isPending ? t('refinery.dialog.collecting') : t('refinery.dialog.collect')}
+          </Button>
         )}
         <Button onClick={onClose}>{t('common.close')}</Button>
       </DialogActions>

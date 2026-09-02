@@ -8,12 +8,11 @@ import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd'
 import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
-import ToggleButton from '@mui/material/ToggleButton'
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import { api, unwrapList } from '../lib/api'
 import type { CreateItemStack, Item, Location, Visibility } from '../lib/types'
 import { LocationSelect } from './LocationSelect'
+import { VisibilitySelect } from './VisibilitySelect'
 
 function useItemSearch(search: string) {
   return useQuery({
@@ -211,24 +210,13 @@ export function ItemEntryForm({ onAddMultiple }: { onAddMultiple?: () => void })
           helperText={t('items.entry.locationKept')}
         />
 
-        <ToggleButtonGroup
-          exclusive
-          fullWidth
-          size="small"
+        <VisibilitySelect
           value={visibility}
-          onChange={(_, value: Visibility | null) => value && setVisibility(value)}
-          // Arrows switch the value directly — no Space needed.
-          onKeyDown={(e) => {
-            if (e.key.startsWith('Arrow')) {
-              e.preventDefault()
-              setVisibility(visibility === 'private' ? 'org' : 'private')
-            }
-          }}
-          aria-label={t('items.entry.visibilityAria')}
-        >
-          <ToggleButton value="private">{t('items.entry.private')}</ToggleButton>
-          <ToggleButton value="org">{t('items.entry.orgVisible')}</ToggleButton>
-        </ToggleButtonGroup>
+          onChange={setVisibility}
+          label={t('items.entry.visibilityAria')}
+          privateLabel={t('items.entry.private')}
+          orgLabel={t('items.entry.orgVisible')}
+        />
 
         {createStack.isError && <Alert severity="error">{t('items.entry.saveFailed')}</Alert>}
 
