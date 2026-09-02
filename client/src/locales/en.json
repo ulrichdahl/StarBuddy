@@ -220,6 +220,10 @@
     "liveScanStop": "Stop live scan (F7)",
     "hotkeyRefinery": "Read refinery order",
     "hotkeyCapture": "Send screenshot for training",
+    "showRefinery": "Open refinery window",
+    "refineryHint": "Open a refinery order in game, then press the refinery key to read it.",
+    "captureNow": "Send screenshot now",
+    "captureHint": "Sends the game window to StarBuddy for the training queue; contribute it from the Training page.",
     "region": {
       "title": {
         "refinery": "Drag across the refinery order panel",

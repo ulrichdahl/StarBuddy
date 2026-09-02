@@ -202,8 +202,11 @@ function App() {
   const seenRef = useRef<Set<string>>(readSeen());
 
   const [hotkey, setHotkey] = useState<HotkeyInfo | null>(null);
-  const [hotkeyDraft, setHotkeyDraft] = useState("");
-  const [scanHotkeyDraft, setScanHotkeyDraft] = useState("");
+  // action → what is typed in its field. Seeded from the client's own
+  // hotkey map so every action it knows about gets a row, including ones
+  // added after this page was written.
+  const [hotkeyDrafts, setHotkeyDrafts] = useState<Record<string, string>>({});
+  const [captureStatus, setCaptureStatus] = useState<{ phase: string; detail: string } | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanLive, setScanLive] = useState(false);
   const [logDir, setLogDir] = useState<string | null>(null);
@@ -233,8 +236,7 @@ function App() {
     invoke<HotkeyInfo>("overlay_hotkey")
       .then((h) => {
         setHotkey(h);
-        setHotkeyDraft(h.hotkeys["status"] ?? "");
-        setScanHotkeyDraft(h.hotkeys["scan"] ?? "");
+        setHotkeyDrafts(h.hotkeys);
       })
       .catch(() => {});
 
@@ -252,6 +254,9 @@ function App() {
         if (e.payload[0] === "status") setStatusOpen(e.payload[1]);
       }),
       listen<boolean>("scan-live-state", (e) => setScanLive(e.payload)),
+      // The training hotkey has no window of its own, so this line is the
+      // only sign it did anything.
+      listen<{ phase: string; detail: string }>("training-capture", (e) => setCaptureStatus(e.payload)),
       listen<boolean>("overlay-kde-rule", (e) =>
         setKdeRule((prev) => ({ applicable: prev?.applicable ?? true, installed: e.payload })),
       ),
@@ -347,15 +352,48 @@ function App() {
     }
   };
 
-  const saveHotkey = async (action: "status" | "scan", value: string) => {
+  const saveHotkey = async (action: string, value: string) => {
     setHotkeyError(null);
     try {
       const info = await invoke<HotkeyInfo>("overlay_set_hotkey", { action, hotkey: value });
       setHotkey(info);
-      setHotkeyDraft(info.hotkeys["status"] ?? "");
-      setScanHotkeyDraft(info.hotkeys["scan"] ?? "");
+      setHotkeyDrafts(info.hotkeys);
     } catch (e) {
       setHotkeyError(String(e));
+    }
+  };
+
+  /** The shortcut field and its save button, for one action. */
+  const hotkeyField = (action: string, label: string, placeholder: string) => {
+    const draft = hotkeyDrafts[action] ?? "";
+    return (
+      <>
+        <input
+          type="text"
+          aria-label={label}
+          placeholder={placeholder}
+          style={{ maxWidth: 160, flex: "0 1 auto" }}
+          value={draft}
+          onChange={(e) => setHotkeyDrafts((prev) => ({ ...prev, [action]: e.target.value }))}
+        />
+        <button
+          disabled={!hotkey || draft.trim() === (hotkey.hotkeys[action] ?? "")}
+          onClick={() => saveHotkey(action, draft)}
+        >
+          {t("overlay.saveHotkey")}
+        </button>
+      </>
+    );
+  };
+
+  // The same thing the training hotkey does, for checking it works without
+  // the game in front of the window.
+  const sendTrainingCapture = async () => {
+    setCaptureStatus({ phase: "capturing", detail: "" });
+    try {
+      setCaptureStatus({ phase: "sent", detail: await invoke<string>("training_capture") });
+    } catch (e) {
+      setCaptureStatus({ phase: "error", detail: String(e) });
     }
   };
 
@@ -667,40 +705,31 @@ function App() {
           <button onClick={toggleStatusWindow}>
             {statusOpen ? t("overlay.hideStatus") : t("overlay.showStatus")}
           </button>
-          <input
-            type="text"
-            aria-label={t("overlay.hotkeyStatus")}
-            placeholder="F6"
-            style={{ maxWidth: 160, flex: "0 1 auto" }}
-            value={hotkeyDraft}
-            onChange={(e) => setHotkeyDraft(e.target.value)}
-          />
-          <button
-            disabled={!hotkey || hotkeyDraft.trim() === (hotkey.hotkeys["status"] ?? "")}
-            onClick={() => saveHotkey("status", hotkeyDraft)}
-          >
-            {t("overlay.saveHotkey")}
-          </button>
+          {hotkeyField("status", t("overlay.hotkeyStatus"), "F6")}
         </div>
         <div className="row">
           <button onClick={toggleLiveScan}>{scanLive ? t("overlay.liveScanStop") : t("overlay.liveScanStart")}</button>
           <button onClick={scanNow}>{t("overlay.scanNow")}</button>
-          <input
-            type="text"
-            aria-label={t("overlay.hotkeyScan")}
-            placeholder="F7"
-            style={{ maxWidth: 160, flex: "0 1 auto" }}
-            value={scanHotkeyDraft}
-            onChange={(e) => setScanHotkeyDraft(e.target.value)}
-          />
-          <button
-            disabled={!hotkey || scanHotkeyDraft.trim() === (hotkey.hotkeys["scan"] ?? "")}
-            onClick={() => saveHotkey("scan", scanHotkeyDraft)}
-          >
-            {t("overlay.saveHotkey")}
-          </button>
+          {hotkeyField("scan", t("overlay.hotkeyScan"), "F7")}
         </div>
         <p className="hint">{t("overlay.scanHint")}</p>
+        <div className="row">
+          <button onClick={() => invoke("overlay_show", { name: "refinery" }).catch((e) => setOverlayError(String(e)))}>
+            {t("overlay.showRefinery")}
+          </button>
+          {hotkeyField("refinery", t("overlay.hotkeyRefinery"), "F8")}
+        </div>
+        <p className="hint">{t("overlay.refineryHint")}</p>
+        <div className="row">
+          <button onClick={sendTrainingCapture}>{t("overlay.captureNow")}</button>
+          {hotkeyField("capture", t("overlay.hotkeyCapture"), "F9")}
+        </div>
+        <p className="hint">{t("overlay.captureHint")}</p>
+        {captureStatus && (
+          <p className={captureStatus.phase === "error" ? "error" : "hint"}>
+            {t(`overlay.capture.${captureStatus.phase}`, { detail: captureStatus.detail })}
+          </p>
+        )}
         {scanError && <p className="error">{scanError}</p>}
         {overlayError && <p className="error">{overlayError}</p>}
         {hotkeyError && <p className="error">{hotkeyError}</p>}

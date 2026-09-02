@@ -220,6 +220,10 @@
     "liveScanStop": "Stop live-scanning (F7)",
     "hotkeyRefinery": "Aflæs rafinaderiordre",
     "hotkeyCapture": "Send skærmbillede til træning",
+    "showRefinery": "Åbn rafinaderivindue",
+    "refineryHint": "Åbn en rafinaderiordre i spillet, og tryk så på rafinaderitasten for at aflæse den.",
+    "captureNow": "Send skærmbillede nu",
+    "captureHint": "Sender spilvinduet til StarBuddy og træningskøen; bidrag med det fra Træning-siden.",
     "region": {
       "title": {
         "refinery": "Træk hen over rafinaderiets ordrepanel",
