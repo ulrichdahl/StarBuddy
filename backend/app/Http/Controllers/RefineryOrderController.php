@@ -155,11 +155,25 @@ class RefineryOrderController extends Controller
             })
             ->first();
 
-        return $existing ?? Location::create([
+        if ($existing) {
+            return $existing;
+        }
+
+        // A refinery is a place the catalogue usually already knows under
+        // another kind — Levski is a station there — so the new row takes that
+        // row's star system. Without it the location has no system at all, and
+        // a system-less location reads as one of the player's own, which a
+        // refinery is not.
+        $system = Location::whereRaw('LOWER(name) = ?', [strtolower($station)])
+            ->whereNotNull('system')
+            ->value('system');
+
+        return Location::create([
             'user_id' => $user->id,
             'org_id' => $orgId,
             'kind' => 'refinery',
             'name' => $station,
+            'system' => $system,
         ]);
     }
 

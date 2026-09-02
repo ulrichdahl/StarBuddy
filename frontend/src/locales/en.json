@@ -543,7 +543,8 @@
   },
   "locations": {
     "label": "Location",
-    "groupPersonal": "Personal"
+    "groupPersonal": "Personal",
+    "groupUnknown": "Unknown system"
   },
   "status": {
     "region": "Star Citizen service status",

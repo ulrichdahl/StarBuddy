@@ -319,6 +319,20 @@ class RefineryOrderTest extends TestCase
         $this->assertCount(2, $all);
     }
 
+    public function test_a_new_refinery_location_takes_the_system_the_catalogue_knows(): void
+    {
+        // The terminal prints a station name and no star system, so a refinery
+        // created from one has to get its system from the place it already is.
+        Location::create(['kind' => 'station', 'system' => 'Nyx', 'name' => 'Levski']);
+
+        $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', [...$this->order(), 'station' => 'Levski'])
+            ->assertCreated();
+
+        $refinery = Location::where('kind', 'refinery')->where('name', 'Levski')->firstOrFail();
+        $this->assertSame('Nyx', $refinery->system, 'a system-less location reads as one of the player\'s own');
+    }
+
     public function test_a_completion_from_an_older_client_no_longer_invents_an_order(): void
     {
         $this->actingAs($this->me)

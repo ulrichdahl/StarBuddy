@@ -24,6 +24,9 @@ interface LocationSelectProps {
 /** Within each system: major landing zones first, then stations, then the rest. */
 const kindRank = (l: Location) => (l.kind === 'landing_zone' ? 0 : l.kind === 'station' ? 1 : 2)
 
+/** The kinds that belong to the player rather than to a place in the universe. */
+const PERSONAL = new Set(['ship', 'hangar', 'base'])
+
 /**
  * The one location picker: grouped by star system (personal ships/bases
  * last), landing zones before stations, every option a single ellipsised
@@ -63,7 +66,13 @@ export function LocationSelect({
       }}
       getOptionLabel={locationLabel}
       isOptionEqualToValue={(a, b) => a.id === b.id}
-      groupBy={(option) => option.system ?? t('locations.groupPersonal')}
+      // A missing system means "personal" only for the kinds that are the
+      // player's own. A station or refinery without one is a place in the
+      // universe whose system nobody has recorded, and filing it under
+      // Personal says something untrue about it.
+      groupBy={(option) =>
+        option.system ?? (PERSONAL.has(option.kind ?? '') ? t('locations.groupPersonal') : t('locations.groupUnknown'))
+      }
       renderOption={(props, option) => {
         const { key, ...rest } = props
         return (
