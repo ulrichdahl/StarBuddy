@@ -125,9 +125,12 @@ export function ScanOverlay() {
   };
   const toggleLive = () => void invoke<boolean>("scan_live_toggle").then(setLive).catch(() => {});
 
+  // Idle means "nothing to say". The instruction to press the hotkey is only
+  // true when nothing is watching the screen: while live runs, the box has to
+  // say it is waiting for a reading, not ask for the key that started it.
   const phaseText =
     status.phase === "idle"
-      ? result
+      ? result || live
         ? null
         : t("overlay.scan.idle")
       : status.phase === "done"
