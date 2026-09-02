@@ -10,11 +10,67 @@
 //! the difference between the X11 and the screenshot-tool capture paths.
 
 use crate::scan::ScanRegion;
+use base64::Engine;
 use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
 /// Window label of the full-screen selector.
 const SELECTOR: &str = "region-selector";
+
+/// The frame the selector is drawn on, grabbed just before it opens.
+#[derive(Default)]
+pub struct SelectorState {
+    frame: Mutex<Option<Frame>>,
+}
+
+/// A still of the screen as a data URI, with the size it was captured at.
+#[derive(Serialize, Clone)]
+pub struct Frame {
+    /// `data:image/jpeg;base64,…` — small enough to hand to a webview whole.
+    pub image: String,
+    pub width: u32,
+    pub height: u32,
+    pub source: String,
+}
+
+/// Grab what the selector will be drawn over.
+///
+/// The selector used to be a transparent hole onto the live game, which is
+/// prettier but depends on the compositor keeping a fullscreen always-on-top
+/// window translucent — and over a fullscreen game it can end up painted
+/// black instead, which hides the very thing being framed.
+///
+/// A still removes the dependency, and is better in two further ways: the
+/// picture cannot move while it is being framed, and it is the frame the
+/// capture itself produces, so a rectangle drawn on it means exactly what it
+/// looks like even when the capture is a game window rather than the monitor.
+fn grab_frame() -> Result<Frame, String> {
+    let cap = crate::scan::capture()?;
+    let buffer = image::RgbImage::from_raw(cap.width, cap.height, cap.rgb.clone())
+        .ok_or("capture did not fit its own dimensions")?;
+    let mut out = std::io::Cursor::new(Vec::new());
+    // JPEG, not PNG: this is a photograph of a screen that travels as text in
+    // a data URI, and a lossless copy of it is several times the size for no
+    // benefit to someone dragging a box on it.
+    image::codecs::jpeg::JpegEncoder::new_with_quality(&mut out, 82)
+        .encode_image(&buffer)
+        .map_err(|e| format!("could not encode the frame: {e}"))?;
+
+    Ok(Frame {
+        image: format!("data:image/jpeg;base64,{}", base64::engine::general_purpose::STANDARD.encode(out.into_inner())),
+        width: cap.width,
+        height: cap.height,
+        source: cap.source,
+    })
+}
+
+/// The still the selector is drawn on. None means the grab failed, and the
+/// selector falls back to being a transparent sheet over the live screen.
+#[tauri::command]
+pub fn region_frame(app: AppHandle) -> Option<Frame> {
+    app.state::<SelectorState>().frame.lock().unwrap().clone()
+}
 
 /// What a selection is being framed for. One purpose, one stored area.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -57,6 +113,13 @@ fn open_selector(app: &AppHandle, purpose: &str) -> Result<(), String> {
     if let Some(existing) = app.get_webview_window(SELECTOR) {
         let _ = existing.close();
     }
+
+    // Before the window exists, or the still would be a picture of the
+    // selector rather than of what it is meant to frame.
+    let frame = grab_frame()
+        .inspect_err(|e| log::warn!("region selector: no backdrop ({e})"))
+        .ok();
+    *app.state::<SelectorState>().frame.lock().unwrap() = frame;
 
     let url = WebviewUrl::App(format!("index.html?window=region&purpose={purpose}").into());
     let win = WebviewWindowBuilder::new(app, SELECTOR, url)

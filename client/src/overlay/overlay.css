@@ -345,6 +345,23 @@ html.overlay-mode body {
   background: transparent;
 }
 
+.region-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Filled, not fitted: the mapping from window fractions to frame fractions
+     has to be linear, and a letterbox would break it. */
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+}
+
+.region-source {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
 .region-dim {
   position: absolute;
   background: rgba(6, 12, 18, 0.55);

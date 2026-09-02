@@ -983,6 +983,7 @@ pub fn run() {
             app.manage(overlay::OverlayState::load(&handle));
             app.manage(scan::ScanState::default());
             app.manage(refinery::RefineryState::default());
+            app.manage(region::SelectorState::default());
             if let Err(e) = overlay::register_hotkeys(&handle) {
                 log::warn!("overlay hotkeys: {e}");
             }
@@ -1034,6 +1035,7 @@ pub fn run() {
             region::region_selected,
             region::region_current,
             region::region_clear,
+            region::region_frame,
             training::training_capture,
             start_watcher,
             stop_watcher,

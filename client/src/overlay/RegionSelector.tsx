@@ -10,13 +10,25 @@ interface Area {
   h: number;
 }
 
+interface Frame {
+  image: string;
+  width: number;
+  height: number;
+  source: string;
+}
+
 /**
- * Full-screen dimmed sheet for framing a capture area over the live game.
+ * Full-screen sheet for framing a capture area.
  *
- * The window itself is transparent and covers the screen, so what shows through
- * is the game as it is right now. Dragging cuts a clear hole in the dim, which
- * is the area that will be captured; the rectangle is stored as fractions of
- * the screen so the same framing holds at any resolution.
+ * It is drawn on a still of the screen taken the moment before it opened,
+ * rather than being a transparent hole onto the live game. The still is the
+ * frame the capture itself produces, so a rectangle drawn on it means exactly
+ * what it looks like — and it cannot move while it is being framed. Dragging
+ * cuts a clear hole in the dim; the rectangle is stored as fractions of the
+ * frame, so the same framing holds at any resolution.
+ *
+ * If the grab failed, the sheet stays transparent over the live screen, which
+ * is what it always was.
  */
 export function RegionSelector() {
   const { t } = useTranslation();
@@ -24,7 +36,12 @@ export function RegionSelector() {
   const [start, setStart] = useState<{ x: number; y: number } | null>(null);
   const [area, setArea] = useState<Area | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [frame, setFrame] = useState<Frame | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    invoke<Frame | null>("region_frame").then(setFrame).catch(() => setFrame(null));
+  }, []);
 
   const finish = useCallback(
     (chosen: Area | null) => {
@@ -96,6 +113,10 @@ export function RegionSelector() {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
     >
+      {/* Stretched to the sheet, so a fraction of the window is the same
+          fraction of the captured frame whatever either one measures. */}
+      {frame && <img className="region-frame" src={frame.image} alt="" draggable={false} />}
+
       {/* Four panes of dim around the selection leave the chosen area clear,
           so the player sees the real panel rather than a dimmed copy of it. */}
       {box ? (
@@ -116,6 +137,7 @@ export function RegionSelector() {
       <div className="region-hint">
         <strong>{t(`overlay.region.title.${purpose}`, t("overlay.region.title.refinery"))}</strong>
         <span>{error ?? t("overlay.region.hint")}</span>
+        {frame && <span className="region-source">{frame.source} · {frame.width}×{frame.height}</span>}
       </div>
     </div>
   );
