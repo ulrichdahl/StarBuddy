@@ -406,7 +406,22 @@ export function ResourcesPage() {
                       },
                     }}
                   >
-                    <TableCell>{stack.resource_type.name}</TableCell>
+                    <TableCell>
+                      {stack.resource_type.name}
+                      {stack.refining && (
+                        // Owned, but the refinery still has it. Marked rather
+                        // than hidden: it counts towards what can be crafted,
+                        // it just is not in hand yet.
+                        <Tooltip title={t('materials.refiningAt', { station: stack.refining_at ?? '' })}>
+                          <Box
+                            component="span"
+                            sx={{ ml: 0.75, color: 'text.secondary', fontSize: '0.8em', whiteSpace: 'nowrap' }}
+                          >
+                            {t('materials.refining')}
+                          </Box>
+                        </Tooltip>
+                      )}
+                    </TableCell>
                     <TableCell align="center">
                       <Tooltip title={categoryLabel(t, stack.resource_type.category)}>
                         <Box component="span" sx={{ display: 'inline-flex', verticalAlign: 'middle' }}>

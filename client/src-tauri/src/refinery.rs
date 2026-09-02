@@ -1236,10 +1236,31 @@ pub async fn refinery_save(
         })
         .collect();
 
+    // The whole reading travels with the order: the terminal shows more than
+    // the columns StarBuddy stores, and a saved order is worth being able to
+    // check against what was actually on screen.
+    let capture = serde_json::json!({
+        "captures": terminal.captures,
+        "ship": terminal.ship,
+        "capacity_percent": terminal.capacity_percent,
+        "method_traits": order.method_traits,
+        "in_manifest": order.in_manifest,
+        "to_refine": order.to_refine,
+        "elapsed_ms": terminal.elapsed_ms,
+        "lines": terminal.lines.iter().map(|l| &l.text).collect::<Vec<_>>(),
+    });
+
     let body = serde_json::json!({
         "station": station,
         "method": order.method,
+        "work_order_number": order.number,
+        "state": order.state,
         "materials": materials,
+        "unit": order.unit,
+        "duration_seconds": order.duration_seconds,
+        "cost": order.cost,
+        "yield_total": order.yield_total,
+        "capture": capture,
         "placed_at": millis_to_iso8601(captured_at as f64),
         "eta": eta,
         "source": "ocr",

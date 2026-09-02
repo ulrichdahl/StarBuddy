@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\BlueprintOwned;
-use App\Models\RefineryOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -17,6 +16,10 @@ class IngestController extends Controller
     {
         $data = $request->validate([
             'events' => ['required', 'array', 'max:5000'],
+            // refinery_completed used to arrive here from the Game.log
+            // watcher. Orders are now recorded from the terminal itself, which
+            // knows what is being refined rather than only that something
+            // finished, so the event is accepted and ignored for older clients.
             'events.*.kind' => ['required', 'in:blueprint,refinery_completed'],
             'events.*.timestamp' => ['required', 'date'],
             'events.*.detail' => ['required', 'string', 'max:255'],
@@ -37,7 +40,7 @@ class IngestController extends Controller
             ->all();
 
         $fresh = $events->reject(fn ($e) => in_array($e['fingerprint'], $existing, true));
-        $counts = ['accepted' => 0, 'duplicates' => $events->count() - $fresh->count(), 'blueprints_added' => 0, 'refinery_completed' => 0, 'backfilled' => 0];
+        $counts = ['accepted' => 0, 'duplicates' => $events->count() - $fresh->count(), 'blueprints_added' => 0, 'refinery_completed' => 0, 'ignored' => 0, 'backfilled' => 0];
 
         // A re-sync after the client's name-resolution improves can carry an
         // item_class the stored row lacks — backfill instead of discarding.
@@ -95,24 +98,9 @@ class IngestController extends Controller
                         $counts['blueprints_added']++;
                     }
                 } else {
-                    $open = RefineryOrder::where('user_id', $user->id)
-                        ->where('station', $e['detail'])
-                        ->whereNull('completed_at')
-                        ->oldest('placed_at')
-                        ->first();
-
-                    if ($open) {
-                        $open->update(['completed_at' => $e['timestamp']]);
-                    } else {
-                        RefineryOrder::create([
-                            'user_id' => $user->id,
-                            'station' => $e['detail'],
-                            'completed_at' => $e['timestamp'],
-                            'source' => 'log',
-                        ]);
-                    }
-                    $counts['refinery_completed']++;
-                    $this->notifyRefineryCompletion($user, $e['detail'], $e['timestamp']);
+                    // An older client still sending completions: counted so the
+                    // sync reports honestly, but no order is invented from it.
+                    $counts['ignored']++;
                 }
             }
         });
@@ -127,24 +115,4 @@ class IngestController extends Controller
         return $counts;
     }
 
-    // Refinery pings go to the configured channel, and only for live events:
-    // a first-run logbackups import replays months of completions.
-    private function notifyRefineryCompletion($user, string $station, string $timestamp): void
-    {
-        $channel = config('starbuddy.refinery_channel_id');
-        if (! $channel) {
-            return;
-        }
-        $at = \Carbon\Carbon::parse($timestamp);
-        if ($at->lt(now()->subMinutes(15))) {
-            return;
-        }
-        \App\Jobs\NotifyDiscord::dispatch($channel, [
-            'title' => 'Refinery order complete',
-            'description' => sprintf('**%s** — work order at **%s** is ready for pickup.', $user->handle ?? $user->name, $station),
-            'color' => 0x5BC8DB,
-            'timestamp' => $at->toIso8601String(),
-            'footer' => ['text' => 'StarBuddy'],
-        ]);
-    }
 }

@@ -50,6 +50,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('refinery-orders', [RefineryOrderController::class, 'index']);
     Route::post('refinery-orders', [RefineryOrderController::class, 'store']);
+    Route::get('refinery-orders/{refineryOrder}', [RefineryOrderController::class, 'show']);
+    // Collecting moves the order's materials out of the refinery to wherever
+    // the player is putting them.
+    Route::post('refinery-orders/{refineryOrder}/collect', [RefineryOrderController::class, 'collect']);
 
     // P1.1 — bulk CSV import of org resources
     Route::get('import/resources/template', [ImportController::class, 'template']);

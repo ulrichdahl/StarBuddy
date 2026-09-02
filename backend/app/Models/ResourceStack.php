@@ -10,12 +10,12 @@ class ResourceStack extends Model
 {
     protected $fillable = [
         'user_id', 'org_id', 'location_id', 'resource_type_id',
-        'quality', 'quantity', 'visibility', 'source', 'updated_by',
+        'quality', 'quantity', 'visibility', 'source', 'updated_by', 'refinery_order_id',
     ];
 
     // The API speaks unit-explicit names (quantity_mscu / quantity_pieces);
     // storage is a single integer whose unit lives on the resource type.
-    protected $appends = ['quantity_mscu', 'quantity_pieces'];
+    protected $appends = ['quantity_mscu', 'quantity_pieces', 'refining', 'refining_at'];
 
     public function getQuantityMscuAttribute(): ?int
     {
@@ -35,6 +35,29 @@ class ResourceStack extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
+    }
+
+    public function refineryOrder(): BelongsTo
+    {
+        return $this->belongsTo(RefineryOrder::class);
+    }
+
+    /**
+     * Whether the refinery still has this material.
+     *
+     * A refining stack counts towards what the player owns — it is theirs, it
+     * is just not in hand yet — so it stays in the materials and craft lists,
+     * marked, rather than being hidden until collection.
+     */
+    public function getRefiningAttribute(): bool
+    {
+        return $this->refinery_order_id !== null && $this->refineryOrder?->collected_at === null;
+    }
+
+    /** Which refinery is holding it, for the marker's tooltip. */
+    public function getRefiningAtAttribute(): ?string
+    {
+        return $this->refining ? $this->refineryOrder?->station : null;
     }
 
     public function resourceType(): BelongsTo

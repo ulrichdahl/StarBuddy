@@ -421,13 +421,44 @@
       "status": "Status",
       "completed": "Completed",
       "eta": "ETA",
-      "source": "Source"
+      "source": "Source",
+      "materials": "Materials",
+      "remaining": "Time left"
     },
     "status": {
       "completed": "Completed",
-      "inProgress": "In progress"
+      "inProgress": "In progress",
+      "ready": "Ready",
+      "collected": "Collected"
     },
-    "empty": "No refinery orders."
+    "empty": "No refinery orders.",
+    "andMore": "{{first}} +{{count}} more",
+    "dialog": {
+      "number": "Work order {{number}}",
+      "method": "Method",
+      "remaining": "Time left",
+      "ready": "Ready to collect",
+      "cost": "Cost",
+      "yieldTotal": "Total yield",
+      "materials": "Materials",
+      "material": "Material",
+      "quality": "Quality",
+      "qty": "In",
+      "yield": "Yield",
+      "notRefined": "not refined",
+      "ship": "Ship",
+      "traits": "Method",
+      "captures": "Captures merged",
+      "showLines": "Show the {{count}} lines that were read",
+      "hideLines": "Hide the read lines",
+      "unmatched": "No catalogue entry for {{materials}}, so nothing was added to your materials for it.",
+      "destination": "Collect to",
+      "destinationHelp": "Where the materials actually went",
+      "collect": "Collected",
+      "collecting": "Collecting…",
+      "collectFailed": "Could not collect that order.",
+      "collectedTo": "Collected to {{location}}."
+    }
   },
   "materials": {
     "title": "Materials",
@@ -504,7 +535,9 @@
       "title": "Add multiple materials",
       "help": "One line per stack. Location applies to the whole batch; visibility is per line and a new line inherits the one above.",
       "noMatch": "No material of that name"
-    }
+    },
+    "refining": "(refining)",
+    "refiningAt": "Refining at {{station}} — collect it on the Refinery page"
   },
   "locations": {
     "label": "Location",

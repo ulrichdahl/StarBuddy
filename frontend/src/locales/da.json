@@ -421,13 +421,44 @@
       "status": "Status",
       "completed": "Færdig",
       "eta": "ETA",
-      "source": "Kilde"
+      "source": "Kilde",
+      "materials": "Materialer",
+      "remaining": "Tid tilbage"
     },
     "status": {
       "completed": "Færdig",
-      "inProgress": "I gang"
+      "inProgress": "I gang",
+      "ready": "Klar",
+      "collected": "Hentet"
     },
-    "empty": "Ingen raffinaderiordrer."
+    "empty": "Ingen raffinaderiordrer.",
+    "andMore": "{{first}} +{{count}} mere",
+    "dialog": {
+      "number": "Arbejdsordre {{number}}",
+      "method": "Metode",
+      "remaining": "Tid tilbage",
+      "ready": "Klar til afhentning",
+      "cost": "Pris",
+      "yieldTotal": "Samlet udbytte",
+      "materials": "Materialer",
+      "material": "Materiale",
+      "quality": "Kvalitet",
+      "qty": "Ind",
+      "yield": "Udbytte",
+      "notRefined": "raffineres ikke",
+      "ship": "Skib",
+      "traits": "Metode",
+      "captures": "Optagelser lagt sammen",
+      "showLines": "Vis de {{count}} aflæste linjer",
+      "hideLines": "Skjul de aflæste linjer",
+      "unmatched": "Intet katalogopslag for {{materials}}, så der blev ikke tilføjet noget til dine materialer.",
+      "destination": "Hent til",
+      "destinationHelp": "Hvor materialerne faktisk endte",
+      "collect": "Hentet",
+      "collecting": "Henter…",
+      "collectFailed": "Kunne ikke hente ordren.",
+      "collectedTo": "Hentet til {{location}}."
+    }
   },
   "materials": {
     "title": "Materialer",
@@ -504,7 +535,9 @@
       "title": "Tilføj flere materialer",
       "help": "Én linje pr. stak. Lokation gælder hele holdet; synlighed er pr. linje, og en ny linje arver den fra linjen ovenfor.",
       "noMatch": "Intet materiale med det navn"
-    }
+    },
+    "refining": "(raffinerer)",
+    "refiningAt": "Raffineres på {{station}} — hent den på Rafinaderi-siden"
   },
   "locations": {
     "label": "Lokation",

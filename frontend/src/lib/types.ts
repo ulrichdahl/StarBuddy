@@ -85,6 +85,10 @@ export interface ResourceStack {
   /** Owner (id, name, handle) — org-visible stacks of org mates are listed too. */
   user: { id: number; name: string | null; handle: string | null } | null
   resource_type: Pick<ResourceType, 'name' | 'category' | 'unit' | 'rarity'>
+  /** The refinery is still working on this stack; it is owned but not in hand. */
+  refining?: boolean
+  /** Which refinery is holding it. */
+  refining_at?: string | null
   quality: number | null
   /** Quantity in milli-SCU (1 crate = 1 mSCU = 0.001 SCU). */
   quantity_mscu: number | null
@@ -162,15 +166,57 @@ export interface OwnedBlueprint {
   source: string
 }
 
+/** One row of a work order's material table, as the terminal printed it. */
+export interface RefineryMaterial {
+  resource: string
+  quality: number | null
+  qty: number | null
+  yield_amount: number | null
+  to_do: number | null
+  done: number | null
+  refine: boolean
+  /** The unit the amounts are counted in; the terminal works in cSCU. */
+  unit?: string
+}
+
 export interface RefineryOrder {
   id: number
   station: string
+  /** The refinery as a place, so its yields have somewhere to sit. */
+  location: Location | null
   method: string | null
-  materials: unknown[] | null
+  work_order_number: number | null
+  state: 'setup' | 'processing' | 'completed' | null
+  materials: RefineryMaterial[]
+  unit: string
+  duration_seconds: number | null
+  cost: number | null
+  yield_total: number | null
   placed_at: string | null
   eta: string | null
   completed_at: string | null
+  collected_at: string | null
+  collected_location: Location | null
   source: string
+  /** The refinery is still holding it. */
+  open: boolean
+}
+
+/** GET /api/refinery-orders/{id} — the order with everything the capture saw. */
+export interface RefineryOrderDetail extends RefineryOrder {
+  capture: {
+    captures?: number
+    ship?: string | null
+    capacity_percent?: number | null
+    method_traits?: string | null
+    in_manifest?: number | null
+    to_refine?: number | null
+    elapsed_ms?: number
+    lines?: string[]
+  } | null
+  stacks: { id: number; resource: string | null; quality: number; quantity: number; unit: string | null }[]
+  /** Materials with no catalogue entry, so no stack could be made for them. */
+  unmatched: string[]
 }
 
 /** One parsed CSV line from POST /api/import/resources/preview. */
