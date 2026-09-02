@@ -200,6 +200,8 @@ export interface RefineryOrder {
   source: string
   /** The refinery is still holding it. */
   open: boolean
+  /** Whether the org can see the haul. Private unless it was shared. */
+  visibility: Visibility
 }
 
 /** GET /api/refinery-orders/{id} — the order with everything the capture saw. */

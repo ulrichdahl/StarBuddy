@@ -222,6 +222,55 @@ class RefineryOrderTest extends TestCase
         $this->assertSame('Inert Materials', ResourceStack::sole()->resourceType->name);
     }
 
+    /** A haul is the player's own until they say otherwise. */
+    public function test_yields_are_private_unless_asked_otherwise(): void
+    {
+        $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order())
+            ->assertCreated()
+            ->assertJsonPath('visibility', 'private');
+        $this->assertSame('private', ResourceStack::sole()->visibility);
+
+        $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order(['work_order_number' => 2, 'visibility' => 'org']))
+            ->assertCreated()
+            ->assertJsonPath('visibility', 'org');
+        $this->assertSame('org', ResourceStack::latest('id')->first()->visibility);
+    }
+
+    public function test_collecting_can_share_the_haul_with_the_org(): void
+    {
+        $id = $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order())
+            ->assertCreated()
+            ->json('id');
+
+        $this->actingAs($this->me)
+            ->postJson("/api/refinery-orders/{$id}/collect", [
+                'location_id' => $this->hangarId,
+                'visibility' => 'org',
+            ])
+            ->assertOk()
+            ->assertJsonPath('visibility', 'org');
+
+        $this->assertSame('org', ResourceStack::sole()->visibility);
+    }
+
+    /** Collecting without saying leaves a private haul private. */
+    public function test_collecting_does_not_quietly_reshare(): void
+    {
+        $id = $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order())
+            ->assertCreated()
+            ->json('id');
+
+        $this->actingAs($this->me)
+            ->postJson("/api/refinery-orders/{$id}/collect", ['location_id' => $this->hangarId])
+            ->assertOk();
+
+        $this->assertSame('private', ResourceStack::sole()->visibility);
+    }
+
     public function test_the_show_view_carries_the_whole_capture(): void
     {
         $id = $this->actingAs($this->me)

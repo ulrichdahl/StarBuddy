@@ -30,7 +30,7 @@ class RefineryOrderController extends Controller
             : 'placed_at';
 
         $orders = RefineryOrder::where('user_id', $request->user()->id)
-            ->with(['location', 'collectedLocation'])
+            ->with(['location', 'collectedLocation', 'stacks:id,refinery_order_id,visibility'])
             // "Open" is the working list: recorded and not yet collected.
             ->when($request->query('open'), fn ($q) => $q->whereNull('collected_at'))
             ->orderBy($column, $dir)
@@ -72,6 +72,9 @@ class RefineryOrderController extends Controller
             // How the order reached StarBuddy, which is worth knowing when its
             // numbers look wrong: a read order is the one to check.
             'source' => ['nullable', 'in:manual,ocr,log'],
+            // Whether the org can see the haul. Private by default: a refining
+            // order is a plan as much as a holding, and sharing it is a choice.
+            'visibility' => ['nullable', 'in:private,org'],
         ]);
 
         $user = $request->user();
@@ -80,10 +83,12 @@ class RefineryOrderController extends Controller
         $data['source'] ??= 'manual';
         $data['placed_at'] ??= now();
         $data['location_id'] = $this->refineryLocation($request, $data['station'])->id;
+        $visibility = $data['visibility'] ?? 'private';
+        unset($data['visibility']);
 
-        $order = DB::transaction(function () use ($data, $user) {
+        $order = DB::transaction(function () use ($data, $user, $visibility) {
             $order = RefineryOrder::create($data);
-            $this->openStacks($order, $user);
+            $this->openStacks($order, $user, $visibility);
 
             return $order;
         });
@@ -106,6 +111,9 @@ class RefineryOrderController extends Controller
         $data = $request->validate([
             'location_id' => ['required', 'exists:locations,id'],
             'collected_at' => ['nullable', 'date'],
+            // Collection is the moment a haul becomes real, so it is also the
+            // natural moment to decide whether the org can see it.
+            'visibility' => ['nullable', 'in:private,org'],
         ]);
 
         DB::transaction(function () use ($refineryOrder, $data) {
@@ -116,7 +124,11 @@ class RefineryOrderController extends Controller
             ]);
             // The stacks keep their link to the order as provenance; what
             // changes is where they are, and that they are no longer refining.
-            $refineryOrder->stacks()->update(['location_id' => $data['location_id']]);
+            $changes = ['location_id' => $data['location_id']];
+            if (isset($data['visibility'])) {
+                $changes['visibility'] = $data['visibility'];
+            }
+            $refineryOrder->stacks()->update($changes);
         });
 
         return $this->present(
@@ -160,7 +172,7 @@ class RefineryOrderController extends Controller
      * silently dropped — the order is still worth recording, and `unmatched`
      * says what could not be placed.
      */
-    private function openStacks(RefineryOrder $order, $user): void
+    private function openStacks(RefineryOrder $order, $user, string $visibility = 'private'): void
     {
         $orgId = $user->orgs()->value('orgs.id');
 
@@ -185,7 +197,7 @@ class RefineryOrderController extends Controller
                 'resource_type_id' => $type->id,
                 'quality' => (int) round((float) ($material['quality'] ?? 0)),
                 'quantity' => $quantity,
-                'visibility' => 'private',
+                'visibility' => $visibility,
                 'source' => $order->source === 'ocr' ? 'ocr' : 'manual',
                 'refinery_order_id' => $order->id,
             ]);
@@ -216,6 +228,9 @@ class RefineryOrderController extends Controller
             // Whether the refinery is still holding it, which is what the list
             // sorts and filters on.
             'open' => $order->isOpen(),
+            // Taken from the stacks themselves, which are what is actually
+            // shared or not; an order with none has nothing to share.
+            'visibility' => $order->stacks->first()?->visibility ?? 'private',
         ];
 
         if ($full) {

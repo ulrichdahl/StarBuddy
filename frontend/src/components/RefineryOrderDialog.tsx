@@ -21,7 +21,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { api, apiErrorDetail } from '../lib/api'
 import { useNow } from '../lib/useNow'
-import type { Location, RefineryOrderDetail } from '../lib/types'
+import type { Location, RefineryOrderDetail, Visibility } from '../lib/types'
 
 /**
  * One refinery order in full: what the terminal showed, and what to do with it.
@@ -35,6 +35,7 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const [destination, setDestination] = useState<number | ''>('')
+  const [visibility, setVisibility] = useState<Visibility | ''>('')
   const [showLines, setShowLines] = useState(false)
 
   const order = useQuery({
@@ -53,7 +54,14 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
 
   const collect = useMutation({
     mutationFn: async (locationId: number) =>
-      (await api.post<RefineryOrderDetail>(`/api/refinery-orders/${id}/collect`, { location_id: locationId })).data,
+      (
+        await api.post<RefineryOrderDetail>(`/api/refinery-orders/${id}/collect`, {
+          location_id: locationId,
+          // Left alone unless the player changed it, so collecting does not
+          // quietly reshare a haul they had kept to themselves.
+          ...(visibility === '' ? {} : { visibility }),
+        })
+      ).data,
     onSuccess: () => {
       // The stacks moved, so the material lists are stale too.
       void queryClient.invalidateQueries({ queryKey: ['refinery-orders'] })
@@ -230,6 +238,18 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
                   {location.name}
                 </MenuItem>
               ))}
+            </TextField>
+            <TextField
+              select
+              size="small"
+              label={t('refinery.dialog.visibility')}
+              value={visibility === '' ? (data?.visibility ?? 'private') : visibility}
+              onChange={(event) => setVisibility(event.target.value as Visibility)}
+              helperText={t('refinery.dialog.visibilityHelp')}
+              sx={{ minWidth: 160 }}
+            >
+              <MenuItem value="private">{t('refinery.dialog.private')}</MenuItem>
+              <MenuItem value="org">{t('refinery.dialog.org')}</MenuItem>
             </TextField>
             <Button
               variant="contained"

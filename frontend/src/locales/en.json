@@ -457,7 +457,11 @@
       "collect": "Collected",
       "collecting": "Collecting…",
       "collectFailed": "Could not collect that order.",
-      "collectedTo": "Collected to {{location}}."
+      "collectedTo": "Collected to {{location}}.",
+      "visibility": "Visible to",
+      "visibilityHelp": "Who sees the haul",
+      "private": "Only me",
+      "org": "My org"
     }
   },
   "materials": {
