@@ -136,6 +136,10 @@ export function RegionSelector() {
 
       <div className="region-hint">
         <strong>{t(`overlay.region.title.${purpose}`, t("overlay.region.title.refinery"))}</strong>
+        {/* What has to be inside the box, which is not always the panel the
+            player is looking at — the refinery's station name lives in the
+            title bar above its order. */}
+        <span>{t(`overlay.region.need.${purpose}`, "")}</span>
         <span>{error ?? t("overlay.region.hint")}</span>
         {frame && <span className="region-source">{frame.source} · {frame.width}×{frame.height}</span>}
       </div>

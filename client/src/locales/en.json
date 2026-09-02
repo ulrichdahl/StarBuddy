@@ -230,6 +230,10 @@
         "refinery": "Drag across the refinery order panel",
         "scan": "Drag across the scan signature badge"
       },
+      "need": {
+        "refinery": "Include the title bar: the station name is read from the \"… REFINEMENT CENTER\" line.",
+        "scan": "Frame the badge only — the tighter the area, the more reliable the read."
+      },
       "hint": "Escape keeps the area you had before."
     },
     "refinery": {

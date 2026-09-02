@@ -230,6 +230,10 @@
         "refinery": "Træk hen over rafinaderiets ordrepanel",
         "scan": "Træk hen over scanningens signaturmærke"
       },
+      "need": {
+        "refinery": "Tag titellinjen med: stationens navn læses fra linjen \"… REFINEMENT CENTER\".",
+        "scan": "Tag kun selve mærket med — jo tættere område, jo mere pålidelig aflæsning."
+      },
       "hint": "Escape beholder det område, du havde før."
     },
     "refinery": {
