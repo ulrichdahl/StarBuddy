@@ -18,6 +18,13 @@ declare global {
 }
 const overlay = window.__STARBUDDY_WINDOW__ ?? new URLSearchParams(window.location.search).get("window");
 
+// Every overlay window is a transparent sheet over the game, but the app's own
+// body paints an opaque near-black background. The class that clears it is set
+// here rather than by each window, because a window that forgets it is not
+// subtly wrong — it is a black rectangle over the whole screen, which is what
+// the region selector was.
+if (overlay) document.documentElement.classList.add("overlay-mode");
+
 const WINDOWS: Record<string, () => React.ReactElement> = {
   status: () => <StatusOverlay />,
   scan: () => <ScanOverlay />,

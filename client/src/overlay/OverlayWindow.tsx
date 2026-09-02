@@ -57,7 +57,6 @@ export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, titl
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    document.documentElement.classList.add("overlay-mode");
     invoke<WindowPrefs>("overlay_prefs", { name }).then(setPrefs).catch(() => setPrefs(null));
   }, [name]);
 

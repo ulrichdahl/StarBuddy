@@ -113,6 +113,10 @@ pub struct OverlayState {
     quiet_until: Mutex<HashMap<String, Instant>>,
     /// Currently registered global shortcuts and the action each triggers.
     registered: Mutex<Vec<(Shortcut, String)>>,
+    /// action → why its shortcut is not live. A key another program owns
+    /// registers as an error rather than a press that never arrives, and the
+    /// player can only act on that if it reaches the settings panel.
+    failures: Mutex<HashMap<String, String>>,
 }
 
 impl OverlayState {
@@ -124,6 +128,7 @@ impl OverlayState {
         Self {
             prefs: Mutex::new(prefs.migrate()),
             registered: Mutex::new(Vec::new()),
+            failures: Mutex::new(HashMap::new()),
             last_saved: Mutex::new(Instant::now() - Duration::from_secs(10)),
             quiet_until: Mutex::new(HashMap::new()),
         }
@@ -451,6 +456,8 @@ pub struct HotkeyInfo {
     /// the compositor; the CLI toggle is the way there.
     pub global_supported: bool,
     pub toggle_command: String,
+    /// action → why that shortcut is not currently registered.
+    pub failed: HashMap<String, String>,
 }
 
 fn on_wayland() -> bool {
@@ -466,6 +473,7 @@ pub fn overlay_hotkey(app: AppHandle) -> HotkeyInfo {
         hotkeys,
         global_supported: !(cfg!(target_os = "linux") && on_wayland() && std::env::var("GDK_BACKEND").as_deref() != Ok("x11")),
         toggle_command: format!("\"{exe}\" {TOGGLE_FLAG}"),
+        failed: app.state::<OverlayState>().failures.lock().unwrap().clone(),
     }
 }
 
@@ -475,9 +483,33 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
         return Err(format!("unknown action {action}"));
     }
     let hotkey = hotkey.trim().to_string();
-    hotkey.parse::<Shortcut>().map_err(|e| format!("Not a valid shortcut: {e}"))?;
+    let wanted = hotkey.parse::<Shortcut>().map_err(|e| format!("Not a valid shortcut: {e}"))?;
+
+    // One shortcut cannot serve two actions: the second registration fails as
+    // already taken, which reads as the key doing nothing. Refusing it here
+    // says which action already has it, instead of leaving the player to work
+    // that out from a key that stopped responding.
+    let clash = {
+        let state = app.state::<OverlayState>();
+        let prefs = state.prefs.lock().unwrap();
+        prefs
+            .all_hotkeys()
+            .into_iter()
+            .find(|(other, key)| *other != action && key.parse::<Shortcut>().is_ok_and(|s| s == wanted))
+            .map(|(other, _)| other)
+    };
+    if let Some(other) = clash {
+        return Err(format!("{hotkey} is already the {other} shortcut."));
+    }
+
     let previous = app.state::<OverlayState>().prefs.lock().unwrap().hotkeys.insert(action.clone(), hotkey.clone());
-    if let Err(e) = register_hotkeys(&app) {
+    // Only this action's own failure is a reason to refuse the change. Another
+    // action's shortcut may be unavailable for good — a key some other program
+    // owns — and that must not make every later rebind fail with it.
+    let mine = register_hotkeys(&app)
+        .err()
+        .and_then(|_| app.state::<OverlayState>().failures.lock().unwrap().get(&action).cloned());
+    if let Some(e) = mine {
         // Roll back so a shortcut another app owns never sticks.
         {
             let state = app.state::<OverlayState>();
@@ -504,20 +536,22 @@ pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
     gs.unregister_all().map_err(|e| e.to_string())?;
     let mut registered = Vec::new();
     let mut first_err = None;
+    let mut failures = HashMap::new();
     for (action, key) in wanted {
-        match key.parse::<Shortcut>() {
-            Ok(shortcut) => match gs.register(shortcut) {
-                Ok(()) => registered.push((shortcut, action)),
-                Err(e) => {
-                    first_err.get_or_insert(format!("{key}: {e}"));
-                }
-            },
+        let outcome = key
+            .parse::<Shortcut>()
+            .map_err(|e| e.to_string())
+            .and_then(|shortcut| gs.register(shortcut).map(|()| shortcut).map_err(|e| e.to_string()));
+        match outcome {
+            Ok(shortcut) => registered.push((shortcut, action)),
             Err(e) => {
                 first_err.get_or_insert(format!("{key}: {e}"));
+                failures.insert(action, format!("{key}: {e}"));
             }
         }
     }
     *state.registered.lock().unwrap() = registered;
+    *state.failures.lock().unwrap() = failures;
     match first_err {
         Some(e) => Err(e),
         None => Ok(()),

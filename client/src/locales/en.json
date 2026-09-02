@@ -116,6 +116,7 @@
     "hideStatus": "Hide status window",
     "hotkey": "Hotkey",
     "saveHotkey": "Save hotkey",
+    "hotkeyTaken": "This shortcut is not active: {{detail}}. Another program may own it — try a different key.",
     "waylandHint": "Global hotkeys cannot be registered on this desktop session. Bind this command to a key in your desktop settings instead:",
     "pairHint": "Pair with a server above — the window reads the service status through it.",
     "kdeRuleInstalled": "KDE window rule installed — overlays stay above the fullscreen game. (Written to ~/.config/kwinrulesrc; only windows titled \"StarBuddy — \" match.)",

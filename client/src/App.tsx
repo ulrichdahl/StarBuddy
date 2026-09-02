@@ -77,6 +77,8 @@ interface HotkeyInfo {
   hotkeys: Record<string, string>;
   global_supported: boolean;
   toggle_command: string;
+  /** action → why that shortcut is not registered, e.g. another app owns it. */
+  failed: Record<string, string>;
 }
 
 /** KWin window rule that keeps overlays above the fullscreen game (Linux/KDE). */
@@ -382,6 +384,11 @@ function App() {
         >
           {t("overlay.saveHotkey")}
         </button>
+        {hotkey?.failed?.[action] && (
+          <span className="error" style={{ flex: "1 1 100%", margin: 0 }}>
+            {t("overlay.hotkeyTaken", { detail: hotkey.failed[action] })}
+          </span>
+        )}
       </>
     );
   };

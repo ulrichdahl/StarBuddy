@@ -116,6 +116,7 @@
     "hideStatus": "Skjul statusvindue",
     "hotkey": "Genvejstast",
     "saveHotkey": "Gem genvejstast",
+    "hotkeyTaken": "Denne genvejstast er ikke aktiv: {{detail}}. Et andet program ejer den måske — prøv en anden tast.",
     "waylandHint": "Globale genvejstaster kan ikke registreres i denne skrivebordssession. Bind i stedet denne kommando til en tast i dine skrivebordsindstillinger:",
     "pairHint": "Par med en server ovenfor — vinduet læser servicestatus gennem den.",
     "kdeRuleInstalled": "KDE-vinduesregel installeret — overlays bliver over spillet i fuld skærm. (Skrevet til ~/.config/kwinrulesrc; kun vinduer med titlen \"StarBuddy — \" matcher.)",
