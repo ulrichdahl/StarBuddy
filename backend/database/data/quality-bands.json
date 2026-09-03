@@ -1,0 +1,161 @@
+{
+  "_meta": {
+    "patch": "4.10",
+    "updated": "2026-09-03",
+    "source": "Data.p4k > Game2.dcb > libs/foundry/records/crafting/qualityquantization/quantization_<material>.xml",
+    "notes": "Every material's eight quality bands, read out of the game's own DataCore rather than scraped: a terminal never shows a quality that is not one of these. Extract with `unp4k extract <Data.p4k> \"*.dcb\"` then `starbreaker dcb extract --dcb Game2.dcb -o <dir> --format xml`, and read the mappedValue of each band. A material matches a resource type by name, by \"<name> (...)\" for its ore and raw variants, and by anything in `also`. The 500 that crafting materials also carry is not from here - it is what dismantling looted spawned gear returns - so the sync adds it to every refined and gem row instead."
+  },
+  "materials": [
+    {
+      "name": "Agricium",
+      "bands": [346, 588, 667, 796, 852, 943, 971, 1000]
+    },
+    {
+      "name": "Aluminum",
+      "bands": [318, 511, 614, 783, 896, 919, 953, 1000]
+    },
+    {
+      "name": "Aphorite",
+      "bands": [348, 523, 686, 717, 861, 916, 975, 1000]
+    },
+    {
+      "name": "Aslarite",
+      "bands": [287, 575, 602, 741, 854, 927, 963, 1000]
+    },
+    {
+      "name": "Beradom",
+      "bands": [287, 578, 656, 723, 881, 937, 969, 1000]
+    },
+    {
+      "name": "Beryl",
+      "bands": [324, 547, 677, 717, 860, 937, 955, 1000]
+    },
+    {
+      "name": "Bexalite",
+      "bands": [302, 597, 632, 756, 875, 941, 959, 1000]
+    },
+    {
+      "name": "Borase",
+      "bands": [359, 584, 676, 743, 892, 903, 976, 1000]
+    },
+    {
+      "name": "Carinite",
+      "bands": [273, 554, 647, 716, 880, 909, 959, 1000]
+    },
+    {
+      "name": "Copper",
+      "bands": [359, 593, 652, 742, 855, 917, 958, 1000]
+    },
+    {
+      "name": "Corundum",
+      "bands": [309, 504, 665, 793, 886, 904, 971, 1000]
+    },
+    {
+      "name": "Dolivine",
+      "bands": [304, 577, 621, 743, 886, 901, 957, 1000]
+    },
+    {
+      "name": "Feynmaline",
+      "bands": [371, 561, 682, 769, 880, 906, 965, 1000]
+    },
+    {
+      "name": "Glacosite",
+      "bands": [360, 567, 678, 724, 857, 916, 972, 1000]
+    },
+    {
+      "name": "Gold",
+      "bands": [264, 553, 644, 786, 864, 916, 959, 1000]
+    },
+    {
+      "name": "Hadanite",
+      "bands": [274, 526, 665, 762, 867, 916, 959, 1000]
+    },
+    {
+      "name": "Hephaestanite",
+      "bands": [330, 572, 692, 758, 896, 916, 975, 1000]
+    },
+    {
+      "name": "Iron",
+      "bands": [325, 521, 664, 710, 874, 907, 970, 1000]
+    },
+    {
+      "name": "Jaclium",
+      "bands": [284, 576, 607, 781, 864, 941, 955, 1000]
+    },
+    {
+      "name": "Janalite",
+      "bands": [269, 596, 632, 732, 898, 926, 964, 1000]
+    },
+    {
+      "name": "Laranite",
+      "bands": [298, 510, 698, 707, 858, 910, 975, 1000]
+    },
+    {
+      "name": "Lindinium",
+      "bands": [305, 585, 618, 729, 853, 930, 954, 1000]
+    },
+    {
+      "name": "Ouratite",
+      "also": ["Raw Ouratite"],
+      "bands": [310, 523, 647, 779, 860, 912, 960, 1000]
+    },
+    {
+      "name": "Quantainium",
+      "bands": [344, 514, 669, 762, 852, 901, 974, 1000]
+    },
+    {
+      "name": "Quartz",
+      "bands": [330, 522, 641, 710, 899, 914, 969, 1000]
+    },
+    {
+      "name": "Ice",
+      "also": ["Pressurized Ice"],
+      "bands": [322, 561, 659, 714, 873, 922, 966, 1000]
+    },
+    {
+      "name": "Riccite",
+      "bands": [325, 525, 671, 743, 870, 942, 965, 1000]
+    },
+    {
+      "name": "Sadaryx",
+      "bands": [258, 510, 688, 797, 865, 940, 971, 1000]
+    },
+    {
+      "name": "Saldynium",
+      "bands": [301, 575, 674, 757, 861, 938, 955, 1000]
+    },
+    {
+      "name": "Savrilium",
+      "bands": [322, 580, 636, 776, 878, 905, 967, 1000]
+    },
+    {
+      "name": "Silicon",
+      "also": ["Raw Silicon"],
+      "bands": [310, 510, 672, 782, 889, 926, 968, 1000]
+    },
+    {
+      "name": "Stileron",
+      "bands": [330, 517, 681, 747, 874, 947, 972, 1000]
+    },
+    {
+      "name": "Taranite",
+      "bands": [310, 525, 646, 718, 853, 925, 957, 1000]
+    },
+    {
+      "name": "Tin",
+      "bands": [340, 537, 664, 704, 880, 940, 964, 1000]
+    },
+    {
+      "name": "Titanium",
+      "bands": [295, 516, 622, 784, 866, 916, 959, 1000]
+    },
+    {
+      "name": "Torite",
+      "bands": [262, 528, 661, 785, 873, 944, 951, 1000]
+    },
+    {
+      "name": "Tungsten",
+      "bands": [363, 530, 662, 787, 858, 902, 964, 1000]
+    }
+  ]
+}
