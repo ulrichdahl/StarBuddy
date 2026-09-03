@@ -14,6 +14,10 @@ Tech Mono — the same faces the client bundles).
 | `blueprints-matrix.html` | Website blueprints page, option B · Matrix + quick add (approved 2026-08-28): grid with Type/Grade columns, your column clickable, quick-add field | same canvas |
 | `material-entry-grid.html` | Materials quick entry as a spreadsheet grid (tester proposal, assessed 2026-08-31): live keyboard-driven grid — arrows navigate, only the focused cell edits, Material is an autocomplete over the resource catalog and Quality a select of that material's known bands, Enter opens a new line, Ctrl+Enter repeats the line with Amount cleared, Amount before Quality — beside the sketch as proposed, the keystroke comparison and the open decisions | local only |
 
+| `refinery-dialog/` | Refinery order dialog (approved 2026-09-03): one dialog whose single action follows the order's state — in progress edits and saves, ready freezes and collects, collected is a record; visibility, the commit and Close in the action bar; totals aligned under the In and Yield columns they total, with the return % | https://claude.ai/code/artifact/079dda38-38d5-47c9-aac1-264255242dfb |
+
 The scan-window pages are the artboards of the design canvas exported as plain
-HTML; the canvas itself (editable) lives at the artifact link. Design decisions
+HTML; the canvas itself (editable) lives at the artifact link. `refinery-dialog/`
+keeps its artboards as the `.dc.html` sources the canvas is seeded from, with
+`canvas.json` for their layout — the packaged canvas is not committed. Design decisions
 are recorded in `spec.html`; the implementation is `client/src/overlay/`.

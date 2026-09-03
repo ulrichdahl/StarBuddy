@@ -460,6 +460,24 @@
       "collectedTo": "Hentet til {{location}}.",
       "visibility": "Synlig for",
       "visibilityHelp": "Hvem kan se udbyttet"
+    },
+    "sheet": {
+      "newTitle": "Ny ordre",
+      "refinery": "Raffinaderi",
+      "refineryHelp": "Hvilket raffineringscenter der har den",
+      "methodHelp": "Processen som terminalen navngiver",
+      "totalIn": "Ind i alt",
+      "noYield": "ikke raffineret",
+      "durationHelp": "Som terminalen skriver det — 22m 28s",
+      "durationBad": "Prøv fx 22m 28s, 1h 30m eller et antal minutter",
+      "recordedYield": "Udbytte som registreret",
+      "create": "Registrér ordre",
+      "save": "Gem ændringer",
+      "saveFailed": "Kunne ikke gemme ordren.",
+      "frozen": "Ordren er hentet, så den bevares som den var.",
+      "keys": "↑↓←→ flytter · skriv for at redigere · Enter går til næste tomme felt i linjen og starter en ny linje når den er udfyldt · Ctrl+Enter gentager linjen · Tab går gennem felterne · i Ind og Udbytte springer Ctrl+↑↓ og Shift+↑↓ med 1 og 100",
+      "readyFrozen": "Raffinaderiet er færdigt med denne ordre, så tallene ligger fast. Tilbage er kun at sige, hvor materialerne endte.",
+      "title": "Raffinaderiordre"
     }
   },
   "materials": {

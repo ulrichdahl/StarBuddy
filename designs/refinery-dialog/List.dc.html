@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; background: #0C1117; font-family: Inter, Roboto, Helvetica, Arial, sans-serif; color: #DCE6EE; }
+    a { color: #5BC8DB; } a:hover { color: #8fdcea; }
+    .th { color: #8CA0B3; font-weight: 600; text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.08em; }
+    .td { font-size: 14px; }
+    .num { font-variant-numeric: tabular-nums; }
+    .chip { border-radius: 12px; height: 24px; display: inline-flex; align-items: center; padding: 0 10px; font-size: 12.5px; font-weight: 500; border: 1px solid; }
+    .grid { display: grid; grid-template-columns: 140px 170px 210px 130px 110px 190px 110px 100px; gap: 14px; align-items: center; padding: 12px 18px; }
+  </style>
+</helmet>
+
+<div style="width: 1300px; padding: 24px; background: #0C1117">
+  <div style="background: #121A23; border: 1px solid rgba(91,200,219,0.10); border-radius: 6px; overflow: hidden">
+
+    <div class="grid" style="padding-top: 14px; padding-bottom: 14px; border-bottom: 1px solid rgba(91,200,219,0.12)">
+      <div class="th">Station</div>
+      <div class="th">Materials</div>
+      <div class="th">Method</div>
+      <div class="th">Status</div>
+      <div class="th">Time left</div>
+      <div class="th">ETA</div>
+      <div class="th">Visibility</div>
+      <div class="th">Source</div>
+    </div>
+
+    <div class="grid" style="border-bottom: 1px solid rgba(91,200,219,0.06)">
+      <div class="td">Levski</div>
+      <div class="td">Gold, Aslarite</div>
+      <div class="td">Pyrometric Chromalysis</div>
+      <div><span class="chip" style="border-color: rgba(232,180,90,0.5); color: #E8B45A">In progress</span></div>
+      <div class="td num">24h 8m</div>
+      <div class="td num" style="color: #8CA0B3">9/4/2026, 8:54 PM</div>
+      <div><span class="chip" style="border-color: rgba(232,180,90,0.5); color: #E8B45A">org</span></div>
+      <div class="td" style="color: #8CA0B3">manual</div>
+    </div>
+
+    <div class="grid" style="border-bottom: 1px solid rgba(91,200,219,0.06); background: rgba(91,200,219,0.03)">
+      <div class="td">ArcCorp 141</div>
+      <div class="td">Quantainium</div>
+      <div class="td">Dinyx Solventation</div>
+      <div><span class="chip" style="border-color: rgba(88,168,98,0.6); color: #58a862">Ready</span></div>
+      <div class="td num" style="color: #58a862">Ready</div>
+      <div class="td num" style="color: #8CA0B3">9/3/2026, 6:20 PM</div>
+      <div><span class="chip" style="border-color: rgba(220,230,238,0.28); color: #DCE6EE">private</span></div>
+      <div class="td" style="color: #8CA0B3">ocr</div>
+    </div>
+
+    <div class="grid">
+      <div class="td">Levski</div>
+      <div class="td">Corundum +2 more</div>
+      <div class="td">Ferron Exchange</div>
+      <div><span class="chip" style="border-color: rgba(91,200,219,0.5); color: #5BC8DB">Collected</span></div>
+      <div class="td" style="color: #55697b">&mdash;</div>
+      <div class="td num" style="color: #8CA0B3">8/29/2026, 1:02 PM</div>
+      <div><span class="chip" style="border-color: rgba(232,180,90,0.5); color: #E8B45A">org</span></div>
+      <div class="td" style="color: #8CA0B3">ocr</div>
+    </div>
+  </div>
+
+  <div style="color: #8CA0B3; font-size: 12.5px; margin-top: 14px; line-height: 1.6">
+    A row opens its order, and collecting stays inside that dialog. The <span style="color: #58a862">Ready</span> status is what says an order is waiting to be picked up &mdash; no second button needed out here.
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

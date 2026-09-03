@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
+import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import LinearProgress from '@mui/material/LinearProgress'
@@ -13,8 +14,9 @@ import TableHead from '@mui/material/TableHead'
 import TableSortLabel from '@mui/material/TableSortLabel'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
+import AddIcon from '@mui/icons-material/Add'
 import type { RefineryOrder } from '../lib/types'
-import { RefineryOrderDialog } from '../components/RefineryOrderDialog'
+import { RefineryOrderDialog, type RefineryOrderTarget } from '../components/RefineryOrderDialog'
 import { usePaginatedList } from '../lib/usePaginatedList'
 import { useNow } from '../lib/useNow'
 import { PageHeader } from '../components/PageHeader'
@@ -44,7 +46,7 @@ export function RefineryPage() {
   const { t, i18n } = useTranslation()
   type SortField = 'placed_at' | 'station' | 'method' | 'completed_at' | 'eta' | 'source'
   const [sort, setSort] = useState<SortField>('placed_at')
-  const [openId, setOpenId] = useState<number | null>(null)
+  const [openId, setOpenId] = useState<RefineryOrderTarget>(null)
   // A minute is enough for a list; the dialog ticks every second.
   const now = useNow(30_000)
   const [dir, setDir] = useState<'asc' | 'desc'>('desc')
@@ -85,7 +87,15 @@ export function RefineryPage() {
 
   return (
     <Box>
-      <PageHeader title={t('refinery.title')} subtitle={t('refinery.subtitle')} />
+      <PageHeader
+        title={t('refinery.title')}
+        subtitle={t('refinery.subtitle')}
+        action={
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenId('new')}>
+            {t('refinery.sheet.newTitle')}
+          </Button>
+        }
+      />
       <Paper>
         {isLoading && <LinearProgress />}
         {isError && <Alert severity="error">{t('refinery.loadFailed')}</Alert>}
@@ -99,6 +109,9 @@ export function RefineryPage() {
                 <TableCell>{t('refinery.columns.status')}</TableCell>
                 <TableCell>{t('refinery.columns.remaining')}</TableCell>
                 {header(t('refinery.columns.eta'), 'eta')}
+                {/* Not sortable: an order's visibility is read off the stacks
+                    it is producing, not stored on the order itself. */}
+                <TableCell>{t('materials.fields.visibility')}</TableCell>
                 {header(t('refinery.columns.source'), 'source')}
               </TableRow>
             </TableHead>
@@ -123,13 +136,21 @@ export function RefineryPage() {
                     <TableCell>
                       {order.eta ? new Date(order.eta).toLocaleString(i18n.language) : t('common.none')}
                     </TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        label={t(`materials.visibilityChip.${order.visibility}`)}
+                        color={order.visibility === 'org' ? 'secondary' : 'default'}
+                        variant="outlined"
+                      />
+                    </TableCell>
                     <TableCell>{order.source}</TableCell>
                   </TableRow>
                 )
               })}
               {!isLoading && orders.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7}>
+                  <TableCell colSpan={8}>
                     <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
                       {t('refinery.empty')}
                     </Typography>

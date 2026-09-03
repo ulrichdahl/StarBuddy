@@ -49,10 +49,18 @@ class RefineryOrderController extends Controller
         return $this->present($refineryOrder->load(['location', 'collectedLocation', 'stacks.resourceType']), true);
     }
 
-    public function store(Request $request)
+    /**
+     * What an order may say, whether it is being recorded or corrected.
+     *
+     * `$creating` is the only difference: a new order has to name its station,
+     * while an edit may leave every field alone and change one number.
+     *
+     * @return array<string, array<int, string>>
+     */
+    private function rules(bool $creating = true): array
     {
-        $data = $request->validate([
-            'station' => ['required', 'string', 'max:255'],
+        return [
+            'station' => [$creating ? 'required' : 'sometimes', 'string', 'max:255'],
             'method' => ['nullable', 'string', 'max:255'],
             'work_order_number' => ['nullable', 'integer', 'min:0'],
             'state' => ['nullable', 'in:setup,processing,completed'],
@@ -75,8 +83,12 @@ class RefineryOrderController extends Controller
             // Whether the org can see the haul. Private by default: a refining
             // order is a plan as much as a holding, and sharing it is a choice.
             'visibility' => ['nullable', 'in:private,org'],
-        ]);
+        ];
+    }
 
+    public function store(Request $request)
+    {
+        $data = $request->validate($this->rules());
         $user = $request->user();
         $data['user_id'] = $user->id;
         $data['unit'] ??= 'cSCU';
@@ -84,7 +96,7 @@ class RefineryOrderController extends Controller
         $data['placed_at'] ??= now();
         $data['location_id'] = $this->refineryLocation($request, $data['station'])->id;
         $visibility = $data['visibility'] ?? 'private';
-        unset($data['visibility']);
+        $data['visibility'] = $visibility;
 
         $order = DB::transaction(function () use ($data, $user, $visibility) {
             $order = RefineryOrder::create($data);
@@ -94,6 +106,50 @@ class RefineryOrderController extends Controller
         });
 
         return response()->json($this->present($order->fresh(['location', 'stacks.resourceType']), true), 201);
+    }
+
+    /**
+     * Correct an order the refinery is still holding.
+     *
+     * A terminal is read in a hurry and its numbers are worth having only if a
+     * mistake can be fixed, so an open order stays editable. Once collected it
+     * is history: the materials are in hand somewhere, and rewriting the order
+     * that produced them would rewrite where they came from.
+     *
+     * The stacks are rebuilt rather than patched. They are derived entirely
+     * from the materials list, and a row can change material as easily as it
+     * can change a number, so there is no stable identity to patch against —
+     * only the answer to "what is this order producing", which is recomputed.
+     */
+    public function update(Request $request, RefineryOrder $refineryOrder)
+    {
+        abort_unless($refineryOrder->user_id === $request->user()->id, 403, 'That order is not yours.');
+        abort_unless($refineryOrder->isOpen(), 422, 'A collected order cannot be changed.');
+
+        $data = $request->validate($this->rules(creating: false));
+        $user = $request->user();
+
+        // Unstated visibility keeps whatever the order already had, so an edit
+        // to a number never quietly reshares a haul that was kept private.
+        $visibility = $data['visibility'] ?? $refineryOrder->visibility ?? 'private';
+        $data['visibility'] = $visibility;
+
+        // Only a changed station has to find a place; re-resolving an unchanged
+        // one would create a location row for a rename that never happened.
+        if (isset($data['station']) && $data['station'] !== $refineryOrder->station) {
+            $data['location_id'] = $this->refineryLocation($request, $data['station'])->id;
+        }
+
+        DB::transaction(function () use ($refineryOrder, $data, $user, $visibility) {
+            $refineryOrder->update($data);
+            $refineryOrder->stacks()->delete();
+            $this->openStacks($refineryOrder->fresh(), $user, $visibility);
+        });
+
+        return $this->present(
+            $refineryOrder->fresh(['location', 'collectedLocation', 'stacks.resourceType']),
+            true,
+        );
     }
 
     /**
@@ -127,6 +183,7 @@ class RefineryOrderController extends Controller
             $changes = ['location_id' => $data['location_id']];
             if (isset($data['visibility'])) {
                 $changes['visibility'] = $data['visibility'];
+                $refineryOrder->update(['visibility' => $data['visibility']]);
             }
             $refineryOrder->stacks()->update($changes);
         });
@@ -242,9 +299,10 @@ class RefineryOrderController extends Controller
             // Whether the refinery is still holding it, which is what the list
             // sorts and filters on.
             'open' => $order->isOpen(),
-            // Taken from the stacks themselves, which are what is actually
-            // shared or not; an order with none has nothing to share.
-            'visibility' => $order->stacks->first()?->visibility ?? 'private',
+            // Held on the order itself: an order can be shared before it has
+            // yielded anything, and one that yields nothing at all still has
+            // an answer.
+            'visibility' => $order->visibility ?? 'private',
         ];
 
         if ($full) {

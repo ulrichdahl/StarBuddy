@@ -14,7 +14,10 @@ class ResourceTypeController extends Controller
             ->when($request->query('categories'), fn ($q, $c) => $q->whereIn('category', explode(',', $c)))
             ->orderBy('category')
             ->orderBy('name')
-            ->limit(100)
+            // The whole catalogue is a couple of hundred rows, and an unsearched
+            // call has to return all of it: an order being opened for editing
+            // looks its materials up in one fetch rather than one call a row.
+            ->limit(500)
             ->get();
     }
 }

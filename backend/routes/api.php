@@ -51,6 +51,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('refinery-orders', [RefineryOrderController::class, 'index']);
     Route::post('refinery-orders', [RefineryOrderController::class, 'store']);
     Route::get('refinery-orders/{refineryOrder}', [RefineryOrderController::class, 'show']);
+    // An order the refinery is still holding can be corrected — a terminal is
+    // read in a hurry, and the numbers are only worth having if a mistake can
+    // be fixed. A collected one is history and stays as it was.
+    Route::patch('refinery-orders/{refineryOrder}', [RefineryOrderController::class, 'update']);
     // Collecting moves the order's materials out of the refinery to wherever
     // the player is putting them.
     Route::post('refinery-orders/{refineryOrder}/collect', [RefineryOrderController::class, 'collect']);

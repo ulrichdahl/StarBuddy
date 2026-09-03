@@ -1,0 +1,4 @@
+# The seeded canvas is a build artifact — ~1 MB of packaged editor around the
+# artboards beside it. Re-make it with the /design skill's seed helper; the
+# canvas itself lives at the artifact link in ../README.md.
+refinery-order-dialog.html
