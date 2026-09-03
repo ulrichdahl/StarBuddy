@@ -87,6 +87,26 @@ class ScreenshotCaptureTest extends TestCase
         Storage::disk('local')->assertExists(ScreenshotSubmission::sole()->image_path);
     }
 
+    public function test_a_reader_can_say_which_screen_it_was_pointed_at(): void
+    {
+        // A refinery read already knows what it was looking at, and saying so
+        // is what makes a queue searchable when one kind of panel reads badly.
+        $this->actingAs($this->member)
+            ->postJson('/api/training/captures', [
+                'image' => $this->capture(),
+                'screen' => 'refinery_order',
+                'note' => 'F8 refinery read: 1 order(s), 5 materials, 42 lines, missing cost. Station LEVSKI.',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('screen', 'refinery_order')
+            // Still unlabelled: the corners are marked at a desk, not in flight.
+            ->assertJsonPath('status', 'captured');
+
+        $capture = ScreenshotSubmission::sole();
+        $this->assertSame('refinery_order', $capture->screen);
+        $this->assertStringContainsString('LEVSKI', $capture->submitter_note);
+    }
+
     public function test_pressing_the_hotkey_twice_on_one_frame_returns_the_same_capture(): void
     {
         $first = $this->actingAs($this->member)

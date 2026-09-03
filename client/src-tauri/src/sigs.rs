@@ -285,3 +285,144 @@ mod tests {
         assert!(matches(&t, 1000.0).is_empty());
     }
 }
+
+/// The quality ladder the game gives a material, by any of its names.
+///
+/// A terminal prints the refined name ("GOLD") where the catalogue holds the
+/// ore ("Gold (Ore)"), and a localisation mod can strip the suffix from either
+/// side, so both are reduced to the bare word before they are compared — the
+/// same reduction the server does when it matches a captured row.
+pub fn bands_for(table: &SigTable, material: &str) -> Vec<u32> {
+    let wanted = bare_name(material);
+    if wanted.is_empty() {
+        return Vec::new();
+    }
+    table
+        .ores
+        .iter()
+        .find(|ore| bare_name(&ore.name) == wanted)
+        .map(|ore| ore.qualities.clone())
+        .unwrap_or_default()
+}
+
+/// A material name reduced to what it has in common across spellings: lower
+/// case, letters and digits only, without the "ore" or "raw" that names the
+/// form it was found in.
+fn bare_name(name: &str) -> String {
+    let words: Vec<String> = name
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .map(|w| w.to_lowercase())
+        .collect();
+    let bare: String = words.iter().filter(|w| *w != "ore" && *w != "raw" && *w != "r").cloned().collect();
+    // A material genuinely called "Ore" would reduce to nothing; keep it.
+    if bare.is_empty() { words.concat() } else { bare }
+}
+
+/// The band an OCR'd quality was most likely meant to be.
+///
+/// Quality is the one column with a closed set of answers: every material has
+/// exactly eight values it can print, straight out of the game's own tables. So
+/// a reading that is not one of them is a misreading — and the terminal's font
+/// says what kind. Its zeros carry a slash, which at panel scale reads as an 8
+/// or a 6, so 264 comes back as 284 and 504 as 584.
+///
+/// The correction is therefore made on the digits, not on the distance: a
+/// reading is put back only when it differs from a band in exactly one place,
+/// and that one place is a pair this font actually confuses. A slipped digit
+/// moves the value by twenty or eighty, so any window wide enough to catch it
+/// would be wide enough to cross into the next band and invent a reading nobody
+/// saw. Anything ambiguous — one digit from two different bands — is left as it
+/// was read, because reporting a misreading is better than inventing a number.
+pub fn snap_quality(bands: &[u32], read: f64) -> Option<f64> {
+    if bands.is_empty() || read <= 0.0 || read.fract() != 0.0 {
+        return None;
+    }
+    let read = (read as u32).to_string();
+    let mut only: Option<u32> = None;
+    for band in bands {
+        let candidate = band.to_string();
+        if candidate == read {
+            return None; // already what the terminal printed
+        }
+        if !one_confusable_digit_apart(&read, &candidate) {
+            continue;
+        }
+        if only.is_some() {
+            return None; // two bands fit equally well; say nothing
+        }
+        only = Some(*band);
+    }
+    only.map(f64::from)
+}
+
+/// Whether two numbers of the same length differ in exactly one digit, and that
+/// digit is a pair this terminal's font confuses.
+fn one_confusable_digit_apart(read: &str, band: &str) -> bool {
+    /// Pairs the panel font actually mixes up. Its slashed zero is the one that
+    /// bites; the rest are the usual small-text neighbours.
+    const CONFUSABLE: [(u8, u8); 6] = [(b'0', b'8'), (b'0', b'6'), (b'6', b'8'), (b'3', b'8'), (b'5', b'6'), (b'1', b'7')];
+
+    if read.len() != band.len() {
+        return false;
+    }
+    let mut differences = read.bytes().zip(band.bytes()).filter(|(a, b)| a != b);
+    let Some((a, b)) = differences.next() else { return false };
+    if differences.next().is_some() {
+        return false;
+    }
+    CONFUSABLE.contains(&(a, b)) || CONFUSABLE.contains(&(b, a))
+}
+
+#[cfg(test)]
+mod quality_tests {
+    use super::*;
+
+    /// Gold's ladder, as the game's quantization table gives it.
+    const GOLD: [u32; 8] = [264, 553, 644, 786, 864, 916, 959, 1000];
+
+    #[test]
+    fn a_slashed_zero_is_put_back() {
+        // The panel font slashes its zeros, so 264 comes back as 284 and a
+        // corundum 504 as 584 — one digit out, both times.
+        assert_eq!(snap_quality(&GOLD, 284.0), Some(264.0));
+        let corundum = [309, 504, 665, 793, 886, 904, 971, 1000];
+        assert_eq!(snap_quality(&corundum, 584.0), Some(504.0));
+    }
+
+    #[test]
+    fn a_reading_that_is_already_a_band_is_left_alone() {
+        assert_eq!(snap_quality(&GOLD, 264.0), None);
+        assert_eq!(snap_quality(&GOLD, 1000.0), None);
+    }
+
+    #[test]
+    fn a_reading_nowhere_near_the_ladder_is_reported_as_it_was_read() {
+        // Two digits out, or a different length: more likely the row was
+        // misaligned than that one digit slipped, and moving it would hide that.
+        assert_eq!(snap_quality(&GOLD, 895.0), None);
+        assert_eq!(snap_quality(&GOLD, 1808.0), None);
+        // A single digit out, but not a pair this font confuses.
+        assert_eq!(snap_quality(&GOLD, 274.0), None);
+    }
+
+    #[test]
+    fn an_ambiguous_reading_is_left_alone() {
+        // A read 8 is one confusable digit from both a 3 and a 6, so a ladder
+        // carrying 386 and 686 cannot say which 886 was meant to be.
+        assert_eq!(snap_quality(&[386, 686], 886.0), None);
+    }
+
+    #[test]
+    fn the_ladder_is_found_by_any_of_the_material_names() {
+        let table: SigTable = serde_json::from_str(
+            r#"{"ores":[{"name":"Gold (Ore)","signature":3000,
+                 "qualities":[264,553,644,786,864,916,959,1000]}]}"#,
+        )
+        .expect("fixture parses");
+        // The terminal prints the refined name; the catalogue holds the ore.
+        assert_eq!(bands_for(&table, "GOLD"), GOLD.to_vec());
+        assert_eq!(bands_for(&table, "Gold (Raw)"), GOLD.to_vec());
+        assert!(bands_for(&table, "Quantainium").is_empty());
+    }
+}

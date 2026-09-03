@@ -442,6 +442,56 @@ html.overlay-mode body {
   width: 45%;
 }
 
+/* The order table reads like the website's own order sheet: the material
+   takes the room it needs, every number is right-aligned in a fixed column
+   and set in tabular figures, so a column of them lines up digit under digit
+   and a misread one is visible at a glance. */
+.ov-refinery-table td:first-child,
+.ov-refinery-table th:first-child {
+  width: auto;
+  text-align: left;
+}
+.ov-refinery-table th + th,
+.ov-refinery-table td + td {
+  width: 4.6rem;
+  text-align: right;
+}
+.ov-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* The quality number carries its tier's colour, the same one the website
+   gives it, so a band that reads oddly for its material stands out. */
+.ov-quality {
+  color: var(--rarity, inherit);
+  font-weight: 600;
+}
+/* The panel's own sums, for checking a column against the screen. */
+.ov-refinery-table tfoot th,
+.ov-refinery-table tfoot td {
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-weight: 500;
+  opacity: 0.7;
+  text-align: right;
+}
+.ov-refinery-table tfoot th {
+  text-align: left;
+}
+
+/* Cost and the clock side by side, as the order sheet has them. */
+.ov-pair {
+  display: flex;
+  gap: 0.75rem;
+}
+.ov-pair .ov-field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.ov-pair .ov-field > span {
+  flex: 0 0 auto;
+}
+
 .ov-actions {
   display: flex;
   gap: 0.5rem;

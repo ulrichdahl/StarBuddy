@@ -216,16 +216,67 @@ async fn read_inner(app: &AppHandle) -> Result<RefineryTerminal, String> {
         let lines = read_in_bands(&engine, &cap)?;
 
         let mut order = parse(&lines);
+        snap_qualities(&app2, &mut order);
         order.lines = lines;
         order.captured_at = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_millis() as i64)
             .unwrap_or(0);
         order.elapsed_ms = started.elapsed().as_millis() as u64;
+        send_for_training(&app2, &cap, &order);
         Ok(order)
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+/// Correct quality readings against the ladders the game publishes.
+///
+/// Quality is the only column with a closed set of answers, so a reading that
+/// is not one of a material's eight bands is a misreading rather than a number.
+/// Correcting it here rather than in the window means the value the player is
+/// asked to check is already the one the terminal printed.
+fn snap_qualities(app: &AppHandle, terminal: &mut RefineryTerminal) {
+    let table = crate::sigs::table(app);
+    for order in &mut terminal.orders {
+        for material in &mut order.materials {
+            let Some(read) = material.quality else { continue };
+            let bands = crate::sigs::bands_for(&table, &material.resource);
+            if let Some(snapped) = crate::sigs::snap_quality(&bands, read) {
+                log::debug!("quality {read} read for {} snapped to {snapped}", material.resource);
+                material.quality = Some(snapped);
+            }
+        }
+    }
+}
+
+/// Send the crop the reader worked from to the training queue.
+///
+/// The point is the reads that go wrong: the frame plus what the parser made of
+/// it says whether the capture was unreadable or the parse was at fault, which
+/// is not a distinction anyone can make from the window alone. The server drops
+/// a frame it has already been sent, so pressing the hotkey twice costs nothing.
+fn send_for_training(app: &AppHandle, cap: &Captured, order: &RefineryTerminal) {
+    let Ok(png) = crate::training::png_of(cap) else { return };
+    let materials: usize = order.orders.iter().map(|o| o.materials.len()).sum();
+    let missing = if order.missing.is_empty() {
+        "nothing missing".to_string()
+    } else {
+        format!("missing {}", order.missing.join(", "))
+    };
+    let note = format!(
+        "F8 refinery read: {} order(s), {materials} materials, {} lines, {missing}. Station {}.",
+        order.orders.len(),
+        order.lines.len(),
+        order.station.as_deref().unwrap_or("unread"),
+    );
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        if let Err(e) = crate::training::upload(&app, png, Some("refinery_order"), Some(note)).await {
+            // Never the player's problem: the read itself succeeded.
+            log::debug!("refinery capture not sent for training: {e}");
+        }
+    });
 }
 
 /// OCR the capture in overlapping horizontal bands, then merge.

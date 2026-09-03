@@ -40,7 +40,9 @@ pub fn trigger(app: &AppHandle) {
 
 /// Capture the game window and post it. Returns a line worth showing.
 pub async fn send(app: AppHandle) -> Result<String, String> {
-    let settings = crate::load_settings(&app).ok_or("Not paired with a server yet.")?;
+    // Checked before the grab so an unpaired client says so without taking a
+    // screenshot it has nowhere to send.
+    crate::load_settings(&app).ok_or("Not paired with a server yet.")?;
     status(&app, "capturing", "grabbing the game window");
 
     let png = tauri::async_runtime::spawn_blocking(|| {
@@ -53,11 +55,35 @@ pub async fn send(app: AppHandle) -> Result<String, String> {
     let (bytes, width, height) = png;
 
     status(&app, "uploading", format!("sending {width}×{height}"));
+    upload(&app, bytes, None, None).await?;
+    Ok(format!("Sent {width}×{height} — label it on the training page."))
+}
+
+/// Post one frame to the capture queue.
+///
+/// `screen` names the panel when the caller already knows it — a reader that
+/// went looking for a refinery terminal does — which is the difference between
+/// a queue of frames and one you can search when a single kind of panel starts
+/// reading badly. `note` carries what the reader made of it, so a capture that
+/// was fine but parsed badly can be told from one that was never readable.
+pub async fn upload(
+    app: &AppHandle,
+    bytes: Vec<u8>,
+    screen: Option<&str>,
+    note: Option<String>,
+) -> Result<(), String> {
+    let settings = crate::load_settings(app).ok_or("Not paired with a server yet.")?;
     let part = reqwest::multipart::Part::bytes(bytes)
         .file_name("capture.png")
         .mime_str("image/png")
         .map_err(|e| e.to_string())?;
-    let form = reqwest::multipart::Form::new().part("image", part);
+    let mut form = reqwest::multipart::Form::new().part("image", part);
+    if let Some(screen) = screen {
+        form = form.text("screen", screen.to_string());
+    }
+    if let Some(note) = note {
+        form = form.text("note", note);
+    }
 
     let resp = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(60))
@@ -74,7 +100,13 @@ pub async fn send(app: AppHandle) -> Result<String, String> {
     if !resp.status().is_success() {
         return Err(crate::error_body(resp).await);
     }
-    Ok(format!("Sent {width}×{height} — label it on the training page."))
+    Ok(())
+}
+
+/// Encode a capture as PNG for the queue. Public so a reader can send the very
+/// crop it worked from, rather than a fresh grab of a screen that has moved on.
+pub fn png_of(cap: &crate::scan::Captured) -> Result<Vec<u8>, String> {
+    encode_png(cap)
 }
 
 #[tauri::command]

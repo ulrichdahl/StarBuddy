@@ -290,7 +290,8 @@
         "to_do": "To do",
         "done": "Done"
       },
-      "notRefined": "Not being refined (no yield)"
+      "notRefined": "Not being refined (no yield)",
+      "total": "Total"
     },
     "capture": {
       "capturing": "Capturing the game window…",

@@ -41,6 +41,12 @@ class ScreenshotCaptureController extends Controller
             'image' => ['required', 'file', 'mimetypes:image/png,image/jpeg', 'max:20480'],
             'patch' => ['nullable', 'string', 'max:20'],
             'note' => ['nullable', 'string', 'max:500'],
+            // A capture the client took for a purpose already knows which
+            // screen it was pointed at, and saying so is the difference
+            // between a queue of frames and a queue you can search when one
+            // kind of panel is reading badly. It still waits in the player's
+            // own queue for its corners to be marked.
+            'screen' => ['nullable', 'string', 'max:60'],
         ]);
 
         $file = $request->file('image');
@@ -80,6 +86,7 @@ class ScreenshotCaptureController extends Controller
             'height' => $size[1],
             'bytes' => $file->getSize(),
             'patch' => ($data['patch'] ?? null) ?: config('starbuddy.game_patch'),
+            'screen' => $data['screen'] ?? null,
             'submitter_note' => $data['note'] ?? null,
         ]);
 
