@@ -371,8 +371,55 @@ fn canonical(text: &str) -> String {
 }
 
 /// Does this text read as the given label, allowing for confusable characters?
+///
+/// Folding the confusable letters is not always enough: the panel's TOTAL COST
+/// comes back as "IOTAL COST", where the wrong letter is a T read as an I —
+/// not a pair the folding covers, and enough to lose the line that ends the
+/// material table and holds the order's price. So a label the panel certainly
+/// printed is also accepted on a near miss: the label is slid along the text
+/// and a window that is wrong in about one letter in six is taken as a match.
+/// Only for labels long enough for that to mean something; in a three-letter
+/// word one wrong letter is not evidence of anything.
 fn reads_as_text(text: &str, label: &str) -> bool {
-    canonical(text).contains(&canonical(label))
+    let (text, label) = (canonical(text), canonical(label));
+    if label.is_empty() {
+        return false;
+    }
+    if text.contains(&label) {
+        return true;
+    }
+    // A heading the panel clipped, or that OCR stopped short of: "REFINEM" for
+    // REFINEMENT. Only from the front, and only when enough of it is there to
+    // be that word and no other.
+    if label.len() >= 6 && text.len() >= 6 && label.starts_with(&text) {
+        return true;
+    }
+    if label.len() < 6 || text.len() < label.len() {
+        return false;
+    }
+    let (text, label) = (text.as_bytes(), label.as_bytes());
+    let allowed = label.len() / 6;
+    (0..=text.len() - label.len())
+        .any(|start| label.iter().zip(&text[start..start + label.len()]).filter(|(a, b)| a != b).count() <= allowed)
+}
+
+/// A section heading without the number the panel gives the section.
+///
+/// The panel numbers its sections — "01 // RAW MATERIALS", "02 // PROCESSING
+/// SELECTION" — and OCR drops the leading zero, so "01 // IN MANIFEST" arrives
+/// as "1/ IN MANIFEST". Read as a value that says the ship is carrying one
+/// cSCU, which is both wrong and plausible enough to save.
+fn without_section_number(text: &str) -> &str {
+    let trimmed = text.trim_start();
+    let after_digits = trimmed.trim_start_matches(|c: char| c.is_ascii_digit());
+    if after_digits.len() == trimmed.len() {
+        return text;
+    }
+    let after_slash = after_digits.trim_start();
+    match after_slash.strip_prefix('/') {
+        Some(rest) => rest.trim_start_matches('/'),
+        None => text,
+    }
 }
 
 fn reads_as(line: &OcrLine, label: &str) -> bool {
@@ -466,12 +513,15 @@ fn value_candidates<'a>(rows: &'a [Vec<&'a OcrLine>], label: &OcrLine) -> Vec<&'
 
 /// The first candidate that yields a number.
 fn scalar_for(rows: &[Vec<&OcrLine>], label: &OcrLine) -> Option<f64> {
-    if let Some(inline) = numbers_in(&label.text).into_iter().next() {
+    if let Some(inline) = numbers_in(without_section_number(&label.text)).into_iter().next() {
         return Some(inline);
     }
+    // The same stripping on the candidates: the cell to the right of
+    // "// IN MANIFEST" is "// TO REFINE", whose section number would otherwise
+    // answer for the manifest.
     value_candidates(rows, label)
         .into_iter()
-        .find_map(|candidate| numbers_in(&candidate.text).into_iter().next())
+        .find_map(|candidate| numbers_in(without_section_number(&candidate.text)).into_iter().next())
 }
 
 // ── The material table ─────────────────────────────────────────────────────
@@ -522,6 +572,20 @@ fn table(rows: &[Vec<&OcrLine>]) -> Option<Table> {
                 }
             }
         }
+        // A header run together into one cell — "MATERIALS SELECTED QUALITY OTY
+        // YIELD REFINE" — is also the cell naming the material column, so
+        // dropping it as a name heading loses the whole table. Fall back to it
+        // when the separate cells did not carry the columns themselves.
+        if positioned.len() < 2 {
+            if let Some(whole) = row.iter().find(|c| is_name_heading(&c.text) && kinds_in_order(&c.text).len() >= 2) {
+                return Some(Table {
+                    header_y: centre_y(row[0]),
+                    kinds: kinds_in_order(&whole.text),
+                    centres: None,
+                    tolerance: 0,
+                });
+            }
+        }
         if positioned.len() >= 2 {
             positioned.sort_by_key(|(_, x)| *x);
             // A run-together header lands here as one cell matching several
@@ -567,7 +631,10 @@ fn kinds_in_order(text: &str) -> Vec<Column> {
 /// be — a material name scores near zero against every heading.
 fn column_for(word: &str) -> Option<Column> {
     let canon = canonical(word);
-    if canon.is_empty() {
+    // Every heading is at least three letters, and a shorter word cannot be a
+    // misread one. Without this the "TO" of a "// TO REFINE" section title
+    // reads as TO DO, and the section heading is mistaken for the table's.
+    if canon.len() < 3 {
         return None;
     }
     // "TO DO" arrives as one word or two; compare without the space.
@@ -587,7 +654,10 @@ fn similarity(a: &str, b: &str) -> f64 {
     if a == b {
         return 1.0;
     }
-    if a.contains(b) || b.contains(a) {
+    // One word inside another only means the same heading when the shared run
+    // is most of both. "TO" sits inside "TODO" and "I" inside "YIEID", and
+    // taking either as a match is how a section title becomes a table header.
+    if (a.contains(b) || b.contains(a)) && a.len().min(b.len()) * 4 >= a.len().max(b.len()) * 3 {
         return 1.0;
     }
     let (a, b) = (a.as_bytes(), b.as_bytes());
@@ -640,7 +710,11 @@ fn materials_in(rows: &[Vec<&OcrLine>], table: &Table, stop_y: Option<i32>) -> V
         }
         let Some(name_cell) = row.first() else { continue };
         let resource = clean_resource(&name_cell.text);
-        if resource.is_empty() || is_label(&resource) {
+        // A material has a name. A row whose first cell is only digits is
+        // something else that landed inside the table's span — a price, a
+        // total — and naming it after its own number would save a material
+        // nobody mined.
+        if resource.is_empty() || is_label(&resource) || resource.chars().filter(|c| c.is_alphabetic()).count() < 2 {
             continue;
         }
 
@@ -685,7 +759,7 @@ fn materials_in(rows: &[Vec<&OcrLine>], table: &Table, stop_y: Option<i32>) -> V
 /// table, not the table's "MATERIAL" heading.
 fn is_label(text: &str) -> bool {
     const EXACT: [&str; 8] = ["MATERIAL", "MATERIALS", "YIELD", "QUALITY", "QTY", "DONE", "REFINE", "TOTAL"];
-    const PHRASES: [&str; 11] = [
+    const PHRASES: [&str; 16] = [
         "MATERIALS SELECTED",
         "MATERIALS YIELDED",
         "TOTAL COST",
@@ -697,6 +771,13 @@ fn is_label(text: &str) -> bool {
         "PROCESSING SELECTION",
         "STOP",
         "COLLECT",
+        // The panels' own titles. Named here so none of them can be mistaken
+        // for the station, whose name is printed in the same corner.
+        "STATION PROFILE",
+        "MATERIAL SELECTION",
+        "MATERIAL SPECIALIZATIONS",
+        "REFINERY CAPACITY",
+        "USER DETAILS",
     ];
     let canon = canonical(text);
     EXACT.iter().any(|label| canon == canonical(label))
@@ -890,24 +971,33 @@ struct Anchor<'a> {
 /// Each work order panel is titled with its state and its number on one row
 /// ("COMPLETED    WORK ORDER 2"). The section headings inside a panel — "02 //
 /// PROCESSING" — carry no order number, which is what tells them apart.
-fn anchors<'a>(rows: &'a [Vec<&'a OcrLine>]) -> Vec<Anchor<'a>> {
+fn anchors<'a>(lines: &'a [OcrLine]) -> Vec<Anchor<'a>> {
     let mut found: Vec<Anchor> = Vec::new();
-    for row in rows {
-        for cell in row {
-            // The title and the state must be two cells: a single cell reading
-            // "SETUP WORK ORDER" is the station panel's button, not a panel.
-            if !row.iter().any(|l| !std::ptr::eq(*l, *cell) && reads_as(l, "WORK ORDER")) {
-                continue;
-            }
-            let state = if reads_as(cell, "SETUP") {
-                OrderState::Setup
-            } else if reads_as(cell, "COMPLETED") {
-                OrderState::Completed
-            } else if reads_as(cell, "PROCESSING") {
-                OrderState::Processing
-            } else {
-                continue;
-            };
+    for cell in lines {
+        let state = if reads_as(cell, "SETUP") {
+            OrderState::Setup
+        } else if reads_as(cell, "COMPLETED") {
+            OrderState::Completed
+        } else if reads_as(cell, "PROCESSING") {
+            OrderState::Processing
+        } else {
+            continue;
+        };
+        // The title and the state must be two cells: a single cell reading
+        // "SETUP WORK ORDER" is the station panel's button, not a panel.
+        //
+        // Matched on the baseline rather than on a shared row, because rows are
+        // grouped across the whole capture and the station panel's own lines
+        // interleave with these — one of them landing between the state and its
+        // title is enough to split them, and then the panel is never found.
+        let titled = lines.iter().any(|l| {
+            !std::ptr::eq(l, cell)
+                && reads_as(l, "WORK ORDER")
+                && (centre_y(l) - centre_y(cell)).abs() <= cell.h.max(l.h)
+                && l.x > cell.x
+                && l.x - cell.x <= cell.h.max(6) * 40
+        });
+        if titled {
             found.push(Anchor { state, line: cell });
         }
     }
@@ -1052,15 +1142,39 @@ pub fn parse(lines: &[OcrLine]) -> RefineryTerminal {
 
     // Station: the terminal titles itself "REFINEMENT CENTER", with the place
     // to its left on the same row.
+    // The station's name sits top left, opposite the REFINEMENT CENTER title.
     if let Some(title) = find(&all, "REFINEMENT") {
         if let Some(row) = all_rows.iter().find(|row| row.iter().any(|l| std::ptr::eq(*l, title))) {
-            if let Some(left) = row.iter().find(|l| centre_x(l) < centre_x(title)) {
+            if let Some(left) = row.iter().find(|l| centre_x(l) < centre_x(title) && !is_label(&l.text)) {
                 terminal.station = Some(clean_station(&left.text));
             }
         }
     }
+    // The title is set in much larger type than the name beside it, so the two
+    // often do not share a row once OCR has had its way with their heights.
+    // Falling back on position alone: the name is the first thing printed, in
+    // the left of the panel, and it is not one of the headings.
+    //
+    // Only ever when the title itself was read, so this cannot name a station
+    // on a capture that is not a refinery terminal at all: the fallback is for
+    // a title whose row broke, not for guessing.
+    if terminal.station.is_none() && find(&all, "REFINEMENT").is_some() {
+        let left_edge = all.iter().map(|l| l.x).min().unwrap_or(0);
+        let top_edge = all.iter().map(|l| centre_y(l)).min().unwrap_or(0);
+        let width = all.iter().map(|l| l.x + l.w).max().unwrap_or(0) - left_edge;
+        let height = all.iter().map(|l| centre_y(l)).max().unwrap_or(0) - top_edge;
+        terminal.station = all
+            .iter()
+            .filter(|l| l.x - left_edge < width / 3)
+            .filter(|l| centre_y(l) - top_edge <= height / 4)
+            // A station is named in a word or two, and never in a heading.
+            .filter(|l| l.text.split_whitespace().count() <= 3 && !is_label(&l.text))
+            .filter(|l| l.text.chars().filter(|c| c.is_alphabetic()).count() >= 3)
+            .min_by_key(|l| centre_y(l))
+            .map(|l| clean_station(&l.text));
+    }
 
-    let anchors = anchors(&all_rows);
+    let anchors = anchors(lines);
     for (panel, anchor) in panels(lines, &anchors).into_iter().zip(&anchors) {
         terminal.orders.push(parse_order(&panel, anchor.state, anchor.line));
     }
@@ -1804,5 +1918,81 @@ mod tests {
     fn iso_timestamps_convert() {
         assert_eq!(millis_to_iso8601(1_788_307_200_000.0), "2026-09-02T00:00:00Z");
         assert_eq!(millis_to_iso8601(1_788_350_096_000.0), "2026-09-02T11:54:56Z");
+    }
+}
+
+#[cfg(test)]
+mod corpus {
+    use super::*;
+    use crate::scan::Captured;
+
+    /// Read a labelled dataset of real terminal captures and print what the
+    /// parser made of each. Needs the OCR models and a dataset, so it is
+    /// opt-in:
+    ///
+    ///   REFINERY_CORPUS=<dir> cargo test --release --lib refinery::corpus -- --ignored --nocapture
+    ///
+    /// The directory is a StarBuddy scan-dataset export: labels.jsonl beside
+    /// an images/ folder.
+    #[test]
+    #[ignore]
+    fn corpus_reads() {
+        let Ok(root) = std::env::var("REFINERY_CORPUS") else { return };
+        let root = std::path::Path::new(&root);
+        let models = dirs::data_dir().unwrap().join("io.github.ulrichdahl.starbuddy").join("ocr");
+        let engine = crate::scan::engine_from_dir(&models).expect("OCR models present");
+
+        for line in std::fs::read_to_string(root.join("labels.jsonl")).unwrap().lines() {
+            let label: serde_json::Value = serde_json::from_str(line).unwrap();
+            let name = label["image"].as_str().unwrap();
+            let img = image::open(root.join("images").join(name)).unwrap().into_rgb8();
+            let (w, h) = (img.width() as f64, img.height() as f64);
+
+            // The quad's bounding box is what a player framing the panel would
+            // have drawn, which is what the reader is given at runtime.
+            let quad = label["quad"].as_array().unwrap();
+            let xs: Vec<f64> = quad.iter().map(|p| p[0].as_f64().unwrap()).collect();
+            let ys: Vec<f64> = quad.iter().map(|p| p[1].as_f64().unwrap()).collect();
+            let (x0, x1) = (xs.iter().cloned().fold(f64::MAX, f64::min), xs.iter().cloned().fold(0.0, f64::max));
+            let (y0, y1) = (ys.iter().cloned().fold(f64::MAX, f64::min), ys.iter().cloned().fold(0.0, f64::max));
+            let crop = image::imageops::crop_imm(
+                &img,
+                (x0 * w) as u32,
+                (y0 * h) as u32,
+                ((x1 - x0) * w) as u32,
+                ((y1 - y0) * h) as u32,
+            )
+            .to_image();
+
+            let cap = Captured {
+                rgb: crop.as_raw().clone(),
+                width: crop.width(),
+                height: crop.height(),
+                source: name.into(),
+                full_height: crop.height(),
+            };
+            let lines = read_in_bands(&engine, &cap).unwrap();
+            let order = parse(&lines);
+            println!("\n=== {name}  {}×{} ===", cap.width, cap.height);
+            println!("station {:?}  ship {:?}  capacity {:?}", order.station, order.ship, order.capacity_percent);
+            println!("missing {:?}  lines {}", order.missing, lines.len());
+            for (i, o) in order.orders.iter().enumerate() {
+                println!(
+                    "  order {i}: {:?} #{:?} method {:?} cost {:?} dur {:?} yield {:?} in_manifest {:?} to_refine {:?}",
+                    o.state, o.number, o.method, o.cost, o.duration_seconds, o.yield_total, o.in_manifest, o.to_refine
+                );
+                for m in &o.materials {
+                    println!("      {:<22} q {:>7?} qty {:>9?} yield {:>9?} refine {}", m.resource, m.quality, m.qty, m.yield_amount, m.refine);
+                }
+            }
+            for s in &order.specializations {
+                println!("  spec {:<22} {:?}", s.material, s.bonus_percent);
+            }
+            if std::env::var("REFINERY_CORPUS_LINES").is_ok() {
+                for l in &lines {
+                    println!("    [{:>4},{:>4} {:>4}x{:>3}] {}", l.x, l.y, l.w, l.h, l.text);
+                }
+            }
+        }
     }
 }
