@@ -335,9 +335,14 @@ fn capture_region(region: ScanRegion) -> Result<Captured, String> {
     {
         match capture_x11_rect(Some(region)) {
             Ok(c) => return Ok(c),
-            // Native-Wayland game: whole-screen tool capture, then crop.
+            // Native-Wayland game: the tool grabs the game's window, and the
+            // region is cut out of it here. The whole frame is worth keeping
+            // before it is cut down — it is the same frame the region selector
+            // needs to draw on, and a live scan is often the only thing that
+            // has the game in front of it.
             Err(x11_err) => {
                 let full = capture_with_tool().map_err(|tool_err| format!("{x11_err}; {tool_err}"))?;
+                remember_frame(&full);
                 return crop_region(full, region);
             }
         }
