@@ -355,7 +355,18 @@ export function RefineryOverlay() {
     );
   };
 
-  const firstBox = (
+  // Nothing to say about the read itself — no phase, no error, no field it
+  // could not fill, and an order of its own to put the station in. An empty
+  // box is still a box: a bordered strip of nothing above the order, which is
+  // what it drew every time a read went perfectly.
+  const hasFirstBox =
+    Boolean(phaseText) ||
+    status.phase === "error" ||
+    !terminal ||
+    terminal.missing.length > 0 ||
+    terminal.orders.length === 0;
+
+  const firstBox = !hasFirstBox ? null : (
     <div className="ov-box">
       {phaseText && <div className="ov-phase">{phaseText}</div>}
       {status.phase === "error" && <div className="ov-error">{status.detail}</div>}
