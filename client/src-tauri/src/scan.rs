@@ -335,9 +335,14 @@ fn capture_region(region: ScanRegion) -> Result<Captured, String> {
     {
         match capture_x11_rect(Some(region)) {
             Ok(c) => return Ok(c),
-            // Native-Wayland game: whole-screen tool capture, then crop.
+            // Native-Wayland game: the tool grabs the game's window, and the
+            // region is cut out of it here. The whole frame is worth keeping
+            // before it is cut down — it is the same frame the region selector
+            // needs to draw on, and a live scan is often the only thing that
+            // has the game in front of it.
             Err(x11_err) => {
                 let full = capture_with_tool().map_err(|tool_err| format!("{x11_err}; {tool_err}"))?;
+                remember_frame(&full);
                 return crop_region(full, region);
             }
         }
@@ -415,6 +420,30 @@ fn capture_with_tool() -> Result<Captured, String> {
 #[cfg(not(any(windows, target_os = "linux")))]
 pub(crate) fn capture() -> Result<Captured, String> {
     Err("screen capture is not supported on this platform yet".into())
+}
+
+/// Read with the engine the app already has, loading it once if it has none.
+///
+/// The two models are twelve megabytes of weights, and parsing them again for
+/// every press of the hotkey is time spent before a single pixel is looked at.
+/// The live loop has always kept its engine; a refinery read built a fresh one
+/// each time.
+///
+/// The lock is held for the read itself, so a scan and a refinery read take
+/// turns rather than both driving every core at once — which on a machine
+/// that is also running the game is the difference between a read and a wait.
+pub(crate) fn with_engine<T>(
+    app: &AppHandle,
+    det: &PathBuf,
+    rec: &PathBuf,
+    read: impl FnOnce(&OcrEngine) -> Result<T, String>,
+) -> Result<T, String> {
+    let state = app.state::<ScanState>();
+    let mut engine = state.engine.lock().map_err(|_| "the OCR engine is in a bad state")?;
+    if engine.is_none() {
+        *engine = Some(load_engine(det, rec)?);
+    }
+    read(engine.as_ref().expect("just loaded"))
 }
 
 pub(crate) fn load_engine(det: &PathBuf, rec: &PathBuf) -> Result<OcrEngine, String> {
@@ -810,6 +839,11 @@ fn frame_diff(a: &[u8], b: &[u8]) -> f32 {
 
 pub fn current_region(app: &AppHandle) -> ScanRegion {
     crate::load_client_prefs(app).scan_region.unwrap_or_default()
+}
+
+/// Whether the live signature loop is running.
+pub(crate) fn live_running(app: &AppHandle) -> bool {
+    app.state::<ScanState>().live.lock().map(|live| live.is_some()).unwrap_or(false)
 }
 
 /// Start or stop the live loop; returns whether it is running afterwards.
