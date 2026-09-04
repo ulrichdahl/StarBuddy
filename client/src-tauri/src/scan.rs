@@ -162,6 +162,7 @@ pub(crate) async fn ensure_models(app: &AppHandle) -> Result<(PathBuf, PathBuf),
     Ok((dir.join("text-detection.rten"), dir.join("text-recognition.rten")))
 }
 
+#[derive(Clone)]
 pub struct Captured {
     pub rgb: Vec<u8>,
     pub width: u32,
@@ -213,10 +214,12 @@ pub(crate) fn capture() -> Result<Captured, String> {
 /// game was not found than to read the wrong rectangle.
 #[cfg(target_os = "linux")]
 pub(crate) fn capture() -> Result<Captured, String> {
-    match capture_x11_window() {
+    let cap = match capture_x11_window() {
         Ok(c) => Ok(c),
         Err(x11_err) => capture_with_tool().map_err(|tool_err| format!("{x11_err}; {tool_err}")),
-    }
+    }?;
+    remember_frame(&cap);
+    Ok(cap)
 }
 
 #[cfg(target_os = "linux")]
@@ -288,6 +291,33 @@ fn capture_x11_rect(region: Option<ScanRegion>) -> Result<Captured, String> {
     // ZPixmap is BGRx in memory on little-endian servers.
     let rgb = img.data.chunks_exact(bpp).flat_map(|px| [px[2], px[1], px[0]]).collect();
     Ok(Captured { rgb, width, height, source: format!("window: {title}"), full_height: geo.height as u32 })
+}
+
+/// The last frame a capture actually got out of the game.
+///
+/// A game running on Wine's Wayland driver has no X11 window to read, so the
+/// only way to its pixels is the screenshot tool's *active window* — which
+/// means the game has to be the window in front. Pressing the hotkey in game
+/// satisfies that; opening the region selector from the client's own window
+/// never can, and a selector with no picture under it is a black sheet over a
+/// fullscreen game, which is how an area comes to be drawn by guesswork.
+///
+/// So the frames that do arrive are kept, and the selector draws on the last
+/// one. It is the same frame the reader works from, which is the property the
+/// region depends on: its fractions only mean anything against the frame they
+/// were measured on.
+static LAST_FRAME: std::sync::OnceLock<std::sync::Mutex<Option<Captured>>> = std::sync::OnceLock::new();
+
+fn remember_frame(cap: &Captured) {
+    let slot = LAST_FRAME.get_or_init(|| std::sync::Mutex::new(None));
+    if let Ok(mut last) = slot.lock() {
+        *last = Some(cap.clone());
+    }
+}
+
+/// The last frame the game gave up, if there has been one this run.
+pub(crate) fn last_frame() -> Option<Captured> {
+    LAST_FRAME.get()?.lock().ok()?.clone()
 }
 
 /// Region fractions → pixel rect inside a frame of the given size.

@@ -118,7 +118,13 @@ export function RefineryOverlay() {
     setSaveError(null);
   };
 
-  const pickArea = () => void invoke("region_select", { purpose: "refinery" }).catch(() => {});
+  // The selector refuses when it cannot get a picture of the game to draw on,
+  // and that refusal says what to do about it — so it goes where the read's
+  // own errors go rather than being swallowed.
+  const pickArea = () =>
+    void invoke("region_select", { purpose: "refinery" }).catch((e: unknown) =>
+      setStatus({ phase: "error", detail: String(e) }),
+    );
 
   const save = (index: number) => {
     if (!terminal || savingIndex !== null) return;

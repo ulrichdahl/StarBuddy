@@ -273,10 +273,17 @@ fn send_for_training(app: &AppHandle, cap: &Captured, order: &RefineryTerminal) 
         format!("missing {}", order.missing.join(", "))
     };
     let note = format!(
-        "F8 refinery read: {} order(s), {materials} materials, {} lines, {missing}. Station {}.",
+        "F8 refinery read: {} order(s), {materials} materials, {} lines, {missing}. Station {}. \
+         Frame {}×{} from {}.",
         order.orders.len(),
         order.lines.len(),
         order.station.as_deref().unwrap_or("unread"),
+        cap.width,
+        cap.height,
+        // Which capture path answered. A region is fractions of its frame, so
+        // a read that came from a different frame than the area was drawn on
+        // is the first thing to check when a panel reads as nothing.
+        cap.source,
     );
     // The whole read, lines and boxes included. The note says a capture read
     // badly; this says how — which of the two faults it was, a frame OCR could
