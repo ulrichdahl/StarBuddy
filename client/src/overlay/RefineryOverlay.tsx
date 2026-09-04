@@ -199,6 +199,20 @@ export function RefineryOverlay() {
       ? null
       : t(`overlay.refinery.phase.${status.phase}`, { detail: status.detail });
 
+  // The station belongs to the terminal rather than to any one order, but it
+  // is read and corrected alongside the method, so it is shown with it: two
+  // fields, one box, labels in a column.
+  const stationField = terminal ? (
+    <label className="ov-field ov-grow">
+      <span>{t("overlay.refinery.field.station")}</span>
+      <input
+        value={terminal.station ?? ""}
+        placeholder={t("overlay.refinery.stationPlaceholder")}
+        onChange={(e) => patchTerminal({ station: e.target.value || null })}
+      />
+    </label>
+  ) : null;
+
   const firstBox = (
     <div className="ov-box">
       {phaseText && <div className="ov-phase">{phaseText}</div>}
@@ -214,20 +228,10 @@ export function RefineryOverlay() {
               })}
             </div>
           )}
-          <label className="ov-field">
-            <span>{t("overlay.refinery.field.station")}</span>
-            <input
-              value={terminal.station ?? ""}
-              placeholder={t("overlay.refinery.stationPlaceholder")}
-              onChange={(e) => patchTerminal({ station: e.target.value || null })}
-            />
-          </label>
-          <div className="ov-row ov-dim">
-            <span>
-              {t("overlay.refinery.orderCount", { count: terminal.orders.length })}
-              {terminal.captures > 1 && ` · ${t("overlay.refinery.captures", { count: terminal.captures })}`}
-            </span>
-          </div>
+          {/* With no order read there is no box to put it in, so it stays
+              here — the station is worth correcting even when the rest of the
+              panel was missed. */}
+          {terminal.orders.length === 0 && stationField}
         </>
       )}
     </div>
@@ -261,15 +265,18 @@ export function RefineryOverlay() {
             {order.number !== null && ` · #${order.number}`}
           </div>
 
-          {order.state === "setup" && (
-            <label className="ov-field ov-grow">
-              <span>{t("overlay.refinery.field.method")}</span>
-              <input
-                value={order.method ?? ""}
-                onChange={(e) => patchOrder(index, { method: e.target.value || null })}
-              />
-            </label>
-          )}
+          <div className="ov-fields">
+            {index === 0 && stationField}
+            {order.state === "setup" && (
+              <label className="ov-field ov-grow">
+                <span>{t("overlay.refinery.field.method")}</span>
+                <input
+                  value={order.method ?? ""}
+                  onChange={(e) => patchOrder(index, { method: e.target.value || null })}
+                />
+              </label>
+            )}
+          </div>
 
           {order.materials.length > 0 && (
             <table className="ov-table ov-refinery-table">
@@ -379,7 +386,12 @@ export function RefineryOverlay() {
       {terminal && (
         <div className="ov-box">
           <div className="ov-row ov-dim">
-            <span>{t("overlay.refinery.readIn", { ms: terminal.elapsed_ms })}</span>
+            <span>
+              {t("overlay.refinery.orderCount", { count: terminal.orders.length })}
+              {terminal.captures > 1 && ` · ${t("overlay.refinery.captures", { count: terminal.captures })}`}
+              {" · "}
+              {t("overlay.refinery.readIn", { ms: terminal.elapsed_ms })}
+            </span>
             <button className="ov-link" onClick={() => setShowLines((v) => !v)}>
               {t(showLines ? "overlay.refinery.hideLines" : "overlay.refinery.showLines", {
                 count: terminal.lines.length,

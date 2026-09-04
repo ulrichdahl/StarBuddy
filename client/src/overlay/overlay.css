@@ -532,6 +532,17 @@ html.overlay-mode body {
   flex: 0 0 auto;
 }
 
+/* Station and method, stacked. Both are read off the panel and both get
+   corrected by hand, and their labels line up because the label column is a
+   fixed width — which only holds if they are in a column together rather than
+   wrapped into the box's own row. */
+.ov-fields {
+  flex: 1 0 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 /* A field that should take what is left of its row. The box is a wrapping flex
    row, so a field in it is otherwise as wide as its own content — which left
    the method, the longest thing anyone retypes, in the smallest box on the
