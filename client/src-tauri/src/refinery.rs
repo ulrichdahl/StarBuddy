@@ -1286,8 +1286,20 @@ fn parse_order(lines: &[&OcrLine], state: OrderState, anchor: &OcrLine) -> WorkO
             break;
         }
         if let Some(line) = find(lines, label) {
-            order.duration_seconds = duration_seconds(&line.text)
-                .or_else(|| value_candidates(&rows, line).into_iter().find_map(|c| duration_seconds(&c.text)));
+            order.duration_seconds = duration_seconds(&line.text).or_else(|| {
+                let candidates = value_candidates(&rows, line);
+                // A clock is one value written in parts, and the reader splits
+                // it as often as not: "0m 26s" comes back as "0m" and "26s",
+                // two cells on the same row. Taking the first that parses gets
+                // the minutes and throws the seconds away — and where the
+                // minutes are zero, that is a job with no time left on it. So
+                // the row is read as one string first.
+                let joined: String =
+                    candidates.iter().map(|c| c.text.as_str()).collect::<Vec<_>>().join(" ");
+                duration_seconds(&joined)
+                    .filter(|seconds| *seconds > 0)
+                    .or_else(|| candidates.into_iter().find_map(|c| duration_seconds(&c.text)))
+            });
         }
     }
 
@@ -1686,6 +1698,22 @@ mod tests {
 
     fn line(text: &str, x: i32, y: i32, w: i32, h: i32) -> OcrLine {
         OcrLine { text: text.into(), x, y, w, h }
+    }
+
+    #[test]
+    fn a_clock_split_across_cells_is_read_whole() {
+        // Verbatim from a capture: the panel's "0m 26s" came back as two
+        // lines, and reading the first of them left the job with no time on
+        // it at all.
+        let mut lines = tight_table();
+        lines.extend([
+            line("PROCESSING TIME", 27, 869, 157, 17),
+            line("0m", 300, 872, 30, 20),
+            line("26s", 360, 872, 44, 20),
+        ]);
+        let terminal = parse(&lines);
+        let order = terminal.orders.first().expect("an order");
+        assert_eq!(order.duration_seconds, Some(26));
     }
 
     #[test]

@@ -53,11 +53,13 @@ html.overlay-mode body {
   -webkit-user-select: none;
 }
 /* Panels that hold a table of numbers rather than a few fields: the refinery
-   order sheet has three numeric columns beside the material, which 440px can
-   only show by cutting them off. Enough for those and a material name, and no
-   more — the extra width went to the name column, which never needed it. */
+   order sheet has three numeric columns beside the material. Only just wider
+   than the ordinary panel, because that is all the table asks for — the widest
+   material name is about fifteen characters and the figures are three or four
+   digits. Width beyond that goes to the name column, which spreads a two-word
+   name across a third of the screen and pushes the numbers apart. */
 .ov.ov-wide {
-  width: 545px;
+  width: 450px;
 }
 .ov.ov-strip {
   width: 860px;
@@ -491,7 +493,7 @@ html.overlay-mode body {
 }
 .ov-refinery-table th + th,
 .ov-refinery-table td + td {
-  width: 5rem;
+  width: 4.4rem;
   text-align: right;
 }
 .ov-num {
