@@ -240,6 +240,14 @@ fn snap_qualities(app: &AppHandle, terminal: &mut RefineryTerminal) {
     let table = crate::sigs::table(app);
     for order in &mut terminal.orders {
         for material in &mut order.materials {
+            // The name first: the quality ladder is looked up by material, so
+            // a name the reader mangled has no ladder to be snapped against.
+            if let Some(snapped) = crate::sigs::snap_material(&table, &material.resource) {
+                if snapped != material.resource {
+                    log::debug!("material {} read, snapped to {snapped}", material.resource);
+                    material.resource = snapped;
+                }
+            }
             let Some(read) = material.quality else { continue };
             let bands = crate::sigs::bands_for(&table, &material.resource);
             if let Some(snapped) = crate::sigs::snap_quality(&bands, read) {
@@ -270,9 +278,16 @@ fn send_for_training(app: &AppHandle, cap: &Captured, order: &RefineryTerminal) 
         order.lines.len(),
         order.station.as_deref().unwrap_or("unread"),
     );
+    // The whole read, lines and boxes included. The note says a capture read
+    // badly; this says how — which of the two faults it was, a frame OCR could
+    // not make out or a frame it read and the parser threw away. Working that
+    // out from the image alone means running the reader again and hoping it
+    // does the same thing twice.
+    let reader = serde_json::to_string(order).ok();
+
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        if let Err(e) = crate::training::upload(&app, png, Some("refinery_order"), Some(note)).await {
+        if let Err(e) = crate::training::upload(&app, png, Some("refinery_order"), Some(note), reader).await {
             // Never the player's problem: the read itself succeeded.
             log::debug!("refinery capture not sent for training: {e}");
         }

@@ -220,4 +220,36 @@ class ScreenshotCaptureTest extends TestCase
         // silently swept in.
         $this->actingAs($this->manager)->get('/api/training/screenshots/export')->assertNotFound();
     }
+
+    public function test_a_reader_can_send_what_it_made_of_the_frame(): void
+    {
+        $dump = [
+            'station' => 'LEVSKI',
+            'missing' => [],
+            'lines' => [['text' => 'CORUNDUM ORE 504 131', 'x' => 70, 'y' => 398, 'w' => 318, 'h' => 16]],
+        ];
+
+        $this->actingAs($this->member)
+            ->postJson('/api/training/captures', [
+                'image' => $this->capture('r'),
+                'screen' => 'refinery_order',
+                'reader' => json_encode($dump),
+            ])
+            ->assertCreated()
+            ->assertJsonPath('reader_dump.station', 'LEVSKI')
+            ->assertJsonPath('reader_dump.lines.0.text', 'CORUNDUM ORE 504 131');
+    }
+
+    public function test_a_dump_that_is_not_json_does_not_lose_the_capture(): void
+    {
+        // The frame is the thing worth keeping, and a malformed dump is a
+        // client bug rather than a reason to refuse it.
+        $this->actingAs($this->member)
+            ->postJson('/api/training/captures', [
+                'image' => $this->capture('j'),
+                'reader' => 'not json at all',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('reader_dump', null);
+    }
 }

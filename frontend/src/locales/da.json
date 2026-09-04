@@ -766,7 +766,8 @@
       "waiting": "{{count}} venter på at blive markeret. Markér hjørnerne og navngiv skærmen som ved en upload.",
       "labelling": "Optaget {{when}}",
       "label": "Markér",
-      "discard": "Kassér"
+      "discard": "Kassér",
+      "readerLines": "{{count}} linjer læseren fandt"
     }
   }
 }

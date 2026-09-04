@@ -11,7 +11,7 @@ class ScreenshotSubmission extends Model
     protected $fillable = [
         'user_id', 'org_id', 'status', 'origin', 'image_path', 'image_hash', 'mime',
         'width', 'height', 'bytes', 'patch', 'ship', 'screen', 'hud_colour', 'hud_hex',
-        'occluded', 'quad', 'submitter_note', 'review_note', 'reviewed_by',
+        'occluded', 'quad', 'submitter_note', 'reader_dump', 'review_note', 'reviewed_by',
         'reviewed_at', 'exported_at',
     ];
 
@@ -19,6 +19,7 @@ class ScreenshotSubmission extends Model
     {
         return [
             'quad' => 'array',
+            'reader_dump' => 'array',
             'occluded' => 'boolean',
             'reviewed_at' => 'datetime',
             'exported_at' => 'datetime',

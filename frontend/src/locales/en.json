@@ -766,7 +766,8 @@
       "waiting": "{{count}} waiting to be labelled. Mark the corners and name the screen, same as an upload.",
       "labelling": "Captured {{when}}",
       "label": "Mark it up",
-      "discard": "Discard"
+      "discard": "Discard",
+      "readerLines": "{{count}} lines the reader found"
     }
   }
 }

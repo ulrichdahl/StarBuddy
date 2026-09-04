@@ -386,6 +386,10 @@ class ScreenshotSubmissionController extends Controller
                 'occluded' => $submission->occluded,
                 'session' => $submission->sessionKey(),
                 'quad' => $submission->quad,
+                // Only where the client sent one. It is not a training label:
+                // it says what the reader saw, for working out why a panel
+                // that looks fine reads badly.
+                'reader' => $submission->reader_dump,
             ], JSON_UNESCAPED_SLASHES);
         }
 

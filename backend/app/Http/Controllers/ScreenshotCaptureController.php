@@ -29,6 +29,23 @@ class ScreenshotCaptureController extends Controller
     private const MIN_QUAD_AREA = 0.01;
 
     /**
+     * The reader's own account of a capture, if it sent one and it parses.
+     *
+     * A dump that is not JSON is a client bug, not a reason to lose the frame
+     * — the capture is the thing worth keeping, so a bad dump is dropped and
+     * the upload goes through.
+     */
+    private function readerDump(?string $raw): ?array
+    {
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+        $decoded = json_decode($raw, true);
+
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    /**
      * Receive one capture from a paired desktop client.
      *
      * Pressing the hotkey twice on the same frame is a normal accident rather
@@ -47,6 +64,13 @@ class ScreenshotCaptureController extends Controller
             // kind of panel is reading badly. It still waits in the player's
             // own queue for its corners to be marked.
             'screen' => ['nullable', 'string', 'max:60'],
+            // What the client's own reader made of this frame: its OCR lines
+            // with their boxes, and what it parsed out of them. It is what
+            // separates "the capture was unreadable" from "the capture was
+            // fine and the parser threw it away", which the image cannot say
+            // on its own. Sent as JSON text because the rest of the upload is
+            // multipart.
+            'reader' => ['nullable', 'string', 'max:600000'],
         ]);
 
         $file = $request->file('image');
@@ -88,6 +112,7 @@ class ScreenshotCaptureController extends Controller
             'patch' => ($data['patch'] ?? null) ?: config('starbuddy.game_patch'),
             'screen' => $data['screen'] ?? null,
             'submitter_note' => $data['note'] ?? null,
+            'reader_dump' => $this->readerDump($data['reader'] ?? null),
         ]);
 
         return response()->json($this->present($capture), 201);
@@ -202,6 +227,7 @@ class ScreenshotCaptureController extends Controller
             'bytes' => $capture->bytes,
             'image_url' => "/api/training/screenshots/{$capture->id}/image",
             'submitter_note' => $capture->submitter_note,
+            'reader_dump' => $capture->reader_dump,
             'created_at' => $capture->created_at?->toIso8601String(),
             'screen' => $capture->screen,
             'ship' => $capture->ship,
