@@ -14,6 +14,8 @@ declare global {
     __STARBUDDY_WINDOW__?: string;
     /** Which capture area the region selector is framing. */
     __STARBUDDY_PURPOSE__?: string;
+    /** STARBUDDY_DEBUG_BOUNDS=1: outline the window, painted or not. */
+    __STARBUDDY_DEBUG_BOUNDS__?: boolean;
   }
 }
 const overlay = window.__STARBUDDY_WINDOW__ ?? new URLSearchParams(window.location.search).get("window");

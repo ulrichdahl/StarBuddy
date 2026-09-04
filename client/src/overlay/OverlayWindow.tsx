@@ -68,6 +68,13 @@ export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, titl
     invoke<WindowPrefs>("overlay_prefs", { name }).then(setPrefs).catch(() => setPrefs(null));
   }, [name]);
 
+  // STARBUDDY_DEBUG_BOUNDS=1 draws the window's real edge, which is otherwise
+  // only findable by moving something underneath it and noticing it cannot be
+  // clicked.
+  useEffect(() => {
+    if (window.__STARBUDDY_DEBUG_BOUNDS__) document.documentElement.classList.add("debug-bounds");
+  }, []);
+
   // Wrap the native window around the panel whenever its size changes.
   useLayoutEffect(() => {
     const el = rootRef.current;

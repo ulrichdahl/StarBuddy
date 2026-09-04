@@ -9,6 +9,19 @@ html.overlay-mode body {
   overflow: hidden;
 }
 
+/* Debugging aid: the window's own edge, and a wash over everything it covers
+   without painting. Both are inert to the mouse — the point is that the window
+   is not, over all of it. Switched on with STARBUDDY_DEBUG_BOUNDS=1. */
+html.debug-bounds::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  border: 2px solid #ff00aa;
+  background: rgba(255, 0, 170, 0.14);
+  pointer-events: none;
+  z-index: 99999;
+}
+
 .ov {
   --bg0: #0a0c10;
   --glass: rgba(10, 16, 24, 0.86);

@@ -252,7 +252,15 @@ fn create(app: &AppHandle, name: &str) -> Result<(), String> {
     // query string is kept for `vite dev`, where it is the only channel.
     let url = WebviewUrl::App(format!("index.html?window={name}").into());
     let win = WebviewWindowBuilder::new(app, label(name), url)
-        .initialization_script(format!("window.__STARBUDDY_WINDOW__ = {};", serde_json::json!(name)))
+        .initialization_script(format!(
+            "window.__STARBUDDY_WINDOW__ = {}; window.__STARBUDDY_DEBUG_BOUNDS__ = {};",
+            serde_json::json!(name),
+            // STARBUDDY_DEBUG_BOUNDS=1 outlines the whole window, painted or
+            // not. A window is solid to the mouse over its entire rectangle,
+            // and the part it does not paint is invisible until something is
+            // moved underneath it and stops taking clicks.
+            std::env::var("STARBUDDY_DEBUG_BOUNDS").is_ok(),
+        ))
         .title(format!("StarBuddy — {name}"))
         .focused(false)
         .decorations(false)
@@ -260,14 +268,27 @@ fn create(app: &AppHandle, name: &str) -> Result<(), String> {
         .shadow(false)
         .always_on_top(true)
         .skip_taskbar(true)
-        .resizable(false)
         .maximizable(false)
         .minimizable(false)
+        // Resizable, and then pinned to a size. Built non-resizable, the
+        // window's minimum and maximum are frozen at whatever it was created
+        // with, later changes to them are ignored, and every resize is clamped
+        // back — so the panel drew itself smaller while the window kept its
+        // first rectangle and went on taking clicks over all of it. Nothing
+        // draws a resize grip on it, and the pinned bounds are what stop it
+        // being dragged by an edge.
+        .resizable(true)
         .inner_size(prefs.width, prefs.height)
         .position(prefs.x, prefs.y)
         .visible(true)
         .build()
         .map_err(|e| e.to_string())?;
+
+    // The size it was created at, pinned the way a fit pins one, so the window
+    // is no more draggable by its edges than it was before.
+    let created = LogicalSize::new(prefs.width, prefs.height);
+    let _ = win.set_min_size(Some(created));
+    let _ = win.set_max_size(Some(created));
 
     // KDE would otherwise stack the focused fullscreen game above us.
     crate::kde_rule::ensure(app);
@@ -420,7 +441,17 @@ pub fn overlay_fit(app: AppHandle, window: tauri::WebviewWindow, width: f64, hei
     let name = name_of(window.label()).ok_or("not an overlay window")?.to_string();
     let width = width.max(120.0).round();
     let height = height.max(32.0).round();
-    window.set_size(LogicalSize::new(width, height)).map_err(|e| e.to_string())?;
+    // Both bounds move to the new size, and then the window is asked for it.
+    // The bounds are what actually decide it: a resize is a request the
+    // compositor answers in its own time, and a window whose minimum and
+    // maximum say one size cannot settle at another. It is also what keeps
+    // the window from being dragged by an edge, now that it is resizable —
+    // which it has to be, or the bounds are ignored and the window keeps the
+    // rectangle it was created with while the panel draws itself smaller.
+    let target = LogicalSize::new(width, height);
+    let _ = window.set_min_size(Some(target));
+    let _ = window.set_max_size(Some(target));
+    window.set_size(target).map_err(|e| e.to_string())?;
     // What the window actually became, beside what the panel asked for. A
     // window is solid to the mouse over its whole rectangle, painted or not,
     // so any surplus here is a strip of screen where clicks stop reaching the
