@@ -200,8 +200,23 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
     },
   })
 
+  // Deleting is destructive and sits next to the buttons that are not, so it
+  // asks first — in place, rather than stacking a second dialog on this one.
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const remove = useMutation({
+    mutationFn: async () => {
+      await api.delete(`/api/refinery-orders/${id}`)
+    },
+    onSuccess: () => {
+      refresh()
+      close()
+    },
+  })
+
   const close = () => {
     setFilled(null)
+    setConfirmDelete(false)
     onClose()
   }
 
@@ -325,6 +340,9 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
             {collect.isError && (
               <Alert severity="error">{apiErrorDetail(collect.error) ?? t('refinery.dialog.collectFailed')}</Alert>
             )}
+            {remove.isError && (
+              <Alert severity="error">{apiErrorDetail(remove.error) ?? t('refinery.sheet.deleteFailed')}</Alert>
+            )}
           </Stack>
         )}
       </DialogContent>
@@ -338,6 +356,30 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
         so the pickers' helper text cannot drag them off the line.
       */}
       <DialogActions sx={{ px: 3, py: 2, gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        {/*
+          Held at the far left, as far from the commit button as the row
+          allows: an order deleted by accident cannot be got back, and the
+          confirmation is what makes the second click mean it.
+        */}
+        {!creating && data && (
+          <Box sx={{ height: 40, display: 'flex', alignItems: 'center', gap: 1, mr: ready ? 2 : 'auto' }}>
+            {confirmDelete ? (
+              <>
+                <Typography variant="caption" color="text.secondary">
+                  {t(collected ? 'refinery.sheet.deleteHelpCollected' : 'refinery.sheet.deleteHelp')}
+                </Typography>
+                <Button color="error" variant="contained" disabled={remove.isPending} onClick={() => remove.mutate()}>
+                  {remove.isPending ? t('refinery.sheet.deleting') : t('refinery.sheet.deleteConfirm')}
+                </Button>
+                <Button onClick={() => setConfirmDelete(false)}>{t('refinery.sheet.deleteCancel')}</Button>
+              </>
+            ) : (
+              <Button color="error" onClick={() => setConfirmDelete(true)}>
+                {t('refinery.sheet.delete')}
+              </Button>
+            )}
+          </Box>
+        )}
         {ready && (
           <LocationSelect
             value={destination}

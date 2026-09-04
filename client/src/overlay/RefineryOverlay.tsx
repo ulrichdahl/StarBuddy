@@ -230,6 +230,7 @@ export function RefineryOverlay() {
   return (
     <OverlayWindow
       name="refinery"
+      wide
       displayName={t("overlay.refinery.title")}
       accent={status.phase === "error" ? "ov-accent-down" : terminal?.missing.length ? "ov-accent-notice" : "ov-accent-ok"}
       eyebrow={t("overlay.refinery.eyebrow")}

@@ -546,7 +546,11 @@ const COLUMN_LABELS: [(&str, Column); 5] = [
 
 /// A table's shape: which columns it has, and where they sit when that is known.
 struct Table {
-    header_y: i32,
+    /// The bottom of the lowest cell in the header row. OCR often reads a
+    /// header both as one run-together line and as its separate headings, and
+    /// those headings sit a pixel or two below that line's centre: measured
+    /// from the centre they look like the first thing *under* the table.
+    header_bottom: i32,
     /// Left to right.
     kinds: Vec<Column>,
     /// One x centre per kind, when the header came as separate cells. OCR
@@ -554,6 +558,76 @@ struct Table {
     /// and then only the order is known.
     centres: Option<Vec<i32>>,
     tolerance: i32,
+}
+
+/// Every number in a cell, with the x it would have had if it had been read as
+/// a cell of its own.
+///
+/// A row the reader ran together — "ALUMINUM ORE 318 387" as one line — still
+/// says where its numbers are, in the only way it can: by how far along the
+/// text they sit. Spreading the cell's width evenly over its characters puts
+/// each number near enough to its column to be placed there, which is what
+/// tells a missing quality from a missing yield.
+fn numbers_with_x(line: &OcrLine) -> Vec<(f64, i32)> {
+    let chars: Vec<char> = line.text.chars().collect();
+    if chars.is_empty() {
+        return Vec::new();
+    }
+    let step = line.w as f64 / chars.len() as f64;
+    let mut out = Vec::new();
+    let mut start: Option<usize> = None;
+    // "S04" is a misread 504, not a 4 — a figure the panel printed stands on
+    // its own, so only whole numeric words are read as one.
+    let standalone: Vec<bool> = {
+        let mut flags = vec![false; chars.len()];
+        let mut at = 0usize;
+        for word in line.text.split_whitespace() {
+            let length = word.chars().count();
+            while at < chars.len() && chars[at].is_whitespace() {
+                at += 1;
+            }
+            let numeric = word.chars().all(|c| c.is_ascii_digit() || c == '.' || c == ',');
+            for offset in 0..length {
+                if at + offset < chars.len() {
+                    flags[at + offset] = numeric;
+                }
+            }
+            at += length;
+        }
+        flags
+    };
+    for index in 0..=chars.len() {
+        let numeric = index < chars.len()
+            && standalone[index]
+            && (chars[index].is_ascii_digit() || ((chars[index] == '.' || chars[index] == ',') && start.is_some()));
+        match (numeric, start) {
+            (true, None) => start = Some(index),
+            (false, Some(from)) => {
+                let text: String = chars[from..index].iter().collect();
+                if let Some(value) = parse_number(&text) {
+                    let middle = (from + index) as f64 / 2.0;
+                    out.push((value, line.x + (middle * step).round() as i32));
+                }
+                start = None;
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+/// A cell's text with its numbers taken out, for a name that was read with its
+/// row's figures attached.
+fn strip_numbers(text: &str) -> String {
+    text.split_whitespace()
+        .filter(|word| !word.chars().any(|c| c.is_ascii_digit()))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// The lowest edge of anything in a row.
+fn row_bottom(row: &[&OcrLine]) -> i32 {
+    row.iter().map(|l| l.y + l.h).max().unwrap_or(0)
 }
 
 /// Find the table header and work out its columns.
@@ -579,7 +653,7 @@ fn table(rows: &[Vec<&OcrLine>]) -> Option<Table> {
         if positioned.len() < 2 {
             if let Some(whole) = row.iter().find(|c| is_name_heading(&c.text) && kinds_in_order(&c.text).len() >= 2) {
                 return Some(Table {
-                    header_y: centre_y(row[0]),
+                    header_bottom: row_bottom(row),
                     kinds: kinds_in_order(&whole.text),
                     centres: None,
                     tolerance: 0,
@@ -591,12 +665,11 @@ fn table(rows: &[Vec<&OcrLine>]) -> Option<Table> {
             // A run-together header lands here as one cell matching several
             // labels; it has one x, so the centres are not usable.
             let distinct = positioned.iter().map(|(_, x)| *x).collect::<std::collections::BTreeSet<_>>();
-            let header_y = centre_y(row[0]);
             if distinct.len() == positioned.len() {
                 let centres: Vec<i32> = positioned.iter().map(|(_, x)| *x).collect();
                 let gap = centres.windows(2).map(|w| w[1] - w[0]).min().unwrap_or(30).max(8);
                 return Some(Table {
-                    header_y,
+                    header_bottom: row_bottom(row),
                     kinds: positioned.into_iter().map(|(k, _)| k).collect(),
                     centres: Some(centres),
                     tolerance: gap / 2,
@@ -604,7 +677,12 @@ fn table(rows: &[Vec<&OcrLine>]) -> Option<Table> {
             }
             // One cell, several headings: order comes from the text itself.
             let text = value_cells.iter().map(|l| l.text.as_str()).collect::<Vec<_>>().join(" ");
-            return Some(Table { header_y, kinds: kinds_in_order(&text), centres: None, tolerance: 0 });
+            return Some(Table {
+                header_bottom: row_bottom(row),
+                kinds: kinds_in_order(&text),
+                centres: None,
+                tolerance: 0,
+            });
         }
     }
     None
@@ -682,6 +760,30 @@ impl Table {
             .map(|(kind, _)| kind)
     }
 
+    /// The column an x sits in, for a number read out of a run-together cell
+    /// rather than a cell of its own. The tolerance that guards `column_of` is
+    /// deliberately not applied: the x is an estimate from a character offset,
+    /// so it lands near the column rather than on it.
+    fn column_near(&self, x: i32) -> Option<Column> {
+        let centres = self.centres.as_ref()?;
+        self.kinds
+            .iter()
+            .zip(centres)
+            .map(|(kind, centre)| (*kind, (x - centre).abs()))
+            .min_by_key(|(_, distance)| *distance)
+            .map(|(kind, _)| kind)
+    }
+
+    fn holds(&self, material: &OrderMaterial, column: Column) -> bool {
+        match column {
+            Column::Quality => material.quality.is_some(),
+            Column::Qty => material.qty.is_some(),
+            Column::Yield => material.yield_amount.is_some(),
+            Column::ToDo => material.to_do.is_some(),
+            Column::Done => material.done.is_some(),
+        }
+    }
+
     fn set(&self, material: &mut OrderMaterial, column: Column, value: f64) {
         match column {
             Column::Quality => material.quality = Some(value),
@@ -702,7 +804,7 @@ fn materials_in(rows: &[Vec<&OcrLine>], table: &Table, stop_y: Option<i32>) -> V
 
     for row in rows {
         let row_y = centre_y(row[0]);
-        if row_y <= table.header_y {
+        if row_y <= table.header_bottom {
             continue;
         }
         if stop_y.is_some_and(|stop| row_y >= stop) {
@@ -721,6 +823,7 @@ fn materials_in(rows: &[Vec<&OcrLine>], table: &Table, stop_y: Option<i32>) -> V
         let values: Vec<&&OcrLine> = row.iter().skip(1).collect();
         let mut material = OrderMaterial { resource, refine: true, ..Default::default() };
         let mut had_value = false;
+        let mut filled_from_text = false;
 
         // A row that arrived as one cell ("504 99 72 28") carries its values in
         // column order; separate cells are placed by where they sit, which is
@@ -738,6 +841,40 @@ fn materials_in(rows: &[Vec<&OcrLine>], table: &Table, stop_y: Option<i32>) -> V
                 let Some(value) = numbers_in(&cell.text).into_iter().next() else { continue };
                 table.set(&mut material, column, value);
                 had_value = true;
+            }
+        }
+
+        // The whole row as one line, name and numbers together — the reader
+        // does this to a row whose figures are set tight. Its numbers are the
+        // only ones there are, so they are placed by where they sit inside the
+        // text; a row read this way used to be dropped for having no values at
+        // all, which is how a material vanished from a panel that showed it.
+        // Whatever the cells could not supply, taken out of the text they were
+        // read into. A column that already has a value keeps it: a number read
+        // in a cell of its own is placed by where it actually sits, which beats
+        // an estimate from a character offset.
+        for cell in row.iter() {
+            // Only where the header gave real column positions. A header the
+            // reader ran together says which columns exist but not where, and
+            // a row read this badly is usually one whose figures are wrong
+            // anyway ("5 CORUNDUM ORE S04 131") — placing those in order
+            // invents values rather than reading them.
+            if table.centres.is_some() {
+                for (value, x) in numbers_with_x(cell) {
+                    if let Some(column) = table.column_near(x) {
+                        if table.holds(&material, column) {
+                            continue;
+                        }
+                        table.set(&mut material, column, value);
+                        had_value = true;
+                        filled_from_text = true;
+                    }
+                }
+            }
+            // The figures were part of the name as read, and are now columns of
+            // their own, so the name gives them up rather than keeping them.
+            if filled_from_text && std::ptr::eq(*cell, *name_cell) {
+                material.resource = clean_resource(&strip_numbers(&cell.text));
             }
         }
 
@@ -1128,7 +1265,7 @@ fn parse_order(lines: &[&OcrLine], state: OrderState, anchor: &OcrLine) -> WorkO
 fn total_yield_label<'a>(lines: &[&'a OcrLine], table: &Table) -> Option<&'a OcrLine> {
     lines
         .iter()
-        .filter(|l| centre_y(l) > table.header_y)
+        .filter(|l| centre_y(l) > table.header_bottom)
         .filter(|l| canonical(&l.text) == canonical("YIELD"))
         .min_by_key(|l| centre_y(l))
         .copied()
@@ -1493,6 +1630,85 @@ mod tests {
 
     fn line(text: &str, x: i32, y: i32, w: i32, h: i32) -> OcrLine {
         OcrLine { text: text.into(), x, y, w, h }
+    }
+
+    /// A materials table read the way the terminal's own OCR reads a tight one:
+    /// the header both as a run-together line and as its separate headings, and
+    /// rows that came back whole rather than as cells.
+    ///
+    /// Verbatim from a 5120×1440 capture of the Levski setup panel, which the
+    /// reader answered with no materials at all and no quality for any of them.
+    fn tight_table() -> Vec<OcrLine> {
+        vec![
+            line("WORK ORDER", 44, 18, 95, 12),
+            line("SETUP", 44, 46, 68, 16),
+            line("WORK ORDER", 279, 47, 96, 16),
+            line("MATERIALS SELECTED QUALITY OTY YIELD REFINE", 26, 361, 436, 15),
+            line("QUALITY", 232, 362, 46, 15),
+            line("OTY", 308, 362, 21, 14),
+            line("MATERIALS SELECTED", 27, 364, 117, 14),
+            line("YIELD", 366, 365, 29, 10),
+            line("REFINE", 425, 365, 37, 11),
+            line("Y CORUNDUM ORE", 36, 397, 177, 19),
+            line("CORUNDUM ORE 584 131 63", 70, 398, 318, 16),
+            line("63", 373, 400, 15, 13),
+            line("504", 245, 403, 21, 10),
+            line("131", 309, 403, 19, 9),
+            line("ALUMINUM ORE 318 387", 69, 507, 260, 16),
+            line("Y ALUMINUM ORE 783 226 110", 35, 558, 357, 22),
+            line("TOTAL COST", 27, 711, 103, 15),
+        ]
+    }
+
+    #[test]
+    fn a_column_heading_is_not_the_total_under_the_table() {
+        // The separate headings sit a couple of pixels below the run-together
+        // line's centre. Measured from that centre, "YIELD" looked like the
+        // order's total yield printed under the table, and everything below it
+        // — every material — was taken to be past the table's end.
+        let terminal = parse(&tight_table());
+        let order = terminal.orders.first().expect("an order");
+        assert_eq!(order.materials.len(), 3, "the rows are inside the table, not under it");
+        assert_eq!(order.yield_total, None, "a column heading is not a total");
+    }
+
+    #[test]
+    fn a_row_read_as_one_line_still_lands_in_its_columns() {
+        let terminal = parse(&tight_table());
+        let order = terminal.orders.first().expect("an order");
+        let aluminium: Vec<&OrderMaterial> =
+            order.materials.iter().filter(|m| m.resource == "Aluminum Ore").collect();
+        assert_eq!(aluminium.len(), 2, "both rows arrived whole, and neither was dropped");
+        // 318 387 with nothing under YIELD: placed by where they sit in the
+        // text, so the gap is the yield rather than the quality.
+        assert_eq!(aluminium[0].quality, Some(318.0));
+        assert_eq!(aluminium[0].qty, Some(387.0));
+        assert_eq!(aluminium[0].yield_amount, None);
+        assert_eq!(aluminium[1].quality, Some(783.0));
+        assert_eq!(aluminium[1].qty, Some(226.0));
+        assert_eq!(aluminium[1].yield_amount, Some(110.0));
+    }
+
+    #[test]
+    fn a_cell_of_its_own_beats_the_same_number_read_into_the_name() {
+        let terminal = parse(&tight_table());
+        let order = terminal.orders.first().expect("an order");
+        let corundum = order.materials.first().expect("the first row");
+        assert_eq!(corundum.resource, "Corundum Ore");
+        // The row line says 584, the cell says 504, and the cell is the one
+        // that was read where the number actually sits.
+        assert_eq!(corundum.quality, Some(504.0));
+        assert_eq!(corundum.qty, Some(131.0));
+        assert_eq!(corundum.yield_amount, Some(63.0));
+    }
+
+    #[test]
+    fn a_number_welded_to_letters_is_not_a_figure() {
+        // "S04" is a misread 504, and reading a 4 out of it would put a number
+        // the panel never printed into the table.
+        let cell = line("5 CORUNDUM ORE S04 131", 438, 483, 231, 20);
+        let values: Vec<f64> = numbers_with_x(&cell).into_iter().map(|(v, _)| v).collect();
+        assert_eq!(values, vec![5.0, 131.0]);
     }
 
     /// The Levski terminal setting up a work order, exactly as the client's own

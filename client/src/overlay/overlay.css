@@ -39,8 +39,20 @@ html.overlay-mode body {
   background: var(--glass);
   border: 1px solid var(--line);
   clip-path: var(--cut);
+  /* The window underneath is transparent, and WebKitGTK repaints only the
+     region it thinks changed: after the panel resizes, whatever the old frame
+     left outside that region stayed on screen — a button's label showing
+     through the one that replaced it. Its own layer is repainted whole. */
+  will-change: transform;
+  transform: translateZ(0);
   user-select: none;
   -webkit-user-select: none;
+}
+/* Panels that hold a table of numbers rather than a few fields: the refinery
+   order sheet has four numeric columns beside the material, which 440px can
+   only show by cutting them off. */
+.ov.ov-wide {
+  width: 680px;
 }
 .ov.ov-strip {
   width: 860px;
@@ -409,6 +421,12 @@ html.overlay-mode body {
 .ov-field input,
 .ov-table input {
   flex: 1 1 auto;
+  /* An input carries an intrinsic width of about twenty characters, and in a
+     table cell that becomes the column's minimum: five of them together are
+     wider than the panel, so the table overflowed and the right-hand columns
+     were cut off by the window edge. Sized from its cell instead. */
+  width: 100%;
+  box-sizing: border-box;
   min-width: 0;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.14);

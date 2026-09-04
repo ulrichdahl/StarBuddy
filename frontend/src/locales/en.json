@@ -477,7 +477,14 @@
       "frozen": "This order has been collected, so it is kept as it was.",
       "keys": "↑↓←→ move · type to edit · Enter fills the next empty cell in the line and starts a new line once it is complete · Ctrl+Enter repeats the line · Tab walks the cells · in In and Yield, Ctrl+↑↓ and Shift+↑↓ step by 1 and 100",
       "readyFrozen": "The refinery has finished this job, so its numbers are settled. All that is left is to say where the materials went.",
-      "title": "Refinery order"
+      "title": "Refinery order",
+      "delete": "Delete order",
+      "deleteConfirm": "Delete for good?",
+      "deleting": "Deleting…",
+      "deleteCancel": "Keep it",
+      "deleteHelp": "The refinery never ran this job",
+      "deleteHelpCollected": "The materials it produced stay in your inventory",
+      "deleteFailed": "Could not delete that order."
     }
   },
   "materials": {

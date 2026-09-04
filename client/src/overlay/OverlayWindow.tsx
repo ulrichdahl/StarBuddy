@@ -41,6 +41,8 @@ interface Props {
   children?: ReactNode;
   /** Compact single-row content for the top/bottom strip. */
   strip: ReactNode;
+  /** A panel holding a table of numbers, which needs more than the usual width. */
+  wide?: boolean;
 }
 
 const isStrip = (m: PlacementMode) => m === "dock-top" || m === "dock-bottom";
@@ -50,7 +52,7 @@ const isStrip = (m: PlacementMode) => m === "dock-top" || m === "dock-bottom";
  * drags the native window, the size · placement · opacity · close
  * cluster, and content-fitting (the native window wraps the panel).
  */
-export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, title, firstBox, children, strip }: Props) {
+export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, title, firstBox, children, strip, wide }: Props) {
   const { t } = useTranslation();
   const [prefs, setPrefs] = useState<WindowPrefs | null>(null);
   const [pop, setPop] = useState<"none" | "place" | "opacity">("none");
@@ -64,9 +66,18 @@ export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, titl
   useLayoutEffect(() => {
     const el = rootRef.current;
     if (!el || !prefs) return;
+    // scrollWidth/Height, not the bounding box: a panel whose content is wider
+    // than the window reports the window's width from getBoundingClientRect,
+    // so the window could never grow to show what was overflowing it.
+    let last = "";
     const fit = () => {
       const r = el.getBoundingClientRect();
-      void invoke("overlay_fit", { width: Math.ceil(r.width), height: Math.ceil(r.height) }).catch(() => {});
+      const width = Math.ceil(Math.max(r.width, el.scrollWidth));
+      const height = Math.ceil(Math.max(r.height, el.scrollHeight));
+      const now = `${width}x${height}`;
+      if (now === last) return;
+      last = now;
+      void invoke("overlay_fit", { width, height }).catch(() => {});
     };
     fit();
     const ro = new ResizeObserver(fit);
@@ -108,6 +119,7 @@ export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, titl
     prefs.mode === "dock-left" ? "ov-dock-left" : "",
     prefs.mode === "dock-right" ? "ov-dock-right" : "",
     urgent ? "ov-urgent" : "",
+    wide && !strip_ ? "ov-wide" : "",
   ]
     .filter(Boolean)
     .join(" ");
