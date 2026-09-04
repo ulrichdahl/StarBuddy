@@ -422,6 +422,30 @@ pub(crate) fn capture() -> Result<Captured, String> {
     Err("screen capture is not supported on this platform yet".into())
 }
 
+/// Read with the engine the app already has, loading it once if it has none.
+///
+/// The two models are twelve megabytes of weights, and parsing them again for
+/// every press of the hotkey is time spent before a single pixel is looked at.
+/// The live loop has always kept its engine; a refinery read built a fresh one
+/// each time.
+///
+/// The lock is held for the read itself, so a scan and a refinery read take
+/// turns rather than both driving every core at once — which on a machine
+/// that is also running the game is the difference between a read and a wait.
+pub(crate) fn with_engine<T>(
+    app: &AppHandle,
+    det: &PathBuf,
+    rec: &PathBuf,
+    read: impl FnOnce(&OcrEngine) -> Result<T, String>,
+) -> Result<T, String> {
+    let state = app.state::<ScanState>();
+    let mut engine = state.engine.lock().map_err(|_| "the OCR engine is in a bad state")?;
+    if engine.is_none() {
+        *engine = Some(load_engine(det, rec)?);
+    }
+    read(engine.as_ref().expect("just loaded"))
+}
+
 pub(crate) fn load_engine(det: &PathBuf, rec: &PathBuf) -> Result<OcrEngine, String> {
     let detection_model = rten::Model::load_file(det).map_err(|e| format!("detection model: {e}"))?;
     let recognition_model = rten::Model::load_file(rec).map_err(|e| format!("recognition model: {e}"))?;

@@ -212,8 +212,7 @@ async fn read_inner(app: &AppHandle) -> Result<RefineryTerminal, String> {
         };
 
         status(&app2, "ocr", "reading the panel");
-        let engine = scan::load_engine(&det, &rec)?;
-        let lines = read_in_bands(&engine, &cap)?;
+        let lines = scan::with_engine(&app2, &det, &rec, |engine| read_in_bands(engine, &cap))?;
 
         let mut order = parse(&lines);
         snap_qualities(&app2, &mut order);
