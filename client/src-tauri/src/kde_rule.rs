@@ -85,6 +85,17 @@ pub fn set_installed(install: bool) -> Result<(), String> {
                 "aboverule=2".into(),
                 "layer=overlay".into(),
                 "layerrule=2".into(),
+                // The panel decides how see-through it is, and it is the only
+                // thing that may. A compositor that fades an inactive window
+                // — KWin's translucency effect, or a rule someone else set —
+                // otherwise changes the overlay's transparency every time the
+                // player clicks between it and the game, which reads as the
+                // window doing it by itself. Forced at both, so the slider is
+                // the only thing that moves it.
+                "opacityactive=100".into(),
+                "opacityactiverule=2".into(),
+                "opacityinactive=100".into(),
+                "opacityinactiverule=2".into(),
                 format!("title={RULE_TITLE}"),
                 "titlematch=2".into(),
             ],
