@@ -161,6 +161,13 @@ pub async fn read(app: AppHandle) -> Result<RefineryTerminal, String> {
 
 /// `merge_with_last` false starts a fresh order, discarding earlier captures.
 pub async fn read_with(app: AppHandle, merge_with_last: bool) -> Result<RefineryTerminal, String> {
+    // Both readers drive every core they can get, and the live loop grabs a
+    // frame every second or so. Run them together on the machine that is also
+    // running the game and a read that takes two seconds takes minutes — so
+    // this says which one to stop rather than appearing to hang.
+    if crate::scan::live_running(&app) {
+        return Err("The live scan is running and needs the whole machine. Stop it, then read the panel.".into());
+    }
     {
         let state = app.state::<RefineryState>();
         let mut busy = state.busy.lock().unwrap();

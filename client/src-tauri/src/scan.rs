@@ -841,6 +841,11 @@ pub fn current_region(app: &AppHandle) -> ScanRegion {
     crate::load_client_prefs(app).scan_region.unwrap_or_default()
 }
 
+/// Whether the live signature loop is running.
+pub(crate) fn live_running(app: &AppHandle) -> bool {
+    app.state::<ScanState>().live.lock().map(|live| live.is_some()).unwrap_or(false)
+}
+
 /// Start or stop the live loop; returns whether it is running afterwards.
 pub fn live_toggle(app: &AppHandle) -> bool {
     let state = app.state::<ScanState>();
