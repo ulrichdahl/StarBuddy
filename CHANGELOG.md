@@ -5,6 +5,22 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## 0.1.13 — 2026-09-05
+
+**The overlay windows behave.**
+
+### Fixed
+
+- **Clicks land in the game again.** Every overlay window was the size it was created at rather than the size of the panel it draws, and a window takes clicks over its whole rectangle whether or not it painted anything there — so a strip of screen below each window quietly swallowed clicks, and a window moved underneath another became unreachable. Windows are now the size of what they show, in every mode.
+- A window's transparency is the slider's business alone. It used to change by itself when you clicked between an overlay and the game, which was the compositor fading an inactive window; the overlays now say they are not to be faded.
+- **A refinery read is quick again, and says when it cannot be.** Each press used to load twelve megabytes of OCR models before looking at a single pixel; the models are loaded once and shared. Reading while a live scan is running gave a panel that sat on "reading the panel" for minutes, because both take every core they can get — it says which one to stop instead.
+- The region selector can draw on a frame a live scan captured, not only one a refinery read did. On a game the screenshot tool can only reach as the active window, a live scan is often the only thing running with the game in front of it.
+
+### For anyone working on the client
+
+- `client/README.md` says how to build and run it locally, which takes about a minute and needs nothing from CI.
+- `STARBUDDY_DEBUG_BOUNDS=1` outlines each overlay window and washes what it covers. A window is invisible where it does not paint, and that is the only way to see its real edge.
+
 ## 0.1.12 — 2026-09-04
 
 **Refinery orders, and teaching StarBuddy to read the screen.**
