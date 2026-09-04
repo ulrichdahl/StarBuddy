@@ -1104,15 +1104,22 @@ fn duration_seconds(text: &str) -> Option<i64> {
 /// The refining methods the game offers. Used only to tidy a misread name —
 /// the method is found by where it sits, not by matching this list, so a
 /// method added to the game still parses.
-const METHODS: [&str; 8] = [
+/// The nine the terminal offers, spelled as the terminal spells them.
+///
+/// The spelling matters as much as the list: a method is stored as text and
+/// the website offers these same nine to pick from, so "Xcr Reaction" — which
+/// is what title-casing a read makes of it — is a method no order can be
+/// matched against.
+const METHODS: [&str; 9] = [
+    "Cormack Method",
     "Dinyx Solventation",
     "Electrostarolysis",
-    "Pyrometric Chromalysis",
     "Ferron Exchange",
-    "Cormack Method",
-    "Gaseous Recombination",
-    "Thermonatic Deposition",
+    "Gaskin Process",
     "Kazen Winnowing",
+    "Pyrometric Chromalysis",
+    "Thermonatic Deposition",
+    "XCR Reaction",
 ];
 
 /// The closest known method name, or the text as read when none is close.
@@ -1698,6 +1705,19 @@ mod tests {
 
     fn line(text: &str, x: i32, y: i32, w: i32, h: i32) -> OcrLine {
         OcrLine { text: text.into(), x, y, w, h }
+    }
+
+    #[test]
+    fn a_method_keeps_the_spelling_the_terminal_uses() {
+        // Read from the panel in capitals and title-cased into something the
+        // website's own list of methods does not contain.
+        assert_eq!(tidy_method("XCR REACTION"), "XCR Reaction");
+        assert_eq!(tidy_method("Xcr Reaction"), "XCR Reaction");
+        // Misread, and still the method it is.
+        assert_eq!(tidy_method("GASKIN PROCFSS"), "Gaskin Process");
+        assert_eq!(tidy_method("PYROMETRIC CHROMALYSIS"), "Pyrometric Chromalysis");
+        // Nothing like a method is left as it was read rather than forced.
+        assert_eq!(tidy_method("SELECT A METHOD"), "Select A Method");
     }
 
     #[test]
