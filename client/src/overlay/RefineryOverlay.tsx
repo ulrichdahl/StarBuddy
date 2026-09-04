@@ -262,7 +262,7 @@ export function RefineryOverlay() {
           </div>
 
           {order.state === "setup" && (
-            <label className="ov-field">
+            <label className="ov-field ov-grow">
               <span>{t("overlay.refinery.field.method")}</span>
               <input
                 value={order.method ?? ""}
@@ -359,7 +359,7 @@ export function RefineryOverlay() {
             </div>
           )}
 
-          <div className="ov-actions">
+          <div className="ov-actions ov-actions-commit">
             <button
               className="ov-primary"
               onClick={() => save(index)}

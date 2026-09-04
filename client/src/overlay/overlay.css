@@ -532,6 +532,30 @@ html.overlay-mode body {
   flex: 0 0 auto;
 }
 
+/* A field that should take what is left of its row. The box is a wrapping flex
+   row, so a field in it is otherwise as wide as its own content — which left
+   the method, the longest thing anyone retypes, in the smallest box on the
+   panel. */
+.ov-field.ov-grow {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+/* Saving the order is what the window is for, and it is not one of the four
+   things along the bottom that operate the reader. Its own row, centred, and
+   larger than they are. */
+.ov-actions-commit {
+  flex: 1 0 100%;
+  justify-content: center;
+  margin-top: 2px;
+}
+.ov-actions-commit .ov-primary {
+  flex: 0 0 auto;
+  padding: 0.45rem 2.2rem;
+  font-size: 1.05em;
+  font-weight: 600;
+}
+
 .ov-actions {
   display: flex;
   gap: 0.5rem;
