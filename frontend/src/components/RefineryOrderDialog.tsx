@@ -398,17 +398,19 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
             // Held to the left edge, under the sheet's own left-hand fields;
             // the auto margin pushes the sharing switch and the buttons to the
             // other end of the row.
-            sx={{ width: 260, mr: 'auto' }}
+            sx={{ width: 220, mr: 'auto' }}
           />
         )}
         {(creating || data) && !collected && (
-          // Beside the toggle rather than under it: the row is already aligned
-          // to the top for the pickers' helper text, and a second line hanging
-          // below the switch is what pushed it off the buttons' line.
-          <Box sx={{ height: 40, display: 'flex', alignItems: 'center', gap: 1.25 }}>
-            <Typography variant="caption" color="text.secondary">
-              {t('refinery.dialog.visibilityHelp')}
-            </Typography>
+          // No caption beside the switch. Private/Org-visible says what it
+          // does, and the words that explained it were the last thing the row
+          // could afford: with them there the commit button wrapped to a line
+          // of its own, away from the delete and the collect picker it belongs
+          // with. The explanation stays on the switch itself.
+          <Box
+            sx={{ height: 40, display: 'flex', alignItems: 'center' }}
+            title={t('refinery.dialog.visibilityHelp')}
+          >
             <VisibilitySelect
               value={shareWith}
               onChange={setShareWith}
