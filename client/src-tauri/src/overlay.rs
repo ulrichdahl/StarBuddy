@@ -421,6 +421,20 @@ pub fn overlay_fit(app: AppHandle, window: tauri::WebviewWindow, width: f64, hei
     let width = width.max(120.0).round();
     let height = height.max(32.0).round();
     window.set_size(LogicalSize::new(width, height)).map_err(|e| e.to_string())?;
+    // What the window actually became, beside what the panel asked for. A
+    // window is solid to the mouse over its whole rectangle, painted or not,
+    // so any surplus here is a strip of screen where clicks stop reaching the
+    // game — which is invisible until someone tries to click through it.
+    if let (Ok(scale), Ok(outer)) = (window.scale_factor(), window.outer_size()) {
+        let outer: LogicalSize<f64> = outer.to_logical(scale);
+        if (outer.width - width).abs() > 1.0 || (outer.height - height).abs() > 1.0 {
+            log::debug!(
+                "overlay {name}: panel asked for {width}×{height}, window is {}×{} (scale {scale})",
+                outer.width,
+                outer.height,
+            );
+        }
+    }
     update_prefs(&app, &name, |w| {
         w.width = width;
         w.height = height;

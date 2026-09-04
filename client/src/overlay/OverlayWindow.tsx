@@ -72,14 +72,18 @@ export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, titl
   useLayoutEffect(() => {
     const el = rootRef.current;
     if (!el || !prefs) return;
-    // scrollWidth/Height, not the bounding box: a panel whose content is wider
-    // than the window reports the window's width from getBoundingClientRect,
-    // so the window could never grow to show what was overflowing it.
+    // The panel's own box, and nothing else. The scroll extent was used here
+    // for a while, to let a window grow around content wider than itself —
+    // but it counts anything hanging outside the panel, so the native window
+    // ended up taller than what is drawn, and a window is solid to the mouse
+    // whether or not it has painted anything there. That surplus swallowed
+    // clicks meant for the game below. Panels carry their own width now, so
+    // the box is the right measure at both edges.
     let last = "";
     const fit = () => {
       const r = el.getBoundingClientRect();
-      const width = Math.ceil(Math.max(r.width, el.scrollWidth));
-      const height = Math.ceil(Math.max(r.height, el.scrollHeight));
+      const width = Math.ceil(r.width);
+      const height = Math.ceil(r.height);
       const now = `${width}x${height}`;
       if (now === last) return;
       last = now;
