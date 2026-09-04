@@ -200,8 +200,23 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
     },
   })
 
+  // Deleting is destructive and sits next to the buttons that are not, so it
+  // asks first — in place, rather than stacking a second dialog on this one.
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const remove = useMutation({
+    mutationFn: async () => {
+      await api.delete(`/api/refinery-orders/${id}`)
+    },
+    onSuccess: () => {
+      refresh()
+      close()
+    },
+  })
+
   const close = () => {
     setFilled(null)
+    setConfirmDelete(false)
     onClose()
   }
 
@@ -325,6 +340,9 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
             {collect.isError && (
               <Alert severity="error">{apiErrorDetail(collect.error) ?? t('refinery.dialog.collectFailed')}</Alert>
             )}
+            {remove.isError && (
+              <Alert severity="error">{apiErrorDetail(remove.error) ?? t('refinery.sheet.deleteFailed')}</Alert>
+            )}
           </Stack>
         )}
       </DialogContent>
@@ -338,6 +356,37 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
         so the pickers' helper text cannot drag them off the line.
       */}
       <DialogActions sx={{ px: 3, py: 2, gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        {/*
+          Held at the far left, as far from the commit button as the row
+          allows: an order deleted by accident cannot be got back, and the
+          confirmation is what makes the second click mean it.
+        */}
+        {!creating && data && (
+          // Kept to two controls at their widest, so the row it shares with the
+          // collect picker, the sharing switch and the commit button stays one
+          // row: wrapping put the delete on a line of its own, which reads as
+          // belonging to the sheet rather than to the actions.
+          <Box sx={{ height: 40, display: 'flex', alignItems: 'center', gap: 1, mr: 'auto' }}>
+            {confirmDelete ? (
+              <>
+                <Button
+                  color="error"
+                  variant="contained"
+                  disabled={remove.isPending}
+                  title={t(collected ? 'refinery.sheet.deleteHelpCollected' : 'refinery.sheet.deleteHelp')}
+                  onClick={() => remove.mutate()}
+                >
+                  {remove.isPending ? t('refinery.sheet.deleting') : t('refinery.sheet.deleteConfirm')}
+                </Button>
+                <Button onClick={() => setConfirmDelete(false)}>{t('refinery.sheet.deleteCancel')}</Button>
+              </>
+            ) : (
+              <Button color="error" onClick={() => setConfirmDelete(true)}>
+                {t('refinery.sheet.delete')}
+              </Button>
+            )}
+          </Box>
+        )}
         {ready && (
           <LocationSelect
             value={destination}
@@ -346,20 +395,23 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
             helperText={t('refinery.dialog.destinationHelp')}
             required
             size="small"
-            // Held to the left edge, under the sheet's own left-hand fields;
-            // the auto margin pushes the sharing switch and the buttons to the
-            // other end of the row.
-            sx={{ width: 260, mr: 'auto' }}
+            // Part of the right-hand group, with the sharing switch and the
+            // button it feeds: everything that commits the order stands
+            // together, and the gap in the row falls between them and the
+            // delete, which undoes it.
+            sx={{ width: 220 }}
           />
         )}
         {(creating || data) && !collected && (
-          // Beside the toggle rather than under it: the row is already aligned
-          // to the top for the pickers' helper text, and a second line hanging
-          // below the switch is what pushed it off the buttons' line.
-          <Box sx={{ height: 40, display: 'flex', alignItems: 'center', gap: 1.25 }}>
-            <Typography variant="caption" color="text.secondary">
-              {t('refinery.dialog.visibilityHelp')}
-            </Typography>
+          // No caption beside the switch. Private/Org-visible says what it
+          // does, and the words that explained it were the last thing the row
+          // could afford: with them there the commit button wrapped to a line
+          // of its own, away from the delete and the collect picker it belongs
+          // with. The explanation stays on the switch itself.
+          <Box
+            sx={{ height: 40, display: 'flex', alignItems: 'center' }}
+            title={t('refinery.dialog.visibilityHelp')}
+          >
             <VisibilitySelect
               value={shareWith}
               onChange={setShareWith}

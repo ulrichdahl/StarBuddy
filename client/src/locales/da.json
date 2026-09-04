@@ -234,7 +234,8 @@
         "refinery": "Tag titellinjen med: stationens navn læses fra linjen \"… REFINEMENT CENTER\".",
         "scan": "Tag kun selve mærket med — jo tættere område, jo mere pålidelig aflæsning."
       },
-      "hint": "Escape beholder det område, du havde før."
+      "hint": "Escape beholder det område, du havde før.",
+      "saved": "Den orange kasse er det område der bruges nu"
     },
     "refinery": {
       "eyebrow": "Rafinaderi",

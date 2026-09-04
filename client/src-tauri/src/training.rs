@@ -55,7 +55,7 @@ pub async fn send(app: AppHandle) -> Result<String, String> {
     let (bytes, width, height) = png;
 
     status(&app, "uploading", format!("sending {width}×{height}"));
-    upload(&app, bytes, None, None).await?;
+    upload(&app, bytes, None, None, None).await?;
     Ok(format!("Sent {width}×{height} — label it on the training page."))
 }
 
@@ -71,6 +71,7 @@ pub async fn upload(
     bytes: Vec<u8>,
     screen: Option<&str>,
     note: Option<String>,
+    reader: Option<String>,
 ) -> Result<(), String> {
     let settings = crate::load_settings(app).ok_or("Not paired with a server yet.")?;
     let part = reqwest::multipart::Part::bytes(bytes)
@@ -83,6 +84,12 @@ pub async fn upload(
     }
     if let Some(note) = note {
         form = form.text("note", note);
+    }
+    // What the reader made of this frame, for a capture a reader took. The
+    // server keeps it beside the image and drops it if it will not parse, so a
+    // dump is never worth failing an upload over.
+    if let Some(reader) = reader {
+        form = form.text("reader", reader);
     }
 
     let resp = reqwest::Client::builder()

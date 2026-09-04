@@ -34,13 +34,32 @@ html.overlay-mode body {
   width: 440px;
   color: var(--text);
   font-family: var(--body);
-  font-size: 13px;
+  /* The window is read at a glance, mid-game, against whatever the panel
+     behind it is doing. Nothing in it shrinks below this: the table used to
+     take 0.88em of it and its inputs 0.9em of that, which left the figures
+     being checked the smallest text on screen. */
+  font-size: 14px;
   line-height: 1.45;
   background: var(--glass);
   border: 1px solid var(--line);
   clip-path: var(--cut);
+  /* The window underneath is transparent, and WebKitGTK repaints only the
+     region it thinks changed: after the panel resizes, whatever the old frame
+     left outside that region stayed on screen — a button's label showing
+     through the one that replaced it. Its own layer is repainted whole. */
+  will-change: transform;
+  transform: translateZ(0);
   user-select: none;
   -webkit-user-select: none;
+}
+/* Panels that hold a table of numbers rather than a few fields: the refinery
+   order sheet has three numeric columns beside the material. Only just wider
+   than the ordinary panel, because that is all the table asks for — the widest
+   material name is about fifteen characters and the figures are three or four
+   digits. Width beyond that goes to the name column, which spreads a two-word
+   name across a third of the screen and pushes the numbers apart. */
+.ov.ov-wide {
+  width: 450px;
 }
 .ov.ov-strip {
   width: 860px;
@@ -254,7 +273,7 @@ html.overlay-mode body {
 .ov-sys .dot.warn { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
 .ov-sys .dot.bad { background: var(--red); box-shadow: 0 0 8px var(--red); }
 .ov-sys .st { margin-left: auto; color: var(--muted); font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; font-weight: 600; }
-.ov-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 11px; color: var(--dim); }
+.ov-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 12px; color: var(--dim); }
 .ov-foot .lnk {
   font-family: var(--mono);
   font-size: 11px;
@@ -342,17 +361,34 @@ html.overlay-mode body {
   cursor: crosshair;
   user-select: none;
   outline: none;
-  background: transparent;
+  /* Painted rather than transparent: the still no longer fills the sheet, and
+     what shows around it would otherwise be the live screen — a second, moving
+     picture beside the one being aimed at. Nearly opaque, so the desktop is
+     still faintly there to place the game's window against. */
+  background: rgba(6, 9, 13, 0.92);
+}
+
+/* The area that is stored now, so a wrong one can be seen for what it is
+   rather than deduced from a read that came back empty. Orange, and drawn over
+   the dim so it reads through it. */
+.region-saved {
+  position: absolute;
+  border: 2px solid #f0a02a;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 0 14px rgba(240, 160, 42, 0.45);
+  background: rgba(240, 160, 42, 0.1);
+  pointer-events: none;
+  z-index: 3;
+}
+.region-legend {
+  color: #f0a02a;
 }
 
 .region-frame {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  /* Filled, not fitted: the mapping from window fractions to frame fractions
-     has to be linear, and a letterbox would break it. */
-  object-fit: fill;
+  /* Placed and sized from the frame's own dimensions: the game's window is not
+     the shape of the screen this sheet covers, and stretching it to fill made
+     the panel a different shape from the one being aimed at. Every coordinate
+     on the sheet is measured against this rectangle. */
   pointer-events: none;
   user-select: none;
 }
@@ -403,20 +439,25 @@ html.overlay-mode body {
 }
 .ov-field > span {
   flex: 0 0 5.5rem;
-  opacity: 0.75;
-  font-size: 0.85em;
+  opacity: 0.8;
+  font-size: 0.92em;
 }
 .ov-field input,
 .ov-table input {
   flex: 1 1 auto;
+  /* An input carries an intrinsic width of about twenty characters, and in a
+     table cell that becomes the column's minimum: five of them together are
+     wider than the panel, so the table overflowed and the right-hand columns
+     were cut off by the window edge. Sized from its cell instead. */
+  width: 100%;
+  box-sizing: border-box;
   min-width: 0;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 4px;
-  padding: 0.2rem 0.4rem;
+  padding: 0.25rem 0.4rem;
   color: inherit;
   font: inherit;
-  font-size: 0.9em;
 }
 .ov-field input:focus,
 .ov-table input:focus {
@@ -427,7 +468,6 @@ html.overlay-mode body {
 .ov-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.88em;
 }
 .ov-table th {
   text-align: left;
@@ -453,7 +493,7 @@ html.overlay-mode body {
 }
 .ov-refinery-table th + th,
 .ov-refinery-table td + td {
-  width: 4.6rem;
+  width: 4.4rem;
   text-align: right;
 }
 .ov-num {
@@ -490,6 +530,41 @@ html.overlay-mode body {
 }
 .ov-pair .ov-field > span {
   flex: 0 0 auto;
+}
+
+/* Station and method, stacked. Both are read off the panel and both get
+   corrected by hand, and their labels line up because the label column is a
+   fixed width — which only holds if they are in a column together rather than
+   wrapped into the box's own row. */
+.ov-fields {
+  flex: 1 0 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* A field that should take what is left of its row. The box is a wrapping flex
+   row, so a field in it is otherwise as wide as its own content — which left
+   the method, the longest thing anyone retypes, in the smallest box on the
+   panel. */
+.ov-field.ov-grow {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+/* Saving the order is what the window is for, and it is not one of the four
+   things along the bottom that operate the reader. Its own row, centred, and
+   larger than they are. */
+.ov-actions-commit {
+  flex: 1 0 100%;
+  justify-content: center;
+  margin-top: 2px;
+}
+.ov-actions-commit .ov-primary {
+  flex: 0 0 auto;
+  padding: 0.45rem 2.2rem;
+  font-size: 1.05em;
+  font-weight: 600;
 }
 
 .ov-actions {

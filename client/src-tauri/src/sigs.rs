@@ -319,6 +319,74 @@ fn bare_name(name: &str) -> String {
     if bare.is_empty() { words.concat() } else { bare }
 }
 
+/// The catalogue name an OCR'd material was most likely meant to be.
+///
+/// The reader gets material names nearly right and rarely exactly: "Corundum
+/// Ore" comes back as "Corundiim Orf", "Aluminum Ore" as "Aaluminim Ore". The
+/// catalogue is 26 minerals, which is small enough that the nearest one is a
+/// safe answer where a free-text guess would not be — and a name that is not
+/// one of them at all, like the panel's own "Inert Materials", is far from
+/// every entry and stays as it was read.
+///
+/// The form the material was named in is kept: a row that said "ore" gets its
+/// "Ore" back, so the sheet shows what the terminal showed.
+pub fn snap_material(table: &SigTable, read: &str) -> Option<String> {
+    let words: Vec<String> = read
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .map(|w| w.to_lowercase())
+        .collect();
+    // "Ore" and "Raw" name the form rather than the mineral, and the reader
+    // misspells them too ("Orf", "Ors"), so they are matched loosely and set
+    // aside before the mineral is looked for.
+    let is_form = |word: &String| {
+        ["ore", "raw"].iter().any(|form| distance(word, form) <= 1 && word.len() >= 2)
+    };
+    let form = words.iter().any(is_form);
+    let stem: String = words.iter().filter(|w| !is_form(w)).cloned().collect();
+    if stem.len() < 3 {
+        return None;
+    }
+
+    // A misread letter or two, at most one in four — enough for "corundiim"
+    // and "aaluminim", nowhere near enough to turn "inertmaterials" into a
+    // mineral.
+    let allowed = (stem.len() / 4).max(1);
+    let mut scored: Vec<(usize, &SigOre)> = table
+        .ores
+        .iter()
+        .map(|ore| (distance(&stem, &ore.name.to_lowercase()), ore))
+        .filter(|(d, _)| *d <= allowed)
+        .collect();
+    scored.sort_by_key(|(d, _)| *d);
+    // Two minerals equally close is not a reading, it is a coin toss.
+    if scored.len() > 1 && scored[0].0 == scored[1].0 {
+        return None;
+    }
+    let (_, ore) = scored.first()?;
+    Some(if form { format!("{} Ore", ore.name) } else { ore.name.clone() })
+}
+
+/// Levenshtein distance, for names short enough that the full table is cheap.
+fn distance(a: &str, b: &str) -> usize {
+    let (a, b): (Vec<char>, Vec<char>) = (a.chars().collect(), b.chars().collect());
+    if a.is_empty() {
+        return b.len();
+    }
+    let mut row: Vec<usize> = (0..=b.len()).collect();
+    for (i, ca) in a.iter().enumerate() {
+        let mut previous = row[0];
+        row[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            let cost = if ca == cb { 0 } else { 1 };
+            let next = (row[j + 1] + 1).min(row[j] + 1).min(previous + cost);
+            previous = row[j + 1];
+            row[j + 1] = next;
+        }
+    }
+    row[b.len()]
+}
+
 /// The band an OCR'd quality was most likely meant to be.
 ///
 /// Quality is the one column with a closed set of answers: every material has
@@ -411,6 +479,36 @@ mod quality_tests {
         // A read 8 is one confusable digit from both a 3 and a 6, so a ladder
         // carrying 386 and 686 cannot say which 886 was meant to be.
         assert_eq!(snap_quality(&[386, 686], 886.0), None);
+    }
+
+    #[test]
+    fn a_misread_material_snaps_to_the_one_it_was_meant_to_be() {
+        let table = bundled();
+        // Straight off real captures of the Levski terminal.
+        assert_eq!(snap_material(&table, "Corundiim Orf").as_deref(), Some("Corundum Ore"));
+        assert_eq!(snap_material(&table, "Aaluminim Ore").as_deref(), Some("Aluminum Ore"));
+        assert_eq!(snap_material(&table, "Ouantainium Ore").as_deref(), Some("Quantainium Ore"));
+        assert_eq!(snap_material(&table, "Corundum Ore").as_deref(), Some("Corundum Ore"));
+    }
+
+    #[test]
+    fn a_material_the_catalogue_does_not_have_is_left_alone() {
+        let table = bundled();
+        // The panel's own byproduct row, and the heading above it. Neither is
+        // a mineral, and naming one after the nearest mineral would invent a
+        // material the player never mined.
+        assert_eq!(snap_material(&table, "Inert Materials"), None);
+        assert_eq!(snap_material(&table, "Nert Materials"), None);
+        assert_eq!(snap_material(&table, "Materials Selected"), None);
+    }
+
+    #[test]
+    fn a_name_too_far_gone_is_not_guessed_at() {
+        let table = bundled();
+        // Three letters wrong in eight. The reader does misread this badly,
+        // and a name invented from that would be worse than an obviously
+        // wrong one the player can see and correct.
+        assert_eq!(snap_material(&table, "Corandeem Orf"), None);
     }
 
     #[test]

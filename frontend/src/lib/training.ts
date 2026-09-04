@@ -118,7 +118,22 @@ export interface ScreenshotCapture {
   bytes: number
   image_url: string
   submitter_note: string | null
+  /**
+   * What the client's own reader made of this frame: the OCR lines with their
+   * boxes, and what it parsed out of them. Only for captures a reader took,
+   * and it is diagnostic rather than a label — it is what separates a frame
+   * OCR could not make out from one it read correctly and the parser threw
+   * away.
+   */
+  reader_dump: ReaderDump | null
   created_at: string | null
+}
+
+export interface ReaderDump {
+  station?: string | null
+  missing?: string[]
+  lines?: { text: string; x: number; y: number; w: number; h: number }[]
+  orders?: { materials?: { resource: string; quality: number | null; qty: number | null }[] }[]
 }
 
 /** The caller's own unlabelled captures, oldest first. */

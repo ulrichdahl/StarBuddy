@@ -356,6 +356,42 @@ function CapturesTab({ labels }: { labels: ReturnType<typeof useTrainingLabels>[
               {capture.created_at ? new Date(capture.created_at).toLocaleString() : ''} · {capture.width}×
               {capture.height}
             </Typography>
+            {capture.submitter_note && (
+              <Typography variant="caption" color="text.secondary">
+                {capture.submitter_note}
+              </Typography>
+            )}
+            {/*
+              The reader's own account of the frame, for the captures it took.
+              A capture that read badly looks exactly like one that read well,
+              so the lines it found — and where — are the only way to tell a
+              frame OCR could not make out from one the parser threw away.
+            */}
+            {capture.reader_dump?.lines?.length ? (
+              <Box component="details" sx={{ fontSize: 12 }}>
+                <Box component="summary" sx={{ cursor: 'pointer', color: 'text.secondary' }}>
+                  {t('training.captures.readerLines', { count: capture.reader_dump.lines.length })}
+                </Box>
+                <Box
+                  component="pre"
+                  sx={{
+                    m: 0,
+                    mt: 1,
+                    maxHeight: 260,
+                    overflow: 'auto',
+                    fontSize: 11,
+                    lineHeight: 1.5,
+                    bgcolor: 'action.hover',
+                    borderRadius: 1,
+                    p: 1,
+                  }}
+                >
+                  {capture.reader_dump.lines
+                    .map((line) => `${String(line.x).padStart(4)},${String(line.y).padStart(4)}  ${line.text}`)
+                    .join('\n')}
+                </Box>
+              </Box>
+            ) : null}
             <Stack direction="row" spacing={1}>
               <Button size="small" variant="contained" onClick={() => open(capture.id)}>
                 {t('training.captures.label')}

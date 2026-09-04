@@ -55,6 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // read in a hurry, and the numbers are only worth having if a mistake can
     // be fixed. A collected one is history and stays as it was.
     Route::patch('refinery-orders/{refineryOrder}', [RefineryOrderController::class, 'update']);
+    Route::delete('refinery-orders/{refineryOrder}', [RefineryOrderController::class, 'destroy']);
     // Collecting moves the order's materials out of the refinery to wherever
     // the player is putting them.
     Route::post('refinery-orders/{refineryOrder}/collect', [RefineryOrderController::class, 'collect']);

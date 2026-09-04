@@ -153,6 +153,35 @@ class RefineryOrderController extends Controller
     }
 
     /**
+     * Forget an order entirely.
+     *
+     * An order recorded by mistake — a scan saved before the job was actually
+     * placed in game, a terminal read twice — is not a job that was cancelled;
+     * it is a job that never existed, and correcting it means removing it.
+     *
+     * What happens to its materials depends on whether they are real yet.
+     * While the order is open its stacks are a promise: they sit at the
+     * refinery marked as refining, and nothing outside the order refers to
+     * them, so they go with it. Once collected the haul is inventory the
+     * player may since have moved, split or spent, so the stacks stay and
+     * only lose their link back (the foreign key is nullOnDelete) — deleting
+     * a record of where materials came from must not delete the materials.
+     */
+    public function destroy(Request $request, RefineryOrder $refineryOrder)
+    {
+        abort_unless($refineryOrder->user_id === $request->user()->id, 403, 'That order is not yours.');
+
+        DB::transaction(function () use ($refineryOrder) {
+            if ($refineryOrder->isOpen()) {
+                $refineryOrder->stacks()->delete();
+            }
+            $refineryOrder->delete();
+        });
+
+        return response()->noContent();
+    }
+
+    /**
      * Collect a finished order: the materials leave the refinery for wherever
      * the player is putting them.
      *

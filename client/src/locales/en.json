@@ -234,7 +234,8 @@
         "refinery": "Include the title bar: the station name is read from the \"… REFINEMENT CENTER\" line.",
         "scan": "Frame the badge only — the tighter the area, the more reliable the read."
       },
-      "hint": "Escape keeps the area you had before."
+      "hint": "Escape keeps the area you had before.",
+      "saved": "The orange box is the area in use now"
     },
     "refinery": {
       "eyebrow": "Refinery",

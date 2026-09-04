@@ -240,6 +240,14 @@ fn snap_qualities(app: &AppHandle, terminal: &mut RefineryTerminal) {
     let table = crate::sigs::table(app);
     for order in &mut terminal.orders {
         for material in &mut order.materials {
+            // The name first: the quality ladder is looked up by material, so
+            // a name the reader mangled has no ladder to be snapped against.
+            if let Some(snapped) = crate::sigs::snap_material(&table, &material.resource) {
+                if snapped != material.resource {
+                    log::debug!("material {} read, snapped to {snapped}", material.resource);
+                    material.resource = snapped;
+                }
+            }
             let Some(read) = material.quality else { continue };
             let bands = crate::sigs::bands_for(&table, &material.resource);
             if let Some(snapped) = crate::sigs::snap_quality(&bands, read) {
@@ -265,14 +273,28 @@ fn send_for_training(app: &AppHandle, cap: &Captured, order: &RefineryTerminal) 
         format!("missing {}", order.missing.join(", "))
     };
     let note = format!(
-        "F8 refinery read: {} order(s), {materials} materials, {} lines, {missing}. Station {}.",
+        "F8 refinery read: {} order(s), {materials} materials, {} lines, {missing}. Station {}. \
+         Frame {}×{} from {}.",
         order.orders.len(),
         order.lines.len(),
         order.station.as_deref().unwrap_or("unread"),
+        cap.width,
+        cap.height,
+        // Which capture path answered. A region is fractions of its frame, so
+        // a read that came from a different frame than the area was drawn on
+        // is the first thing to check when a panel reads as nothing.
+        cap.source,
     );
+    // The whole read, lines and boxes included. The note says a capture read
+    // badly; this says how — which of the two faults it was, a frame OCR could
+    // not make out or a frame it read and the parser threw away. Working that
+    // out from the image alone means running the reader again and hoping it
+    // does the same thing twice.
+    let reader = serde_json::to_string(order).ok();
+
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        if let Err(e) = crate::training::upload(&app, png, Some("refinery_order"), Some(note)).await {
+        if let Err(e) = crate::training::upload(&app, png, Some("refinery_order"), Some(note), reader).await {
             // Never the player's problem: the read itself succeeded.
             log::debug!("refinery capture not sent for training: {e}");
         }
@@ -546,7 +568,11 @@ const COLUMN_LABELS: [(&str, Column); 5] = [
 
 /// A table's shape: which columns it has, and where they sit when that is known.
 struct Table {
-    header_y: i32,
+    /// The bottom of the lowest cell in the header row. OCR often reads a
+    /// header both as one run-together line and as its separate headings, and
+    /// those headings sit a pixel or two below that line's centre: measured
+    /// from the centre they look like the first thing *under* the table.
+    header_bottom: i32,
     /// Left to right.
     kinds: Vec<Column>,
     /// One x centre per kind, when the header came as separate cells. OCR
@@ -554,6 +580,76 @@ struct Table {
     /// and then only the order is known.
     centres: Option<Vec<i32>>,
     tolerance: i32,
+}
+
+/// Every number in a cell, with the x it would have had if it had been read as
+/// a cell of its own.
+///
+/// A row the reader ran together — "ALUMINUM ORE 318 387" as one line — still
+/// says where its numbers are, in the only way it can: by how far along the
+/// text they sit. Spreading the cell's width evenly over its characters puts
+/// each number near enough to its column to be placed there, which is what
+/// tells a missing quality from a missing yield.
+fn numbers_with_x(line: &OcrLine) -> Vec<(f64, i32)> {
+    let chars: Vec<char> = line.text.chars().collect();
+    if chars.is_empty() {
+        return Vec::new();
+    }
+    let step = line.w as f64 / chars.len() as f64;
+    let mut out = Vec::new();
+    let mut start: Option<usize> = None;
+    // "S04" is a misread 504, not a 4 — a figure the panel printed stands on
+    // its own, so only whole numeric words are read as one.
+    let standalone: Vec<bool> = {
+        let mut flags = vec![false; chars.len()];
+        let mut at = 0usize;
+        for word in line.text.split_whitespace() {
+            let length = word.chars().count();
+            while at < chars.len() && chars[at].is_whitespace() {
+                at += 1;
+            }
+            let numeric = word.chars().all(|c| c.is_ascii_digit() || c == '.' || c == ',');
+            for offset in 0..length {
+                if at + offset < chars.len() {
+                    flags[at + offset] = numeric;
+                }
+            }
+            at += length;
+        }
+        flags
+    };
+    for index in 0..=chars.len() {
+        let numeric = index < chars.len()
+            && standalone[index]
+            && (chars[index].is_ascii_digit() || ((chars[index] == '.' || chars[index] == ',') && start.is_some()));
+        match (numeric, start) {
+            (true, None) => start = Some(index),
+            (false, Some(from)) => {
+                let text: String = chars[from..index].iter().collect();
+                if let Some(value) = parse_number(&text) {
+                    let middle = (from + index) as f64 / 2.0;
+                    out.push((value, line.x + (middle * step).round() as i32));
+                }
+                start = None;
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+/// A cell's text with its numbers taken out, for a name that was read with its
+/// row's figures attached.
+fn strip_numbers(text: &str) -> String {
+    text.split_whitespace()
+        .filter(|word| !word.chars().any(|c| c.is_ascii_digit()))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// The lowest edge of anything in a row.
+fn row_bottom(row: &[&OcrLine]) -> i32 {
+    row.iter().map(|l| l.y + l.h).max().unwrap_or(0)
 }
 
 /// Find the table header and work out its columns.
@@ -579,7 +675,7 @@ fn table(rows: &[Vec<&OcrLine>]) -> Option<Table> {
         if positioned.len() < 2 {
             if let Some(whole) = row.iter().find(|c| is_name_heading(&c.text) && kinds_in_order(&c.text).len() >= 2) {
                 return Some(Table {
-                    header_y: centre_y(row[0]),
+                    header_bottom: row_bottom(row),
                     kinds: kinds_in_order(&whole.text),
                     centres: None,
                     tolerance: 0,
@@ -591,12 +687,11 @@ fn table(rows: &[Vec<&OcrLine>]) -> Option<Table> {
             // A run-together header lands here as one cell matching several
             // labels; it has one x, so the centres are not usable.
             let distinct = positioned.iter().map(|(_, x)| *x).collect::<std::collections::BTreeSet<_>>();
-            let header_y = centre_y(row[0]);
             if distinct.len() == positioned.len() {
                 let centres: Vec<i32> = positioned.iter().map(|(_, x)| *x).collect();
                 let gap = centres.windows(2).map(|w| w[1] - w[0]).min().unwrap_or(30).max(8);
                 return Some(Table {
-                    header_y,
+                    header_bottom: row_bottom(row),
                     kinds: positioned.into_iter().map(|(k, _)| k).collect(),
                     centres: Some(centres),
                     tolerance: gap / 2,
@@ -604,7 +699,12 @@ fn table(rows: &[Vec<&OcrLine>]) -> Option<Table> {
             }
             // One cell, several headings: order comes from the text itself.
             let text = value_cells.iter().map(|l| l.text.as_str()).collect::<Vec<_>>().join(" ");
-            return Some(Table { header_y, kinds: kinds_in_order(&text), centres: None, tolerance: 0 });
+            return Some(Table {
+                header_bottom: row_bottom(row),
+                kinds: kinds_in_order(&text),
+                centres: None,
+                tolerance: 0,
+            });
         }
     }
     None
@@ -682,6 +782,30 @@ impl Table {
             .map(|(kind, _)| kind)
     }
 
+    /// The column an x sits in, for a number read out of a run-together cell
+    /// rather than a cell of its own. The tolerance that guards `column_of` is
+    /// deliberately not applied: the x is an estimate from a character offset,
+    /// so it lands near the column rather than on it.
+    fn column_near(&self, x: i32) -> Option<Column> {
+        let centres = self.centres.as_ref()?;
+        self.kinds
+            .iter()
+            .zip(centres)
+            .map(|(kind, centre)| (*kind, (x - centre).abs()))
+            .min_by_key(|(_, distance)| *distance)
+            .map(|(kind, _)| kind)
+    }
+
+    fn holds(&self, material: &OrderMaterial, column: Column) -> bool {
+        match column {
+            Column::Quality => material.quality.is_some(),
+            Column::Qty => material.qty.is_some(),
+            Column::Yield => material.yield_amount.is_some(),
+            Column::ToDo => material.to_do.is_some(),
+            Column::Done => material.done.is_some(),
+        }
+    }
+
     fn set(&self, material: &mut OrderMaterial, column: Column, value: f64) {
         match column {
             Column::Quality => material.quality = Some(value),
@@ -702,7 +826,7 @@ fn materials_in(rows: &[Vec<&OcrLine>], table: &Table, stop_y: Option<i32>) -> V
 
     for row in rows {
         let row_y = centre_y(row[0]);
-        if row_y <= table.header_y {
+        if row_y <= table.header_bottom {
             continue;
         }
         if stop_y.is_some_and(|stop| row_y >= stop) {
@@ -721,6 +845,7 @@ fn materials_in(rows: &[Vec<&OcrLine>], table: &Table, stop_y: Option<i32>) -> V
         let values: Vec<&&OcrLine> = row.iter().skip(1).collect();
         let mut material = OrderMaterial { resource, refine: true, ..Default::default() };
         let mut had_value = false;
+        let mut filled_from_text = false;
 
         // A row that arrived as one cell ("504 99 72 28") carries its values in
         // column order; separate cells are placed by where they sit, which is
@@ -738,6 +863,40 @@ fn materials_in(rows: &[Vec<&OcrLine>], table: &Table, stop_y: Option<i32>) -> V
                 let Some(value) = numbers_in(&cell.text).into_iter().next() else { continue };
                 table.set(&mut material, column, value);
                 had_value = true;
+            }
+        }
+
+        // The whole row as one line, name and numbers together — the reader
+        // does this to a row whose figures are set tight. Its numbers are the
+        // only ones there are, so they are placed by where they sit inside the
+        // text; a row read this way used to be dropped for having no values at
+        // all, which is how a material vanished from a panel that showed it.
+        // Whatever the cells could not supply, taken out of the text they were
+        // read into. A column that already has a value keeps it: a number read
+        // in a cell of its own is placed by where it actually sits, which beats
+        // an estimate from a character offset.
+        for cell in row.iter() {
+            // Only where the header gave real column positions. A header the
+            // reader ran together says which columns exist but not where, and
+            // a row read this badly is usually one whose figures are wrong
+            // anyway ("5 CORUNDUM ORE S04 131") — placing those in order
+            // invents values rather than reading them.
+            if table.centres.is_some() {
+                for (value, x) in numbers_with_x(cell) {
+                    if let Some(column) = table.column_near(x) {
+                        if table.holds(&material, column) {
+                            continue;
+                        }
+                        table.set(&mut material, column, value);
+                        had_value = true;
+                        filled_from_text = true;
+                    }
+                }
+            }
+            // The figures were part of the name as read, and are now columns of
+            // their own, so the name gives them up rather than keeping them.
+            if filled_from_text && std::ptr::eq(*cell, *name_cell) {
+                material.resource = clean_resource(&strip_numbers(&cell.text));
             }
         }
 
@@ -780,8 +939,42 @@ fn is_label(text: &str) -> bool {
         "USER DETAILS",
     ];
     let canon = canonical(text);
-    EXACT.iter().any(|label| canon == canonical(label))
+    if EXACT.iter().any(|label| canon == canonical(label))
         || PHRASES.iter().any(|phrase| canon.contains(&canonical(phrase)))
+    {
+        return true;
+    }
+    // A letter the reader lost or mistook. "TOTAL COST" comes back as "'otal
+    // Cost", which matched nothing and so became a material — a row named
+    // after the panel's own total, carrying the cost as its yield. The set of
+    // labels is fixed and short, so a near miss on a whole line is a misread
+    // label rather than a material that happens to look like one.
+    PHRASES
+        .iter()
+        .chain(EXACT.iter())
+        .map(|label| canonical(label))
+        .any(|label| label.len() >= 5 && near(&canon, &label))
+}
+
+/// Two readings of the same short, known word: at most one letter wrong in
+/// five, and never a difference in length that a letter or two cannot explain.
+fn near(a: &str, b: &str) -> bool {
+    if a.len().abs_diff(b.len()) > 2 {
+        return false;
+    }
+    let (a, b): (Vec<char>, Vec<char>) = (a.chars().collect(), b.chars().collect());
+    let mut row: Vec<usize> = (0..=b.len()).collect();
+    for (i, ca) in a.iter().enumerate() {
+        let mut previous = row[0];
+        row[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            let cost = usize::from(ca != cb);
+            let next = (row[j + 1] + 1).min(row[j] + 1).min(previous + cost);
+            previous = row[j + 1];
+            row[j + 1] = next;
+        }
+    }
+    row[b.len()] <= (b.len() / 5).max(1)
 }
 
 /// The heading over the material *names*, which is not a value column.
@@ -911,15 +1104,22 @@ fn duration_seconds(text: &str) -> Option<i64> {
 /// The refining methods the game offers. Used only to tidy a misread name —
 /// the method is found by where it sits, not by matching this list, so a
 /// method added to the game still parses.
-const METHODS: [&str; 8] = [
+/// The nine the terminal offers, spelled as the terminal spells them.
+///
+/// The spelling matters as much as the list: a method is stored as text and
+/// the website offers these same nine to pick from, so "Xcr Reaction" — which
+/// is what title-casing a read makes of it — is a method no order can be
+/// matched against.
+const METHODS: [&str; 9] = [
+    "Cormack Method",
     "Dinyx Solventation",
     "Electrostarolysis",
-    "Pyrometric Chromalysis",
     "Ferron Exchange",
-    "Cormack Method",
-    "Gaseous Recombination",
-    "Thermonatic Deposition",
+    "Gaskin Process",
     "Kazen Winnowing",
+    "Pyrometric Chromalysis",
+    "Thermonatic Deposition",
+    "XCR Reaction",
 ];
 
 /// The closest known method name, or the text as read when none is close.
@@ -1093,8 +1293,20 @@ fn parse_order(lines: &[&OcrLine], state: OrderState, anchor: &OcrLine) -> WorkO
             break;
         }
         if let Some(line) = find(lines, label) {
-            order.duration_seconds = duration_seconds(&line.text)
-                .or_else(|| value_candidates(&rows, line).into_iter().find_map(|c| duration_seconds(&c.text)));
+            order.duration_seconds = duration_seconds(&line.text).or_else(|| {
+                let candidates = value_candidates(&rows, line);
+                // A clock is one value written in parts, and the reader splits
+                // it as often as not: "0m 26s" comes back as "0m" and "26s",
+                // two cells on the same row. Taking the first that parses gets
+                // the minutes and throws the seconds away — and where the
+                // minutes are zero, that is a job with no time left on it. So
+                // the row is read as one string first.
+                let joined: String =
+                    candidates.iter().map(|c| c.text.as_str()).collect::<Vec<_>>().join(" ");
+                duration_seconds(&joined)
+                    .filter(|seconds| *seconds > 0)
+                    .or_else(|| candidates.into_iter().find_map(|c| duration_seconds(&c.text)))
+            });
         }
     }
 
@@ -1128,7 +1340,7 @@ fn parse_order(lines: &[&OcrLine], state: OrderState, anchor: &OcrLine) -> WorkO
 fn total_yield_label<'a>(lines: &[&'a OcrLine], table: &Table) -> Option<&'a OcrLine> {
     lines
         .iter()
-        .filter(|l| centre_y(l) > table.header_y)
+        .filter(|l| centre_y(l) > table.header_bottom)
         .filter(|l| canonical(&l.text) == canonical("YIELD"))
         .min_by_key(|l| centre_y(l))
         .copied()
@@ -1493,6 +1705,128 @@ mod tests {
 
     fn line(text: &str, x: i32, y: i32, w: i32, h: i32) -> OcrLine {
         OcrLine { text: text.into(), x, y, w, h }
+    }
+
+    #[test]
+    fn a_method_keeps_the_spelling_the_terminal_uses() {
+        // Read from the panel in capitals and title-cased into something the
+        // website's own list of methods does not contain.
+        assert_eq!(tidy_method("XCR REACTION"), "XCR Reaction");
+        assert_eq!(tidy_method("Xcr Reaction"), "XCR Reaction");
+        // Misread, and still the method it is.
+        assert_eq!(tidy_method("GASKIN PROCFSS"), "Gaskin Process");
+        assert_eq!(tidy_method("PYROMETRIC CHROMALYSIS"), "Pyrometric Chromalysis");
+        // Nothing like a method is left as it was read rather than forced.
+        assert_eq!(tidy_method("SELECT A METHOD"), "Select A Method");
+    }
+
+    #[test]
+    fn a_clock_split_across_cells_is_read_whole() {
+        // Verbatim from a capture: the panel's "0m 26s" came back as two
+        // lines, and reading the first of them left the job with no time on
+        // it at all.
+        let mut lines = tight_table();
+        lines.extend([
+            line("PROCESSING TIME", 27, 869, 157, 17),
+            line("0m", 300, 872, 30, 20),
+            line("26s", 360, 872, 44, 20),
+        ]);
+        let terminal = parse(&lines);
+        let order = terminal.orders.first().expect("an order");
+        assert_eq!(order.duration_seconds, Some(26));
+    }
+
+    #[test]
+    fn a_misread_label_is_still_a_label() {
+        // Straight off the window: the panel's total became a fifth material,
+        // named "'otal Cost" and carrying 123 aUEC as its yield.
+        assert!(is_label("'otal Cost"));
+        assert!(is_label("TOTAL COST"));
+        assert!(is_label("PROCESSlNG TIME"));
+        // And nothing a mine produces goes with them.
+        assert!(!is_label("Corundum Ore"));
+        assert!(!is_label("Inert Materials"));
+        assert!(!is_label("Torite Ore"));
+        assert!(!is_label("Quantainium"));
+    }
+
+    /// A materials table read the way the terminal's own OCR reads a tight one:
+    /// the header both as a run-together line and as its separate headings, and
+    /// rows that came back whole rather than as cells.
+    ///
+    /// Verbatim from a 5120×1440 capture of the Levski setup panel, which the
+    /// reader answered with no materials at all and no quality for any of them.
+    fn tight_table() -> Vec<OcrLine> {
+        vec![
+            line("WORK ORDER", 44, 18, 95, 12),
+            line("SETUP", 44, 46, 68, 16),
+            line("WORK ORDER", 279, 47, 96, 16),
+            line("MATERIALS SELECTED QUALITY OTY YIELD REFINE", 26, 361, 436, 15),
+            line("QUALITY", 232, 362, 46, 15),
+            line("OTY", 308, 362, 21, 14),
+            line("MATERIALS SELECTED", 27, 364, 117, 14),
+            line("YIELD", 366, 365, 29, 10),
+            line("REFINE", 425, 365, 37, 11),
+            line("Y CORUNDUM ORE", 36, 397, 177, 19),
+            line("CORUNDUM ORE 584 131 63", 70, 398, 318, 16),
+            line("63", 373, 400, 15, 13),
+            line("504", 245, 403, 21, 10),
+            line("131", 309, 403, 19, 9),
+            line("ALUMINUM ORE 318 387", 69, 507, 260, 16),
+            line("Y ALUMINUM ORE 783 226 110", 35, 558, 357, 22),
+            line("TOTAL COST", 27, 711, 103, 15),
+        ]
+    }
+
+    #[test]
+    fn a_column_heading_is_not_the_total_under_the_table() {
+        // The separate headings sit a couple of pixels below the run-together
+        // line's centre. Measured from that centre, "YIELD" looked like the
+        // order's total yield printed under the table, and everything below it
+        // — every material — was taken to be past the table's end.
+        let terminal = parse(&tight_table());
+        let order = terminal.orders.first().expect("an order");
+        assert_eq!(order.materials.len(), 3, "the rows are inside the table, not under it");
+        assert_eq!(order.yield_total, None, "a column heading is not a total");
+    }
+
+    #[test]
+    fn a_row_read_as_one_line_still_lands_in_its_columns() {
+        let terminal = parse(&tight_table());
+        let order = terminal.orders.first().expect("an order");
+        let aluminium: Vec<&OrderMaterial> =
+            order.materials.iter().filter(|m| m.resource == "Aluminum Ore").collect();
+        assert_eq!(aluminium.len(), 2, "both rows arrived whole, and neither was dropped");
+        // 318 387 with nothing under YIELD: placed by where they sit in the
+        // text, so the gap is the yield rather than the quality.
+        assert_eq!(aluminium[0].quality, Some(318.0));
+        assert_eq!(aluminium[0].qty, Some(387.0));
+        assert_eq!(aluminium[0].yield_amount, None);
+        assert_eq!(aluminium[1].quality, Some(783.0));
+        assert_eq!(aluminium[1].qty, Some(226.0));
+        assert_eq!(aluminium[1].yield_amount, Some(110.0));
+    }
+
+    #[test]
+    fn a_cell_of_its_own_beats_the_same_number_read_into_the_name() {
+        let terminal = parse(&tight_table());
+        let order = terminal.orders.first().expect("an order");
+        let corundum = order.materials.first().expect("the first row");
+        assert_eq!(corundum.resource, "Corundum Ore");
+        // The row line says 584, the cell says 504, and the cell is the one
+        // that was read where the number actually sits.
+        assert_eq!(corundum.quality, Some(504.0));
+        assert_eq!(corundum.qty, Some(131.0));
+        assert_eq!(corundum.yield_amount, Some(63.0));
+    }
+
+    #[test]
+    fn a_number_welded_to_letters_is_not_a_figure() {
+        // "S04" is a misread 504, and reading a 4 out of it would put a number
+        // the panel never printed into the table.
+        let cell = line("5 CORUNDUM ORE S04 131", 438, 483, 231, 20);
+        let values: Vec<f64> = numbers_with_x(&cell).into_iter().map(|(v, _)| v).collect();
+        assert_eq!(values, vec![5.0, 131.0]);
     }
 
     /// The Levski terminal setting up a work order, exactly as the client's own

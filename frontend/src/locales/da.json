@@ -477,7 +477,14 @@
       "frozen": "Ordren er hentet, så den bevares som den var.",
       "keys": "↑↓←→ flytter · skriv for at redigere · Enter går til næste tomme felt i linjen og starter en ny linje når den er udfyldt · Ctrl+Enter gentager linjen · Tab går gennem felterne · i Ind og Udbytte springer Ctrl+↑↓ og Shift+↑↓ med 1 og 100",
       "readyFrozen": "Raffinaderiet er færdigt med denne ordre, så tallene ligger fast. Tilbage er kun at sige, hvor materialerne endte.",
-      "title": "Raffinaderiordre"
+      "title": "Raffinaderiordre",
+      "delete": "Slet ordre",
+      "deleteConfirm": "Slet permanent?",
+      "deleting": "Sletter…",
+      "deleteCancel": "Behold den",
+      "deleteHelp": "Raffinaderiet har aldrig kørt dette job",
+      "deleteHelpCollected": "Materialerne den gav bliver i dit lager",
+      "deleteFailed": "Kunne ikke slette ordren."
     }
   },
   "materials": {
@@ -759,7 +766,8 @@
       "waiting": "{{count}} venter på at blive markeret. Markér hjørnerne og navngiv skærmen som ved en upload.",
       "labelling": "Optaget {{when}}",
       "label": "Markér",
-      "discard": "Kassér"
+      "discard": "Kassér",
+      "readerLines": "{{count}} linjer læseren fandt"
     }
   }
 }

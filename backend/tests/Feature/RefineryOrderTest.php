@@ -452,6 +452,58 @@ class RefineryOrderTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_an_order_recorded_by_mistake_can_be_deleted(): void
+    {
+        $id = $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order())
+            ->assertCreated()
+            ->json('id');
+
+        $this->actingAs($this->me)
+            ->deleteJson("/api/refinery-orders/{$id}")
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('refinery_orders', ['id' => $id]);
+        $this->assertSame(0, ResourceStack::count(), 'a job that never ran produced nothing');
+    }
+
+    public function test_deleting_a_collected_order_keeps_the_materials_it_produced(): void
+    {
+        $id = $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order())
+            ->assertCreated()
+            ->json('id');
+
+        $this->actingAs($this->me)
+            ->postJson("/api/refinery-orders/{$id}/collect", ['location_id' => $this->hangarId])
+            ->assertOk();
+
+        $this->actingAs($this->me)
+            ->deleteJson("/api/refinery-orders/{$id}")
+            ->assertNoContent();
+
+        $this->assertDatabaseMissing('refinery_orders', ['id' => $id]);
+        $stack = ResourceStack::sole();
+        $this->assertNull($stack->refinery_order_id, 'the haul outlives the record of where it came from');
+        $this->assertSame($this->hangarId, $stack->location_id);
+    }
+
+    public function test_someone_elses_order_cannot_be_deleted(): void
+    {
+        $id = $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order())
+            ->assertCreated()
+            ->json('id');
+
+        $other = User::factory()->create(['discord_id' => '2', 'handle' => 'Someone']);
+
+        $this->actingAs($other)
+            ->deleteJson("/api/refinery-orders/{$id}")
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('refinery_orders', ['id' => $id]);
+    }
+
     public function test_renaming_the_station_moves_the_order_to_that_refinery(): void
     {
         $id = $this->actingAs($this->me)

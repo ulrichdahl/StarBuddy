@@ -118,7 +118,13 @@ export function RefineryOverlay() {
     setSaveError(null);
   };
 
-  const pickArea = () => void invoke("region_select", { purpose: "refinery" }).catch(() => {});
+  // The selector refuses when it cannot get a picture of the game to draw on,
+  // and that refusal says what to do about it — so it goes where the read's
+  // own errors go rather than being swallowed.
+  const pickArea = () =>
+    void invoke("region_select", { purpose: "refinery" }).catch((e: unknown) =>
+      setStatus({ phase: "error", detail: String(e) }),
+    );
 
   const save = (index: number) => {
     if (!terminal || savingIndex !== null) return;
@@ -193,6 +199,20 @@ export function RefineryOverlay() {
       ? null
       : t(`overlay.refinery.phase.${status.phase}`, { detail: status.detail });
 
+  // The station belongs to the terminal rather than to any one order, but it
+  // is read and corrected alongside the method, so it is shown with it: two
+  // fields, one box, labels in a column.
+  const stationField = terminal ? (
+    <label className="ov-field ov-grow">
+      <span>{t("overlay.refinery.field.station")}</span>
+      <input
+        value={terminal.station ?? ""}
+        placeholder={t("overlay.refinery.stationPlaceholder")}
+        onChange={(e) => patchTerminal({ station: e.target.value || null })}
+      />
+    </label>
+  ) : null;
+
   const firstBox = (
     <div className="ov-box">
       {phaseText && <div className="ov-phase">{phaseText}</div>}
@@ -208,20 +228,10 @@ export function RefineryOverlay() {
               })}
             </div>
           )}
-          <label className="ov-field">
-            <span>{t("overlay.refinery.field.station")}</span>
-            <input
-              value={terminal.station ?? ""}
-              placeholder={t("overlay.refinery.stationPlaceholder")}
-              onChange={(e) => patchTerminal({ station: e.target.value || null })}
-            />
-          </label>
-          <div className="ov-row ov-dim">
-            <span>
-              {t("overlay.refinery.orderCount", { count: terminal.orders.length })}
-              {terminal.captures > 1 && ` · ${t("overlay.refinery.captures", { count: terminal.captures })}`}
-            </span>
-          </div>
+          {/* With no order read there is no box to put it in, so it stays
+              here — the station is worth correcting even when the rest of the
+              panel was missed. */}
+          {terminal.orders.length === 0 && stationField}
         </>
       )}
     </div>
@@ -230,6 +240,7 @@ export function RefineryOverlay() {
   return (
     <OverlayWindow
       name="refinery"
+      wide
       displayName={t("overlay.refinery.title")}
       accent={status.phase === "error" ? "ov-accent-down" : terminal?.missing.length ? "ov-accent-notice" : "ov-accent-ok"}
       eyebrow={t("overlay.refinery.eyebrow")}
@@ -254,15 +265,18 @@ export function RefineryOverlay() {
             {order.number !== null && ` · #${order.number}`}
           </div>
 
-          {order.state === "setup" && (
-            <label className="ov-field">
-              <span>{t("overlay.refinery.field.method")}</span>
-              <input
-                value={order.method ?? ""}
-                onChange={(e) => patchOrder(index, { method: e.target.value || null })}
-              />
-            </label>
-          )}
+          <div className="ov-fields">
+            {index === 0 && stationField}
+            {order.state === "setup" && (
+              <label className="ov-field ov-grow">
+                <span>{t("overlay.refinery.field.method")}</span>
+                <input
+                  value={order.method ?? ""}
+                  onChange={(e) => patchOrder(index, { method: e.target.value || null })}
+                />
+              </label>
+            )}
+          </div>
 
           {order.materials.length > 0 && (
             <table className="ov-table ov-refinery-table">
@@ -352,7 +366,7 @@ export function RefineryOverlay() {
             </div>
           )}
 
-          <div className="ov-actions">
+          <div className="ov-actions ov-actions-commit">
             <button
               className="ov-primary"
               onClick={() => save(index)}
@@ -372,7 +386,12 @@ export function RefineryOverlay() {
       {terminal && (
         <div className="ov-box">
           <div className="ov-row ov-dim">
-            <span>{t("overlay.refinery.readIn", { ms: terminal.elapsed_ms })}</span>
+            <span>
+              {t("overlay.refinery.orderCount", { count: terminal.orders.length })}
+              {terminal.captures > 1 && ` · ${t("overlay.refinery.captures", { count: terminal.captures })}`}
+              {" · "}
+              {t("overlay.refinery.readIn", { ms: terminal.elapsed_ms })}
+            </span>
             <button className="ov-link" onClick={() => setShowLines((v) => !v)}>
               {t(showLines ? "overlay.refinery.hideLines" : "overlay.refinery.showLines", {
                 count: terminal.lines.length,
