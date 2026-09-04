@@ -5,6 +5,12 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## 0.1.13 — 2026-09-04
+
+**The refinery window, laid out.**
+
+- The station and method fields no longer stand twelve rems tall with nothing in them. They were put in a column together so their labels would line up, and the rule that gives a field the width of its row went with them — but a flex basis in a column is a height, so each field grew to the width it had been asked for and the panel became mostly empty space.
+
 ## 0.1.12 — 2026-09-04
 
 **Refinery orders.**
