@@ -362,13 +362,20 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
           confirmation is what makes the second click mean it.
         */}
         {!creating && data && (
+          // Kept to two controls at their widest, so the row it shares with the
+          // collect picker, the sharing switch and the commit button stays one
+          // row: wrapping put the delete on a line of its own, which reads as
+          // belonging to the sheet rather than to the actions.
           <Box sx={{ height: 40, display: 'flex', alignItems: 'center', gap: 1, mr: ready ? 2 : 'auto' }}>
             {confirmDelete ? (
               <>
-                <Typography variant="caption" color="text.secondary">
-                  {t(collected ? 'refinery.sheet.deleteHelpCollected' : 'refinery.sheet.deleteHelp')}
-                </Typography>
-                <Button color="error" variant="contained" disabled={remove.isPending} onClick={() => remove.mutate()}>
+                <Button
+                  color="error"
+                  variant="contained"
+                  disabled={remove.isPending}
+                  title={t(collected ? 'refinery.sheet.deleteHelpCollected' : 'refinery.sheet.deleteHelp')}
+                  onClick={() => remove.mutate()}
+                >
                   {remove.isPending ? t('refinery.sheet.deleting') : t('refinery.sheet.deleteConfirm')}
                 </Button>
                 <Button onClick={() => setConfirmDelete(false)}>{t('refinery.sheet.deleteCancel')}</Button>
