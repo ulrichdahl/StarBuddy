@@ -939,8 +939,42 @@ fn is_label(text: &str) -> bool {
         "USER DETAILS",
     ];
     let canon = canonical(text);
-    EXACT.iter().any(|label| canon == canonical(label))
+    if EXACT.iter().any(|label| canon == canonical(label))
         || PHRASES.iter().any(|phrase| canon.contains(&canonical(phrase)))
+    {
+        return true;
+    }
+    // A letter the reader lost or mistook. "TOTAL COST" comes back as "'otal
+    // Cost", which matched nothing and so became a material — a row named
+    // after the panel's own total, carrying the cost as its yield. The set of
+    // labels is fixed and short, so a near miss on a whole line is a misread
+    // label rather than a material that happens to look like one.
+    PHRASES
+        .iter()
+        .chain(EXACT.iter())
+        .map(|label| canonical(label))
+        .any(|label| label.len() >= 5 && near(&canon, &label))
+}
+
+/// Two readings of the same short, known word: at most one letter wrong in
+/// five, and never a difference in length that a letter or two cannot explain.
+fn near(a: &str, b: &str) -> bool {
+    if a.len().abs_diff(b.len()) > 2 {
+        return false;
+    }
+    let (a, b): (Vec<char>, Vec<char>) = (a.chars().collect(), b.chars().collect());
+    let mut row: Vec<usize> = (0..=b.len()).collect();
+    for (i, ca) in a.iter().enumerate() {
+        let mut previous = row[0];
+        row[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            let cost = usize::from(ca != cb);
+            let next = (row[j + 1] + 1).min(row[j] + 1).min(previous + cost);
+            previous = row[j + 1];
+            row[j + 1] = next;
+        }
+    }
+    row[b.len()] <= (b.len() / 5).max(1)
 }
 
 /// The heading over the material *names*, which is not a value column.
@@ -1652,6 +1686,20 @@ mod tests {
 
     fn line(text: &str, x: i32, y: i32, w: i32, h: i32) -> OcrLine {
         OcrLine { text: text.into(), x, y, w, h }
+    }
+
+    #[test]
+    fn a_misread_label_is_still_a_label() {
+        // Straight off the window: the panel's total became a fifth material,
+        // named "'otal Cost" and carrying 123 aUEC as its yield.
+        assert!(is_label("'otal Cost"));
+        assert!(is_label("TOTAL COST"));
+        assert!(is_label("PROCESSlNG TIME"));
+        // And nothing a mine produces goes with them.
+        assert!(!is_label("Corundum Ore"));
+        assert!(!is_label("Inert Materials"));
+        assert!(!is_label("Torite Ore"));
+        assert!(!is_label("Quantainium"));
     }
 
     /// A materials table read the way the terminal's own OCR reads a tight one:

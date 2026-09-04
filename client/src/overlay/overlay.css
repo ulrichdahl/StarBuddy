@@ -34,7 +34,11 @@ html.overlay-mode body {
   width: 440px;
   color: var(--text);
   font-family: var(--body);
-  font-size: 13px;
+  /* The window is read at a glance, mid-game, against whatever the panel
+     behind it is doing. Nothing in it shrinks below this: the table used to
+     take 0.88em of it and its inputs 0.9em of that, which left the figures
+     being checked the smallest text on screen. */
+  font-size: 14px;
   line-height: 1.45;
   background: var(--glass);
   border: 1px solid var(--line);
@@ -49,10 +53,11 @@ html.overlay-mode body {
   -webkit-user-select: none;
 }
 /* Panels that hold a table of numbers rather than a few fields: the refinery
-   order sheet has four numeric columns beside the material, which 440px can
-   only show by cutting them off. */
+   order sheet has three numeric columns beside the material, which 440px can
+   only show by cutting them off. Enough for those and a material name, and no
+   more — the extra width went to the name column, which never needed it. */
 .ov.ov-wide {
-  width: 680px;
+  width: 545px;
 }
 .ov.ov-strip {
   width: 860px;
@@ -266,7 +271,7 @@ html.overlay-mode body {
 .ov-sys .dot.warn { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
 .ov-sys .dot.bad { background: var(--red); box-shadow: 0 0 8px var(--red); }
 .ov-sys .st { margin-left: auto; color: var(--muted); font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.1em; font-size: 10px; font-weight: 600; }
-.ov-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 11px; color: var(--dim); }
+.ov-foot { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 12px; color: var(--dim); }
 .ov-foot .lnk {
   font-family: var(--mono);
   font-size: 11px;
@@ -432,8 +437,8 @@ html.overlay-mode body {
 }
 .ov-field > span {
   flex: 0 0 5.5rem;
-  opacity: 0.75;
-  font-size: 0.85em;
+  opacity: 0.8;
+  font-size: 0.92em;
 }
 .ov-field input,
 .ov-table input {
@@ -448,10 +453,9 @@ html.overlay-mode body {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 4px;
-  padding: 0.2rem 0.4rem;
+  padding: 0.25rem 0.4rem;
   color: inherit;
   font: inherit;
-  font-size: 0.9em;
 }
 .ov-field input:focus,
 .ov-table input:focus {
@@ -462,7 +466,6 @@ html.overlay-mode body {
 .ov-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.88em;
 }
 .ov-table th {
   text-align: left;
@@ -488,7 +491,7 @@ html.overlay-mode body {
 }
 .ov-refinery-table th + th,
 .ov-refinery-table td + td {
-  width: 4.6rem;
+  width: 5rem;
   text-align: right;
 }
 .ov-num {
