@@ -354,17 +354,19 @@ html.overlay-mode body {
   cursor: crosshair;
   user-select: none;
   outline: none;
-  background: transparent;
+  /* Painted rather than transparent: the still no longer fills the sheet, and
+     what shows around it would otherwise be the live screen — a second, moving
+     picture beside the one being aimed at. Nearly opaque, so the desktop is
+     still faintly there to place the game's window against. */
+  background: rgba(6, 9, 13, 0.92);
 }
 
 .region-frame {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  /* Filled, not fitted: the mapping from window fractions to frame fractions
-     has to be linear, and a letterbox would break it. */
-  object-fit: fill;
+  /* Placed and sized from the frame's own dimensions: the game's window is not
+     the shape of the screen this sheet covers, and stretching it to fill made
+     the panel a different shape from the one being aimed at. Every coordinate
+     on the sheet is measured against this rectangle. */
   pointer-events: none;
   user-select: none;
 }

@@ -20,15 +20,18 @@ interface Frame {
 /**
  * Full-screen sheet for framing a capture area.
  *
- * It is drawn on a still of the screen taken the moment before it opened,
- * rather than being a transparent hole onto the live game. The still is the
- * frame the capture itself produces, so a rectangle drawn on it means exactly
- * what it looks like — and it cannot move while it is being framed. Dragging
- * cuts a clear hole in the dim; the rectangle is stored as fractions of the
- * frame, so the same framing holds at any resolution.
+ * It is drawn on a still of the game taken the moment before it opened, rather
+ * than being a transparent hole onto the live game. The still is the frame the
+ * capture itself produces, so a rectangle drawn on it means exactly what it
+ * looks like — and it cannot move while it is being framed. Dragging cuts a
+ * clear hole in the dim; the rectangle is stored as fractions of the frame, so
+ * the same framing holds at any resolution.
  *
- * If the grab failed, the sheet stays transparent over the live screen, which
- * is what it always was.
+ * The still is shown at its own size and shape, centred on the sheet, because
+ * the game's window is not the shape of the screen the sheet covers: stretched
+ * to fill, a panel on a window half the desktop's width was drawn twice as
+ * wide as it really is, which is a poor thing to aim at. Only a frame bigger
+ * than the screen is scaled, and then evenly.
  */
 export function RegionSelector() {
   const { t } = useTranslation();
@@ -69,10 +72,31 @@ export function RegionSelector() {
     return () => window.removeEventListener("keydown", onKey);
   }, [finish]);
 
-  const pointFromEvent = (event: React.PointerEvent) => ({
-    x: event.clientX / window.innerWidth,
-    y: event.clientY / window.innerHeight,
-  });
+  // Where the still is painted: its own size, centred, shrunk only if it does
+  // not fit. Everything else on the sheet is measured against this rather than
+  // against the window.
+  const [fit, setFit] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  useEffect(() => {
+    if (!frame) return setFit(null);
+    const place = () => {
+      const scale = Math.min(1, window.innerWidth / frame.width, window.innerHeight / frame.height);
+      const width = frame.width * scale;
+      const height = frame.height * scale;
+      setFit({ left: (window.innerWidth - width) / 2, top: (window.innerHeight - height) / 2, width, height });
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [frame]);
+
+  // Fractions of the frame, not of the sheet — and a drag that wanders off the
+  // picture is held at its edge rather than naming an area the frame has not
+  // got.
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
+  const pointFromEvent = (event: React.PointerEvent) =>
+    fit
+      ? { x: clamp((event.clientX - fit.left) / fit.width), y: clamp((event.clientY - fit.top) / fit.height) }
+      : { x: event.clientX / window.innerWidth, y: event.clientY / window.innerHeight };
 
   const onPointerDown = (event: React.PointerEvent) => {
     setError(null);
@@ -94,14 +118,24 @@ export function RegionSelector() {
   };
 
   // Drawn as a normalised rectangle so a drag in any direction previews the
-  // same box the Rust side will store.
+  // same box the Rust side will store. In sheet pixels, since the frame's
+  // fractions are of the picture and the picture is not the whole sheet.
+  const place = (x: number, w: number, along: "x" | "y") => {
+    const origin = fit ? (along === "x" ? fit.left : fit.top) : 0;
+    const span = fit ? (along === "x" ? fit.width : fit.height) : along === "x" ? window.innerWidth : window.innerHeight;
+    return { start: origin + Math.min(x, x + w) * span, length: Math.abs(w) * span };
+  };
   const box = area
-    ? {
-        left: `${Math.min(area.x, area.x + area.w) * 100}%`,
-        top: `${Math.min(area.y, area.y + area.h) * 100}%`,
-        width: `${Math.abs(area.w) * 100}%`,
-        height: `${Math.abs(area.h) * 100}%`,
-      }
+    ? (() => {
+        const across = place(area.x, area.w, "x");
+        const down = place(area.y, area.h, "y");
+        return {
+          left: `${across.start}px`,
+          top: `${down.start}px`,
+          width: `${across.length}px`,
+          height: `${down.length}px`,
+        };
+      })()
     : null;
 
   return (
@@ -113,9 +147,17 @@ export function RegionSelector() {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
     >
-      {/* Stretched to the sheet, so a fraction of the window is the same
-          fraction of the captured frame whatever either one measures. */}
-      {frame && <img className="region-frame" src={frame.image} alt="" draggable={false} />}
+      {/* At its own size and shape. The sheet around it stays dark, which is
+          also what says which part of the screen the capture actually covers. */}
+      {frame && (
+        <img
+          className="region-frame"
+          src={frame.image}
+          alt=""
+          draggable={false}
+          style={fit ? { left: fit.left, top: fit.top, width: fit.width, height: fit.height } : undefined}
+        />
+      )}
 
       {/* Four panes of dim around the selection leave the chosen area clear,
           so the player sees the real panel rather than a dimmed copy of it. */}
