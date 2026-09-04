@@ -1,12 +1,16 @@
 name: Desktop dev build
 
-# Rolling development builds: every change to the client on main rebuilds the
-# desktop apps and replaces the assets on the "dev" pre-release, so the README
-# can link to a stable download page.
+# Rolling development builds: every change to the client on develop rebuilds
+# the desktop apps and replaces the assets on the "dev" pre-release, so the
+# README can link to a stable download page.
+#
+# develop, not main: a push to main deploys the server to production (Coolify
+# watches that branch), so main carries releases only and day-to-day work
+# lands here.
 
 on:
   push:
-    branches: [main]
+    branches: [develop]
     paths:
       - "client/**"
       - ".github/workflows/desktop-dev.yml"

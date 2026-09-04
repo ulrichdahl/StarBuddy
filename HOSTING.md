@@ -244,8 +244,21 @@ Coolify-specific in the repo; five settings do the job.
    Run the one-time syncs from §4 through Coolify's *Terminal* on the `app`
    container after the first deploy, and `node dist/register-commands.js` on
    `bot`.
-5. **Deploy.** Enable *Auto Deploy* on the branch if you want every push to
-   redeploy, or deploy by hand from the tag you tested.
+5. **Deploy.** Leave *Auto Deploy* **on**, pointed at `main`, and let the
+   branch carry the meaning: `main` is what production runs, `develop` is
+   where the work happens. Merging `develop` into `main` is the deploy, and
+   nothing else reaches the server.
+
+   Coolify's webhook cannot be made to listen for anything narrower. It is a
+   `push` hook on `/webhooks/source/github/events/manual`, and Coolify's
+   handler takes only `push` and `pull_request` events — a `release` event is
+   answered with "Nothing to do", and a tag push arrives as `refs/tags/v0.1.12`,
+   which the handler never matches because it only strips `refs/heads/`. So a
+   branch is the only trigger there is; the flow above is how it is made to
+   mean a release.
+
+   Tag `main` after the merge (`git tag v0.1.12 && git push origin v0.1.12`)
+   to build the desktop installers and publish the GitHub Release.
 
 **If a deploy fails with "Failed to read the Docker Compose file from the
 repository"** and the repository is fine (public, reachable, compose file at

@@ -29,8 +29,17 @@ Laravel + PostgreSQL backend (`backend/`) · React (MUI) SPA (`frontend/`) · No
 
 The desktop client (Game.log watcher) is built automatically for Windows and Linux:
 
-- **[Development build](https://github.com/ulrichdahl/StarBuddy/releases/tag/dev)** — rolling, replaced on every change to `main`. Windows installer (`.exe`/`.msi`), Linux AppImage/`.deb`/`.rpm`.
+- **[Development build](https://github.com/ulrichdahl/StarBuddy/releases/tag/dev)** — rolling, replaced on every change to `develop`. Windows installer (`.exe`/`.msi`), Linux AppImage/`.deb`/`.rpm`.
 - **[Stable releases](https://github.com/ulrichdahl/StarBuddy/releases/latest)** — published when a `v*` tag is pushed.
+
+## Branches
+
+`develop` is the branch work lands on; feature branches merge into it, and
+every change to the client there refreshes the development build above.
+
+`main` is what the live instance runs. The server redeploys on any push to it,
+so merging `develop` into `main` is the release, and a `v0.1.12` tag on the
+merge builds the desktop installers to match.
 
 ## Running your own instance
 
