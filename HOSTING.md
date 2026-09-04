@@ -188,7 +188,7 @@ sm exec app php artisan starbuddy:sync-blueprints
 sm exec app php artisan starbuddy:sync-items          # item classes/stats, ~1 min
 sm exec app php artisan starbuddy:sync-resource-types
 sm exec app php artisan starbuddy:sync-locations
-sm exec app php artisan starbuddy:sync-quality-bands
+sm exec app php artisan starbuddy:sync-quality-bands  # quality ladders, from the repo
 sm exec app php artisan starbuddy:sync-rarity          # ~2 min
 sm exec app php artisan starbuddy:sync-scan-signatures # radar signatures, from the repo
 sm run --rm bot node dist/register-commands.js

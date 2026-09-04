@@ -238,6 +238,40 @@ class RefineryOrderTest extends TestCase
         $this->assertSame('org', ResourceStack::latest('id')->first()->visibility);
     }
 
+    public function test_an_order_that_yields_nothing_still_remembers_who_can_see_it(): void
+    {
+        // Every row switched off, so the order opens no stacks at all. Its
+        // visibility used to be read back off those stacks, which made this
+        // order private however it was recorded, with nowhere to correct it.
+        $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order([
+                'visibility' => 'org',
+                'materials' => [
+                    ['resource' => 'CORUNDUM', 'quality' => 504, 'qty' => 204, 'yield_amount' => null, 'refine' => false],
+                ],
+            ]))
+            ->assertCreated()
+            ->assertJsonPath('visibility', 'org');
+
+        $this->assertSame(0, ResourceStack::count(), 'nothing was refined, so nothing was stacked');
+    }
+
+    public function test_correcting_an_open_order_can_change_who_sees_it(): void
+    {
+        $id = $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order())
+            ->assertCreated()
+            ->assertJsonPath('visibility', 'private')
+            ->json('id');
+
+        $this->actingAs($this->me)
+            ->patchJson("/api/refinery-orders/{$id}", ['visibility' => 'org'])
+            ->assertOk()
+            ->assertJsonPath('visibility', 'org');
+
+        $this->assertSame('org', ResourceStack::sole()->visibility, 'the stacks follow the order');
+    }
+
     public function test_collecting_can_share_the_haul_with_the_org(): void
     {
         $id = $this->actingAs($this->me)
@@ -347,5 +381,90 @@ class RefineryOrderTest extends TestCase
             ->assertJsonPath('ignored', 1);
 
         $this->assertSame(0, RefineryOrder::count(), 'orders come from the terminal now');
+    }
+
+    public function test_an_open_order_can_be_corrected_and_its_stacks_follow(): void
+    {
+        $id = $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order())
+            ->assertCreated()
+            ->json('id');
+
+        $this->actingAs($this->me)
+            ->patchJson("/api/refinery-orders/{$id}", [
+                'cost' => 300.5,
+                'materials' => [
+                    // The corundum row was read wrong: 120, not 99.
+                    ['resource' => 'CORUNDUM', 'quality' => 504, 'qty' => 204, 'yield_amount' => 120, 'refine' => true],
+                    // And a row that was missed entirely.
+                    ['resource' => 'ALUMINUM', 'quality' => 783, 'qty' => 635, 'yield_amount' => 300, 'refine' => true],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('cost', 300.5);
+
+        $stacks = ResourceStack::with('resourceType')->get()->keyBy(fn ($s) => $s->resourceType->name);
+        $this->assertSame(['Corundum Ore', 'Aluminum Ore'], $stacks->keys()->all());
+        $this->assertSame(1200, $stacks['Corundum Ore']->quantity, '120 cSCU, replacing the 99 that was there');
+        $this->assertSame(3000, $stacks['Aluminum Ore']->quantity);
+    }
+
+    public function test_correcting_an_order_does_not_reshare_a_private_haul(): void
+    {
+        $id = $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order(['visibility' => 'org']))
+            ->assertCreated()
+            ->json('id');
+
+        $this->actingAs($this->me)
+            ->patchJson("/api/refinery-orders/{$id}", ['cost' => 12])
+            ->assertOk()
+            ->assertJsonPath('visibility', 'org', 'the rebuilt stacks keep what they had');
+    }
+
+    public function test_a_collected_order_is_history_and_cannot_be_changed(): void
+    {
+        $id = $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order())
+            ->assertCreated()
+            ->json('id');
+
+        $this->actingAs($this->me)
+            ->postJson("/api/refinery-orders/{$id}/collect", ['location_id' => $this->hangarId])
+            ->assertOk();
+
+        $this->actingAs($this->me)
+            ->patchJson("/api/refinery-orders/{$id}", ['cost' => 1])
+            ->assertStatus(422);
+    }
+
+    public function test_someone_elses_order_cannot_be_edited(): void
+    {
+        $id = $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order())
+            ->assertCreated()
+            ->json('id');
+
+        $other = User::factory()->create(['discord_id' => '2', 'handle' => 'Someone']);
+
+        $this->actingAs($other)
+            ->patchJson("/api/refinery-orders/{$id}", ['cost' => 1])
+            ->assertForbidden();
+    }
+
+    public function test_renaming_the_station_moves_the_order_to_that_refinery(): void
+    {
+        $id = $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order())
+            ->assertCreated()
+            ->json('id');
+
+        $this->actingAs($this->me)
+            ->patchJson("/api/refinery-orders/{$id}", ['station' => 'ARCCORP 141'])
+            ->assertOk()
+            ->assertJsonPath('station', 'ARCCORP 141')
+            ->assertJsonPath('location.name', 'ARCCORP 141');
+
+        $this->assertSame('ARCCORP 141', ResourceStack::sole()->refining_at);
     }
 }

@@ -16,9 +16,12 @@ class ResourceType extends Model
         return ['known_qualities' => 'array', 'scan_profile' => 'array'];
     }
 
-    // Bootstrapping only: resources without their wiki band ladder learn
-    // values from entries. Once a full ladder (8 bands) is known, entries
-    // must use it — nothing new is learned, keeping the bands canonical.
+    // Bootstrapping only: resources the game has no ladder for — salvage,
+    // gases, the odd refined good — learn their values from entries. Once a
+    // full ladder is known, entries must use it: nothing new is learned, which
+    // is what keeps a mistyped quality from becoming a permanent band. Eight is
+    // a full ladder, and a crafting material has nine with its dismantle 500,
+    // so both are already at the limit the moment they are synced.
     public function learnQuality(int $quality): void
     {
         $known = $this->known_qualities ?? [];

@@ -49,12 +49,27 @@ interface RefineryStatus {
   detail: string;
 }
 
-/** Which columns a state's table actually uses. */
+/**
+ * Which columns a state's table actually uses, in the order the terminal and
+ * the website's own order sheet print them: quality, what went in, what comes
+ * back. A column the panel does not show is left out rather than shown empty.
+ */
 const COLUMNS: Record<OrderState, (keyof OrderMaterial)[]> = {
   setup: ["quality", "qty", "yield_amount"],
   processing: ["quality", "yield_amount", "to_do", "done"],
   completed: ["quality", "yield_amount"],
 };
+
+/** Quality tier, for the same colour the website gives the number. */
+function qualityTier(quality: number | null): string | null {
+  if (quality === null) return null;
+  if (quality >= 900) return "legendary";
+  if (quality >= 800) return "epic";
+  if (quality >= 700) return "rare";
+  if (quality >= 600) return "uncommon";
+  if (quality >= 500) return "common";
+  return "poor";
+}
 
 /**
  * The refinery window: read the terminal, check what was read, save an order.
@@ -149,6 +164,21 @@ export function RefineryOverlay() {
 
   const fmt = (n: number | null) => (n === null ? "" : n.toLocaleString(i18n.language));
 
+  /** "1d 7m 45s" back into seconds; a bare number is minutes. */
+  const parseDuration = (text: string): number | null => {
+    const trimmed = text.trim().toLowerCase();
+    if (trimmed === "") return null;
+    if (/^\d+([.,]\d+)?$/.test(trimmed)) return Math.round(Number(trimmed.replace(",", ".")) * 60);
+    const units: Record<string, number> = { d: 86400, h: 3600, m: 60, s: 1 };
+    let total = 0;
+    let matched = false;
+    for (const [, value, unit] of trimmed.matchAll(/(\d+(?:[.,]\d+)?)\s*([dhms])/g)) {
+      total += Number(value.replace(",", ".")) * units[unit];
+      matched = true;
+    }
+    return matched ? Math.round(total) : null;
+  };
+
   const duration = (seconds: number | null) => {
     if (seconds === null) return t("overlay.refinery.unknown");
     const d = Math.floor(seconds / 86400);
@@ -212,7 +242,12 @@ export function RefineryOverlay() {
         </span>
       }
     >
-      {terminal?.orders.map((order, index) => (
+      {terminal?.orders.map((order, index) => {
+        const columns = COLUMNS[order.state];
+        const totals = columns.map((column) =>
+          order.materials.reduce((sum, m) => sum + ((m[column] as number | null) ?? 0), 0),
+        );
+        return (
         <div className="ov-box" key={index}>
           <div className="ov-box-title">
             {t(`overlay.refinery.state.${order.state}`)}
@@ -230,11 +265,11 @@ export function RefineryOverlay() {
           )}
 
           {order.materials.length > 0 && (
-            <table className="ov-table">
+            <table className="ov-table ov-refinery-table">
               <thead>
                 <tr>
                   <th>{t("overlay.refinery.material")}</th>
-                  {COLUMNS[order.state].map((column) => (
+                  {columns.map((column) => (
                     <th key={column}>
                       {t(`overlay.refinery.column.${column}`)}
                       {column !== "quality" && ` (${order.unit})`}
@@ -252,10 +287,15 @@ export function RefineryOverlay() {
                         onChange={(e) => patchMaterial(index, rowIndex, { resource: e.target.value })}
                       />
                     </td>
-                    {COLUMNS[order.state].map((column) => (
+                    {columns.map((column) => (
                       <td key={column}>
                         <input
                           inputMode="decimal"
+                          className={
+                            column === "quality"
+                              ? `ov-num ov-quality ov-rarity-${qualityTier(material.quality) ?? "poor"}`
+                              : "ov-num"
+                          }
                           value={fmt(material[column] as number | null)}
                           onChange={(e) =>
                             patchMaterial(index, rowIndex, { [column]: numberOrNull(e.target.value) })
@@ -266,23 +306,47 @@ export function RefineryOverlay() {
                   </tr>
                 ))}
               </tbody>
+              {/* The sums the panel prints under its own table, so a row read
+                  wrong shows up as a total that does not match the screen. */}
+              <tfoot>
+                <tr>
+                  <th>{t("overlay.refinery.total")}</th>
+                  {columns.map((column, i) => (
+                    <td key={column} className="ov-num">
+                      {column === "quality" ? "" : fmt(totals[i])}
+                    </td>
+                  ))}
+                </tr>
+              </tfoot>
             </table>
           )}
 
-          <div className="ov-row">
-            <span>{order.state === "setup" ? t("overlay.refinery.duration") : t("overlay.refinery.remaining")}</span>
-            <span>{duration(order.duration_seconds)}</span>
-          </div>
-          {order.cost !== null && (
-            <div className="ov-row">
+          {/* Cost and the clock, in the order the website's own sheet asks for
+              them, and editable for the same reason every other number is. */}
+          <div className="ov-pair">
+            <label className="ov-field">
+              <span>{order.state === "setup" ? t("overlay.refinery.duration") : t("overlay.refinery.remaining")}</span>
+              <input
+                className="ov-num"
+                value={duration(order.duration_seconds)}
+                onChange={(e) => patchOrder(index, { duration_seconds: parseDuration(e.target.value) })}
+              />
+            </label>
+            <label className="ov-field">
               <span>{t("overlay.refinery.cost")}</span>
-              <span>{fmt(order.cost)} aUEC</span>
-            </div>
-          )}
+              <input
+                className="ov-num"
+                inputMode="decimal"
+                value={fmt(order.cost)}
+                onChange={(e) => patchOrder(index, { cost: numberOrNull(e.target.value) })}
+              />
+            </label>
+          </div>
+
           {order.yield_total !== null && (
-            <div className="ov-row">
+            <div className="ov-row ov-dim">
               <span>{t("overlay.refinery.yieldTotal")}</span>
-              <span>
+              <span className="ov-num">
                 {fmt(order.yield_total)} {order.unit}
               </span>
             </div>
@@ -302,7 +366,8 @@ export function RefineryOverlay() {
             </button>
           </div>
         </div>
-      ))}
+        );
+      })}
 
       {terminal && (
         <div className="ov-box">

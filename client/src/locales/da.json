@@ -290,7 +290,8 @@
         "to_do": "Mangler",
         "done": "Færdig"
       },
-      "notRefined": "Bliver ikke raffineret (intet udbytte)"
+      "notRefined": "Bliver ikke raffineret (intet udbytte)",
+      "total": "I alt"
     },
     "capture": {
       "capturing": "Tager billede af spilvinduet…",

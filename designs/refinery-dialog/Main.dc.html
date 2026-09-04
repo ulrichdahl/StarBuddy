@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; background: #0C1117; font-family: Inter, Roboto, Helvetica, Arial, sans-serif; color: #DCE6EE; }
+    a { color: #5BC8DB; } a:hover { color: #8fdcea; }
+    .lbl { color: #8CA0B3; font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    .fld { height: 40px; border: 1px solid rgba(255,255,255,0.23); border-radius: 6px; display: flex; align-items: center; padding: 0 12px; font-size: 14px; }
+    .flabel { position: absolute; top: -7px; left: 9px; background: #121A23; padding: 0 5px; font-size: 11px; color: #8CA0B3; }
+    .help { color: #8CA0B3; font-size: 11.5px; margin: 4px 0 0 12px; }
+    .num { font-variant-numeric: tabular-nums; }
+  </style>
+</helmet>
+
+<div style="width: 900px; background: #121A23; border: 1px solid rgba(91,200,219,0.10); border-radius: 6px; overflow: hidden">
+
+  <!-- Title -->
+  <div style="display: flex; align-items: center; gap: 10px; padding: 16px 24px">
+    <div style="flex-grow: 1; font-size: 15px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase">Refinery order</div>
+    <div style="background: rgba(220,230,238,0.12); color: #DCE6EE; border-radius: 12px; height: 24px; display: flex; align-items: center; padding: 0 10px; font-size: 12.5px; font-weight: 500">Work order 1</div>
+    <div style="border: 1px solid rgba(232,180,90,0.5); color: #E8B45A; border-radius: 12px; height: 24px; display: flex; align-items: center; padding: 0 10px; font-size: 12.5px; font-weight: 500">In progress</div>
+    <div style="border: 1px solid rgba(220,230,238,0.28); color: #DCE6EE; border-radius: 12px; height: 24px; display: flex; align-items: center; padding: 0 10px; font-size: 12.5px; font-weight: 500">manual</div>
+  </div>
+  <div style="height: 1px; background: rgba(91,200,219,0.12)"></div>
+
+  <!-- Body -->
+  <div style="padding: 24px; display: flex; flex-direction: column; gap: 22px">
+
+    <!-- Refinery + method -->
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+      <div>
+        <div style="position: relative">
+          <div class="flabel">Refinery *</div>
+          <div class="fld" style="justify-content: space-between">
+            <span>Nyx &ndash; Levski</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8CA0B3" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+        </div>
+        <div class="help">Which refinement centre is holding it</div>
+      </div>
+      <div>
+        <div style="position: relative">
+          <div class="flabel">Method</div>
+          <div class="fld">Pyrometric Chromalysis</div>
+        </div>
+        <div class="help">The process named on the terminal</div>
+      </div>
+    </div>
+
+    <!-- Materials -->
+    <div>
+      <div style="display: grid; grid-template-columns: 40px minmax(0,1fr) 130px 120px 120px 64px; gap: 10px; align-items: center; padding: 0 4px 8px; border-bottom: 1px solid rgba(91,200,219,0.12)">
+        <div></div>
+        <div class="lbl">Material</div>
+        <div class="lbl" style="text-align: right">Quality</div>
+        <div class="lbl" style="text-align: right">In (cSCU)</div>
+        <div class="lbl" style="text-align: right">Yield (cSCU)</div>
+        <div></div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 40px minmax(0,1fr) 130px 120px 120px 64px; gap: 10px; align-items: center; padding: 7px 4px; border-bottom: 1px solid rgba(91,200,219,0.06)">
+        <div style="width: 26px; height: 26px; border-radius: 6px; background: rgba(91,200,219,0.08); display: flex; align-items: center; justify-content: center; color: #8CA0B3; font-size: 12px" class="num">1</div>
+        <div style="display: flex; align-items: center; gap: 10px"><div style="width: 3px; height: 20px; border-radius: 2px; background: #D9A431"></div><span style="font-size: 14px; font-weight: 500">Gold</span></div>
+        <div class="num" style="text-align: right; font-weight: 600; color: #8A9C99">264</div>
+        <div class="num" style="text-align: right; font-weight: 500">2333</div>
+        <div class="num" style="text-align: right; font-weight: 500">324</div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; opacity: 0.55">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8CA0B3" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8CA0B3" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 40px minmax(0,1fr) 130px 120px 120px 64px; gap: 10px; align-items: center; padding: 7px 4px; border-bottom: 1px solid rgba(91,200,219,0.06)">
+        <div style="width: 26px; height: 26px; border-radius: 6px; background: rgba(91,200,219,0.08); display: flex; align-items: center; justify-content: center; color: #8CA0B3; font-size: 12px" class="num">2</div>
+        <div style="display: flex; align-items: center; gap: 10px"><div style="width: 3px; height: 20px; border-radius: 2px; background: #DCE5E3"></div><span style="font-size: 14px; font-weight: 500">Aslarite</span></div>
+        <div class="num" style="text-align: right; font-weight: 600; color: #A87BEA">854</div>
+        <div class="num" style="text-align: right; font-weight: 500">312</div>
+        <div class="num" style="text-align: right; font-weight: 500">34</div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end; opacity: 0.55">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8CA0B3" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8CA0B3" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 40px minmax(0,1fr) 130px 120px 120px 64px; gap: 10px; align-items: center; padding: 7px 4px; border-bottom: 1px solid rgba(91,200,219,0.06)">
+        <div style="width: 26px; height: 26px; border-radius: 6px; background: rgba(91,200,219,0.08); display: flex; align-items: center; justify-content: center; color: #8CA0B3; font-size: 12px" class="num">3</div>
+        <div style="display: flex; align-items: center; gap: 10px"><div style="width: 3px; height: 20px; border-radius: 2px; background: transparent"></div><span style="font-size: 14px; color: #55697b">&mdash;</span></div>
+        <div style="text-align: right; color: #55697b">&mdash;</div>
+        <div style="text-align: right; color: #55697b">&mdash;</div>
+        <div style="text-align: right; color: #55697b">&mdash;</div>
+        <div></div>
+      </div>
+
+      <div style="color: #8CA0B3; font-size: 11.5px; line-height: 1.6; margin-top: 12px">&uarr;&darr;&larr;&rarr; move &middot; type to edit &middot; Enter fills the next empty cell and starts a new line once complete &middot; Ctrl+Enter repeats &middot; Tab walks the cells</div>
+    </div>
+
+    <!-- Same column track as the materials, so each total sits under its column -->
+    <div style="display: grid; grid-template-columns: 40px minmax(0,1fr) 130px 120px 120px 64px; gap: 10px; align-items: start; padding: 18px 4px 0; border-top: 1px solid rgba(91,200,219,0.12)">
+      <div style="position: relative; max-width: 180px; grid-column: span 2; align-self: center">
+        <div class="flabel">Cost</div>
+        <div class="fld" style="justify-content: flex-end; gap: 8px"><span class="num">234234</span><span style="color: #8CA0B3; font-size: 11.5px">aUEC</span></div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; justify-content: flex-end">
+        <div style="color: #8CA0B3; font-size: 11.5px; text-align: right; line-height: 1.4">As the terminal<br>writes it &mdash; 22m 28s</div>
+        <div style="position: relative; width: 130px; flex-shrink: 0">
+          <div class="flabel">Time left</div>
+          <div class="fld num" style="justify-content: flex-end">1d 7m 45s</div>
+        </div>
+      </div>
+      <div style="text-align: right">
+        <div style="color: #8CA0B3; font-size: 12px">Total in</div>
+        <div class="num" style="font-size: 14px; margin-top: 2px">2,645 cSCU</div>
+      </div>
+      <div style="text-align: right">
+        <div style="color: #8CA0B3; font-size: 12px">Total yield</div>
+        <div class="num" style="font-size: 14px; margin-top: 2px">358 cSCU</div>
+        <div class="num" style="font-size: 11.5px; color: #5BC8DB; margin-top: 3px">13.5% return</div>
+      </div>
+      <div></div>
+    </div>
+  </div>
+
+  <div style="height: 1px; background: rgba(91,200,219,0.12)"></div>
+  <div style="padding: 16px 24px; display: flex; align-items: flex-start; justify-content: flex-end; gap: 16px">
+    <div style="height: 40px; display: flex; align-items: center; gap: 10px">
+      <div style="color: #8CA0B3; font-size: 11.5px">Who sees the haul</div>
+      <div style="display: flex; height: 36px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(91,200,219,0.28)">
+        <div style="padding: 0 15px; display: flex; align-items: center; font-size: 13px; font-weight: 600; color: #8CA0B3">Private</div>
+        <div style="padding: 0 15px; display: flex; align-items: center; font-size: 13px; font-weight: 600; color: #5BC8DB; background: rgba(91,200,219,0.16)">Org</div>
+      </div>
+    </div>
+    <div style="height: 40px; display: flex; align-items: center; gap: 10px">
+      <div style="height: 38px; padding: 0 20px; border-radius: 6px; background: #5BC8DB; color: #06222A; font-weight: 600; font-size: 14px; display: flex; align-items: center">Save changes</div>
+      <div style="height: 36px; padding: 0 14px; display: flex; align-items: center; color: #5BC8DB; font-weight: 600; font-size: 14px">Close</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

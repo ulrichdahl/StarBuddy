@@ -460,6 +460,24 @@
       "collectedTo": "Collected to {{location}}.",
       "visibility": "Visible to",
       "visibilityHelp": "Who sees the haul"
+    },
+    "sheet": {
+      "newTitle": "New order",
+      "refinery": "Refinery",
+      "refineryHelp": "Which refinement centre is holding it",
+      "methodHelp": "The process named on the terminal",
+      "totalIn": "Total in",
+      "noYield": "not refined",
+      "durationHelp": "As the terminal writes it — 22m 28s",
+      "durationBad": "Try something like 22m 28s, 1h 30m, or a number of minutes",
+      "recordedYield": "Yield as recorded",
+      "create": "Record order",
+      "save": "Save changes",
+      "saveFailed": "Could not save that order.",
+      "frozen": "This order has been collected, so it is kept as it was.",
+      "keys": "↑↓←→ move · type to edit · Enter fills the next empty cell in the line and starts a new line once it is complete · Ctrl+Enter repeats the line · Tab walks the cells · in In and Yield, Ctrl+↑↓ and Shift+↑↓ step by 1 and 100",
+      "readyFrozen": "The refinery has finished this job, so its numbers are settled. All that is left is to say where the materials went.",
+      "title": "Refinery order"
     }
   },
   "materials": {

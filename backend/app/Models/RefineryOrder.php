@@ -11,7 +11,7 @@ class RefineryOrder extends Model
     protected $fillable = [
         'user_id', 'station', 'location_id', 'method', 'work_order_number', 'state',
         'materials', 'unit', 'duration_seconds', 'cost', 'yield_total', 'capture',
-        'placed_at', 'eta', 'completed_at', 'collected_at', 'collected_location_id', 'source',
+        'placed_at', 'eta', 'completed_at', 'collected_at', 'collected_location_id', 'source', 'visibility',
     ];
 
     protected function casts(): array

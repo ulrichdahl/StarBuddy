@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
@@ -11,70 +11,108 @@ import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import Stack from '@mui/material/Stack'
-import Table from '@mui/material/Table'
-import TableBody from '@mui/material/TableBody'
-import TableCell from '@mui/material/TableCell'
-import TableHead from '@mui/material/TableHead'
-import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
-import { api, apiErrorDetail } from '../lib/api'
+import { api, apiErrorDetail, unwrapList } from '../lib/api'
+import { formatDuration, parseDuration } from '../lib/refining'
 import { LocationSelect } from './LocationSelect'
 import { VisibilitySelect } from './VisibilitySelect'
+import {
+  blankLine,
+  lineIsComplete,
+  linesToMaterials,
+  materialsToLines,
+  RefineryOrderSheet,
+  type OrderLine,
+} from './RefineryOrderSheet'
 import { useNow } from '../lib/useNow'
-import type { Location, RefineryOrderDetail, Visibility } from '../lib/types'
+import type { Location, RefineryOrderDetail, ResourceType, Visibility } from '../lib/types'
+
+/** `'new'` records an order by hand; a number opens the one with that id. */
+export type RefineryOrderTarget = number | 'new' | null
 
 /**
- * One refinery order in full: what the terminal showed, and what to do with it.
+ * One refinery order, in the shape the terminal shows it.
  *
- * Collecting is the point of the dialog. The materials are already counted as
- * the player's while they refine; collecting says where they physically went,
- * which is often not the refinery — a haul is usually transferred straight into
- * a ship or a hangar on pickup.
+ * The same sheet records a new order, corrects one the refinery is still
+ * holding, and shows a collected one frozen — so a player reads a job in the
+ * layout they typed it in, and a mistake stays fixable right up until the
+ * materials are in hand. Collecting is the other thing the dialog does: the
+ * materials already count as the player's while they refine, and collecting
+ * says where they physically went, which is often not the refinery.
  */
-export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClose: () => void }) {
+export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; onClose: () => void }) {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
-  // Both controls start from the order and only hold a value once the player
-  // changes one, and the order they were changed for is remembered — the
-  // dialog is reused for every order, so a pick made for one must not carry
-  // into the next.
-  const [picked, setPicked] = useState<{ order: number; destination?: Location | null; visibility?: Visibility }>()
+  const creating = id === 'new'
+
+  // Where a collected haul went. It only holds a value once the player picks
+  // one, and the order it was picked for is remembered — the dialog is reused
+  // for every order, so a pick made for one must not carry into the next.
+  const [picked, setPicked] = useState<{ order: number; destination?: Location | null }>()
+
+  // The sheet's own state. An existing order fills it in once loaded; a new one
+  // starts on a single empty line.
+  const [station, setStation] = useState<Location | null>(null)
+  const [method, setMethod] = useState<string | null>(null)
+  const [rows, setRows] = useState<OrderLine[]>(() => [blankLine()])
+  const [cost, setCost] = useState('')
+  const [duration, setDuration] = useState('')
+  /**
+   * Whether anyone has actually set the clock. Until they have, a running
+   * order is saved with the time it has left rather than the time it was
+   * given: re-anchoring an untouched order to its original length would push
+   * the finish out by a whole job every time a number beside it was corrected.
+   */
+  const [timeEdited, setTimeEdited] = useState(false)
+  const [shareWith, setShareWith] = useState<Visibility>('private')
+  /** The order the sheet was filled from, so it refills when a different one opens. */
+  const [filled, setFilled] = useState<RefineryOrderTarget>(null)
   const [showLines, setShowLines] = useState(false)
 
   const order = useQuery({
     queryKey: ['refinery-order', id],
     queryFn: async () => (await api.get<RefineryOrderDetail>(`/api/refinery-orders/${id}`)).data,
+    enabled: id !== null && !creating,
+  })
+
+  // The catalogue, so an order's materials come back as the rows they were —
+  // with their quality bands — rather than as bare names.
+  const { data: catalog = [] } = useQuery({
+    queryKey: ['resource-types', ''],
+    queryFn: async () => unwrapList<ResourceType>((await api.get('/api/resource-types')).data),
     enabled: id !== null,
   })
 
-  const collect = useMutation({
-    mutationFn: async (locationId: number) =>
-      (
-        await api.post<RefineryOrderDetail>(`/api/refinery-orders/${id}/collect`, {
-          location_id: locationId,
-          // Left alone unless the player changed it, so collecting does not
-          // quietly reshare a haul they had kept to themselves.
-          ...(mine?.visibility ? { visibility: mine.visibility } : {}),
-        })
-      ).data,
-    onSuccess: () => {
-      // The stacks moved, so the material lists are stale too.
-      void queryClient.invalidateQueries({ queryKey: ['refinery-orders'] })
-      void queryClient.invalidateQueries({ queryKey: ['refinery-order', id] })
-      void queryClient.invalidateQueries({ queryKey: ['resource-stacks'] })
-      void queryClient.invalidateQueries({ queryKey: ['craftability'] })
-      onClose()
-    },
-  })
-
   const data = order.data
-  const mine = picked?.order === id ? picked : undefined
-  // The materials are at the refinery until someone moves them, so that is
-  // the honest default: collecting without touching this records where they
-  // already are, and changing it records the transfer.
-  const destination = mine && 'destination' in mine ? mine.destination ?? null : data?.location ?? null
-  const visibility = mine?.visibility ?? data?.visibility ?? 'private'
-  const fmt = (n: number | null | undefined) => (n === null || n === undefined ? '—' : n.toLocaleString(i18n.language))
+  const unit = data?.unit ?? 'cSCU'
+
+  useEffect(() => {
+    if (id === null || id === filled) return
+    if (creating) {
+      setStation(null)
+      setMethod(null)
+      setRows([blankLine()])
+      setCost('')
+      setDuration('')
+      setTimeEdited(false)
+      setShareWith('private')
+      setFilled(id)
+      return
+    }
+    // Wait for both the order and the catalogue: hydrating from one without the
+    // other would drop the quality bands from every row.
+    if (!data || catalog.length === 0) return
+    setStation(data.location)
+    setMethod(data.method)
+    setRows([...materialsToLines(data.materials, catalog), blankLine()])
+    setShareWith(data.visibility)
+    setCost(data.cost === null ? '' : String(data.cost))
+    // Exact, so an order opened and saved without touching the field keeps
+    // the length it had rather than being rounded down to whole minutes.
+    setDuration(data.duration_seconds === null ? '' : formatDuration(data.duration_seconds, undefined, { exact: true }))
+    setTimeEdited(false)
+    setFilled(id)
+  }, [id, filled, creating, data, catalog])
 
   // Ticks, so an order counts down while the dialog is open.
   const now = useNow(1000)
@@ -83,35 +121,118 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
     return Math.round((new Date(data.eta).getTime() - now) / 1000)
   }, [data, now])
 
-  const duration = (seconds: number | null) => {
-    if (seconds === null) return '—'
-    if (seconds <= 0) return t('refinery.dialog.ready')
-    const d = Math.floor(seconds / 86400)
-    const h = Math.floor((seconds % 86400) / 3600)
-    const m = Math.floor((seconds % 3600) / 60)
-    const s = seconds % 60
-    return [d && `${d}d`, h && `${h}h`, m && `${m}m`, !d && !h && s ? `${s}s` : 0].filter(Boolean).join(' ')
+  /**
+   * Which of the three things an order can be, which is what decides both
+   * whether the sheet edits and which single button ends its footer row.
+   *
+   * An order with no ETA counts as still running: nothing has said it is done,
+   * and locking a job nobody gave a length to would leave it uneditable with
+   * no way back. Setting its time left to zero is what finishes it.
+   */
+  const collected = !creating && data !== undefined && !data.open
+  const ready = data?.open === true && remaining !== null && remaining <= 0
+  // Editing is for a job the refinery is still working on. Once it is ready the
+  // numbers are what they were, and the only thing left to do is pick it up.
+  const frozen = collected || ready
+
+  const mine = picked?.order === id ? picked : undefined
+  // The materials are at the refinery until someone moves them, so that is the
+  // honest default: collecting without touching this records where they already
+  // are, and changing it records the transfer.
+  const destination = mine && 'destination' in mine ? mine.destination ?? null : data?.location ?? null
+  const fmt = (n: number | null | undefined) => (n === null || n === undefined ? '—' : n.toLocaleString(i18n.language))
+
+  /** What the sheet says, in the shape the API takes. */
+  const body = () => {
+    const materials = linesToMaterials(rows)
+    const seconds = !timeEdited && remaining !== null ? Math.max(0, remaining) : parseDuration(duration)
+    return {
+      station: station?.name ?? '',
+      method,
+      materials,
+      // A new order is read off a terminal, which counts in centi-SCU; an
+      // edit keeps whatever unit the order was recorded in.
+      unit,
+      duration_seconds: seconds,
+      // An order still running has an ETA; one already done does not need one.
+      eta: seconds === null ? null : new Date(Date.now() + seconds * 1000).toISOString(),
+      state: seconds !== null && seconds > 0 ? ('processing' as const) : ('completed' as const),
+      cost: cost.trim() === '' ? null : Number(cost.replace(',', '.')),
+      yield_total: materials.reduce((sum, m) => sum + (m.yield_amount ?? 0), 0),
+      // Always what the sheet is showing. An edit cannot reshare by accident
+      // because the control starts on the order's own answer.
+      visibility: shareWith,
+    }
   }
 
+  const refresh = () => {
+    void queryClient.invalidateQueries({ queryKey: ['refinery-orders'] })
+    void queryClient.invalidateQueries({ queryKey: ['refinery-order', id] })
+    void queryClient.invalidateQueries({ queryKey: ['resource-stacks'] })
+    void queryClient.invalidateQueries({ queryKey: ['craftability'] })
+  }
+
+  const save = useMutation({
+    mutationFn: async () =>
+      creating
+        ? (await api.post<RefineryOrderDetail>('/api/refinery-orders', { ...body(), source: 'manual' })).data
+        : (await api.patch<RefineryOrderDetail>(`/api/refinery-orders/${id}`, body())).data,
+    onSuccess: () => {
+      refresh()
+      close()
+    },
+  })
+
+  const collect = useMutation({
+    mutationFn: async (locationId: number) =>
+      (
+        await api.post<RefineryOrderDetail>(`/api/refinery-orders/${id}/collect`, {
+          location_id: locationId,
+          // Whatever the sheet is showing, which started as the order's own
+          // answer — so collecting cannot quietly reshare a haul either.
+          visibility: shareWith,
+        })
+      ).data,
+    onSuccess: () => {
+      // The stacks moved, so the material lists are stale too.
+      refresh()
+      close()
+    },
+  })
+
+  const close = () => {
+    setFilled(null)
+    onClose()
+  }
+
+  const savable = station !== null && rows.some(lineIsComplete) && !save.isPending
+
   return (
-    <Dialog open={id !== null} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        {data ? (
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
-            <span>{data.station}</span>
+    <Dialog open={id !== null} onClose={close} maxWidth="md" fullWidth>
+      {/* The refinery is named in the sheet's first field, so the title says
+          what the dialog is and leaves the marks about this particular order
+          to the right-hand end. */}
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+          {creating ? t('refinery.sheet.newTitle') : t('refinery.sheet.title')}
+        </Box>
+        {data && (
+          <>
             {data.work_order_number !== null && (
               <Chip size="small" label={t('refinery.dialog.number', { number: data.work_order_number })} />
             )}
+            {/* Read off the same clock the buttons are, so an order that
+                finishes while the dialog is open says so as it happens. */}
             <Chip
               size="small"
-              color={data.open ? 'secondary' : 'primary'}
               variant="outlined"
-              label={t(data.open ? 'refinery.status.inProgress' : 'refinery.status.collected')}
+              color={collected ? 'primary' : ready ? 'success' : 'secondary'}
+              label={t(
+                collected ? 'refinery.status.collected' : ready ? 'refinery.status.ready' : 'refinery.status.inProgress',
+              )}
             />
             <Chip size="small" variant="outlined" label={data.source} />
-          </Stack>
-        ) : (
-          t('refinery.title')
+          </>
         )}
       </DialogTitle>
 
@@ -119,54 +240,35 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
         {order.isLoading && <CircularProgress aria-label={t('common.loading')} />}
         {order.isError && <Alert severity="error">{t('refinery.loadFailed')}</Alert>}
 
-        {data && (
-          <Stack spacing={2}>
-            <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' } }}>
-              <Detail label={t('refinery.dialog.method')} value={data.method ?? '—'} />
-              <Detail label={t('refinery.dialog.remaining')} value={duration(remaining)} />
-              <Detail label={t('refinery.dialog.cost')} value={data.cost === null ? '—' : `${fmt(data.cost)} aUEC`} />
-              <Detail
-                label={t('refinery.dialog.yieldTotal')}
-                value={data.yield_total === null ? '—' : `${fmt(data.yield_total)} ${data.unit}`}
-              />
-            </Box>
+        {(creating || data) && (
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <RefineryOrderSheet
+              location={station}
+              onLocation={setStation}
+              method={method}
+              onMethod={setMethod}
+              rows={rows}
+              setRows={setRows}
+              cost={cost}
+              onCost={setCost}
+              duration={duration}
+              onDuration={(next, typed) => { if (typed) setTimeEdited(true); setDuration(next) }}
+              unit={unit}
+              autoFocus={creating}
+              readOnly={frozen}
+              remaining={remaining}
+            />
 
-            {data.unmatched.length > 0 && (
+            {ready && <Alert severity="success">{t('refinery.sheet.readyFrozen')}</Alert>}
+            {collected && <Alert severity="info">{t('refinery.sheet.frozen')}</Alert>}
+
+            {data && data.unmatched.length > 0 && (
               <Alert severity="warning">
                 {t('refinery.dialog.unmatched', { materials: data.unmatched.join(', ') })}
               </Alert>
             )}
 
-            <Box>
-              <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-                {t('refinery.dialog.materials')}
-              </Typography>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>{t('refinery.dialog.material')}</TableCell>
-                    <TableCell align="right">{t('refinery.dialog.quality')}</TableCell>
-                    <TableCell align="right">{`${t('refinery.dialog.qty')} (${data.unit})`}</TableCell>
-                    <TableCell align="right">{`${t('refinery.dialog.yield')} (${data.unit})`}</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {data.materials.map((material, index) => (
-                    <TableRow key={index} sx={{ opacity: material.refine ? 1 : 0.5 }}>
-                      <TableCell>
-                        {material.resource}
-                        {!material.refine && ` — ${t('refinery.dialog.notRefined')}`}
-                      </TableCell>
-                      <TableCell align="right">{fmt(material.quality)}</TableCell>
-                      <TableCell align="right">{fmt(material.qty)}</TableCell>
-                      <TableCell align="right">{fmt(material.yield_amount)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Box>
-
-            {data.capture && (
+            {data?.capture && (
               <Box>
                 <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap', gap: 1 }}>
                   {data.capture.ship && <Detail label={t('refinery.dialog.ship')} value={data.capture.ship} />}
@@ -174,9 +276,12 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
                     <Detail label={t('refinery.dialog.traits')} value={data.capture.method_traits} />
                   )}
                   {data.capture.captures !== undefined && data.capture.captures > 1 && (
+                    <Detail label={t('refinery.dialog.captures')} value={String(data.capture.captures)} />
+                  )}
+                  {data.yield_total !== null && (
                     <Detail
-                      label={t('refinery.dialog.captures')}
-                      value={String(data.capture.captures)}
+                      label={t('refinery.sheet.recordedYield')}
+                      value={`${fmt(data.yield_total)} ${data.unit}`}
                     />
                   )}
                 </Stack>
@@ -208,39 +313,15 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
               </Box>
             )}
 
-            {!data.open && data.collected_location && (
+            {data && !data.open && data.collected_location && (
               <Alert severity="success">
                 {t('refinery.dialog.collectedTo', { location: data.collected_location.name })}
               </Alert>
             )}
 
-            {/* Collecting is a decision about the haul, so its two controls
-                sit with the order they describe rather than in the button
-                row, where a picker cannot carry its own helper text. */}
-            {data.open && (
-              <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr auto' } }}>
-                <LocationSelect
-                  value={destination}
-                  onChange={(next) => setPicked({ ...mine, order: id!, destination: next })}
-                  label={t('refinery.dialog.destination')}
-                  helperText={t('refinery.dialog.destinationHelp')}
-                  required
-                  size="small"
-                />
-                <Box>
-                  <VisibilitySelect
-                    value={visibility}
-                    onChange={(next) => setPicked({ ...mine, order: id!, visibility: next })}
-                    label={t('refinery.dialog.visibility')}
-                    fullWidth={false}
-                  />
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                    {t('refinery.dialog.visibilityHelp')}
-                  </Typography>
-                </Box>
-              </Box>
+            {save.isError && (
+              <Alert severity="error">{apiErrorDetail(save.error) ?? t('refinery.sheet.saveFailed')}</Alert>
             )}
-
             {collect.isError && (
               <Alert severity="error">{apiErrorDetail(collect.error) ?? t('refinery.dialog.collectFailed')}</Alert>
             )}
@@ -248,17 +329,65 @@ export function RefineryOrderDialog({ id, onClose }: { id: number | null; onClos
         )}
       </DialogContent>
 
-      <DialogActions sx={{ gap: 1, flexWrap: 'wrap' }}>
-        {data?.open && (
-          <Button
-            variant="contained"
-            disabled={destination === null || collect.isPending}
-            onClick={() => destination !== null && collect.mutate(destination.id)}
-          >
-            {collect.isPending ? t('refinery.dialog.collecting') : t('refinery.dialog.collect')}
-          </Button>
+      {/*
+        One row, one action. Which one the order's state decides: a job the
+        refinery is still working on is saved, a finished one is collected, a
+        collected one asks for nothing. Who sees the haul is the question every
+        state shares, so it sits immediately left of whichever button commits.
+        Aligned to the top, with the buttons held to the band an input occupies,
+        so the pickers' helper text cannot drag them off the line.
+      */}
+      <DialogActions sx={{ px: 3, py: 2, gap: 2, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        {ready && (
+          <LocationSelect
+            value={destination}
+            onChange={(next) => setPicked({ order: id as number, destination: next })}
+            label={t('refinery.dialog.destination')}
+            helperText={t('refinery.dialog.destinationHelp')}
+            required
+            size="small"
+            // Held to the left edge, under the sheet's own left-hand fields;
+            // the auto margin pushes the sharing switch and the buttons to the
+            // other end of the row.
+            sx={{ width: 260, mr: 'auto' }}
+          />
         )}
-        <Button onClick={onClose}>{t('common.close')}</Button>
+        {(creating || data) && !collected && (
+          // Beside the toggle rather than under it: the row is already aligned
+          // to the top for the pickers' helper text, and a second line hanging
+          // below the switch is what pushed it off the buttons' line.
+          <Box sx={{ height: 40, display: 'flex', alignItems: 'center', gap: 1.25 }}>
+            <Typography variant="caption" color="text.secondary">
+              {t('refinery.dialog.visibilityHelp')}
+            </Typography>
+            <VisibilitySelect
+              value={shareWith}
+              onChange={setShareWith}
+              label={t('refinery.dialog.visibility')}
+              fullWidth={false}
+            />
+          </Box>
+        )}
+        <Box sx={{ height: 40, display: 'flex', alignItems: 'center', gap: 1 }}>
+          {!collected && (ready ? (
+            <Button
+              variant="contained"
+              disabled={destination === null || collect.isPending}
+              onClick={() => destination !== null && collect.mutate(destination.id)}
+            >
+              {collect.isPending ? t('refinery.dialog.collecting') : t('refinery.dialog.collect')}
+            </Button>
+          ) : (
+            <Button variant="contained" disabled={!savable} onClick={() => save.mutate()}>
+              {save.isPending
+                ? t('common.saving')
+                : creating
+                  ? t('refinery.sheet.create')
+                  : t('refinery.sheet.save')}
+            </Button>
+          ))}
+          <Button onClick={close}>{t('common.close')}</Button>
+        </Box>
       </DialogActions>
     </Dialog>
   )

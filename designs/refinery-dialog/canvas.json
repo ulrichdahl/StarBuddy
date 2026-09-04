@@ -1,0 +1,54 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 900,
+      "h": 880,
+      "title": "Order dialog — in progress"
+    },
+    {
+      "file": "States.dc.html",
+      "x": 1000,
+      "y": 0,
+      "w": 960,
+      "h": 1300,
+      "title": "The three states"
+    },
+    {
+      "file": "List.dc.html",
+      "x": 0,
+      "y": 1480,
+      "w": 1300,
+      "h": 330,
+      "title": "Refinery list"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "decision",
+      "x": 2060,
+      "y": 0,
+      "w": 300,
+      "text": "One dialog, one action.\n\nThe order's state decides which:\n\nIn progress — editable, Save.\nReady — frozen, Collect.\nCollected — a record, no button.\n\nVisibility, the commit and Close all live in the dialog's action bar, with visibility immediately left of whichever button commits."
+    },
+    {
+      "id": "balance",
+      "x": 2060,
+      "y": 430,
+      "w": 300,
+      "text": "What was unbalanced\n\n1. Six unlike things in one footer row — two inputs, two read-only totals, a toggle and a button.\n2. The Time left helper wrapped to three lines and pulled the row out of true.\n3. Two competing filled buttons, in two separate rows.\n\nFix: the sheet keeps only the order's numbers — and the totals became a result strip that now also says the return %, the number this whole feature is about and the one thing that was nowhere on screen. Every control moved to the action bar."
+    },
+    {
+      "id": "edge",
+      "x": 2060,
+      "y": 900,
+      "w": 300,
+      "text": "One edge worth a decision\n\nAn order with no ETA counts as still running, so it stays editable rather than locking with no way back.\n\nThat means it is never collectable until someone sets its time left to zero. The alternative — treating a missing ETA as done — traps a half-recorded order the other way."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}
