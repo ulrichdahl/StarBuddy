@@ -542,12 +542,20 @@ html.overlay-mode body {
   flex-direction: column;
   gap: 2px;
 }
+/* Each field is as tall as its input and no taller. In a column the flex
+   basis is a height, so the rule that gives a field the width of its row —
+   written for the box's own row, which runs the other way — made both fields
+   twelve rems tall and left the panel mostly empty space. */
+.ov-fields > .ov-field {
+  flex: 0 0 auto;
+}
 
 /* A field that should take what is left of its row. The box is a wrapping flex
    row, so a field in it is otherwise as wide as its own content — which left
    the method, the longest thing anyone retypes, in the smallest box on the
-   panel. */
-.ov-field.ov-grow {
+   panel. Only for a field sitting in that row: in a column the same basis is
+   a height. */
+.ov-box > .ov-field.ov-grow {
   flex: 1 1 12rem;
   min-width: 0;
 }

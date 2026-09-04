@@ -39,6 +39,12 @@ interface Props {
   firstBox: ReactNode;
   /** Everything else, shown in Full. */
   children?: ReactNode;
+  /**
+   * What Full's content becomes when the window is minimised. Without it,
+   * minimising leaves only the first box — which for a panel whose whole
+   * purpose is the order underneath means leaving nothing.
+   */
+  compact?: ReactNode;
   /** Compact single-row content for the top/bottom strip. */
   strip: ReactNode;
   /** A panel holding a table of numbers, which needs more than the usual width. */
@@ -52,7 +58,7 @@ const isStrip = (m: PlacementMode) => m === "dock-top" || m === "dock-bottom";
  * drags the native window, the size · placement · opacity · close
  * cluster, and content-fitting (the native window wraps the panel).
  */
-export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, title, firstBox, children, strip, wide }: Props) {
+export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, title, firstBox, children, compact, strip, wide }: Props) {
   const { t } = useTranslation();
   const [prefs, setPrefs] = useState<WindowPrefs | null>(null);
   const [pop, setPop] = useState<"none" | "place" | "opacity">("none");
@@ -256,7 +262,7 @@ export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, titl
       {!strip_ && (
         <div className="ov-body">
           {firstBox}
-          {!minimal && children}
+          {minimal ? compact : children}
         </div>
       )}
     </div>
