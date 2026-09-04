@@ -213,6 +213,148 @@ export function RefineryOverlay() {
     </label>
   ) : null;
 
+  // One work order. Minimised, it keeps only what a player checks against the
+  // screen before saving — the rows actually being refined, the clock and the
+  // cost — and drops the headings, the sums and the rows the panel is not
+  // refining, which are all there to be read rather than acted on.
+  const orderBox = (order: WorkOrder, index: number, compact: boolean) => {
+    const columns = COLUMNS[order.state];
+    const totals = columns.map((column) =>
+      order.materials.reduce((sum, m) => sum + ((m[column] as number | null) ?? 0), 0),
+    );
+    const rows = compact ? order.materials.filter((m) => m.refine) : order.materials;
+    return (
+      <div className="ov-box" key={index}>
+        {!compact && (
+          <div className="ov-box-title">
+            {t(`overlay.refinery.state.${order.state}`)}
+            {order.number !== null && ` · #${order.number}`}
+          </div>
+        )}
+
+        <div className="ov-fields">
+          {index === 0 && stationField}
+          {order.state === "setup" && (
+            <label className="ov-field ov-grow">
+              <span>{t("overlay.refinery.field.method")}</span>
+              <input
+                value={order.method ?? ""}
+                onChange={(e) => patchOrder(index, { method: e.target.value || null })}
+              />
+            </label>
+          )}
+        </div>
+
+        {rows.length > 0 && (
+          <table className="ov-table ov-refinery-table">
+            {!compact && (
+              <thead>
+                <tr>
+                  <th>{t("overlay.refinery.material")}</th>
+                  {columns.map((column) => (
+                    <th key={column}>
+                      {t(`overlay.refinery.column.${column}`)}
+                      {column !== "quality" && ` (${order.unit})`}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+            )}
+            <tbody>
+              {rows.map((material, rowIndex) => {
+                const at = order.materials.indexOf(material);
+                return (
+                  <tr key={rowIndex} className={material.refine ? undefined : "ov-off"}>
+                    <td>
+                      <input
+                        value={material.resource}
+                        title={material.refine ? undefined : t("overlay.refinery.notRefined")}
+                        onChange={(e) => patchMaterial(index, at, { resource: e.target.value })}
+                      />
+                    </td>
+                    {columns.map((column) => (
+                      <td key={column}>
+                        <input
+                          inputMode="decimal"
+                          className={
+                            column === "quality"
+                              ? `ov-num ov-quality ov-rarity-${qualityTier(material.quality) ?? "poor"}`
+                              : "ov-num"
+                          }
+                          value={fmt(material[column] as number | null)}
+                          onChange={(e) => patchMaterial(index, at, { [column]: numberOrNull(e.target.value) })}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+            {/* The sums the panel prints under its own table, so a row read
+                wrong shows up as a total that does not match the screen. */}
+            {!compact && (
+              <tfoot>
+                <tr>
+                  <th>{t("overlay.refinery.total")}</th>
+                  {columns.map((column, i) => (
+                    <td key={column} className="ov-num">
+                      {column === "quality" ? "" : fmt(totals[i])}
+                    </td>
+                  ))}
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        )}
+
+        {/* Cost and the clock, in the order the website's own sheet asks for
+            them, and editable for the same reason every other number is. */}
+        <div className="ov-pair">
+          <label className="ov-field">
+            <span>{order.state === "setup" ? t("overlay.refinery.duration") : t("overlay.refinery.remaining")}</span>
+            <input
+              className="ov-num"
+              value={duration(order.duration_seconds)}
+              onChange={(e) => patchOrder(index, { duration_seconds: parseDuration(e.target.value) })}
+            />
+          </label>
+          <label className="ov-field">
+            <span>{t("overlay.refinery.cost")}</span>
+            <input
+              className="ov-num"
+              inputMode="decimal"
+              value={fmt(order.cost)}
+              onChange={(e) => patchOrder(index, { cost: numberOrNull(e.target.value) })}
+            />
+          </label>
+        </div>
+
+        {!compact && order.yield_total !== null && (
+          <div className="ov-row ov-dim">
+            <span>{t("overlay.refinery.yieldTotal")}</span>
+            <span className="ov-num">
+              {fmt(order.yield_total)} {order.unit}
+            </span>
+          </div>
+        )}
+
+        <div className="ov-actions ov-actions-commit">
+          <button
+            className="ov-primary"
+            onClick={() => save(index)}
+            disabled={!terminal?.station || savingIndex !== null}
+          >
+            {savingIndex === index
+              ? t("overlay.refinery.saving")
+              : savedIndexes.includes(index)
+                ? t("overlay.refinery.savedShort")
+                : t("overlay.refinery.save")}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const firstBox = (
     <div className="ov-box">
       {phaseText && <div className="ov-phase">{phaseText}</div>}
@@ -246,6 +388,7 @@ export function RefineryOverlay() {
       eyebrow={t("overlay.refinery.eyebrow")}
       title={t("overlay.refinery.title")}
       firstBox={firstBox}
+      compact={terminal?.orders.map((order, index) => orderBox(order, index, true))}
       strip={
         <span>
           {terminal?.station ?? t("overlay.refinery.title")}
@@ -253,135 +396,7 @@ export function RefineryOverlay() {
         </span>
       }
     >
-      {terminal?.orders.map((order, index) => {
-        const columns = COLUMNS[order.state];
-        const totals = columns.map((column) =>
-          order.materials.reduce((sum, m) => sum + ((m[column] as number | null) ?? 0), 0),
-        );
-        return (
-        <div className="ov-box" key={index}>
-          <div className="ov-box-title">
-            {t(`overlay.refinery.state.${order.state}`)}
-            {order.number !== null && ` · #${order.number}`}
-          </div>
-
-          <div className="ov-fields">
-            {index === 0 && stationField}
-            {order.state === "setup" && (
-              <label className="ov-field ov-grow">
-                <span>{t("overlay.refinery.field.method")}</span>
-                <input
-                  value={order.method ?? ""}
-                  onChange={(e) => patchOrder(index, { method: e.target.value || null })}
-                />
-              </label>
-            )}
-          </div>
-
-          {order.materials.length > 0 && (
-            <table className="ov-table ov-refinery-table">
-              <thead>
-                <tr>
-                  <th>{t("overlay.refinery.material")}</th>
-                  {columns.map((column) => (
-                    <th key={column}>
-                      {t(`overlay.refinery.column.${column}`)}
-                      {column !== "quality" && ` (${order.unit})`}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {order.materials.map((material, rowIndex) => (
-                  <tr key={rowIndex} className={material.refine ? undefined : "ov-off"}>
-                    <td>
-                      <input
-                        value={material.resource}
-                        title={material.refine ? undefined : t("overlay.refinery.notRefined")}
-                        onChange={(e) => patchMaterial(index, rowIndex, { resource: e.target.value })}
-                      />
-                    </td>
-                    {columns.map((column) => (
-                      <td key={column}>
-                        <input
-                          inputMode="decimal"
-                          className={
-                            column === "quality"
-                              ? `ov-num ov-quality ov-rarity-${qualityTier(material.quality) ?? "poor"}`
-                              : "ov-num"
-                          }
-                          value={fmt(material[column] as number | null)}
-                          onChange={(e) =>
-                            patchMaterial(index, rowIndex, { [column]: numberOrNull(e.target.value) })
-                          }
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-              {/* The sums the panel prints under its own table, so a row read
-                  wrong shows up as a total that does not match the screen. */}
-              <tfoot>
-                <tr>
-                  <th>{t("overlay.refinery.total")}</th>
-                  {columns.map((column, i) => (
-                    <td key={column} className="ov-num">
-                      {column === "quality" ? "" : fmt(totals[i])}
-                    </td>
-                  ))}
-                </tr>
-              </tfoot>
-            </table>
-          )}
-
-          {/* Cost and the clock, in the order the website's own sheet asks for
-              them, and editable for the same reason every other number is. */}
-          <div className="ov-pair">
-            <label className="ov-field">
-              <span>{order.state === "setup" ? t("overlay.refinery.duration") : t("overlay.refinery.remaining")}</span>
-              <input
-                className="ov-num"
-                value={duration(order.duration_seconds)}
-                onChange={(e) => patchOrder(index, { duration_seconds: parseDuration(e.target.value) })}
-              />
-            </label>
-            <label className="ov-field">
-              <span>{t("overlay.refinery.cost")}</span>
-              <input
-                className="ov-num"
-                inputMode="decimal"
-                value={fmt(order.cost)}
-                onChange={(e) => patchOrder(index, { cost: numberOrNull(e.target.value) })}
-              />
-            </label>
-          </div>
-
-          {order.yield_total !== null && (
-            <div className="ov-row ov-dim">
-              <span>{t("overlay.refinery.yieldTotal")}</span>
-              <span className="ov-num">
-                {fmt(order.yield_total)} {order.unit}
-              </span>
-            </div>
-          )}
-
-          <div className="ov-actions ov-actions-commit">
-            <button
-              className="ov-primary"
-              onClick={() => save(index)}
-              disabled={!terminal.station || savingIndex !== null}
-            >
-              {savingIndex === index
-                ? t("overlay.refinery.saving")
-                : savedIndexes.includes(index)
-                  ? t("overlay.refinery.savedShort")
-                  : t("overlay.refinery.save")}
-            </button>
-          </div>
-        </div>
-        );
-      })}
+      {terminal?.orders.map((order, index) => orderBox(order, index, false))}
 
       {terminal && (
         <div className="ov-box">
