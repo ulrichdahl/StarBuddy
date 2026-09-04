@@ -203,7 +203,14 @@ pub(crate) fn capture() -> Result<Captured, String> {
 /// XWayland like the Wine game, but XWayland is rootless — the root window
 /// has no pixels (GetImage on it is a BadMatch) — so the window itself is
 /// read. If the game is not an X client (native Wayland Wine) or the read
-/// fails, fall back to the desktop's screenshot tool.
+/// fails, the desktop's screenshot tool grabs the *active* window.
+///
+/// Always the game's window, never the desktop. A scan region is fractions of
+/// the frame it was chosen on, so the frame has to be the same thing every
+/// time: a game running in half the screen's width had its region land on the
+/// right-hand half of the panel at half the size whenever a read went to the
+/// desktop instead, and a read like that comes back empty. Better to say the
+/// game was not found than to read the wrong rectangle.
 #[cfg(target_os = "linux")]
 pub(crate) fn capture() -> Result<Captured, String> {
     match capture_x11_window() {
@@ -331,12 +338,11 @@ pub(crate) fn crop_region(full: Captured, region: ScanRegion) -> Result<Captured
 fn capture_with_tool() -> Result<Captured, String> {
     let out = std::env::temp_dir().join(format!("starbuddy-scan-{}.png", std::process::id()));
     let out_s = out.to_string_lossy().into_owned();
-    let attempts: [(&str, &str, Vec<String>); 4] = [
-        ("spectacle", "window", vec!["-b".into(), "-n".into(), "-a".into(), "-o".into(), out_s.clone()]),
-        ("spectacle", "screen", vec!["-b".into(), "-n".into(), "-m".into(), "-o".into(), out_s.clone()]),
-        ("grim", "screen", vec![out_s.clone()]),
-        ("gnome-screenshot", "screen", vec!["-f".into(), out_s.clone()]),
-    ];
+    // The active window only. A whole-screen grab would succeed and give the
+    // wrong frame, which is worse than not reading at all: the region means
+    // fractions of the game's window, and the desktop is a different size.
+    let attempts: [(&str, &str, Vec<String>); 1] =
+        [("spectacle", "window", vec!["-b".into(), "-n".into(), "-a".into(), "-o".into(), out_s.clone()])];
     let mut tried = Vec::new();
     for (tool, what, args) in attempts {
         let _ = fs::remove_file(&out);
@@ -360,15 +366,20 @@ fn capture_with_tool() -> Result<Captured, String> {
         let _ = fs::remove_file(&out);
         let (width, height) = img.dimensions();
         // Not the game: too small, or not a widescreen frame (the client's
-        // own window is ~1130×858 — that is what was captured once).
-        if what == "window" && (width < 1280 || height < 720 || (width as f32 / height as f32) < 1.5) {
-            log::debug!("active window is {width}×{height}, not the game — using the screen");
+        // own window is ~1130×858 — that is what was captured once). The
+        // active window is whatever was clicked last, so this is the only
+        // check standing between a read and somebody's file manager.
+        if width < 1280 || height < 720 || (width as f32 / height as f32) < 1.5 {
+            log::debug!("active window is {width}×{height}, which is not the game");
             tried.push(format!("{tool} window ({width}×{height})"));
             continue;
         }
         return Ok(Captured { rgb: img.into_raw(), width, height, source: format!("{what} ({tool})"), full_height: height });
     }
-    Err(format!("no screenshot tool delivered an image (tried {})", tried.join(", ")))
+    Err(format!(
+        "The game's window could not be found — is Star Citizen running, and was it the last window you clicked? (tried {})",
+        tried.join(", ")
+    ))
 }
 
 #[cfg(not(any(windows, target_os = "linux")))]
