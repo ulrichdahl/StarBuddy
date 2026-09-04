@@ -366,7 +366,7 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
           // collect picker, the sharing switch and the commit button stays one
           // row: wrapping put the delete on a line of its own, which reads as
           // belonging to the sheet rather than to the actions.
-          <Box sx={{ height: 40, display: 'flex', alignItems: 'center', gap: 1, mr: ready ? 2 : 'auto' }}>
+          <Box sx={{ height: 40, display: 'flex', alignItems: 'center', gap: 1, mr: 'auto' }}>
             {confirmDelete ? (
               <>
                 <Button
@@ -395,10 +395,11 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
             helperText={t('refinery.dialog.destinationHelp')}
             required
             size="small"
-            // Held to the left edge, under the sheet's own left-hand fields;
-            // the auto margin pushes the sharing switch and the buttons to the
-            // other end of the row.
-            sx={{ width: 220, mr: 'auto' }}
+            // Part of the right-hand group, with the sharing switch and the
+            // button it feeds: everything that commits the order stands
+            // together, and the gap in the row falls between them and the
+            // delete, which undoes it.
+            sx={{ width: 220 }}
           />
         )}
         {(creating || data) && !collected && (
