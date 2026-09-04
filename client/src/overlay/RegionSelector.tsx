@@ -46,6 +46,15 @@ export function RegionSelector() {
     invoke<Frame | null>("region_frame").then(setFrame).catch(() => setFrame(null));
   }, []);
 
+  // The area that is stored right now, drawn on the same still. Whether the
+  // one in use is the right rectangle is the question the selector is usually
+  // opened to answer, and until it was shown the only way to tell was to read
+  // a panel and see what came back.
+  const [saved, setSaved] = useState<Area | null>(null);
+  useEffect(() => {
+    invoke<Area | null>("region_current", { purpose }).then(setSaved).catch(() => setSaved(null));
+  }, [purpose]);
+
   const finish = useCallback(
     (chosen: Area | null) => {
       invoke("region_selected", { purpose, area: chosen }).catch((e: unknown) => {
@@ -125,6 +134,16 @@ export function RegionSelector() {
     const span = fit ? (along === "x" ? fit.width : fit.height) : along === "x" ? window.innerWidth : window.innerHeight;
     return { start: origin + Math.min(x, x + w) * span, length: Math.abs(w) * span };
   };
+  const rect = (of: Area) => {
+    const across = place(of.x, of.w, "x");
+    const down = place(of.y, of.h, "y");
+    return {
+      left: `${across.start}px`,
+      top: `${down.start}px`,
+      width: `${across.length}px`,
+      height: `${down.length}px`,
+    };
+  };
   const box = area
     ? (() => {
         const across = place(area.x, area.w, "x");
@@ -159,6 +178,9 @@ export function RegionSelector() {
         />
       )}
 
+      {/* The area in use, before anything is dragged over it. */}
+      {saved && !area && <div className="region-saved" style={rect(saved)} />}
+
       {/* Four panes of dim around the selection leave the chosen area clear,
           so the player sees the real panel rather than a dimmed copy of it. */}
       {box ? (
@@ -183,6 +205,7 @@ export function RegionSelector() {
             title bar above its order. */}
         <span>{t(`overlay.region.need.${purpose}`, "")}</span>
         <span>{error ?? t("overlay.region.hint")}</span>
+        {saved && !area && <span className="region-legend">{t("overlay.region.saved")}</span>}
         {frame && <span className="region-source">{frame.source} · {frame.width}×{frame.height}</span>}
       </div>
     </div>

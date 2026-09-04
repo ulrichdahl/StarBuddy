@@ -361,6 +361,21 @@ html.overlay-mode body {
   background: rgba(6, 9, 13, 0.92);
 }
 
+/* The area that is stored now, so a wrong one can be seen for what it is
+   rather than deduced from a read that came back empty. Orange, and drawn over
+   the dim so it reads through it. */
+.region-saved {
+  position: absolute;
+  border: 2px solid #f0a02a;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55), 0 0 14px rgba(240, 160, 42, 0.45);
+  background: rgba(240, 160, 42, 0.1);
+  pointer-events: none;
+  z-index: 3;
+}
+.region-legend {
+  color: #f0a02a;
+}
+
 .region-frame {
   position: absolute;
   /* Placed and sized from the frame's own dimensions: the game's window is not
