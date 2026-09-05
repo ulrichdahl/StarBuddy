@@ -15,7 +15,7 @@
   "scan": {
     "title": "Star Citizen installation",
     "detected": "Detected:",
-    "notDetected": "No installation auto-detected. Browse to your StarCitizen LIVE folder, or type its path below:",
+    "notDetected": "No installation auto-detected. Browse to your StarCitizen folder, or type the path to a channel below:",
     "dirPlaceholder": "…/StarCitizen/LIVE",
     "scanButton": "Scan log history",
     "scanning": "Scanning…",
@@ -23,7 +23,11 @@
     "preparing": "Preparing scan…",
     "browse": "Find your installation…",
     "browseChange": "Change…",
-    "browseTitle": "Select the Star Citizen LIVE folder"
+    "browseTitle": "Select the StarCitizen folder, or one channel inside it",
+    "channels": "Channel:",
+    "played": "last played {{when}}",
+    "neverPlayed": "never played",
+    "manualOnly": "test"
   },
   "watcher": {
     "title": "Live watcher",

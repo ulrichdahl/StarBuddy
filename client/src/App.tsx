@@ -8,6 +8,17 @@ import { useTranslation } from "react-i18next";
 import { LOCALE_NAMES, SUPPORTED_LOCALES, setLocale, type Locale } from "./i18n";
 import "./App.css";
 
+/** A game channel folder found on this machine. */
+interface GameChannel {
+  /** LIVE, HOTFIX, PTU, … */
+  name: string;
+  path: string;
+  /** When its Game.log was last written, unix milliseconds. */
+  played_at: number | null;
+  /** Whether detection may choose this one on its own. */
+  automatic: boolean;
+}
+
 interface ScanProgress {
   current: number;
   total: number;
@@ -175,6 +186,9 @@ function BodyText({ text }: { text: string }) {
 function App() {
   const { t, i18n } = useTranslation();
   const [liveDir, setLiveDir] = useState<string | null>(null);
+  // The channel folders found on this machine: LIVE and HOTFIX, plus any test
+  // channel installed, which is offered but never chosen on its own.
+  const [channels, setChannels] = useState<GameChannel[]>([]);
   const [customDir, setCustomDir] = useState("");
   const [liveDirError, setLiveDirError] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -226,6 +240,7 @@ function App() {
 
   useEffect(() => {
     invoke<string | null>("detect_game_log").then(setLiveDir);
+    invoke<GameChannel[]>("game_channels").then(setChannels).catch(() => setChannels([]));
     invoke<ConnectionView>("get_connection").then(setConnection);
     invoke<boolean>("watcher_status").then(setWatching);
     // Errors (offline, rate-limited, odd tag) mean "no update info", never an update.
@@ -472,6 +487,18 @@ function App() {
       if (typeof picked !== "string") return;
       const live = await invoke<string>("set_live_dir", { path: picked });
       setLiveDir(live);
+      setCustomDir("");
+    } catch (e) {
+      setLiveDirError(String(e));
+    }
+  };
+
+  // Switching channel is the same act as browsing to one, so it is saved the
+  // same way: the choice sticks until it is changed again.
+  const chooseChannel = async (path: string) => {
+    setLiveDirError(null);
+    try {
+      setLiveDir(await invoke<string>("set_live_dir", { path }));
       setCustomDir("");
     } catch (e) {
       setLiveDirError(String(e));
@@ -775,6 +802,25 @@ function App() {
           </div>
         )}
         {liveDirError && <p className="error">{liveDirError}</p>}
+        {/* One button per channel installed. LIVE and HOTFIX are the two
+            detection chooses between, by which was played last; a test channel
+            is only ever reached by asking for it here. */}
+        {channels.length > 1 && (
+          <div className="row" style={{ flexWrap: "wrap", alignItems: "baseline", gap: 8 }}>
+            <span className="muted">{t("scan.channels")}</span>
+            {channels.map((channel) => (
+              <button
+                key={channel.path}
+                className={channel.path === liveDir ? "chip on" : "chip"}
+                title={`${channel.path}${channel.played_at ? ` · ${t("scan.played", { when: new Date(channel.played_at).toLocaleString() })}` : ` · ${t("scan.neverPlayed")}`}`}
+                onClick={() => void chooseChannel(channel.path)}
+              >
+                {channel.name}
+                {!channel.automatic && <span className="muted"> · {t("scan.manualOnly")}</span>}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="row">
           <input
             type="text"

@@ -85,6 +85,30 @@ button.active {
   color: var(--bg);
 }
 
+.muted {
+  color: var(--muted);
+}
+
+/* One per game channel installed, small enough to sit in a row of them. */
+button.chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.9em;
+  border-color: var(--muted);
+  color: var(--muted);
+}
+
+button.chip.on {
+  border-color: var(--accent);
+  color: var(--bg);
+  background: var(--accent);
+}
+
+button.chip .muted {
+  opacity: 0.75;
+  font-size: 0.9em;
+}
+
 code,
 .mono {
   font-family: ui-monospace, monospace;
