@@ -46,18 +46,10 @@ pub struct Frame {
 /// capture itself produces, so a rectangle drawn on it means exactly what it
 /// looks like even when the capture is a game window rather than the monitor.
 fn grab_frame(app: &AppHandle, purpose: &Purpose) -> Result<Frame, String> {
-    // A live grab first, then the last frame a read got. The selector is
-    // opened from the client's own window, so on a game the screenshot tool
-    // can only reach as the *active* window there is nothing live to grab —
-    // and the fallback of no picture at all is a black sheet over a fullscreen
-    // game, which is worse than a frame a few minutes old. The geometry is
-    // what the area is drawn against, and that does not go stale.
-    let cap = match crate::scan::capture_for(app, purpose) {
-        Ok(cap) => cap,
-        Err(live) => crate::scan::last_frame().ok_or_else(|| {
-            format!("{live} — open the panel in game and press the read hotkey once, then pick the area")
-        })?,
-    };
+    // The stream's newest frame. It is the same picture the reader works from,
+    // which is the whole property an area depends on: its fractions mean
+    // nothing except against the frame they were measured on.
+    let cap = crate::scan::capture_for(app, purpose)?;
     let buffer = image::RgbImage::from_raw(cap.width, cap.height, cap.rgb.clone())
         .ok_or("capture did not fit its own dimensions")?;
     let mut out = std::io::Cursor::new(Vec::new());
@@ -91,10 +83,6 @@ pub enum Purpose {
     Refinery,
     /// The mining scan signature badge (the existing scan region).
     Scan,
-    /// The game's own window on the desktop. Framed on a picture of the whole
-    /// screen rather than of the game, since it is the game that is being
-    /// pointed at.
-    Game,
 }
 
 impl Purpose {
@@ -102,7 +90,6 @@ impl Purpose {
         match value {
             "refinery" => Ok(Self::Refinery),
             "scan" => Ok(Self::Scan),
-            "game" => Ok(Self::Game),
             other => Err(format!("unknown capture area {other}")),
         }
     }
@@ -190,7 +177,6 @@ pub fn region_selected(
     match purpose {
         Purpose::Refinery => prefs.refinery_region = Some(area),
         Purpose::Scan => prefs.scan_region = Some(area),
-        Purpose::Game => prefs.game_rect = Some(area),
     }
     crate::save_client_prefs(&app, &prefs)?;
     let _ = app.emit("region-updated", serde_json::json!({ "purpose": purpose, "area": area }));
@@ -211,7 +197,6 @@ pub fn region_clear(app: AppHandle, purpose: String) -> Result<(), String> {
     match purpose {
         Purpose::Refinery => prefs.refinery_region = None,
         Purpose::Scan => prefs.scan_region = None,
-        Purpose::Game => prefs.game_rect = None,
     }
     crate::save_client_prefs(&app, &prefs)
 }
@@ -221,7 +206,6 @@ fn current(app: &AppHandle, purpose: &Purpose) -> Option<ScanRegion> {
     match purpose {
         Purpose::Refinery => prefs.refinery_region,
         Purpose::Scan => prefs.scan_region,
-        Purpose::Game => prefs.game_rect,
     }
 }
 

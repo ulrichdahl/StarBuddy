@@ -17,37 +17,7 @@
 //! it wants one; nothing is queued, because a capture is a question about now.
 
 use crate::scan::Captured;
-use std::sync::{Arc, Mutex, OnceLock};
-
-/// The newest frame the stream has delivered, and what the stream is doing.
-#[derive(Default)]
-struct Feed {
-    frame: Option<Captured>,
-    /// Set once the stream is running, cleared when it stops.
-    live: bool,
-    /// Why it is not running, when it is not.
-    error: Option<String>,
-}
-
-fn feed() -> &'static Arc<Mutex<Feed>> {
-    static FEED: OnceLock<Arc<Mutex<Feed>>> = OnceLock::new();
-    FEED.get_or_init(|| Arc::new(Mutex::new(Feed::default())))
-}
-
-/// Whether a stream is running and has produced at least one frame.
-pub fn streaming() -> bool {
-    feed().lock().map(|f| f.live).unwrap_or(false)
-}
-
-/// What went wrong with the stream, if anything.
-pub fn trouble() -> Option<String> {
-    feed().lock().ok().and_then(|f| f.error.clone())
-}
-
-/// The newest frame, if the stream has produced one.
-pub fn frame() -> Option<Captured> {
-    feed().lock().ok().and_then(|f| f.frame.clone())
-}
+use std::sync::{Mutex, OnceLock};
 
 /// Ask the portal for a window, and keep its stream running.
 ///
@@ -177,11 +147,7 @@ fn run_stream(node: u32, fd: std::os::fd::OwnedFd, stop: pipewire::channel::Rece
             let stride = data.chunk().stride().max(0) as usize;
             let Some(pixels) = data.data() else { return };
             if let Some(cap) = to_capture(pixels, stride, width, height, format) {
-                if let Ok(mut feed) = feed().lock() {
-                    feed.frame = Some(cap);
-                    feed.live = true;
-                    feed.error = None;
-                }
+                crate::reading::set_frame(cap);
             }
         })
         .register()
@@ -252,10 +218,7 @@ fn run_stream(node: u32, fd: std::os::fd::OwnedFd, stop: pipewire::channel::Rece
     let _stop = stop.attach(main_loop.loop_(), move |()| quit.quit());
     main_loop.run();
 
-    if let Ok(mut feed) = feed().lock() {
-        feed.live = false;
-        feed.frame = None;
-    }
+    crate::reading::set_stopped(None);
     Ok(())
 }
 
@@ -326,20 +289,13 @@ pub async fn start(restore: Option<String>) -> Result<Option<String>, String> {
         .spawn(move || {
             if let Err(e) = run_stream(node, fd, receiver) {
                 log::warn!("screen reading stopped: {e}");
-                if let Ok(mut feed) = feed().lock() {
-                    feed.live = false;
-                    feed.frame = None;
-                    feed.error = Some(e);
-                }
+                crate::reading::set_stopped(Some(e));
             }
         })
         .map_err(|e| e.to_string())?;
 
     *running().lock().map_err(|_| "screen reading is in a bad state")? =
         Some(Running { stop: sender, _session: chosen.session, thread: Some(thread) });
-    if let Ok(mut feed) = feed().lock() {
-        feed.error = None;
-    }
     Ok(chosen.token)
 }
 
@@ -353,10 +309,7 @@ pub fn stop() {
         // makes a restart start cleanly rather than beside the old one.
         let _ = thread.join();
     }
-    if let Ok(mut feed) = feed().lock() {
-        feed.live = false;
-        feed.frame = None;
-    }
+    crate::reading::set_stopped(None);
 }
 
 /// Whether a stream is set up at all, frames or not.

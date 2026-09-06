@@ -173,228 +173,22 @@ pub struct Captured {
     pub full_height: u32,
 }
 
-/// Windows: one window by name, whatever is in front of it.
-#[cfg(windows)]
-pub(crate) fn capture_named_window(title: &str) -> Result<Captured, String> {
-    let window = xcap::Window::all()
-        .map_err(|e| e.to_string())?
-        .into_iter()
-        .find(|w| w.title().map(|t| t == title).unwrap_or(false) && !w.is_minimized().unwrap_or(true))
-        .ok_or_else(|| format!("The window \"{title}\" is not open — is the game running?"))?;
-    let img = window.capture_image().map_err(|e| e.to_string())?;
-    let (width, height) = img.dimensions();
-    let rgb = img.pixels().flat_map(|p| [p[0], p[1], p[2]]).collect();
-    Ok(Captured { rgb, width, height, source: format!("window: {title}"), full_height: height })
-}
-
-/// Windows: the game window if it is up, else the primary monitor.
-#[cfg(windows)]
-pub(crate) fn capture() -> Result<Captured, String> {
-    let game = xcap::Window::all()
-        .map_err(|e| e.to_string())?
-        .into_iter()
-        .find(|w| {
-            let title = w.title().unwrap_or_default();
-            title.contains("Star Citizen") && !w.is_minimized().unwrap_or(true)
-        });
-    let (img, source) = match game {
-        Some(w) => (w.capture_image().map_err(|e| e.to_string())?, format!("window: {}", w.title().unwrap_or_default())),
-        None => {
-            let monitors = xcap::Monitor::all().map_err(|e| e.to_string())?;
-            let m = monitors
-                .iter()
-                .find(|m| m.is_primary().unwrap_or(false))
-                .or(monitors.first())
-                .ok_or("no monitor")?;
-            (m.capture_image().map_err(|e| e.to_string())?, "monitor".to_string())
-        }
-    };
-    let (width, height) = img.dimensions();
-    let rgb = img.pixels().flat_map(|p| [p[0], p[1], p[2]]).collect();
-    Ok(Captured { rgb, width, height, source, full_height: height })
-}
-
-/// Linux: GetImage on the game's own X window. The client runs through
-/// XWayland like the Wine game, but XWayland is rootless — the root window
-/// has no pixels (GetImage on it is a BadMatch) — so the window itself is
-/// read. If the game is not an X client (native Wayland Wine) or the read
-/// fails, the desktop's screenshot tool grabs the *active* window.
+/// The frame a purpose is framed against: the game's window, always.
 ///
-/// Always the game's window, never the desktop. A scan region is fractions of
-/// the frame it was chosen on, so the frame has to be the same thing every
-/// time: a game running in half the screen's width had its region land on the
-/// right-hand half of the panel at half the size whenever a read went to the
-/// desktop instead, and a read like that comes back empty. Better to say the
-/// game was not found than to read the wrong rectangle.
-#[cfg(target_os = "linux")]
-pub(crate) fn capture_frame(marked: Option<ScanRegion>) -> Result<Captured, String> {
-    // A marked rectangle is the whole answer: grab the desktop, cut the game
-    // out of it, and never mind what has focus.
-    let cap = if let Some(rect) = marked {
-        let screen = capture_screen()?;
-        let cut = crop_region(screen, rect)?;
-        Captured { source: format!("marked window, {}", cut.source), ..cut }
-    } else {
-        match capture_x11_window() {
-            Ok(c) => Ok(c),
-            Err(x11_err) => capture_with_tool().map_err(|tool_err| format!("{x11_err}; {tool_err}")),
-        }?
-    };
-    remember_frame(&cap);
-    Ok(cap)
-}
-
-#[cfg(target_os = "linux")]
-pub(crate) fn capture() -> Result<Captured, String> {
-    capture_frame(None)
-}
-
-/// The frame a purpose is framed against.
-///
-/// Everything is measured against the game's window — except the game's own
-/// rectangle, which is marked on a picture of the whole desktop, because that
-/// is what it is a rectangle of.
-pub(crate) fn capture_for(app: &AppHandle, purpose: &crate::region::Purpose) -> Result<Captured, String> {
-    if matches!(purpose, crate::region::Purpose::Game) {
-        #[cfg(target_os = "linux")]
-        return capture_screen();
-    }
+/// Every area a player frames is fractions of this, so there is one frame and
+/// no other. It used to be whichever of several capture routes answered, and
+/// they did not agree with each other — a region drawn against one of them
+/// landed somewhere else entirely when another answered the next time.
+pub(crate) fn capture_for(app: &AppHandle, _purpose: &crate::region::Purpose) -> Result<Captured, String> {
     capture_game(app)
 }
 
-/// The game's frame, cut from the desktop when the player has marked where it
-/// is and grabbed directly when they have not.
+/// The game's window, from the stream the player switched on.
 pub(crate) fn capture_game(app: &AppHandle) -> Result<Captured, String> {
-    // The window the player chose, streamed by the desktop. It is the only
-    // way that keeps working while the game is behind something, so it is
-    // tried before anything that depends on what is in front.
-    #[cfg(target_os = "linux")]
-    if crate::portal::on() {
-        if let Some(frame) = crate::portal::frame() {
-            return Ok(frame);
-        }
-        // Switched on, but the first frame has not arrived: a compositor sends
-        // one when the window next paints, and a game paints constantly.
-        for _ in 0..40 {
-            std::thread::sleep(std::time::Duration::from_millis(50));
-            if let Some(frame) = crate::portal::frame() {
-                return Ok(frame);
-            }
-        }
-        return Err(crate::portal::trouble()
-            .unwrap_or_else(|| "The window is not sending anything — is the game still running?".into()));
+    if !crate::reading::state(app).on {
+        return Err("Screen reading is off. Switch it on in StarBuddy and choose the game's window.".into());
     }
-    #[cfg(windows)]
-    if let Some(title) = crate::load_client_prefs(app).screen_source {
-        return capture_named_window(&title);
-    }
-    #[cfg(target_os = "linux")]
-    {
-        return capture_frame(crate::load_client_prefs(app).game_rect);
-    }
-    #[cfg(not(target_os = "linux"))]
-    {
-        let _ = app;
-        capture()
-    }
-}
-
-#[cfg(target_os = "linux")]
-fn capture_x11_window() -> Result<Captured, String> {
-    capture_x11_rect(None)
-}
-
-/// GetImage on the game window, whole or a sub-rectangle (relative region).
-#[cfg(target_os = "linux")]
-fn capture_x11_rect(region: Option<ScanRegion>) -> Result<Captured, String> {
-    use x11rb::connection::Connection;
-    use x11rb::protocol::xproto::{AtomEnum, ConnectionExt, ImageFormat, Window};
-
-    let (conn, screen_num) = x11rb::connect(None).map_err(|e| format!("X11 connect failed: {e}"))?;
-    let root = conn.setup().roots[screen_num].root;
-    let net_wm_name = conn.intern_atom(false, b"_NET_WM_NAME").map_err(|e| e.to_string())?.reply().map_err(|e| e.to_string())?.atom;
-    let utf8 = conn.intern_atom(false, b"UTF8_STRING").map_err(|e| e.to_string())?.reply().map_err(|e| e.to_string())?.atom;
-
-    fn name_of(conn: &impl Connection, win: Window, net_wm_name: u32, utf8: u32) -> String {
-        for (prop, ty) in [(net_wm_name, utf8), (AtomEnum::WM_NAME.into(), AtomEnum::STRING.into())] {
-            if let Ok(Ok(r)) = conn.get_property(false, win, prop, ty, 0, 256).map(|c| c.reply()) {
-                if !r.value.is_empty() {
-                    return String::from_utf8_lossy(&r.value).into_owned();
-                }
-            }
-        }
-        String::new()
-    }
-
-    // Breadth-first over the tree: WMs may reparent the game window once.
-    let mut queue = vec![root];
-    let mut depth = 0;
-    let mut game: Option<(Window, String)> = None;
-    while !queue.is_empty() && depth < 3 && game.is_none() {
-        let mut next = Vec::new();
-        for win in queue.drain(..) {
-            let Ok(Ok(tree)) = conn.query_tree(win).map(|c| c.reply()) else { continue };
-            for child in tree.children {
-                let name = name_of(&conn, child, net_wm_name, utf8);
-                if name.contains("Star Citizen") {
-                    game = Some((child, name));
-                    break;
-                }
-                next.push(child);
-            }
-            if game.is_some() {
-                break;
-            }
-        }
-        queue = next;
-        depth += 1;
-    }
-    let (win, title) = game.ok_or("no Star Citizen X11 window")?;
-    let geo = conn.get_geometry(win).map_err(|e| e.to_string())?.reply().map_err(|e| e.to_string())?;
-    let (fx, fy, fw, fh) = match region {
-        Some(r) => region_px(r, geo.width as u32, geo.height as u32),
-        None => (0, 0, geo.width as i32, geo.height as i32),
-    };
-    let (width, height) = (fw as u32, fh as u32);
-    let img = conn
-        .get_image(ImageFormat::Z_PIXMAP, win, fx as i16, fy as i16, fw as u16, fh as u16, !0)
-        .map_err(|e| e.to_string())?
-        .reply()
-        .map_err(|e| format!("X11 GetImage on the game window failed: {e}"))?;
-    let bpp = img.data.len() / (width as usize * height as usize);
-    if bpp < 3 {
-        return Err(format!("unexpected pixel format ({bpp} bytes/px)"));
-    }
-    // ZPixmap is BGRx in memory on little-endian servers.
-    let rgb = img.data.chunks_exact(bpp).flat_map(|px| [px[2], px[1], px[0]]).collect();
-    Ok(Captured { rgb, width, height, source: format!("window: {title}"), full_height: geo.height as u32 })
-}
-
-/// The last frame a capture actually got out of the game.
-///
-/// A game running on Wine's Wayland driver has no X11 window to read, so the
-/// only way to its pixels is the screenshot tool's *active window* — which
-/// means the game has to be the window in front. Pressing the hotkey in game
-/// satisfies that; opening the region selector from the client's own window
-/// never can, and a selector with no picture under it is a black sheet over a
-/// fullscreen game, which is how an area comes to be drawn by guesswork.
-///
-/// So the frames that do arrive are kept, and the selector draws on the last
-/// one. It is the same frame the reader works from, which is the property the
-/// region depends on: its fractions only mean anything against the frame they
-/// were measured on.
-static LAST_FRAME: std::sync::OnceLock<std::sync::Mutex<Option<Captured>>> = std::sync::OnceLock::new();
-
-fn remember_frame(cap: &Captured) {
-    let slot = LAST_FRAME.get_or_init(|| std::sync::Mutex::new(None));
-    if let Ok(mut last) = slot.lock() {
-        *last = Some(cap.clone());
-    }
-}
-
-/// The last frame the game gave up, if there has been one this run.
-pub(crate) fn last_frame() -> Option<Captured> {
-    LAST_FRAME.get()?.lock().ok()?.clone()
+    crate::reading::game_frame()
 }
 
 /// Region fractions → pixel rect inside a frame of the given size.
@@ -406,34 +200,12 @@ pub(crate) fn region_px(r: ScanRegion, width: u32, height: u32) -> (i32, i32, i3
     (x, y, w.max(8), h.max(8))
 }
 
-/// Only the signature region of the game frame (the live loop's capture).
+/// The signature region of the game frame (the live loop's capture).
+///
+/// One frame, cut down. There is no separate route for a region: the stream
+/// gives the window, and every area a player framed is fractions of it.
 fn capture_region(app: &AppHandle, region: ScanRegion) -> Result<Captured, String> {
-    #[cfg(target_os = "linux")]
-    if let Some(marked) = crate::load_client_prefs(app).game_rect {
-        // The game's frame is cut from the desktop, and the region out of that
-        // — the same two steps a read takes, so both mean the same rectangle.
-        return crop_region(capture_frame(Some(marked))?, region);
-    }
-    #[cfg(target_os = "linux")]
-    {
-        match capture_x11_rect(Some(region)) {
-            Ok(c) => return Ok(c),
-            // Native-Wayland game: the tool grabs the game's window, and the
-            // region is cut out of it here. The whole frame is worth keeping
-            // before it is cut down — it is the same frame the region selector
-            // needs to draw on, and a live scan is often the only thing that
-            // has the game in front of it.
-            Err(x11_err) => {
-                let full = capture_with_tool().map_err(|tool_err| format!("{x11_err}; {tool_err}"))?;
-                remember_frame(&full);
-                return crop_region(full, region);
-            }
-        }
-    }
-    #[cfg(not(target_os = "linux"))]
-    {
-        crop_region(capture()?, region)
-    }
+    crop_region(capture_game(app)?, region)
 }
 
 pub(crate) fn crop_region(full: Captured, region: ScanRegion) -> Result<Captured, String> {
@@ -441,109 +213,6 @@ pub(crate) fn crop_region(full: Captured, region: ScanRegion) -> Result<Captured
     let img = image::RgbImage::from_raw(full.width, full.height, full.rgb).ok_or("bad frame")?;
     let crop = image::imageops::crop_imm(&img, x as u32, y as u32, w as u32, h as u32).to_image();
     Ok(Captured { rgb: crop.into_raw(), width: w as u32, height: h as u32, source: full.source, full_height: full.height })
-}
-
-/// KDE spectacle / wlroots grim / GNOME screenshot into a temp PNG.
-/// This is the route for a game running as a native Wayland client (Wine's
-/// Wayland driver), which has no X11 window to read. Spectacle first grabs
-/// the *active window* — while playing that is the game frame itself, so
-/// the region fractions apply to the real frame regardless of monitor size
-/// — and falls back to the current screen when the active window cannot be
-/// the game (too small: our own overlay that was just clicked, a dialog).
-/// Tools run through host_command so the AppImage's library paths never
-/// reach them.
-/// The whole desktop, for cutting a remembered rectangle out of.
-///
-/// On a game the screenshot tool can only reach as the *active* window, every
-/// capture depends on the game being in front — which it is not, the moment
-/// anyone clicks an overlay. A player who marks the game's rectangle once
-/// escapes that entirely: the desktop is always grabbable, and the game's
-/// window does not move during a session.
-#[cfg(target_os = "linux")]
-fn capture_screen() -> Result<Captured, String> {
-    let out = std::env::temp_dir().join(format!("starbuddy-screen-{}.png", std::process::id()));
-    let out_s = out.to_string_lossy().into_owned();
-    let attempts: [(&str, Vec<String>); 3] = [
-        ("spectacle", vec!["-b".into(), "-n".into(), "-f".into(), "-o".into(), out_s.clone()]),
-        ("grim", vec![out_s.clone()]),
-        ("gnome-screenshot", vec!["-f".into(), out_s.clone()]),
-    ];
-    let mut tried = Vec::new();
-    for (tool, args) in attempts {
-        let _ = fs::remove_file(&out);
-        let Ok(output) = crate::host_command(tool).args(&args).output() else {
-            tried.push(format!("{tool} (not installed)"));
-            continue;
-        };
-        if !(output.status.success() && out.exists()) {
-            tried.push(format!("{tool} ({})", output.status));
-            continue;
-        }
-        let img = image::open(&out).map_err(|e| e.to_string())?.into_rgb8();
-        let _ = fs::remove_file(&out);
-        let (width, height) = img.dimensions();
-        return Ok(Captured {
-            rgb: img.into_raw(),
-            width,
-            height,
-            source: format!("screen ({tool})"),
-            full_height: height,
-        });
-    }
-    Err(format!("no screenshot tool could grab the screen (tried {})", tried.join(", ")))
-}
-
-#[cfg(target_os = "linux")]
-fn capture_with_tool() -> Result<Captured, String> {
-    let out = std::env::temp_dir().join(format!("starbuddy-scan-{}.png", std::process::id()));
-    let out_s = out.to_string_lossy().into_owned();
-    // The active window only. A whole-screen grab would succeed and give the
-    // wrong frame, which is worse than not reading at all: the region means
-    // fractions of the game's window, and the desktop is a different size.
-    let attempts: [(&str, &str, Vec<String>); 1] =
-        [("spectacle", "window", vec!["-b".into(), "-n".into(), "-a".into(), "-o".into(), out_s.clone()])];
-    let mut tried = Vec::new();
-    for (tool, what, args) in attempts {
-        let _ = fs::remove_file(&out);
-        let output = match crate::host_command(tool).args(&args).output() {
-            Ok(o) => o,
-            Err(e) => {
-                if e.kind() != std::io::ErrorKind::NotFound {
-                    log::debug!("{tool}: {e}");
-                }
-                tried.push(format!("{tool} (not installed)"));
-                continue;
-            }
-        };
-        if !(output.status.success() && out.exists()) {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            log::warn!("{tool} {what}: exited {} without an image: {}", output.status, stderr.trim());
-            tried.push(format!("{tool} {what} ({})", output.status));
-            continue;
-        }
-        let img = image::open(&out).map_err(|e| e.to_string())?.into_rgb8();
-        let _ = fs::remove_file(&out);
-        let (width, height) = img.dimensions();
-        // Not the game: too small, or not a widescreen frame (the client's
-        // own window is ~1130×858 — that is what was captured once). The
-        // active window is whatever was clicked last, so this is the only
-        // check standing between a read and somebody's file manager.
-        if width < 1280 || height < 720 || (width as f32 / height as f32) < 1.5 {
-            log::debug!("active window is {width}×{height}, which is not the game");
-            tried.push(format!("{tool} window ({width}×{height})"));
-            continue;
-        }
-        return Ok(Captured { rgb: img.into_raw(), width, height, source: format!("{what} ({tool})"), full_height: height });
-    }
-    Err(format!(
-        "The game's window could not be found — is Star Citizen running, and was it the last window you clicked? (tried {})",
-        tried.join(", ")
-    ))
-}
-
-#[cfg(not(any(windows, target_os = "linux")))]
-pub(crate) fn capture() -> Result<Captured, String> {
-    Err("screen capture is not supported on this platform yet".into())
 }
 
 /// Read with the engine the app already has, loading it once if it has none.

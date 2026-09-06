@@ -17,7 +17,77 @@
 //! Off by default and off again when asked, because a client that watches the
 //! screen from the moment it starts is not something to discover afterwards.
 
+use crate::scan::Captured;
 use serde::Serialize;
+use std::sync::{Mutex, OnceLock};
+
+/// The newest frame the stream has delivered, and what the stream is doing.
+///
+/// Only ever the newest: a capture is a question about now, so nothing is
+/// queued and a reader takes a copy when it wants one.
+#[derive(Default)]
+struct Feed {
+    frame: Option<Captured>,
+    live: bool,
+    error: Option<String>,
+}
+
+fn feed() -> &'static Mutex<Feed> {
+    static FEED: OnceLock<Mutex<Feed>> = OnceLock::new();
+    FEED.get_or_init(|| Mutex::new(Feed::default()))
+}
+
+/// A frame has arrived from whichever stream this platform uses.
+pub fn set_frame(frame: Captured) {
+    if let Ok(mut feed) = feed().lock() {
+        feed.frame = Some(frame);
+        feed.live = true;
+        feed.error = None;
+    }
+}
+
+/// The stream stopped, or could not start.
+pub fn set_stopped(error: Option<String>) {
+    if let Ok(mut feed) = feed().lock() {
+        feed.frame = None;
+        feed.live = false;
+        feed.error = error;
+    }
+}
+
+/// The newest frame, if one has arrived.
+pub fn frame() -> Option<Captured> {
+    feed().lock().ok().and_then(|f| f.frame.clone())
+}
+
+/// Whether frames are arriving.
+pub fn streaming() -> bool {
+    feed().lock().map(|f| f.live).unwrap_or(false)
+}
+
+/// Why the stream is not running, when it is not.
+pub fn trouble() -> Option<String> {
+    feed().lock().ok().and_then(|f| f.error.clone())
+}
+
+/// The game's frame, waiting a moment for the first one after a start.
+///
+/// A compositor sends a frame when the window next paints, and a game paints
+/// constantly — so this only ever waits at the very beginning.
+pub fn game_frame() -> Result<Captured, String> {
+    if let Some(frame) = frame() {
+        return Ok(frame);
+    }
+    for _ in 0..40 {
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        if let Some(frame) = frame() {
+            return Ok(frame);
+        }
+    }
+    Err(trouble().unwrap_or_else(|| {
+        "The window is not sending anything — is the game still running, and is screen reading on?".into()
+    }))
+}
 
 /// What the client can see, and whether it is looking.
 #[derive(Serialize, Clone, Default)]
@@ -41,8 +111,8 @@ pub fn state(app: &tauri::AppHandle) -> Reading {
     Reading {
         on: crate::portal::on(),
         available: true,
-        source: crate::portal::streaming().then(|| "the window you chose".to_string()),
-        error: crate::portal::trouble(),
+        source: streaming().then(|| "the window you chose".to_string()),
+        error: trouble(),
         picks_from_list: false,
     }
 }
@@ -76,12 +146,11 @@ pub fn windows() -> Vec<String> {
 
 #[cfg(windows)]
 pub fn state(app: &tauri::AppHandle) -> Reading {
-    let chosen = crate::load_client_prefs(app).screen_source;
     Reading {
-        on: chosen.is_some(),
+        on: crate::wgc::on(),
         available: true,
-        source: chosen,
-        error: None,
+        source: crate::load_client_prefs(app).screen_source,
+        error: trouble(),
         picks_from_list: true,
     }
 }
@@ -91,7 +160,11 @@ pub fn state(app: &tauri::AppHandle) -> Reading {
 /// so nothing has to be streamed and nothing has to be in front.
 #[cfg(windows)]
 pub async fn start(app: tauri::AppHandle, window: Option<String>) -> Result<Reading, String> {
-    let window = window.ok_or("Choose the game's window first.")?;
+    // The window chosen now, or the one chosen last time.
+    let window = window
+        .or_else(|| crate::load_client_prefs(&app).screen_source)
+        .ok_or("Choose the game's window first.")?;
+    crate::wgc::start(&window)?;
     let mut prefs = crate::load_client_prefs(&app);
     prefs.screen_source = Some(window);
     crate::save_client_prefs(&app, &prefs)?;
@@ -100,23 +173,15 @@ pub async fn start(app: tauri::AppHandle, window: Option<String>) -> Result<Read
 
 #[cfg(windows)]
 pub fn stop(app: &tauri::AppHandle) -> Reading {
-    let mut prefs = crate::load_client_prefs(app);
-    prefs.screen_source = None;
-    let _ = crate::save_client_prefs(app, &prefs);
+    // The window stays remembered; stopping is about the stream, so switching
+    // back on does not ask again.
+    crate::wgc::stop();
     state(app)
 }
 
 #[cfg(windows)]
 pub fn windows() -> Vec<String> {
-    xcap::Window::all()
-        .map(|all| {
-            all.into_iter()
-                .filter(|w| !w.is_minimized().unwrap_or(true))
-                .filter_map(|w| w.title().ok())
-                .filter(|title| !title.trim().is_empty())
-                .collect()
-        })
-        .unwrap_or_default()
+    crate::wgc::open_windows()
 }
 
 #[cfg(not(any(target_os = "linux", windows)))]

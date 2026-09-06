@@ -33,13 +33,15 @@ image = { version = "0.25", default-features = false, features = ["png", "jpeg"]
 log = "0.4"
 tauri-plugin-log = "2"
 
-# Screen capture: xcap on Windows; on Linux the client runs through XWayland
-# (like the Wine game), so plain X11 covers it without PipeWire/DRM deps.
+# Screen capture is a stream of one window on both platforms, taken from the
+# compositor: it is the only way to keep reading a window that is not in front,
+# which is every moment after the player clicks an overlay.
 [target.'cfg(windows)'.dependencies]
-xcap = "0.9"
+# Windows.Graphics.Capture: the same idea as the portal — one window, streamed
+# by the compositor, arriving whether or not it is in front of anything.
+windows-capture = "2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-x11rb = "0.13"
 # Capturing one window on Wayland. The compositor will not let an ordinary
 # program screenshot a window it did not put in front, so the desktop portal
 # asks the player which window instead and hands back a PipeWire stream of it —

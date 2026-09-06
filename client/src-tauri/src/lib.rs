@@ -11,6 +11,8 @@ use tauri::{Emitter, Manager};
 mod changes;
 mod kde_rule;
 mod reading;
+#[cfg(windows)]
+mod wgc;
 #[cfg(target_os = "linux")]
 mod portal;
 mod overlay;
@@ -232,13 +234,6 @@ pub(crate) struct ClientPrefs {
     /// on Wayland the portal's token for the window, on Windows the window's
     /// own name. Absent means screen reading has never been switched on.
     pub(crate) screen_source: Option<String>,
-    /// Where the game's own window sits on the desktop, marked by the player.
-    ///
-    /// A game with no X11 window can only be captured as the *active* window,
-    /// which stops being the game the moment anyone clicks an overlay. Marked
-    /// once, the desktop is grabbed instead and this is cut out of it, and
-    /// what has focus stops mattering.
-    pub(crate) game_rect: Option<scan::ScanRegion>,
 }
 
 fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
