@@ -149,8 +149,20 @@ export function HotkeyCapture({
 
   return (
     <div className="hotkey" role="group" aria-label={label}>
+      {/* What the key does, and what it currently is. The button used to be
+          the only thing on the row, showing a bare "F8" that said nothing
+          about which of the four it was or that it could be changed. */}
+      <span className="hotkey-what">
+        {label}
+        {" · "}
+        {current ? (
+          <kbd>{current}</kbd>
+        ) : (
+          <span className="hotkey-none">{t("overlay.hotkeyNone")}</span>
+        )}
+      </span>
       <button className={listening ? "active" : undefined} onClick={() => (listening ? stop() : setListening(true))}>
-        {listening ? t("overlay.hotkeyListening") : current || t("overlay.hotkeyUnset")}
+        {listening ? t("overlay.hotkeyListening") : current ? t("overlay.hotkeyChange") : t("overlay.hotkeyUnset")}
       </button>
       {listening && (
         <div className="hotkey-hold">
