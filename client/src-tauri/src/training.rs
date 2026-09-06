@@ -43,6 +43,9 @@ pub async fn send(app: AppHandle) -> Result<String, String> {
     // Checked before the grab so an unpaired client says so without taking a
     // screenshot it has nowhere to send.
     crate::load_settings(&app).ok_or("Not paired with a server yet.")?;
+    if !crate::reading::state(&app).on {
+        return Err("Screen reading is off. Switch it on in StarBuddy and choose the game's window.".into());
+    }
     status(&app, "capturing", "grabbing the game window");
 
     let for_capture = app.clone();

@@ -40,3 +40,10 @@ xcap = "0.9"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 x11rb = "0.13"
+# Capturing one window on Wayland. The compositor will not let an ordinary
+# program screenshot a window it did not put in front, so the desktop portal
+# asks the player which window instead and hands back a PipeWire stream of it —
+# the same road every screen-sharing app takes, and the only one that keeps
+# working when the game is behind something.
+ashpd = { version = "0.13", default-features = false, features = ["tokio", "screencast"] }
+pipewire = "0.10"

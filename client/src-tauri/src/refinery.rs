@@ -165,6 +165,9 @@ pub async fn read_with(app: AppHandle, merge_with_last: bool) -> Result<Refinery
     // frame every second or so. Run them together on the machine that is also
     // running the game and a read that takes two seconds takes minutes — so
     // this says which one to stop rather than appearing to hang.
+    if !crate::reading::state(&app).on {
+        return Err("Screen reading is off. Switch it on in StarBuddy and choose the game's window.".into());
+    }
     if crate::scan::live_running(&app) {
         return Err("The live scan is running and needs the whole machine. Stop it, then read the panel.".into());
     }

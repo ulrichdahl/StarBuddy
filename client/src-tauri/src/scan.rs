@@ -173,6 +173,20 @@ pub struct Captured {
     pub full_height: u32,
 }
 
+/// Windows: one window by name, whatever is in front of it.
+#[cfg(windows)]
+pub(crate) fn capture_named_window(title: &str) -> Result<Captured, String> {
+    let window = xcap::Window::all()
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .find(|w| w.title().map(|t| t == title).unwrap_or(false) && !w.is_minimized().unwrap_or(true))
+        .ok_or_else(|| format!("The window \"{title}\" is not open — is the game running?"))?;
+    let img = window.capture_image().map_err(|e| e.to_string())?;
+    let (width, height) = img.dimensions();
+    let rgb = img.pixels().flat_map(|p| [p[0], p[1], p[2]]).collect();
+    Ok(Captured { rgb, width, height, source: format!("window: {title}"), full_height: height })
+}
+
 /// Windows: the game window if it is up, else the primary monitor.
 #[cfg(windows)]
 pub(crate) fn capture() -> Result<Captured, String> {
@@ -251,6 +265,29 @@ pub(crate) fn capture_for(app: &AppHandle, purpose: &crate::region::Purpose) -> 
 /// The game's frame, cut from the desktop when the player has marked where it
 /// is and grabbed directly when they have not.
 pub(crate) fn capture_game(app: &AppHandle) -> Result<Captured, String> {
+    // The window the player chose, streamed by the desktop. It is the only
+    // way that keeps working while the game is behind something, so it is
+    // tried before anything that depends on what is in front.
+    #[cfg(target_os = "linux")]
+    if crate::portal::on() {
+        if let Some(frame) = crate::portal::frame() {
+            return Ok(frame);
+        }
+        // Switched on, but the first frame has not arrived: a compositor sends
+        // one when the window next paints, and a game paints constantly.
+        for _ in 0..40 {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            if let Some(frame) = crate::portal::frame() {
+                return Ok(frame);
+            }
+        }
+        return Err(crate::portal::trouble()
+            .unwrap_or_else(|| "The window is not sending anything — is the game still running?".into()));
+    }
+    #[cfg(windows)]
+    if let Some(title) = crate::load_client_prefs(app).screen_source {
+        return capture_named_window(&title);
+    }
     #[cfg(target_os = "linux")]
     {
         return capture_frame(crate::load_client_prefs(app).game_rect);
@@ -935,6 +972,10 @@ pub(crate) fn live_running(app: &AppHandle) -> bool {
 
 /// Start or stop the live loop; returns whether it is running afterwards.
 pub fn live_toggle(app: &AppHandle) -> bool {
+    if !crate::reading::state(app).on {
+        status(app, "error", "Screen reading is off. Switch it on in StarBuddy and choose the game's window.", None);
+        return false;
+    }
     let state = app.state::<ScanState>();
     let mut live = state.live.lock().unwrap();
     if let Some(stop) = live.take() {

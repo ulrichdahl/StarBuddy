@@ -10,6 +10,9 @@ use tauri::{Emitter, Manager};
 
 mod changes;
 mod kde_rule;
+mod reading;
+#[cfg(target_os = "linux")]
+mod portal;
 mod overlay;
 mod refinery;
 mod region;
@@ -225,6 +228,10 @@ pub(crate) struct ClientPrefs {
     pub(crate) scan_region: Option<scan::ScanRegion>,
     /// Where the refinery order panel sits, framed by the player (relative).
     pub(crate) refinery_region: Option<scan::ScanRegion>,
+    /// What the client reads the screen from, once the player has chosen it:
+    /// on Wayland the portal's token for the window, on Windows the window's
+    /// own name. Absent means screen reading has never been switched on.
+    pub(crate) screen_source: Option<String>,
     /// Where the game's own window sits on the desktop, marked by the player.
     ///
     /// A game with no X11 window can only be captured as the *active* window,
@@ -1186,6 +1193,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             detect_game_log,
             game_channels,
+            reading::screen_reading,
+            reading::screen_reading_windows,
+            reading::screen_reading_start,
+            reading::screen_reading_stop,
             set_live_dir,
             scan_backlog,
             get_connection,
