@@ -50,5 +50,7 @@ windows-capture = "2"
 # asks the player which window instead and hands back a PipeWire stream of it —
 # the same road every screen-sharing app takes, and the only one that keeps
 # working when the game is behind something.
-ashpd = { version = "0.13", default-features = false, features = ["tokio", "screencast"] }
+ashpd = { version = "0.13", default-features = false, features = ["tokio", "screencast", "global_shortcuts"] }
+# Reading the portal's stream of shortcut presses.
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
 pipewire = "0.10"

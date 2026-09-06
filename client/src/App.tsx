@@ -93,6 +93,10 @@ interface HotkeyInfo {
   failed: Record<string, string>;
   /** Windows, where a hotkey can be registered and still never arrive. */
   windows: boolean;
+  /** The desktop delivers the hotkeys itself, and owns what they are set to. */
+  desktop_owned: boolean;
+  /** action → the key the desktop bound, when it is the one delivering. */
+  triggers: Record<string, string>;
 }
 
 /** What the client can see of the game, and whether it is looking. */
@@ -295,6 +299,11 @@ function App() {
       // The hotkey switches reading on and off mid-game, so this page is not
       // the only thing that changes it.
       listen<Reading>("screen-reading", (e) => setReading(e.payload)),
+      // The desktop answers about the hotkeys in its own time, and can change
+      // them from its own settings afterwards.
+      listen("hotkeys-changed", () => {
+        invoke<HotkeyInfo>("overlay_hotkey").then(setHotkey).catch(() => {});
+      }),
       // The training hotkey has no window of its own, so this line is the
       // only sign it did anything.
       listen<{ phase: string; detail: string }>("training-capture", (e) => setCaptureStatus(e.payload)),
@@ -416,7 +425,7 @@ function App() {
     <HotkeyCapture
       action={action}
       label={label}
-      current={hotkey?.hotkeys[action] ?? ""}
+      current={(hotkey?.desktop_owned ? hotkey.triggers[action] : undefined) ?? hotkey?.hotkeys[action] ?? ""}
       failed={hotkey?.failed?.[action] && t("overlay.hotkeyTaken", { detail: hotkey.failed[action] })}
       onCapture={(action, keys) => void saveHotkey(action, keys)}
     />
@@ -776,6 +785,9 @@ function App() {
         {/* On Windows a hotkey can register and still never fire, and no error
             is raised for either reason it happens. */}
         {hotkey?.windows && <p className="hint">{t("overlay.hotkeyWindows")}</p>}
+        {/* Wayland: the compositor delivers the keys, so it is also the place
+            they can be changed for good. */}
+        {hotkey?.desktop_owned && <p className="hint">{t("overlay.hotkeyDesktop")}</p>}
         {/* Everything below this reads the game's window, and nothing reads it
             until this is on: the frames come from a stream the desktop itself
             shows as running. */}

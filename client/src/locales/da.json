@@ -319,6 +319,7 @@
     "hotkeyPress": "Hold den kombination du vil bruge. Escape annullerer.",
     "hotkeyHold": "{{keys}} — bliv ved, {{seconds}}s",
     "hotkeyWindows": "Hvis en genvej ikke gør noget på Windows: noget andet ejer den måske allerede — F6–F9 bruges af GeForce Experience, Xbox Game Bar og Discord — så hold en kombination med Ctrl, Alt eller Shift i stedet. Sker der stadig intet, kører spillet sandsynligvis som administrator, og Windows sender ikke et almindeligt programs genveje til det; start så også StarBuddy som administrator.",
+    "hotkeyDesktop": "Dit skrivebord leverer disse genvejstaster, så de virker mens spillet har fokus — og det har sidste ord: at vælge en her er en anmodning, og tasten du ender med er den der vises. De kan også ændres i skrivebordets egne indstillinger for tastaturgenveje, opført som StarBuddy.",
     "hotkeyChange": "Klik for at ændre",
     "hotkeyNone": "ingen"
   },

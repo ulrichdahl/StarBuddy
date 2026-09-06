@@ -319,6 +319,7 @@
     "hotkeyPress": "Hold the combination you want. Escape cancels.",
     "hotkeyHold": "{{keys}} — keep holding, {{seconds}}s",
     "hotkeyWindows": "If a hotkey does nothing on Windows: something else may already own it — F6–F9 are taken by GeForce Experience, the Xbox Game Bar and Discord — so hold a combination with Ctrl, Alt or Shift instead. If it still does nothing, the game is probably running as administrator, and Windows will not deliver a normal program's hotkeys to it; start StarBuddy as administrator too.",
+    "hotkeyDesktop": "Your desktop delivers these hotkeys, so they work while the game has focus — and it has the last word on them: setting one here is a request, and the key you end up with is the one shown. They can also be changed under your desktop's own keyboard shortcut settings, listed as StarBuddy.",
     "hotkeyChange": "Click to change",
     "hotkeyNone": "none"
   },

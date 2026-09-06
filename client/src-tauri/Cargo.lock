@@ -4051,6 +4051,7 @@ dependencies = [
  "ashpd",
  "base64 0.22.1",
  "dirs",
+ "futures-util",
  "hostname",
  "image",
  "log",

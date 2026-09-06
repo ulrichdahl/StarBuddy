@@ -16,6 +16,7 @@ mod wgc;
 #[cfg(target_os = "linux")]
 mod portal;
 mod overlay;
+mod shortcuts;
 mod refinery;
 mod region;
 pub mod scan;
@@ -1167,6 +1168,10 @@ pub fn run() {
             if let Err(e) = overlay::register_hotkeys(&handle) {
                 log::warn!("overlay hotkeys: {e}");
             }
+            // And ask the desktop to deliver them too, where it can. It answers
+            // in its own time; when it does, the X11 grabs are dropped so a key
+            // cannot fire twice.
+            shortcuts::start(&handle);
             overlay::show_if_open(&handle, overlay::STATUS);
             overlay::show_if_open(&handle, scan::SCAN);
             if std::env::args().any(|a| a == overlay::TOGGLE_FLAG) {

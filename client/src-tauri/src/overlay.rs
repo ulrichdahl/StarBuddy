@@ -509,6 +509,12 @@ pub struct HotkeyInfo {
     pub toggle_command: String,
     /// action → why that shortcut is not currently registered.
     pub failed: HashMap<String, String>,
+    /// True where the desktop itself delivers the hotkeys (the portal's global
+    /// shortcuts). The keys are then the desktop's to change, and what the
+    /// client stores is only what it asked for.
+    pub desktop_owned: bool,
+    /// action → the trigger the desktop bound, when it is the one delivering.
+    pub triggers: HashMap<String, String>,
     /// Windows has two ways for a hotkey to do nothing that no error reports:
     /// another program holding the combination, and a game running as
     /// administrator, which Windows will not let a normal program's hotkeys
@@ -527,7 +533,10 @@ pub fn overlay_hotkey(app: AppHandle) -> HotkeyInfo {
     let exe = std::env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|_| "starbuddy".into());
     HotkeyInfo {
         hotkeys,
-        global_supported: !(cfg!(target_os = "linux") && on_wayland() && std::env::var("GDK_BACKEND").as_deref() != Ok("x11")),
+        global_supported: crate::shortcuts::in_charge()
+            || !(cfg!(target_os = "linux") && on_wayland() && std::env::var("GDK_BACKEND").as_deref() != Ok("x11")),
+        desktop_owned: crate::shortcuts::in_charge(),
+        triggers: crate::shortcuts::triggers(),
         toggle_command: format!("\"{exe}\" {TOGGLE_FLAG}"),
         failed: app.state::<OverlayState>().failures.lock().unwrap().clone(),
         windows: cfg!(windows),
@@ -560,6 +569,14 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
     }
 
     let previous = app.state::<OverlayState>().prefs.lock().unwrap().hotkeys.insert(action.clone(), hotkey.clone());
+    // Where the desktop delivers the hotkeys there is nothing to grab and
+    // nothing to fail: it is handed the new list and decides for itself, so
+    // this is only ever a request. It may bind something else, and says so.
+    if crate::shortcuts::in_charge() {
+        crate::shortcuts::rebind();
+        save(&app, true);
+        return Ok(overlay_hotkey(app));
+    }
     // Only this action's own failure is a reason to refuse the change. Another
     // action's shortcut may be unavailable for good — a key some other program
     // owns — and that must not make every later rebind fail with it.
@@ -583,10 +600,47 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
     Ok(overlay_hotkey(app))
 }
 
+/// Every action and the shortcut it is set to.
+pub fn wanted_hotkeys(app: &AppHandle) -> Vec<(String, String)> {
+    app.state::<OverlayState>().prefs.lock().unwrap().all_hotkeys()
+}
+
+/// What an action does, in words.
+///
+/// The desktop shows this beside the key in its own shortcut settings, where
+/// "refinery" on its own would tell nobody anything.
+pub fn describe_action(action: &str) -> &'static str {
+    match action {
+        "status" => "Show or hide the server status window",
+        "scan" => "Start or stop reading mining scans",
+        "refinery" => "Read the refinery order on screen",
+        "capture" => "Send a screenshot for training",
+        "reading" => "Switch screen reading on or off",
+        _ => "StarBuddy",
+    }
+}
+
+/// Give up the X11 grabs.
+///
+/// Called when the desktop has taken the hotkeys over: with both in place a
+/// key would fire twice while StarBuddy itself has focus.
+pub fn drop_x11_hotkeys(app: &AppHandle) {
+    if let Err(e) = app.global_shortcut().unregister_all() {
+        log::warn!("could not release the X11 hotkeys: {e}");
+    }
+    app.state::<OverlayState>().registered.lock().unwrap().clear();
+    app.state::<OverlayState>().failures.lock().unwrap().clear();
+}
+
 /// (Re)register every action's shortcut. Errors are returned so the
 /// caller can decide; at startup they are only logged — another app may
 /// own the combination.
 pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
+    // Not while the desktop is delivering them: a key held both ways fires
+    // twice whenever StarBuddy has focus.
+    if crate::shortcuts::in_charge() {
+        return Ok(());
+    }
     let state = app.state::<OverlayState>();
     let wanted = state.prefs.lock().unwrap().all_hotkeys();
     let gs = app.global_shortcut();
@@ -628,23 +682,35 @@ pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
         .iter()
         .find(|(s, _)| s == shortcut)
         .map(|(_, a)| a.clone());
+    match action {
+        Some(action) => run_action(app, &action),
+        None => log::warn!("shortcut fired with no action bound to it"),
+    }
+}
+
+/// Do what a hotkey asks, wherever the key came from.
+///
+/// The plugin's X11 grab and the desktop portal both end up here, and both
+/// call from a thread of their own.
+pub fn run_action(app: &AppHandle, action: &str) {
+    let app2 = app.clone();
+    let action = action.to_string();
     // The plugin calls this from its own listener thread, and anything that
     // may build or show a window has to be on the main thread — on Linux the
     // toolkit is not thread-safe, so a hotkey that opens a window silently
     // does nothing from here. A hotkey whose window already exists appears to
     // work, which is what made this look like two broken keys rather than one
     // broken thread.
-    let app2 = app.clone();
-    let dispatch = move || match action.as_deref() {
-        Some("status") => {
+    let dispatch = move || match action.as_str() {
+        "status" => {
             if let Err(e) = toggle(&app2, STATUS) {
                 log::error!("overlay toggle failed: {e}");
             }
         }
-        Some("scan") => crate::scan::trigger(&app2),
-        Some("refinery") => crate::refinery::trigger(&app2),
-        Some("capture") => crate::training::trigger(&app2),
-        Some("reading") => crate::reading::trigger(&app2),
+        "scan" => crate::scan::trigger(&app2),
+        "refinery" => crate::refinery::trigger(&app2),
+        "capture" => crate::training::trigger(&app2),
+        "reading" => crate::reading::trigger(&app2),
         other => log::warn!("unhandled shortcut action {other:?}"),
     };
     if let Err(e) = app.run_on_main_thread(dispatch) {
