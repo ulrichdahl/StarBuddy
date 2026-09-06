@@ -1047,6 +1047,12 @@ fn is_label(text: &str) -> bool {
         "REFINERY CAPACITY",
         "USER DETAILS",
     ];
+    // The terminal marks its own headings with a double slash — "// REFINERY
+    // SYSTEM C47.02", "// FUNDS" — so anything wearing one is a heading
+    // whatever it says, including the ones nothing here lists.
+    if text.trim_start().trim_start_matches(|c: char| c.is_ascii_digit() || c.is_whitespace()).starts_with('/') {
+        return true;
+    }
     let canon = canonical(text);
     if EXACT.iter().any(|label| canon == canonical(label))
         || PHRASES.iter().any(|phrase| canon.contains(&canonical(phrase)))
@@ -1477,39 +1483,30 @@ fn total_yield_label<'a>(lines: &[&'a OcrLine], table: &Table) -> Option<&'a Ocr
 /// The station's name: the terminal titles itself "REFINEMENT CENTER", with
 /// the place it is standing in to the left on the same row.
 ///
-/// Given the whole terminal or only the strip across its top — a framed area
-/// usually cuts the title off, and then the name has to be looked for in the
-/// window itself.
+/// Given the whole terminal or only the strip across the top of the game's
+/// window — a framed area usually cuts the title off, and then the name has to
+/// be looked for in the window itself. That window has other things in it: a
+/// frame-rate overlay sits in the corner of this player's, and "GPU" read off
+/// it is exactly the sort of thing that must never be offered as a station. So
+/// nothing is taken from outside the title's own band: the name is printed
+/// opposite the title, and anything elsewhere is something else.
 fn station_in(all: &[&OcrLine]) -> Option<String> {
     let title = find(all, "REFINEMENT")?;
-    let rows = rows(all);
-    let beside = rows
-        .iter()
-        .find(|row| row.iter().any(|l| std::ptr::eq(*l, title)))
-        .and_then(|row| row.iter().find(|l| centre_x(l) < centre_x(title) && !is_label(&l.text)))
-        .map(|l| clean_station(&l.text));
-    if beside.is_some() {
-        return beside;
-    }
     // The title is set in much larger type than the name beside it, so the two
-    // often do not share a row once OCR has had its way with their heights.
-    // Falling back on position alone: the name is the first thing printed, in
-    // the left of the panel, and it is not one of the headings.
-    //
-    // Only ever when the title itself was read, so this cannot name a station
-    // on a capture that is not a refinery terminal at all: the fallback is for
-    // a title whose row broke, not for guessing.
-    let left_edge = all.iter().map(|l| l.x).min().unwrap_or(0);
-    let top_edge = all.iter().map(|l| centre_y(l)).min().unwrap_or(0);
-    let width = all.iter().map(|l| l.x + l.w).max().unwrap_or(0) - left_edge;
-    let height = all.iter().map(|l| centre_y(l)).max().unwrap_or(0) - top_edge;
+    // do not always land in one row once OCR has had its way with their
+    // heights — but they are still opposite each other.
+    let band = title.h.max(8) * 2;
     all.iter()
-        .filter(|l| l.x - left_edge < width / 3)
-        .filter(|l| centre_y(l) - top_edge <= height / 4)
+        .filter(|l| !std::ptr::eq(**l, title))
+        .filter(|l| centre_x(l) < centre_x(title))
+        .filter(|l| (centre_y(l) - centre_y(title)).abs() <= band)
         // A station is named in a word or two, and never in a heading.
-        .filter(|l| l.text.split_whitespace().count() <= 3 && !is_label(&l.text))
+        .filter(|l| !is_label(&l.text))
+        .filter(|l| l.text.split_whitespace().count() <= 5)
         .filter(|l| l.text.chars().filter(|c| c.is_alphabetic()).count() >= 3)
-        .min_by_key(|l| centre_y(l))
+        // The name is the largest text on that line of the terminal, which is
+        // what tells it from the section labels printed above and below it.
+        .max_by_key(|l| (l.h, -l.x))
         .map(|l| clean_station(&l.text))
 }
 
@@ -2151,6 +2148,36 @@ mod tests {
 
     /// Two finished orders side by side, the state that proves a capture holds
     /// a list of panels rather than one order.
+    /// The strip across the top of the game's window, which is what the reader
+    /// falls back to when the framed area cut the terminal's title off. A
+    /// frame-rate overlay sits in the corner of it.
+    #[test]
+    fn the_station_is_read_from_beside_the_title_and_nowhere_else() {
+        let strip = vec![
+            line("GPU", 11, 16, 42, 17),
+            line("53", 153, 16, 32, 16),
+            line("CPU", 16, 36, 39, 17),
+            line("IKD3D", 24, 58, 55, 16),
+            line("Frametim", 12, 86, 57, 9),
+            line("// REFINERY SYSTEM C47.02", 326, 163, 198, 14),
+            line("MIC-L5 MODERN ICARUS STATION", 317, 191, 548, 28),
+            line("REFINEMENT CENTER", 1198, 195, 237, 20),
+            line("DK-RAVEN", 1766, 192, 79, 13),
+        ];
+        let all: Vec<&OcrLine> = strip.iter().collect();
+        assert_eq!(station_in(&all).as_deref(), Some("MIC-L5 MODERN ICARUS STATION"));
+
+        // With the name unread, nothing else in the window stands in for it —
+        // the overlay in the corner least of all.
+        let without: Vec<OcrLine> = strip
+            .iter()
+            .filter(|l| !l.text.starts_with("MIC-L5"))
+            .cloned()
+            .collect();
+        let all: Vec<&OcrLine> = without.iter().collect();
+        assert_eq!(station_in(&all), None, "a corner overlay is not a station");
+    }
+
     /// MIC-L5's terminal, which lays a panel out the other way round: the
     /// state is printed at the panel's right edge and "WORK ORDER n" under it
     /// at the left, so the state header of one panel sits nearer the *next*
