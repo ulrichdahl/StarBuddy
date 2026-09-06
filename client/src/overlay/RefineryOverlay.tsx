@@ -131,7 +131,20 @@ export function RefineryOverlay() {
     setSavingIndex(index);
     setSaveError(null);
     invoke("refinery_save", { terminal, order: terminal.orders[index] })
-      .then(() => setSavedIndexes((seen) => [...seen, index]))
+      .then(() => {
+        setSavedIndexes((seen) => [...seen, index]);
+        // The order is recorded, so the window has nothing left to say about
+        // it. Leaving it up with a saved order in it invites a second save of
+        // the same job, and leaves the next read to be merged into a reading
+        // that is already filed. Everything after the last order is saved: the
+        // reading is dropped and the window goes away.
+        if (terminal.orders.every((_, at) => at === index || savedIndexes.includes(at))) {
+          void invoke("refinery_clear").catch(() => {});
+          setTerminal(null);
+          setSavedIndexes([]);
+          void invoke("overlay_toggle", { name: "refinery" }).catch(() => {});
+        }
+      })
       .catch((e: unknown) => setSaveError(String(e)))
       .finally(() => setSavingIndex(null));
   };

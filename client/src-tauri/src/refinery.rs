@@ -229,6 +229,14 @@ async fn read_inner(app: &AppHandle) -> Result<RefineryTerminal, String> {
             .map(|d| d.as_millis() as i64)
             .unwrap_or(0);
         order.elapsed_ms = started.elapsed().as_millis() as u64;
+        log::info!(
+            "refinery read: {}×{} in {} ms, {} lines, {} order(s)",
+            cap.width,
+            cap.height,
+            order.elapsed_ms,
+            order.lines.len(),
+            order.orders.len(),
+        );
         send_for_training(&app2, &cap, &order);
         Ok(order)
     })
@@ -1481,11 +1489,27 @@ fn same_material(a: &OrderMaterial, b: &OrderMaterial) -> bool {
     if canonical(&a.resource) != canonical(&b.resource) {
         return false;
     }
-    match (a.quality, b.quality) {
-        (Some(x), Some(y)) => (x - y).abs() < 0.5,
-        // Without a quality to tell them apart, fall back to the amount.
-        _ => a.qty == b.qty && a.yield_amount == b.yield_amount,
+    // Quality is what tells two rows of one ore apart — a panel holds Aluminum
+    // Ore at 318 and again at 783 — so where both readings have it, it decides.
+    if let (Some(x), Some(y)) = (a.quality, b.quality) {
+        return (x - y).abs() < 0.5;
     }
+    // One reading missed the quality. It used to take that as a different row,
+    // which is how reading a scrolling list twice ended up with the same
+    // material listed twice: a row is not a new row because a number was lost
+    // in the second look at it. What both readings did get has to agree.
+    let shared: Vec<(f64, f64)> = [
+        (a.qty, b.qty),
+        (a.yield_amount, b.yield_amount),
+        (a.to_do, b.to_do),
+        (a.done, b.done),
+    ]
+    .into_iter()
+    .filter_map(|(x, y)| x.zip(y))
+    .collect();
+    // Nothing read on either side but the name: nothing says they differ, and
+    // the merge keeps whichever reading turns out to hold more.
+    shared.iter().all(|(x, y)| (x - y).abs() < 0.5)
 }
 
 /// How many of a row's columns were actually read.
@@ -1740,6 +1764,28 @@ mod tests {
         let terminal = parse(&lines);
         let order = terminal.orders.first().expect("an order");
         assert_eq!(order.duration_seconds, Some(26));
+    }
+
+    fn row(resource: &str, quality: Option<f64>, qty: Option<f64>) -> OrderMaterial {
+        OrderMaterial { resource: resource.into(), quality, qty, refine: true, ..Default::default() }
+    }
+
+    #[test]
+    fn a_row_read_twice_is_one_row_even_when_a_number_was_lost() {
+        // The second look at a scrolling list read the quality and the first
+        // did not. Same row, and the fuller reading wins.
+        assert!(same_material(&row("Corundum Ore", None, Some(131.0)), &row("Corundum Ore", Some(504.0), Some(131.0))));
+        // Nothing but the name on one side: nothing says they differ.
+        assert!(same_material(&row("Corundum Ore", None, None), &row("Corundum Ore", Some(504.0), Some(131.0))));
+    }
+
+    #[test]
+    fn two_rows_of_one_ore_stay_two_rows() {
+        // A panel holds the same ore at two qualities, and both readings got
+        // them, so they are told apart by quality.
+        assert!(!same_material(&row("Aluminum Ore", Some(318.0), Some(387.0)), &row("Aluminum Ore", Some(783.0), Some(226.0))));
+        // And without a quality on one side, by the amounts that were read.
+        assert!(!same_material(&row("Aluminum Ore", None, Some(387.0)), &row("Aluminum Ore", Some(783.0), Some(226.0))));
     }
 
     #[test]
