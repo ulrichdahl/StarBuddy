@@ -482,6 +482,37 @@ fn unpair(app: tauri::AppHandle) -> Result<ConnectionView, String> {
     Ok(view(None))
 }
 
+/// The server's own account of what it refused, field by field.
+///
+/// Laravel names a rejected field by its path in the body — "materials.0.quality"
+/// — which is exactly enough to point at the row and the cell in the window
+/// rather than showing a sentence about a row nobody can find.
+pub(crate) async fn error_fields(resp: reqwest::Response) -> (String, std::collections::BTreeMap<String, String>) {
+    let status = resp.status();
+    let body = resp.json::<serde_json::Value>().await.ok();
+    let message = body
+        .as_ref()
+        .and_then(|v| v.get("message").and_then(|m| m.as_str()).map(String::from))
+        .unwrap_or_default();
+    let fields = body
+        .as_ref()
+        .and_then(|v| v.get("errors").and_then(|e| e.as_object()))
+        .map(|errors| {
+            errors
+                .iter()
+                .filter_map(|(field, messages)| {
+                    let first = match messages {
+                        serde_json::Value::Array(list) => list.first().and_then(|m| m.as_str()),
+                        other => other.as_str(),
+                    }?;
+                    Some((field.clone(), first.to_string()))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    (format!("Server said {status}: {message}"), fields)
+}
+
 pub(crate) async fn error_body(resp: reqwest::Response) -> String {
     let status = resp.status();
     let msg = resp

@@ -296,7 +296,9 @@
         "done": "Done"
       },
       "notRefined": "Not being refined (no yield)",
-      "total": "Total"
+      "total": "Total",
+      "addRow": "Add a material row",
+      "removeRow": "Remove this row"
     },
     "capture": {
       "capturing": "Capturing the game window…",

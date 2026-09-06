@@ -1622,7 +1622,7 @@ pub async fn refinery_save(
     app: AppHandle,
     terminal: RefineryTerminal,
     order: WorkOrder,
-) -> Result<serde_json::Value, String> {
+) -> Result<serde_json::Value, SaveRejected> {
     let settings = crate::load_settings(&app).ok_or("Not paired with a server yet.")?;
     let station = terminal.station.clone().ok_or("An order needs a station before it can be saved.")?;
 
@@ -1688,9 +1688,33 @@ pub async fn refinery_save(
         .map_err(|e| format!("Could not reach server: {e}"))?;
 
     if !resp.status().is_success() {
-        return Err(crate::error_body(resp).await);
+        let (message, fields) = crate::error_fields(resp).await;
+        return Err(SaveRejected { message, fields });
     }
-    resp.json().await.map_err(|e| e.to_string())
+    resp.json().await.map_err(|e| SaveRejected::from(e.to_string()))
+}
+
+/// Why an order could not be saved, and which of its fields were the reason.
+///
+/// A rejection used to arrive as one sentence about a row the player then had
+/// to find. The server names what it refused — "materials.2.quality" — so the
+/// window can mark the row and the cell instead.
+#[derive(Serialize)]
+pub struct SaveRejected {
+    pub message: String,
+    pub fields: std::collections::BTreeMap<String, String>,
+}
+
+impl From<String> for SaveRejected {
+    fn from(message: String) -> Self {
+        Self { message, fields: Default::default() }
+    }
+}
+
+impl From<&str> for SaveRejected {
+    fn from(message: &str) -> Self {
+        Self::from(message.to_string())
+    }
 }
 
 fn chrono_now_millis() -> i64 {
