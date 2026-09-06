@@ -8,11 +8,9 @@
 //!   desktop portal asks the player which window and streams it over PipeWire.
 //!   That stream is a running thing with a cost, and the desktop shows that it
 //!   is running, so it is started and stopped deliberately.
-//! * On Windows a window can be captured by its handle whenever, so "on" is
-//!   just a window having been chosen.
-//! * On X11 the game's window is found by name, so nothing needs choosing —
-//!   but the switch still exists, so that what the client is doing is the same
-//!   question on every machine.
+//! * On Windows the compositor streams a window the same way, but the client
+//!   draws the list of windows itself rather than handing the choice to a
+//!   system dialog — so the player picks a title and the stream follows it.
 //!
 //! Off by default and off again when asked, because a client that watches the
 //! screen from the moment it starts is not something to discover afterwards.
@@ -202,6 +200,28 @@ pub fn stop(app: &tauri::AppHandle) -> Reading {
 #[cfg(not(any(target_os = "linux", windows)))]
 pub fn windows() -> Vec<String> {
     Vec::new()
+}
+
+/// The hotkey: on if it is off, off if it is on.
+///
+/// Mid-game is exactly when this is wanted — reading is a thing the player
+/// turns on for a refinery panel and off again for the rest of the flight —
+/// so nothing here opens a window or waits for an answer. The desktop only
+/// asks which window the first time; after that it is remembered and the
+/// switch is silent.
+pub fn trigger(app: &tauri::AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let reading = if state(&app).on {
+            stop(&app)
+        } else {
+            start(app.clone(), None).await.unwrap_or_else(|e| {
+                log::warn!("screen reading would not start: {e}");
+                Reading { error: Some(e), ..state(&app) }
+            })
+        };
+        let _ = tauri::Emitter::emit(&app, "screen-reading", &reading);
+    });
 }
 
 #[tauri::command]

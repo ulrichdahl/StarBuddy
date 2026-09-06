@@ -20,10 +20,16 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 pub const STATUS: &str = "status";
 /// Default per action. F6 is unbound in Star Citizen's current default
 /// keyset (F1 mobiGlas, F2 starmap, F4 camera, F11 comms, F12 chat are not).
-/// F8 reads the refinery panel, F9 sends the frame for training. Neither is
-/// bound in Star Citizen's current default keyset, like F6 and F7.
-pub const DEFAULT_HOTKEYS: [(&str, &str); 4] =
-    [("status", "F6"), ("scan", "F7"), ("refinery", "F8"), ("capture", "F9")];
+/// F8 reads the refinery panel, F9 sends the frame for training, F10 switches
+/// reading the screen on and off. None is bound in Star Citizen's current
+/// default keyset, like F6 and F7.
+pub const DEFAULT_HOTKEYS: [(&str, &str); 5] = [
+    ("status", "F6"),
+    ("scan", "F7"),
+    ("refinery", "F8"),
+    ("capture", "F9"),
+    ("reading", "F10"),
+];
 /// Pre-F6 default; a stored copy of it is migrated to the new default.
 const LEGACY_DEFAULT_HOTKEY: &str = "Ctrl+Alt+S";
 /// CLI flag a second launch (or a desktop-environment keybinding) uses to
@@ -638,6 +644,7 @@ pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
         Some("scan") => crate::scan::trigger(&app2),
         Some("refinery") => crate::refinery::trigger(&app2),
         Some("capture") => crate::training::trigger(&app2),
+        Some("reading") => crate::reading::trigger(&app2),
         other => log::warn!("unhandled shortcut action {other:?}"),
     };
     if let Err(e) = app.run_on_main_thread(dispatch) {

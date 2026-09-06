@@ -232,13 +232,11 @@
     "region": {
       "title": {
         "refinery": "Drag across the refinery order panel",
-        "scan": "Drag across the scan signature badge",
-        "game": "Drag a box around the game's window"
+        "scan": "Drag across the scan signature badge"
       },
       "need": {
         "refinery": "Include the title bar: the station name is read from the \"… REFINEMENT CENTER\" line.",
-        "scan": "Frame the badge only — the tighter the area, the more reliable the read.",
-        "game": "The whole window, edge to edge — everything read afterwards is measured inside it."
+        "scan": "Frame the badge only — the tighter the area, the more reliable the read."
       },
       "hint": "Escape keeps the area you had before.",
       "saved": "The orange box is the area in use now"
@@ -308,11 +306,14 @@
       "sent": "{{detail}}",
       "error": "{{detail}}"
     },
-    "markGame": "Mark the game window…",
-    "markGameAgain": "Mark the game window again…",
-    "markGameClear": "Forget it",
-    "markGameHint": "Optional. Drag a box around the game's window once, and every capture is cut out of a picture of the whole screen — so reading no longer depends on the game being the window in front.",
-    "markGameSet": "The game's window is marked, so captures no longer depend on what has focus. Mark it again if you move or resize the game.",
+    "readingStart": "Switch screen reading on",
+    "readingStop": "Switch screen reading off",
+    "readingPick": "Choose the game's window…",
+    "readingHint": "Off. Reading a refinery order, watching the scan badge and sending a training screenshot all need the game's window — switch this on and pick it once. The choice is remembered, so switching on again asks nothing, and the hotkey turns it on and off mid-flight. While it is on, your desktop shows that a window is being shared.",
+    "readingOn": "On — reading {{source}}. Frames are read and dropped; nothing is stored and nothing leaves this machine unless you send it.",
+    "readingSourceUnknown": "the window you chose",
+    "readingNeeded": "These need screen reading switched on.",
+    "hotkeyReading": "Screen reading on/off",
     "hotkeyUnset": "Click to set",
     "hotkeyListening": "Listening — hold the keys",
     "hotkeyPress": "Hold the combination you want. Escape cancels.",

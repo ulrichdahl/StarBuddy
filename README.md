@@ -91,7 +91,7 @@ Open `http://localhost:8080` (or your `APP_URL`) and sign in with Discord. Only 
 
 ## Fair play
 
-StarBuddy never injects into the game, reads game memory, automates inputs, or scrapes RSI. It only reads the `Game.log` text file and (opt-in) screenshots you explicitly capture.
+StarBuddy never injects into the game, reads game memory, automates inputs, or scrapes RSI. It reads the `Game.log` text file, and — only while you switch screen reading on — the game window you picked, through the same desktop screen-sharing your system offers any video call. Frames are read and dropped; nothing leaves the machine unless you send it.
 
 ## License
 

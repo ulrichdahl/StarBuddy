@@ -95,6 +95,19 @@ interface HotkeyInfo {
   windows: boolean;
 }
 
+/** What the client can see of the game, and whether it is looking. */
+interface Reading {
+  /** Frames are arriving from the chosen window. */
+  on: boolean;
+  /** Whether this machine can read the screen at all. */
+  available: boolean;
+  /** What is being read, in words. */
+  source: string | null;
+  error: string | null;
+  /** Windows draws its own list of windows; elsewhere the desktop asks. */
+  picks_from_list: boolean;
+}
+
 /** KWin window rule that keeps overlays above the fullscreen game (Linux/KDE). */
 interface KdeRuleInfo {
   applicable: boolean;
@@ -189,8 +202,12 @@ function BodyText({ text }: { text: string }) {
 function App() {
   const { t, i18n } = useTranslation();
   const [liveDir, setLiveDir] = useState<string | null>(null);
-  /** Whether the player has said where the game's window is. */
-  const [gameMarked, setGameMarked] = useState(false);
+  /** Whether the client is watching the game's window, and what it says about it. */
+  const [reading, setReading] = useState<Reading | null>(null);
+  /** Windows only: the open windows to choose the game from. */
+  const [gameWindows, setGameWindows] = useState<string[]>([]);
+  const [gameWindow, setGameWindow] = useState("");
+  const [readingBusy, setReadingBusy] = useState(false);
   // The channel folders found on this machine: LIVE and HOTFIX, plus any test
   // channel installed, which is offered but never chosen on its own.
   const [channels, setChannels] = useState<GameChannel[]>([]);
@@ -242,18 +259,6 @@ function App() {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
   const updateStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Whether the game's window has been marked. The selector saves from its own
-  // window, so this is only known once it says it has.
-  useEffect(() => {
-    const readMarked = () =>
-      invoke<unknown>("region_current", { purpose: "game" })
-        .then((area) => setGameMarked(area !== null))
-        .catch(() => setGameMarked(false));
-    void readMarked();
-    const updated = listen("region-updated", () => void readMarked());
-    return () => void updated.then((un) => un());
-  }, []);
-
   useEffect(() => {
     invoke<string | null>("detect_game_log").then(setLiveDir);
     invoke<GameChannel[]>("game_channels").then(setChannels).catch(() => setChannels([]));
@@ -266,6 +271,7 @@ function App() {
     invoke<string>("log_dir").then(setLogDir).catch(() => {});
     invoke<boolean>("scan_live_running").then(setScanLive).catch(() => {});
     invoke<KdeRuleInfo>("overlay_kde_rule").then(setKdeRule).catch(() => {});
+    invoke<Reading>("screen_reading").then(setReading).catch(() => {});
     invoke<HotkeyInfo>("overlay_hotkey")
       .then((h) => {
         setHotkey(h);
@@ -286,6 +292,9 @@ function App() {
         if (e.payload[0] === "status") setStatusOpen(e.payload[1]);
       }),
       listen<boolean>("scan-live-state", (e) => setScanLive(e.payload)),
+      // The hotkey switches reading on and off mid-game, so this page is not
+      // the only thing that changes it.
+      listen<Reading>("screen-reading", (e) => setReading(e.payload)),
       // The training hotkey has no window of its own, so this line is the
       // only sign it did anything.
       listen<{ phase: string; detail: string }>("training-capture", (e) => setCaptureStatus(e.payload)),
@@ -384,6 +393,13 @@ function App() {
     }
   };
 
+  // Windows: the list of open windows, and the one chosen last time.
+  useEffect(() => {
+    if (!reading?.picks_from_list) return;
+    setGameWindow((chosen) => chosen || reading.source || "");
+    if (!reading.on) void listGameWindows();
+  }, [reading?.picks_from_list, reading?.on, reading?.source]);
+
   const saveHotkey = async (action: string, value: string) => {
     setHotkeyError(null);
     try {
@@ -405,6 +421,30 @@ function App() {
       onCapture={(action, keys) => void saveHotkey(action, keys)}
     />
   );
+
+  // Reading the screen: off until switched on, and off again when asked. On
+  // Windows the window is picked from the list below; on Wayland the desktop
+  // asks, which is why nothing is picked here.
+  const listGameWindows = () =>
+    invoke<string[]>("screen_reading_windows")
+      .then(setGameWindows)
+      .catch(() => setGameWindows([]));
+
+  const toggleReading = async () => {
+    setOverlayError(null);
+    setReadingBusy(true);
+    try {
+      setReading(
+        reading?.on
+          ? await invoke<Reading>("screen_reading_stop")
+          : await invoke<Reading>("screen_reading_start", { window: gameWindow || null }),
+      );
+    } catch (e) {
+      setOverlayError(String(e));
+    } finally {
+      setReadingBusy(false);
+    }
+  };
 
   // The same thing the training hotkey does, for checking it works without
   // the game in front of the window.
@@ -736,30 +776,41 @@ function App() {
         {/* On Windows a hotkey can register and still never fire, and no error
             is raised for either reason it happens. */}
         {hotkey?.windows && <p className="hint">{t("overlay.hotkeyWindows")}</p>}
-        {/* Marked once, and every capture afterwards is cut out of a picture
-            of the whole screen — so what has focus stops deciding whether the
-            game can be read at all. */}
+        {/* Everything below this reads the game's window, and nothing reads it
+            until this is on: the frames come from a stream the desktop itself
+            shows as running. */}
         <div className="row">
-          <button
-            onClick={() =>
-              invoke("region_select", { purpose: "game" }).catch((e) => setOverlayError(String(e)))
-            }
-          >
-            {gameMarked ? t("overlay.markGameAgain") : t("overlay.markGame")}
-          </button>
-          {gameMarked && (
-            <button
-              onClick={() =>
-                invoke("region_clear", { purpose: "game" })
-                  .then(() => setGameMarked(false))
-                  .catch((e) => setOverlayError(String(e)))
-              }
+          {reading?.picks_from_list && !reading.on && (
+            <select
+              className="locale-select"
+              style={{ marginLeft: 0, flex: "1 1 240px" }}
+              value={gameWindow}
+              onChange={(e) => setGameWindow(e.target.value)}
+              onMouseDown={() => void listGameWindows()}
             >
-              {t("overlay.markGameClear")}
-            </button>
+              <option value="">{t("overlay.readingPick")}</option>
+              {gameWindows.map((w) => (
+                <option key={w} value={w}>
+                  {w}
+                </option>
+              ))}
+            </select>
           )}
+          <button
+            className={reading?.on ? "active" : undefined}
+            disabled={readingBusy || (reading?.picks_from_list && !reading.on && !gameWindow)}
+            onClick={() => void toggleReading()}
+          >
+            {reading?.on ? t("overlay.readingStop") : t("overlay.readingStart")}
+          </button>
+          {hotkeyField("reading", t("overlay.hotkeyReading"), "F10")}
         </div>
-        <p className="hint">{gameMarked ? t("overlay.markGameSet") : t("overlay.markGameHint")}</p>
+        <p className="hint">
+          {reading?.on
+            ? t("overlay.readingOn", { source: reading.source ?? t("overlay.readingSourceUnknown") })
+            : t("overlay.readingHint")}
+        </p>
+        {reading?.error && <p className="error">{reading.error}</p>}
         <div className="row">
           <button onClick={toggleStatusWindow}>
             {statusOpen ? t("overlay.hideStatus") : t("overlay.showStatus")}
@@ -767,8 +818,12 @@ function App() {
           {hotkeyField("status", t("overlay.hotkeyStatus"), "F6")}
         </div>
         <div className="row">
-          <button onClick={toggleLiveScan}>{scanLive ? t("overlay.liveScanStop") : t("overlay.liveScanStart")}</button>
-          <button onClick={scanNow}>{t("overlay.scanNow")}</button>
+          <button disabled={!reading?.on} onClick={toggleLiveScan}>
+            {scanLive ? t("overlay.liveScanStop") : t("overlay.liveScanStart")}
+          </button>
+          <button disabled={!reading?.on} onClick={scanNow}>
+            {t("overlay.scanNow")}
+          </button>
           {hotkeyField("scan", t("overlay.hotkeyScan"), "F7")}
         </div>
         <p className="hint">{t("overlay.scanHint")}</p>
@@ -780,10 +835,13 @@ function App() {
         </div>
         <p className="hint">{t("overlay.refineryHint")}</p>
         <div className="row">
-          <button onClick={sendTrainingCapture}>{t("overlay.captureNow")}</button>
+          <button disabled={!reading?.on} onClick={sendTrainingCapture}>
+            {t("overlay.captureNow")}
+          </button>
           {hotkeyField("capture", t("overlay.hotkeyCapture"), "F9")}
         </div>
         <p className="hint">{t("overlay.captureHint")}</p>
+        {!reading?.on && <p className="hint">{t("overlay.readingNeeded")}</p>}
         {captureStatus && (
           <p className={captureStatus.phase === "error" ? "error" : "hint"}>
             {t(`overlay.capture.${captureStatus.phase}`, { detail: captureStatus.detail })}

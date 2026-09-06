@@ -232,13 +232,11 @@
     "region": {
       "title": {
         "refinery": "Træk hen over rafinaderiets ordrepanel",
-        "scan": "Træk hen over scanningens signaturmærke",
-        "game": "Træk en kasse om spillets vindue"
+        "scan": "Træk hen over scanningens signaturmærke"
       },
       "need": {
         "refinery": "Tag titellinjen med: stationens navn læses fra linjen \"… REFINEMENT CENTER\".",
-        "scan": "Tag kun selve mærket med — jo tættere område, jo mere pålidelig aflæsning.",
-        "game": "Hele vinduet, kant til kant — alt der aflæses bagefter måles inden i det."
+        "scan": "Tag kun selve mærket med — jo tættere område, jo mere pålidelig aflæsning."
       },
       "hint": "Escape beholder det område, du havde før.",
       "saved": "Den orange kasse er det område der bruges nu"
@@ -308,11 +306,14 @@
       "sent": "{{detail}}",
       "error": "{{detail}}"
     },
-    "markGame": "Markér spilvinduet…",
-    "markGameAgain": "Markér spilvinduet igen…",
-    "markGameClear": "Glem det",
-    "markGameHint": "Valgfrit. Træk en kasse om spillets vindue én gang, så klippes hver optagelse ud af et billede af hele skærmen — og aflæsning afhænger ikke længere af, at spillet er forrest.",
-    "markGameSet": "Spilvinduet er markeret, så optagelser afhænger ikke af, hvad der har fokus. Markér igen, hvis du flytter eller ændrer størrelse på spillet.",
+    "readingStart": "Slå skærmaflæsning til",
+    "readingStop": "Slå skærmaflæsning fra",
+    "readingPick": "Vælg spillets vindue…",
+    "readingHint": "Slået fra. At aflæse en raffinaderi-ordre, holde øje med scanningsmærket og sende et træningsbillede kræver alle spillets vindue — slå det til, og vælg vinduet én gang. Valget huskes, så næste gang spørges der ikke, og genvejstasten slår det til og fra midt i flyvningen. Mens det er slået til, viser dit skrivebord, at et vindue deles.",
+    "readingOn": "Slået til — læser {{source}}. Billederne læses og smides væk; intet gemmes, og intet forlader denne maskine, medmindre du sender det.",
+    "readingSourceUnknown": "vinduet du valgte",
+    "readingNeeded": "Disse kræver, at skærmaflæsning er slået til.",
+    "hotkeyReading": "Skærmaflæsning til/fra",
     "hotkeyUnset": "Klik for at vælge",
     "hotkeyListening": "Lytter — hold tasterne nede",
     "hotkeyPress": "Hold den kombination du vil bruge. Escape annullerer.",
