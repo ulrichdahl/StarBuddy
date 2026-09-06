@@ -429,3 +429,39 @@ th {
 .update-notes { margin-top: 6px; font-size: 13px; }
 .update-notes summary { cursor: pointer; color: var(--muted); }
 .update-notes pre { margin: 6px 0 0; white-space: pre-wrap; font: inherit; color: var(--muted); max-height: 220px; overflow: auto; }
+
+/* Setting a hotkey by holding it: the bar is the four seconds it has to be
+   held for, which is what keeps a combination from being taken while the hand
+   is still assembling it. */
+.hotkey {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hotkey-hold {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 260px;
+}
+
+.hotkey-hold-track {
+  flex: 0 0 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.hotkey-hold-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 60ms linear;
+}
+
+.hotkey-failed {
+  flex: 1 1 100%;
+  margin: 0;
+}

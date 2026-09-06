@@ -503,6 +503,11 @@ pub struct HotkeyInfo {
     pub toggle_command: String,
     /// action → why that shortcut is not currently registered.
     pub failed: HashMap<String, String>,
+    /// Windows has two ways for a hotkey to do nothing that no error reports:
+    /// another program holding the combination, and a game running as
+    /// administrator, which Windows will not let a normal program's hotkeys
+    /// reach. The window says so there rather than leaving it a mystery.
+    pub windows: bool,
 }
 
 fn on_wayland() -> bool {
@@ -519,6 +524,7 @@ pub fn overlay_hotkey(app: AppHandle) -> HotkeyInfo {
         global_supported: !(cfg!(target_os = "linux") && on_wayland() && std::env::var("GDK_BACKEND").as_deref() != Ok("x11")),
         toggle_command: format!("\"{exe}\" {TOGGLE_FLAG}"),
         failed: app.state::<OverlayState>().failures.lock().unwrap().clone(),
+        windows: cfg!(windows),
     }
 }
 

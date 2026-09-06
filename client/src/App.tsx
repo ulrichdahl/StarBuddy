@@ -5,6 +5,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
 import { useTranslation } from "react-i18next";
+import { HotkeyCapture } from "./HotkeyCapture";
 import { LOCALE_NAMES, SUPPORTED_LOCALES, setLocale, type Locale } from "./i18n";
 import "./App.css";
 
@@ -90,6 +91,8 @@ interface HotkeyInfo {
   toggle_command: string;
   /** action → why that shortcut is not registered, e.g. another app owns it. */
   failed: Record<string, string>;
+  /** Windows, where a hotkey can be registered and still never arrive. */
+  windows: boolean;
 }
 
 /** KWin window rule that keeps overlays above the fullscreen game (Linux/KDE). */
@@ -223,7 +226,6 @@ function App() {
   // action → what is typed in its field. Seeded from the client's own
   // hotkey map so every action it knows about gets a row, including ones
   // added after this page was written.
-  const [hotkeyDrafts, setHotkeyDrafts] = useState<Record<string, string>>({});
   const [captureStatus, setCaptureStatus] = useState<{ phase: string; detail: string } | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanLive, setScanLive] = useState(false);
@@ -267,7 +269,6 @@ function App() {
     invoke<HotkeyInfo>("overlay_hotkey")
       .then((h) => {
         setHotkey(h);
-        setHotkeyDrafts(h.hotkeys);
       })
       .catch(() => {});
 
@@ -388,39 +389,22 @@ function App() {
     try {
       const info = await invoke<HotkeyInfo>("overlay_set_hotkey", { action, hotkey: value });
       setHotkey(info);
-      setHotkeyDrafts(info.hotkeys);
     } catch (e) {
       setHotkeyError(String(e));
     }
   };
 
-  /** The shortcut field and its save button, for one action. */
-  const hotkeyField = (action: string, label: string, placeholder: string) => {
-    const draft = hotkeyDrafts[action] ?? "";
-    return (
-      <>
-        <input
-          type="text"
-          aria-label={label}
-          placeholder={placeholder}
-          style={{ maxWidth: 160, flex: "0 1 auto" }}
-          value={draft}
-          onChange={(e) => setHotkeyDrafts((prev) => ({ ...prev, [action]: e.target.value }))}
-        />
-        <button
-          disabled={!hotkey || draft.trim() === (hotkey.hotkeys[action] ?? "")}
-          onClick={() => saveHotkey(action, draft)}
-        >
-          {t("overlay.saveHotkey")}
-        </button>
-        {hotkey?.failed?.[action] && (
-          <span className="error" style={{ flex: "1 1 100%", margin: 0 }}>
-            {t("overlay.hotkeyTaken", { detail: hotkey.failed[action] })}
-          </span>
-        )}
-      </>
-    );
-  };
+  // Hold the keys rather than type their names: a mistyped accelerator is a
+  // hotkey that never fires and never says why.
+  const hotkeyField = (action: string, label: string, _placeholder: string) => (
+    <HotkeyCapture
+      action={action}
+      label={label}
+      current={hotkey?.hotkeys[action] ?? ""}
+      failed={hotkey?.failed?.[action] && t("overlay.hotkeyTaken", { detail: hotkey.failed[action] })}
+      onCapture={(action, keys) => void saveHotkey(action, keys)}
+    />
+  );
 
   // The same thing the training hotkey does, for checking it works without
   // the game in front of the window.
@@ -749,6 +733,9 @@ function App() {
       <section className="panel">
         <h2>{t("overlay.panelTitle")}</h2>
         <p className="hint">{t("overlay.panelHint")}</p>
+        {/* On Windows a hotkey can register and still never fire, and no error
+            is raised for either reason it happens. */}
+        {hotkey?.windows && <p className="hint">{t("overlay.hotkeyWindows")}</p>}
         {/* Marked once, and every capture afterwards is cut out of a picture
             of the whole screen — so what has focus stops deciding whether the
             game can be read at all. */}

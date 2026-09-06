@@ -312,7 +312,12 @@
     "markGameAgain": "Mark the game window again…",
     "markGameClear": "Forget it",
     "markGameHint": "Optional. Drag a box around the game's window once, and every capture is cut out of a picture of the whole screen — so reading no longer depends on the game being the window in front.",
-    "markGameSet": "The game's window is marked, so captures no longer depend on what has focus. Mark it again if you move or resize the game."
+    "markGameSet": "The game's window is marked, so captures no longer depend on what has focus. Mark it again if you move or resize the game.",
+    "hotkeyUnset": "Set a hotkey…",
+    "hotkeyListening": "Listening — hold the keys",
+    "hotkeyPress": "Hold the combination you want. Escape cancels.",
+    "hotkeyHold": "{{keys}} — keep holding, {{seconds}}s",
+    "hotkeyWindows": "If a hotkey does nothing on Windows: something else may already own it — F6–F9 are taken by GeForce Experience, the Xbox Game Bar and Discord — so hold a combination with Ctrl, Alt or Shift instead. If it still does nothing, the game is probably running as administrator, and Windows will not deliver a normal program's hotkeys to it; start StarBuddy as administrator too."
   },
   "changes": {
     "sinceLive_one": "What’s new — {{count}} change since v{{version}}",

@@ -312,7 +312,12 @@
     "markGameAgain": "Markér spilvinduet igen…",
     "markGameClear": "Glem det",
     "markGameHint": "Valgfrit. Træk en kasse om spillets vindue én gang, så klippes hver optagelse ud af et billede af hele skærmen — og aflæsning afhænger ikke længere af, at spillet er forrest.",
-    "markGameSet": "Spilvinduet er markeret, så optagelser afhænger ikke af, hvad der har fokus. Markér igen, hvis du flytter eller ændrer størrelse på spillet."
+    "markGameSet": "Spilvinduet er markeret, så optagelser afhænger ikke af, hvad der har fokus. Markér igen, hvis du flytter eller ændrer størrelse på spillet.",
+    "hotkeyUnset": "Vælg en genvej…",
+    "hotkeyListening": "Lytter — hold tasterne nede",
+    "hotkeyPress": "Hold den kombination du vil bruge. Escape annullerer.",
+    "hotkeyHold": "{{keys}} — bliv ved, {{seconds}}s",
+    "hotkeyWindows": "Hvis en genvej ikke gør noget på Windows: noget andet ejer den måske allerede — F6–F9 bruges af GeForce Experience, Xbox Game Bar og Discord — så hold en kombination med Ctrl, Alt eller Shift i stedet. Sker der stadig intet, kører spillet sandsynligvis som administrator, og Windows sender ikke et almindeligt programs genveje til det; start så også StarBuddy som administrator."
   },
   "changes": {
     "sinceLive_one": "Nyheder — {{count}} ændring siden v{{version}}",
