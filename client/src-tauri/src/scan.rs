@@ -676,6 +676,13 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
     let (mut reads, mut found, mut failed, mut spent) = (0u64, 0u64, 0u64, Duration::ZERO);
     let mut last_report = Instant::now();
     while !stop.load(Ordering::Relaxed) {
+        // Reading can be switched off mid-flight, and without frames this loop
+        // is nothing but a warning every two seconds. End with the stream.
+        if !crate::reading::state(&app).on {
+            log::info!("live scan: screen reading went off");
+            status(&app, "error", "Screen reading was switched off.", None);
+            break;
+        }
         let region = current_region(&app);
         let cap = match capture_region(&app, region) {
             Ok(c) => c,
@@ -706,7 +713,7 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
         let changed = prev.as_ref().map(|p| frame_diff(p, &cap.rgb) > 4.0).unwrap_or(true);
         prev = Some(cap.rgb.clone());
         if !changed && idle_since.elapsed() < Duration::from_secs(3) {
-            std::thread::sleep(Duration::from_millis(if cap.source.contains(" (") { 400 } else { 250 }));
+            std::thread::sleep(Duration::from_millis(250));
             continue;
         }
         idle_since = Instant::now();
@@ -756,10 +763,9 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
             last_report = Instant::now();
         }
         let _ = app.emit("scan-live", &reading);
-        // A screenshot tool costs ~0.7 s per frame on its own; a short pause
-        // keeps the loop near one reading per second without spinning.
-        let pause = if cap.source.contains(" (") { 300 } else { 400 };
-        std::thread::sleep(Duration::from_millis(pause));
+        // Taking the newest frame off the stream costs nothing, so the pause
+        // is only here to keep the loop near one reading per second.
+        std::thread::sleep(Duration::from_millis(400));
     }
     // Loop ended on its own (error) — reflect that in the state.
     let state = app.state::<ScanState>();
