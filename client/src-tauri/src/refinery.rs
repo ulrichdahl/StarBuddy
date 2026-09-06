@@ -128,10 +128,25 @@ pub struct Specialization {
 pub struct RefineryState {
     pub last: Mutex<Option<RefineryTerminal>>,
     busy: Mutex<bool>,
+    /// Where the read has got to, kept as well as emitted: the hotkey opens
+    /// the window and starts the read together, so the first phases are sent
+    /// before there is anything listening. The window asks for this on the way
+    /// up rather than showing "press the key" over a read already running.
+    phase: Mutex<Phase>,
+}
+
+#[derive(Serialize, Clone, Default)]
+pub struct Phase {
+    pub phase: String,
+    pub detail: String,
 }
 
 fn status(app: &AppHandle, phase: &str, detail: impl Into<String>) {
-    let _ = app.emit("refinery-status", serde_json::json!({ "phase": phase, "detail": detail.into() }));
+    let now = Phase { phase: phase.to_string(), detail: detail.into() };
+    if let Some(state) = app.try_state::<RefineryState>() {
+        *state.phase.lock().unwrap() = now.clone();
+    }
+    let _ = app.emit("refinery-status", now);
 }
 
 /// The region the player framed, or the whole frame when they have not.
@@ -144,6 +159,16 @@ pub fn trigger(app: &AppHandle) {
     if let Err(e) = crate::overlay::show(app, REFINERY) {
         log::error!("refinery window failed to open: {e}");
     }
+    // Pressing the key again while a read is running is someone asking whether
+    // it is working, not asking for another read. Say where it has got to.
+    if *app.state::<RefineryState>().busy.lock().unwrap() {
+        let now = app.state::<RefineryState>().phase.lock().unwrap().clone();
+        let _ = app.emit("refinery-status", now);
+        return;
+    }
+    // Said before the read is even spawned, so the window that is opening at
+    // this moment has something to show the instant it can show anything.
+    status(app, "capturing", "");
     let app2 = app.clone();
     tauri::async_runtime::spawn(async move {
         if let Err(e) = read(app2.clone()).await {
@@ -215,16 +240,38 @@ async fn read_inner(app: &AppHandle) -> Result<RefineryTerminal, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let started = std::time::Instant::now();
         status(&app2, "capturing", "grabbing the panel");
-        let full = scan::capture_game(&app2)?;
+        let captured = scan::capture_game(&app2)?;
+        // Kept only when the read is of a framed part of it: that is the case
+        // where the terminal's title may be outside what was read.
+        let full = region.is_some().then(|| captured.clone());
         let cap = match region {
-            Some(r) => scan::crop_region(full, r)?,
-            None => full,
+            Some(r) => scan::crop_region(captured, r)?,
+            None => captured,
         };
 
         status(&app2, "ocr", "reading the panel");
-        let lines = scan::with_engine(&app2, &det, &rec, |engine| read_in_bands(engine, &cap))?;
+        let app3 = app2.clone();
+        let lines = scan::with_engine(&app2, &det, &rec, |engine| {
+            read_bands_with(engine, &cap, &|band, of| status(&app3, "ocr", format!("{band}/{of}")))
+        })?;
 
         let mut order = parse(&lines);
+        // The station's name is printed across the top of the terminal, and a
+        // framed area is usually one panel of it — so the name is off the crop
+        // and the order lands with nowhere to file it. The top of the window
+        // is a strip: cheap to read, and the only place the name can be.
+        if order.station.is_none() {
+            if let Some(whole) = full.as_ref() {
+                let strip = crop_rows(whole, 0, whole.height / 6);
+                match scan::with_engine(&app2, &det, &rec, |engine| scan::run_ocr(engine, &strip)) {
+                    Ok(lines) => order.station = station_in(&lines.iter().collect::<Vec<_>>()),
+                    Err(e) => log::debug!("station strip unread: {e}"),
+                }
+                if order.station.is_some() {
+                    order.missing.retain(|field| field != "station");
+                }
+            }
+        }
         snap_qualities(&app2, &mut order);
         order.lines = lines;
         order.captured_at = std::time::SystemTime::now()
@@ -325,6 +372,16 @@ fn send_for_training(app: &AppHandle, cap: &Captured, order: &RefineryTerminal) 
 /// native scale. Bands overlap so a row that straddles a cut is still whole in
 /// one of them, and duplicates are dropped on merge.
 fn read_in_bands(engine: &ocrs::OcrEngine, cap: &Captured) -> Result<Vec<OcrLine>, String> {
+    read_bands_with(engine, cap, &|_, _| {})
+}
+
+/// The same, telling the caller which band it is on. A read of a tall panel is
+/// seconds of nothing otherwise, and on a slow machine rather more than that.
+fn read_bands_with(
+    engine: &ocrs::OcrEngine,
+    cap: &Captured,
+    progress: &dyn Fn(usize, usize),
+) -> Result<Vec<OcrLine>, String> {
     const TARGET_BAND: u32 = 420;
     const OVERLAP: u32 = 60;
 
@@ -332,9 +389,14 @@ fn read_in_bands(engine: &ocrs::OcrEngine, cap: &Captured) -> Result<Vec<OcrLine
         return scan::run_ocr(engine, cap);
     }
 
+    let step = TARGET_BAND - OVERLAP;
+    let bands = (cap.height.div_ceil(step)).max(1) as usize;
+    let mut band_number = 0usize;
     let mut merged: Vec<OcrLine> = Vec::new();
     let mut top = 0u32;
     while top < cap.height {
+        band_number += 1;
+        progress(band_number, bands);
         let height = TARGET_BAND.min(cap.height - top);
         let band = crop_rows(cap, top, height);
         let started = std::time::Instant::now();
@@ -1412,21 +1474,22 @@ fn total_yield_label<'a>(lines: &[&'a OcrLine], table: &Table) -> Option<&'a Ocr
         .copied()
 }
 
-/// Turn OCR lines from a refinement terminal into everything on screen.
-pub fn parse(lines: &[OcrLine]) -> RefineryTerminal {
-    let all: Vec<&OcrLine> = lines.iter().collect();
-    let all_rows = rows(&all);
-    let mut terminal = RefineryTerminal::default();
-
-    // Station: the terminal titles itself "REFINEMENT CENTER", with the place
-    // to its left on the same row.
-    // The station's name sits top left, opposite the REFINEMENT CENTER title.
-    if let Some(title) = find(&all, "REFINEMENT") {
-        if let Some(row) = all_rows.iter().find(|row| row.iter().any(|l| std::ptr::eq(*l, title))) {
-            if let Some(left) = row.iter().find(|l| centre_x(l) < centre_x(title) && !is_label(&l.text)) {
-                terminal.station = Some(clean_station(&left.text));
-            }
-        }
+/// The station's name: the terminal titles itself "REFINEMENT CENTER", with
+/// the place it is standing in to the left on the same row.
+///
+/// Given the whole terminal or only the strip across its top — a framed area
+/// usually cuts the title off, and then the name has to be looked for in the
+/// window itself.
+fn station_in(all: &[&OcrLine]) -> Option<String> {
+    let title = find(all, "REFINEMENT")?;
+    let rows = rows(all);
+    let beside = rows
+        .iter()
+        .find(|row| row.iter().any(|l| std::ptr::eq(*l, title)))
+        .and_then(|row| row.iter().find(|l| centre_x(l) < centre_x(title) && !is_label(&l.text)))
+        .map(|l| clean_station(&l.text));
+    if beside.is_some() {
+        return beside;
     }
     // The title is set in much larger type than the name beside it, so the two
     // often do not share a row once OCR has had its way with their heights.
@@ -1436,21 +1499,26 @@ pub fn parse(lines: &[OcrLine]) -> RefineryTerminal {
     // Only ever when the title itself was read, so this cannot name a station
     // on a capture that is not a refinery terminal at all: the fallback is for
     // a title whose row broke, not for guessing.
-    if terminal.station.is_none() && find(&all, "REFINEMENT").is_some() {
-        let left_edge = all.iter().map(|l| l.x).min().unwrap_or(0);
-        let top_edge = all.iter().map(|l| centre_y(l)).min().unwrap_or(0);
-        let width = all.iter().map(|l| l.x + l.w).max().unwrap_or(0) - left_edge;
-        let height = all.iter().map(|l| centre_y(l)).max().unwrap_or(0) - top_edge;
-        terminal.station = all
-            .iter()
-            .filter(|l| l.x - left_edge < width / 3)
-            .filter(|l| centre_y(l) - top_edge <= height / 4)
-            // A station is named in a word or two, and never in a heading.
-            .filter(|l| l.text.split_whitespace().count() <= 3 && !is_label(&l.text))
-            .filter(|l| l.text.chars().filter(|c| c.is_alphabetic()).count() >= 3)
-            .min_by_key(|l| centre_y(l))
-            .map(|l| clean_station(&l.text));
-    }
+    let left_edge = all.iter().map(|l| l.x).min().unwrap_or(0);
+    let top_edge = all.iter().map(|l| centre_y(l)).min().unwrap_or(0);
+    let width = all.iter().map(|l| l.x + l.w).max().unwrap_or(0) - left_edge;
+    let height = all.iter().map(|l| centre_y(l)).max().unwrap_or(0) - top_edge;
+    all.iter()
+        .filter(|l| l.x - left_edge < width / 3)
+        .filter(|l| centre_y(l) - top_edge <= height / 4)
+        // A station is named in a word or two, and never in a heading.
+        .filter(|l| l.text.split_whitespace().count() <= 3 && !is_label(&l.text))
+        .filter(|l| l.text.chars().filter(|c| c.is_alphabetic()).count() >= 3)
+        .min_by_key(|l| centre_y(l))
+        .map(|l| clean_station(&l.text))
+}
+
+/// Turn OCR lines from a refinement terminal into everything on screen.
+pub fn parse(lines: &[OcrLine]) -> RefineryTerminal {
+    let all: Vec<&OcrLine> = lines.iter().collect();
+    let mut terminal = RefineryTerminal::default();
+
+    terminal.station = station_in(&all);
 
     let anchors = anchors(lines);
     for (panel, anchor) in panels(lines, &anchors).into_iter().zip(&anchors) {
@@ -1657,6 +1725,12 @@ pub async fn refinery_read(app: AppHandle, fresh: Option<bool>) -> Result<Refine
 #[tauri::command]
 pub fn refinery_clear(app: AppHandle) {
     *app.state::<RefineryState>().last.lock().unwrap() = None;
+}
+
+/// Where a read has got to, for a window that has only just opened.
+#[tauri::command]
+pub fn refinery_status(app: AppHandle) -> Phase {
+    app.state::<RefineryState>().phase.lock().unwrap().clone()
 }
 
 #[tauri::command]

@@ -104,6 +104,10 @@ export function RefineryOverlay() {
 
   useEffect(() => {
     invoke<RefineryTerminal | null>("refinery_last").then((r) => r && setTerminal(r)).catch(() => {});
+    // The hotkey opens this window and starts the read in the same breath, so
+    // the first phases are sent before there is anything here to hear them.
+    // Ask, or a read already running looks like nothing happening.
+    invoke<RefineryStatus>("refinery_status").then(setStatus).catch(() => {});
     const subs = [
       listen<RefineryStatus>("refinery-status", (e) => setStatus(e.payload)),
       listen<RefineryTerminal>("refinery-order", (e) => {

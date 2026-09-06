@@ -274,7 +274,7 @@
       "phase": {
         "downloading": "Getting the OCR models…",
         "capturing": "Capturing the panel…",
-        "ocr": "Reading the panel…",
+        "ocr": "Reading the panel… {{detail}}",
         "error": "{{detail}}"
       },
       "orderCount": "{{count}} work order(s)",

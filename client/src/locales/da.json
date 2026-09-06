@@ -274,7 +274,7 @@
       "phase": {
         "downloading": "Henter OCR-modellerne…",
         "capturing": "Tager billede af panelet…",
-        "ocr": "Aflæser panelet…",
+        "ocr": "Læser panelet… {{detail}}",
         "error": "{{detail}}"
       },
       "orderCount": "{{count}} arbejdsordre(r)",

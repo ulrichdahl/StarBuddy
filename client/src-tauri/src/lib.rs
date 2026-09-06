@@ -1220,6 +1220,7 @@ pub fn run() {
             scan::scan_last,
             refinery::refinery_read,
             refinery::refinery_last,
+            refinery::refinery_status,
             refinery::refinery_save,
             refinery::refinery_clear,
             region::region_select,

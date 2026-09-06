@@ -54,3 +54,11 @@ ashpd = { version = "0.13", default-features = false, features = ["tokio", "scre
 # Reading the portal's stream of shortcut presses.
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 pipewire = "0.10"
+
+# The OCR crates are unusable unoptimised: one refinery panel takes two and a
+# half minutes in a debug build against two seconds in a release one, which
+# reads as a hung client rather than a slow one. Dependencies are optimised
+# even in dev; the client's own code is not, so it can still be stepped
+# through.
+[profile.dev.package."*"]
+opt-level = 3
