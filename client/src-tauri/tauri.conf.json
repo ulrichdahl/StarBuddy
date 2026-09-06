@@ -37,6 +37,10 @@
       "nsis": {
         "installerHooks": "./windows/hooks.nsh"
       }
+    },
+    "linux": {
+      "deb": { "depends": ["libpipewire-0.3-0"] },
+      "rpm": { "depends": ["pipewire-libs"] }
     }
   }
 }

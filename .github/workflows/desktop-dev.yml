@@ -36,7 +36,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             bundles: |
               client/src-tauri/target/release/bundle/deb/*.deb
               client/src-tauri/target/release/bundle/rpm/*.rpm
@@ -74,7 +74,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
-            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf \
+            libpipewire-0.3-dev libclang-dev
 
       - name: Build
         working-directory: client
@@ -99,15 +100,21 @@ jobs:
           done
 
       # The bundled Ubuntu libwayland conflicts with newer host Mesa/EGL
-      # (white window, "Could not create default EGL display"). Strip it so
-      # the host's Wayland client libs are used, and repack.
-      - name: Repack AppImage without bundled libwayland
+      # (white window, "Could not create default EGL display"), and a bundled
+      # libpipewire looks for its modules under Ubuntu's paths, which don't
+      # exist on Arch/Fedora. Both talk to a host daemon, so use the host's
+      # copies: strip them and repack.
+      #
+      # A distro new enough to run the game has both; they are what the
+      # desktop's own screen sharing already uses.
+      - name: Repack AppImage without bundled host libraries
         if: runner.os == 'Linux'
         working-directory: client/src-tauri/target/release/bundle/appimage
         run: |
           APPIMAGE=$(ls *.AppImage)
           ./"$APPIMAGE" --appimage-extract >/dev/null
-          rm -fv squashfs-root/usr/lib/libwayland-*.so*
+          rm -fv squashfs-root/usr/lib/libwayland-*.so* \
+            squashfs-root/usr/lib/libpipewire-*.so* squashfs-root/usr/lib/libspa-*.so*
           wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
           ARCH=x86_64 ./appimagetool --appimage-extract-and-run squashfs-root "$APPIMAGE"

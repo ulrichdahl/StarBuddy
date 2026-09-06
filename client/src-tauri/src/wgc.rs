@@ -12,7 +12,7 @@ use crate::scan::Captured;
 use std::sync::{Mutex, OnceLock};
 use windows_capture::capture::{Context, GraphicsCaptureApiHandler};
 use windows_capture::frame::Frame;
-use windows_capture::graphics_capture_api::InternalCaptureControl;
+use windows_capture::graphics_capture_api::{GraphicsCaptureApi, InternalCaptureControl};
 use windows_capture::settings::{
     ColorFormat, CursorCaptureSettings, DirtyRegionSettings, DrawBorderSettings,
     MinimumUpdateIntervalSettings, SecondaryWindowSettings, Settings,
@@ -41,9 +41,12 @@ impl GraphicsCaptureApiHandler for Reader {
     }
 
     fn on_frame_arrived(&mut self, frame: &mut Frame, _: InternalCaptureControl) -> Result<(), Self::Error> {
-        let (width, height) = (frame.width(), frame.height());
-        let mut buffer = frame.buffer().map_err(|e| e.to_string())?;
-        let pixels = buffer.as_raw_nopadding_buffer().map_err(|e| e.to_string())?;
+        let buffer = frame.buffer().map_err(|e| e.to_string())?;
+        let (width, height) = (buffer.width(), buffer.height());
+        // Rows come out padded to the texture's pitch; this is where they are
+        // packed, into scratch we own for the length of the copy.
+        let mut scratch = Vec::new();
+        let pixels = buffer.as_nopadding_buffer(&mut scratch);
         // Asked for as Rgba8, so red comes first and the fourth byte is the
         // alpha the reader has no use for.
         let mut rgb = Vec::with_capacity(width as usize * height as usize * 3);
@@ -82,15 +85,33 @@ pub fn open_windows() -> Vec<String> {
 /// Start streaming the window with this title.
 pub fn start(title: &str) -> Result<(), String> {
     stop();
+    if !GraphicsCaptureApi::is_supported().unwrap_or(false) {
+        return Err("This Windows can't stream a window. Windows 10 version 1903 or newer is needed.".into());
+    }
     let window = Window::from_name(title)
         .map_err(|_| format!("The window \"{title}\" is not open — is the game running?"))?;
 
+    // Windows 10 has the capture API but not every switch on it, and asking
+    // for one it lacks fails the whole capture. So ask only where it answers,
+    // and take the compositor's own default elsewhere: a cursor or a border in
+    // the frame is worth far more than no frames at all.
+    let cursor = if GraphicsCaptureApi::is_cursor_settings_supported().unwrap_or(false) {
+        CursorCaptureSettings::WithoutCursor
+    } else {
+        CursorCaptureSettings::Default
+    };
+    // A border would be captured too, and every area framed inside the window
+    // would be off by its width.
+    let border = if GraphicsCaptureApi::is_border_settings_supported().unwrap_or(false) {
+        DrawBorderSettings::WithoutBorder
+    } else {
+        DrawBorderSettings::Default
+    };
+
     let settings = Settings::new(
         window,
-        CursorCaptureSettings::WithoutCursor,
-        // No border drawn round the game: it would be captured too, and every
-        // area framed inside the window would be off by its width.
-        DrawBorderSettings::WithoutBorder,
+        cursor,
+        border,
         SecondaryWindowSettings::Default,
         MinimumUpdateIntervalSettings::Default,
         DirtyRegionSettings::Default,

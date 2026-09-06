@@ -32,6 +32,12 @@ The desktop client (Game.log watcher) is built automatically for Windows and Lin
 - **[Development build](https://github.com/ulrichdahl/StarBuddy/releases/tag/dev)** — rolling, replaced on every change to `develop`. Windows installer (`.exe`/`.msi`), Linux AppImage/`.deb`/`.rpm`.
 - **[Stable releases](https://github.com/ulrichdahl/StarBuddy/releases/latest)** — published when a `v*` tag is pushed.
 
+Screen reading (refinery orders, scanning) captures the game window as a video
+stream, so it needs **Windows 10 (build 1903) or newer**, or a Linux desktop
+with `xdg-desktop-portal` and PipeWire — Wayland or X11, GNOME, KDE, Hyprland,
+Sway. The AppImage is built on Ubuntu 24.04, so it wants glibc 2.39 or newer;
+the `.deb` and `.rpm` say what they need.
+
 ## Branches
 
 `develop` is the branch work lands on; feature branches merge into it, and
