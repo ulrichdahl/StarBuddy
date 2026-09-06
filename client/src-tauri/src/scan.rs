@@ -213,13 +213,53 @@ pub(crate) fn capture() -> Result<Captured, String> {
 /// desktop instead, and a read like that comes back empty. Better to say the
 /// game was not found than to read the wrong rectangle.
 #[cfg(target_os = "linux")]
-pub(crate) fn capture() -> Result<Captured, String> {
-    let cap = match capture_x11_window() {
-        Ok(c) => Ok(c),
-        Err(x11_err) => capture_with_tool().map_err(|tool_err| format!("{x11_err}; {tool_err}")),
-    }?;
+pub(crate) fn capture_frame(marked: Option<ScanRegion>) -> Result<Captured, String> {
+    // A marked rectangle is the whole answer: grab the desktop, cut the game
+    // out of it, and never mind what has focus.
+    let cap = if let Some(rect) = marked {
+        let screen = capture_screen()?;
+        let cut = crop_region(screen, rect)?;
+        Captured { source: format!("marked window, {}", cut.source), ..cut }
+    } else {
+        match capture_x11_window() {
+            Ok(c) => Ok(c),
+            Err(x11_err) => capture_with_tool().map_err(|tool_err| format!("{x11_err}; {tool_err}")),
+        }?
+    };
     remember_frame(&cap);
     Ok(cap)
+}
+
+#[cfg(target_os = "linux")]
+pub(crate) fn capture() -> Result<Captured, String> {
+    capture_frame(None)
+}
+
+/// The frame a purpose is framed against.
+///
+/// Everything is measured against the game's window — except the game's own
+/// rectangle, which is marked on a picture of the whole desktop, because that
+/// is what it is a rectangle of.
+pub(crate) fn capture_for(app: &AppHandle, purpose: &crate::region::Purpose) -> Result<Captured, String> {
+    if matches!(purpose, crate::region::Purpose::Game) {
+        #[cfg(target_os = "linux")]
+        return capture_screen();
+    }
+    capture_game(app)
+}
+
+/// The game's frame, cut from the desktop when the player has marked where it
+/// is and grabbed directly when they have not.
+pub(crate) fn capture_game(app: &AppHandle) -> Result<Captured, String> {
+    #[cfg(target_os = "linux")]
+    {
+        return capture_frame(crate::load_client_prefs(app).game_rect);
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = app;
+        capture()
+    }
 }
 
 #[cfg(target_os = "linux")]
@@ -330,7 +370,13 @@ pub(crate) fn region_px(r: ScanRegion, width: u32, height: u32) -> (i32, i32, i3
 }
 
 /// Only the signature region of the game frame (the live loop's capture).
-fn capture_region(region: ScanRegion) -> Result<Captured, String> {
+fn capture_region(app: &AppHandle, region: ScanRegion) -> Result<Captured, String> {
+    #[cfg(target_os = "linux")]
+    if let Some(marked) = crate::load_client_prefs(app).game_rect {
+        // The game's frame is cut from the desktop, and the region out of that
+        // — the same two steps a read takes, so both mean the same rectangle.
+        return crop_region(capture_frame(Some(marked))?, region);
+    }
     #[cfg(target_os = "linux")]
     {
         match capture_x11_rect(Some(region)) {
@@ -369,6 +415,47 @@ pub(crate) fn crop_region(full: Captured, region: ScanRegion) -> Result<Captured
 /// the game (too small: our own overlay that was just clicked, a dialog).
 /// Tools run through host_command so the AppImage's library paths never
 /// reach them.
+/// The whole desktop, for cutting a remembered rectangle out of.
+///
+/// On a game the screenshot tool can only reach as the *active* window, every
+/// capture depends on the game being in front — which it is not, the moment
+/// anyone clicks an overlay. A player who marks the game's rectangle once
+/// escapes that entirely: the desktop is always grabbable, and the game's
+/// window does not move during a session.
+#[cfg(target_os = "linux")]
+fn capture_screen() -> Result<Captured, String> {
+    let out = std::env::temp_dir().join(format!("starbuddy-screen-{}.png", std::process::id()));
+    let out_s = out.to_string_lossy().into_owned();
+    let attempts: [(&str, Vec<String>); 3] = [
+        ("spectacle", vec!["-b".into(), "-n".into(), "-f".into(), "-o".into(), out_s.clone()]),
+        ("grim", vec![out_s.clone()]),
+        ("gnome-screenshot", vec!["-f".into(), out_s.clone()]),
+    ];
+    let mut tried = Vec::new();
+    for (tool, args) in attempts {
+        let _ = fs::remove_file(&out);
+        let Ok(output) = crate::host_command(tool).args(&args).output() else {
+            tried.push(format!("{tool} (not installed)"));
+            continue;
+        };
+        if !(output.status.success() && out.exists()) {
+            tried.push(format!("{tool} ({})", output.status));
+            continue;
+        }
+        let img = image::open(&out).map_err(|e| e.to_string())?.into_rgb8();
+        let _ = fs::remove_file(&out);
+        let (width, height) = img.dimensions();
+        return Ok(Captured {
+            rgb: img.into_raw(),
+            width,
+            height,
+            source: format!("screen ({tool})"),
+            full_height: height,
+        });
+    }
+    Err(format!("no screenshot tool could grab the screen (tried {})", tried.join(", ")))
+}
+
 #[cfg(target_os = "linux")]
 fn capture_with_tool() -> Result<Captured, String> {
     let out = std::env::temp_dir().join(format!("starbuddy-scan-{}.png", std::process::id()));
@@ -806,7 +893,7 @@ async fn scan_inner(app: &AppHandle) -> Result<ScanResult, String> {
         let engine = engine.as_ref().unwrap();
 
         status(&app2, "capturing", "capturing screen", None);
-        let cap = capture()?;
+        let cap = capture_game(&app2)?;
         status(&app2, "ocr", format!("reading {}×{}", cap.width, cap.height), None);
         analyze(engine, &cap, started)
     })
@@ -880,7 +967,7 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
     let mut last_report = Instant::now();
     while !stop.load(Ordering::Relaxed) {
         let region = current_region(&app);
-        let cap = match capture_region(region) {
+        let cap = match capture_region(&app, region) {
             Ok(c) => c,
             Err(e) => {
                 failed += 1;

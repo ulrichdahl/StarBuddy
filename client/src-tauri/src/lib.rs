@@ -225,6 +225,13 @@ pub(crate) struct ClientPrefs {
     pub(crate) scan_region: Option<scan::ScanRegion>,
     /// Where the refinery order panel sits, framed by the player (relative).
     pub(crate) refinery_region: Option<scan::ScanRegion>,
+    /// Where the game's own window sits on the desktop, marked by the player.
+    ///
+    /// A game with no X11 window can only be captured as the *active* window,
+    /// which stops being the game the moment anyone clicks an overlay. Marked
+    /// once, the desktop is grabbed instead and this is cut out of it, and
+    /// what has focus stops mattering.
+    pub(crate) game_rect: Option<scan::ScanRegion>,
 }
 
 fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {

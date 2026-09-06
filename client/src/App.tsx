@@ -186,6 +186,8 @@ function BodyText({ text }: { text: string }) {
 function App() {
   const { t, i18n } = useTranslation();
   const [liveDir, setLiveDir] = useState<string | null>(null);
+  /** Whether the player has said where the game's window is. */
+  const [gameMarked, setGameMarked] = useState(false);
   // The channel folders found on this machine: LIVE and HOTFIX, plus any test
   // channel installed, which is offered but never chosen on its own.
   const [channels, setChannels] = useState<GameChannel[]>([]);
@@ -237,6 +239,18 @@ function App() {
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>("idle");
   const updateStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Whether the game's window has been marked. The selector saves from its own
+  // window, so this is only known once it says it has.
+  useEffect(() => {
+    const readMarked = () =>
+      invoke<unknown>("region_current", { purpose: "game" })
+        .then((area) => setGameMarked(area !== null))
+        .catch(() => setGameMarked(false));
+    void readMarked();
+    const updated = listen("region-updated", () => void readMarked());
+    return () => void updated.then((un) => un());
+  }, []);
 
   useEffect(() => {
     invoke<string | null>("detect_game_log").then(setLiveDir);
@@ -735,6 +749,30 @@ function App() {
       <section className="panel">
         <h2>{t("overlay.panelTitle")}</h2>
         <p className="hint">{t("overlay.panelHint")}</p>
+        {/* Marked once, and every capture afterwards is cut out of a picture
+            of the whole screen — so what has focus stops deciding whether the
+            game can be read at all. */}
+        <div className="row">
+          <button
+            onClick={() =>
+              invoke("region_select", { purpose: "game" }).catch((e) => setOverlayError(String(e)))
+            }
+          >
+            {gameMarked ? t("overlay.markGameAgain") : t("overlay.markGame")}
+          </button>
+          {gameMarked && (
+            <button
+              onClick={() =>
+                invoke("region_clear", { purpose: "game" })
+                  .then(() => setGameMarked(false))
+                  .catch((e) => setOverlayError(String(e)))
+              }
+            >
+              {t("overlay.markGameClear")}
+            </button>
+          )}
+        </div>
+        <p className="hint">{gameMarked ? t("overlay.markGameSet") : t("overlay.markGameHint")}</p>
         <div className="row">
           <button onClick={toggleStatusWindow}>
             {statusOpen ? t("overlay.hideStatus") : t("overlay.showStatus")}

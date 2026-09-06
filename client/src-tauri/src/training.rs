@@ -45,8 +45,9 @@ pub async fn send(app: AppHandle) -> Result<String, String> {
     crate::load_settings(&app).ok_or("Not paired with a server yet.")?;
     status(&app, "capturing", "grabbing the game window");
 
-    let png = tauri::async_runtime::spawn_blocking(|| {
-        let cap = crate::scan::capture()?;
+    let for_capture = app.clone();
+    let png = tauri::async_runtime::spawn_blocking(move || {
+        let cap = crate::scan::capture_game(&for_capture)?;
         let bytes = encode_png(&cap)?;
         Ok::<_, String>((bytes, cap.width, cap.height))
     })

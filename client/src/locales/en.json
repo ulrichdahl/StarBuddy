@@ -232,11 +232,13 @@
     "region": {
       "title": {
         "refinery": "Drag across the refinery order panel",
-        "scan": "Drag across the scan signature badge"
+        "scan": "Drag across the scan signature badge",
+        "game": "Drag a box around the game's window"
       },
       "need": {
         "refinery": "Include the title bar: the station name is read from the \"… REFINEMENT CENTER\" line.",
-        "scan": "Frame the badge only — the tighter the area, the more reliable the read."
+        "scan": "Frame the badge only — the tighter the area, the more reliable the read.",
+        "game": "The whole window, edge to edge — everything read afterwards is measured inside it."
       },
       "hint": "Escape keeps the area you had before.",
       "saved": "The orange box is the area in use now"
@@ -305,7 +307,12 @@
       "uploading": "Sending…",
       "sent": "{{detail}}",
       "error": "{{detail}}"
-    }
+    },
+    "markGame": "Mark the game window…",
+    "markGameAgain": "Mark the game window again…",
+    "markGameClear": "Forget it",
+    "markGameHint": "Optional. Drag a box around the game's window once, and every capture is cut out of a picture of the whole screen — so reading no longer depends on the game being the window in front.",
+    "markGameSet": "The game's window is marked, so captures no longer depend on what has focus. Mark it again if you move or resize the game."
   },
   "changes": {
     "sinceLive_one": "What’s new — {{count}} change since v{{version}}",

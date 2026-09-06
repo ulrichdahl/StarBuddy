@@ -212,7 +212,7 @@ async fn read_inner(app: &AppHandle) -> Result<RefineryTerminal, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let started = std::time::Instant::now();
         status(&app2, "capturing", "grabbing the panel");
-        let full = scan::capture()?;
+        let full = scan::capture_game(&app2)?;
         let cap = match region {
             Some(r) => scan::crop_region(full, r)?,
             None => full,
@@ -334,7 +334,15 @@ fn read_in_bands(engine: &ocrs::OcrEngine, cap: &Captured) -> Result<Vec<OcrLine
     while top < cap.height {
         let height = TARGET_BAND.min(cap.height - top);
         let band = crop_rows(cap, top, height);
+        let started = std::time::Instant::now();
         let mut lines = scan::run_ocr(engine, &band)?;
+        log::debug!(
+            "refinery band {}×{} at y {top}: {} lines in {} ms",
+            band.width,
+            band.height,
+            lines.len(),
+            started.elapsed().as_millis(),
+        );
         for line in &mut lines {
             line.y += top as i32; // band coordinates back into the capture's
         }
