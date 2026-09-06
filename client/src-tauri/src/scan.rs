@@ -872,15 +872,27 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
     let mut prev: Option<Vec<u8>> = None;
     let mut last_error = String::new();
     let mut idle_since = Instant::now();
+    // A session's own account of itself, at Info so it is there in a release
+    // build. A loop that quietly stops finding anything looks exactly like one
+    // that is working on a screen with nothing to find, and after an hour
+    // nobody can say which it was.
+    let (mut reads, mut found, mut failed, mut spent) = (0u64, 0u64, 0u64, Duration::ZERO);
+    let mut last_report = Instant::now();
     while !stop.load(Ordering::Relaxed) {
         let region = current_region(&app);
         let cap = match capture_region(region) {
             Ok(c) => c,
             Err(e) => {
-                if e != last_error {
+                failed += 1;
+                // Compared without the size the message carries: the active
+                // window is a different size each time it is the wrong one, so
+                // the same fault would otherwise announce itself every couple
+                // of seconds for as long as the session lasts.
+                let kind = e.split(" (tried").next().unwrap_or(&e).to_string();
+                if kind != last_error {
                     log::warn!("live scan capture: {e}");
                     status(&app, "error", format!("live: {e}"), None);
-                    last_error = e;
+                    last_error = kind;
                 }
                 std::thread::sleep(Duration::from_millis(2000));
                 continue;
@@ -932,8 +944,19 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
                 elapsed_ms: started.elapsed().as_millis(),
             }
         };
+        reads += 1;
+        spent += started.elapsed();
         if reading.signature.is_some() {
+            found += 1;
             log::debug!("live scan: signature {:?} in {} ms", reading.signature, reading.elapsed_ms);
+        }
+        if last_report.elapsed() >= Duration::from_secs(60) {
+            log::info!(
+                "live scan: {reads} reads, {found} with a signature, {failed} captures failed, {} ms each on average",
+                spent.as_millis() as u64 / reads.max(1),
+            );
+            (reads, found, failed, spent) = (0, 0, 0, Duration::ZERO);
+            last_report = Instant::now();
         }
         let _ = app.emit("scan-live", &reading);
         // A screenshot tool costs ~0.7 s per frame on its own; a short pause
