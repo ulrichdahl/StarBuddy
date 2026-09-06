@@ -23,15 +23,21 @@ fn bound() -> &'static Mutex<HashMap<String, String>> {
     BOUND.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
-/// Set once the portal has bound the shortcuts at least once.
-fn live() -> &'static std::sync::atomic::AtomicBool {
-    static LIVE: OnceLock<std::sync::atomic::AtomicBool> = OnceLock::new();
-    LIVE.get_or_init(|| std::sync::atomic::AtomicBool::new(false))
+/// Whether the desktop is delivering the hotkeys rather than the X server.
+///
+/// Taking the shortcuts is not the same as putting a key on them: KDE accepts
+/// the list, ignores the keys asked for, and leaves every one unset until the
+/// player assigns it in the desktop's own settings. Until a key exists there,
+/// the X11 grabs are still the only thing that fires — so this is true only
+/// once the desktop names a trigger.
+pub fn in_charge() -> bool {
+    bound().lock().map(|b| b.values().any(|t| !t.is_empty())).unwrap_or(false)
 }
 
-/// Whether the desktop is delivering the hotkeys rather than the X server.
-pub fn in_charge() -> bool {
-    live().load(std::sync::atomic::Ordering::Relaxed)
+/// Whether the shortcuts are registered with the desktop at all, key or no key.
+/// They can only be given one in its settings while this is true.
+pub fn registered() -> bool {
+    bound().lock().map(|b| !b.is_empty()).unwrap_or(false)
 }
 
 /// Action → the trigger the desktop settled on.
@@ -109,7 +115,7 @@ mod portal {
                     // Once, at startup: on a desktop without the interface this
                     // is the normal state of affairs, not a fault to repeat.
                     log::info!("desktop hotkeys unavailable, using the X11 grab: {e}");
-                    live().store(false, std::sync::atomic::Ordering::Relaxed);
+                    bound().lock().unwrap().clear();
                     return;
                 }
             };
@@ -156,24 +162,50 @@ mod portal {
             names.insert(shortcut.id().to_string(), shortcut.trigger_description().to_string());
         }
         if names.is_empty() {
-            return Err("the desktop bound none of them".into());
+            return Err("the desktop took none of them".into());
         }
-        log::info!("desktop bound {} hotkeys: {names:?}", names.len());
-        *bound().lock().unwrap() = names;
-        live().store(true, std::sync::atomic::Ordering::Relaxed);
-        // The desktop delivers them now, so the X server need not: with both
-        // in place a key fires twice whenever StarBuddy itself has focus.
-        crate::overlay::drop_x11_hotkeys(app);
-        let _ = tauri::Emitter::emit(app, "hotkeys-changed", ());
+        settled(app, names);
 
         let mut activated = proxy.receive_activated().await.map_err(|e| e.to_string())?;
-        let app = app.clone();
+        let listening = app.clone();
         tauri::async_runtime::spawn(async move {
             while let Some(event) = activated.next().await {
-                crate::overlay::run_action(&app, event.shortcut_id());
+                crate::overlay::run_action(&listening, event.shortcut_id());
+            }
+        });
+
+        // The player can set the keys in the desktop's own settings whenever,
+        // and this is how the client hears of it — both to say what the key is
+        // and to know it can stop grabbing at the X server.
+        let mut changed = proxy.receive_shortcuts_changed().await.map_err(|e| e.to_string())?;
+        let watching = app.clone();
+        tauri::async_runtime::spawn(async move {
+            while let Some(event) = changed.next().await {
+                let names = event
+                    .shortcuts()
+                    .iter()
+                    .map(|s| (s.id().to_string(), s.trigger_description().to_string()))
+                    .collect();
+                settled(&watching, names);
             }
         });
         Ok(session)
+    }
+
+    /// Take in what the desktop says the shortcuts are now.
+    fn settled(app: &AppHandle, names: HashMap<String, String>) {
+        let keyed = names.values().filter(|t| !t.is_empty()).count();
+        log::info!("desktop holds {} hotkeys, {keyed} with a key: {names:?}", names.len());
+        *bound().lock().unwrap() = names;
+        if keyed > 0 {
+            // The desktop delivers them now, so the X server need not: with
+            // both in place a key fires twice whenever StarBuddy has focus.
+            crate::overlay::drop_x11_hotkeys(app);
+        } else if let Err(e) = crate::overlay::register_hotkeys(app) {
+            // Nothing bound over there yet, so the grabs are all there is.
+            log::debug!("X11 hotkeys stay in place: {e}");
+        }
+        let _ = tauri::Emitter::emit(app, "hotkeys-changed", ());
     }
 }
 

@@ -93,8 +93,12 @@ interface HotkeyInfo {
   failed: Record<string, string>;
   /** Windows, where a hotkey can be registered and still never arrive. */
   windows: boolean;
+  /** The desktop holds the shortcuts but has put no key on them yet. */
+  desktop_offered: boolean;
   /** The desktop delivers the hotkeys itself, and owns what they are set to. */
   desktop_owned: boolean;
+  /** Command a desktop keybinding can run instead, with the action after it. */
+  action_command: string;
   /** action → the key the desktop bound, when it is the one delivering. */
   triggers: Record<string, string>;
 }
@@ -788,6 +792,19 @@ function App() {
         {/* Wayland: the compositor delivers the keys, so it is also the place
             they can be changed for good. */}
         {hotkey?.desktop_owned && <p className="hint">{t("overlay.hotkeyDesktop")}</p>}
+        {/* KDE takes the shortcuts and leaves every one of them unset, so say
+            where the keys are given out — and give the commands for a desktop
+            that will not list them at all. */}
+        {hotkey?.desktop_offered && !hotkey.desktop_owned && (
+          <details className="update-notes">
+            <summary>{t("overlay.hotkeyDesktopUnset")}</summary>
+            <pre>
+              {["status", "scan", "refinery", "capture", "reading"]
+                .map((action) => `${hotkey.action_command}${action}`)
+                .join("\n")}
+            </pre>
+          </details>
+        )}
         {/* Everything below this reads the game's window, and nothing reads it
             until this is on: the frames come from a stream the desktop itself
             shows as running. */}

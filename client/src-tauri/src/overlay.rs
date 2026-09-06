@@ -35,6 +35,21 @@ const LEGACY_DEFAULT_HOTKEY: &str = "Ctrl+Alt+S";
 /// CLI flag a second launch (or a desktop-environment keybinding) uses to
 /// toggle the status window — the hotkey path for Wayland desktops.
 pub const TOGGLE_FLAG: &str = "--toggle-status";
+/// The same thing for any action: `--action refinery`. A desktop that will not
+/// bind a key to the portal's shortcuts will still run a command on one, and
+/// this is that command — the second launch hands the argument to the running
+/// client and exits.
+pub const ACTION_FLAG: &str = "--action";
+
+/// The action a command line asks for, if it asks for one.
+pub fn action_in(args: &[String]) -> Option<String> {
+    if args.iter().any(|a| a == TOGGLE_FLAG) {
+        return Some("status".into());
+    }
+    let at = args.iter().position(|a| a == ACTION_FLAG)?;
+    let wanted = args.get(at + 1)?;
+    DEFAULT_HOTKEYS.iter().find(|(a, _)| a == wanted).map(|(a, _)| a.to_string())
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(default)]
@@ -507,8 +522,14 @@ pub struct HotkeyInfo {
     /// the compositor; the CLI toggle is the way there.
     pub global_supported: bool,
     pub toggle_command: String,
+    /// The same for any action: this with the action's name after it. What a
+    /// desktop that will not bind the portal's shortcuts can be given instead.
+    pub action_command: String,
     /// action → why that shortcut is not currently registered.
     pub failed: HashMap<String, String>,
+    /// True where the desktop has taken the shortcuts but put no key on any of
+    /// them, which is where they have to be assigned in its own settings.
+    pub desktop_offered: bool,
     /// True where the desktop itself delivers the hotkeys (the portal's global
     /// shortcuts). The keys are then the desktop's to change, and what the
     /// client stores is only what it asked for.
@@ -535,9 +556,11 @@ pub fn overlay_hotkey(app: AppHandle) -> HotkeyInfo {
         hotkeys,
         global_supported: crate::shortcuts::in_charge()
             || !(cfg!(target_os = "linux") && on_wayland() && std::env::var("GDK_BACKEND").as_deref() != Ok("x11")),
+        desktop_offered: crate::shortcuts::registered(),
         desktop_owned: crate::shortcuts::in_charge(),
         triggers: crate::shortcuts::triggers(),
         toggle_command: format!("\"{exe}\" {TOGGLE_FLAG}"),
+        action_command: format!("\"{exe}\" {ACTION_FLAG} "),
         failed: app.state::<OverlayState>().failures.lock().unwrap().clone(),
         windows: cfg!(windows),
     }

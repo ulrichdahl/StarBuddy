@@ -1118,8 +1118,8 @@ pub fn run() {
     tauri::Builder::default()
         // Must be first: a second launch hands its args to this instance.
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
-            if args.iter().any(|a| a == overlay::TOGGLE_FLAG) {
-                let _ = overlay::toggle(app, overlay::STATUS);
+            if let Some(action) = overlay::action_in(&args) {
+                overlay::run_action(app, &action);
             } else if let Some(main) = app.get_webview_window("main") {
                 let _ = main.show();
                 let _ = main.set_focus();
@@ -1174,8 +1174,9 @@ pub fn run() {
             shortcuts::start(&handle);
             overlay::show_if_open(&handle, overlay::STATUS);
             overlay::show_if_open(&handle, scan::SCAN);
-            if std::env::args().any(|a| a == overlay::TOGGLE_FLAG) {
-                let _ = overlay::toggle(&handle, overlay::STATUS);
+            let args: Vec<String> = std::env::args().collect();
+            if let Some(action) = overlay::action_in(&args) {
+                overlay::run_action(&handle, &action);
             }
             // Hidden overlay windows would otherwise keep the process alive
             // after the main window is closed.
