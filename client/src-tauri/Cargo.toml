@@ -28,6 +28,9 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "mul
 hostname = "0.4"
 ocrs = "0.12"
 rten = "0.24"
+# Word boxes from the detector, so a line can be cut where a panel's column
+# ends rather than run across the gutter into the next one.
+rten-imageproc = "0.24"
 base64 = "0.22"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 log = "0.4"

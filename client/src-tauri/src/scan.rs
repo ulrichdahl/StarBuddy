@@ -11,6 +11,7 @@
 //! once, the capture lives in memory only.
 
 use ocrs::{ImageSource, OcrEngine, OcrEngineParams, TextItem};
+use rten_imageproc::{BoundingRect, RotatedRect};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -250,11 +251,49 @@ pub(crate) fn load_engine(det: &PathBuf, rec: &PathBuf) -> Result<OcrEngine, Str
     .map_err(|e| e.to_string())
 }
 
+/// Cut a detected line where the gap is too wide to be a space.
+///
+/// The detector joins every word that shares a baseline, and a refinery
+/// terminal stands three panels side by side — so one "line" runs from the
+/// station's specialization list, across the gutter, into a completed order's
+/// yield column. That is nonsense as a row, and it also reads badly: the
+/// recognizer squeezes the whole width, gutters included, into a fixed input,
+/// and text that reads cleanly on its own comes out mush. Cutting the line
+/// before it is read gives each panel its own.
+fn split_at_gutters(mut words: Vec<RotatedRect>) -> Vec<Vec<RotatedRect>> {
+    if words.len() < 2 {
+        return vec![words];
+    }
+    words.sort_by(|a, b| a.bounding_rect().left().total_cmp(&b.bounding_rect().left()));
+    // A space between two words is roughly a third of the text's height; the
+    // gap between two panels is several times it. Twice the height sits in
+    // between with room on both sides, and follows the text's own scale, so it
+    // holds at any resolution.
+    let mut heights: Vec<f32> = words.iter().map(|w| w.bounding_rect().height()).collect();
+    heights.sort_by(f32::total_cmp);
+    let limit = heights[heights.len() / 2] * 1.2;
+
+    let mut out = Vec::new();
+    let mut line: Vec<RotatedRect> = Vec::new();
+    let mut right = f32::MIN;
+    for word in words {
+        let bounds = word.bounding_rect();
+        if !line.is_empty() && bounds.left() - right > limit {
+            out.push(std::mem::take(&mut line));
+        }
+        right = if line.is_empty() { bounds.right() } else { right.max(bounds.right()) };
+        line.push(word);
+    }
+    out.push(line);
+    out
+}
+
 pub(crate) fn run_ocr(engine: &OcrEngine, cap: &Captured) -> Result<Vec<OcrLine>, String> {
     let source = ImageSource::from_bytes(&cap.rgb, (cap.width, cap.height)).map_err(|e| e.to_string())?;
     let input = engine.prepare_input(source).map_err(|e| e.to_string())?;
     let words = engine.detect_words(&input).map_err(|e| e.to_string())?;
-    let line_rects = engine.find_text_lines(&input, &words);
+    let line_rects: Vec<Vec<RotatedRect>> =
+        engine.find_text_lines(&input, &words).into_iter().flat_map(split_at_gutters).collect();
     let lines = engine.recognize_text(&input, &line_rects).map_err(|e| e.to_string())?;
     let mut out: Vec<OcrLine> = lines
         .into_iter()
