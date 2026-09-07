@@ -29,16 +29,39 @@ fn running() -> &'static Mutex<Option<Running>> {
     RUNNING.get_or_init(|| Mutex::new(None))
 }
 
-/// Whether Windows is drawing its capture border round the window, because
-/// this build has no switch to turn it off.
-fn bordered() -> &'static std::sync::atomic::AtomicBool {
-    static BORDERED: OnceLock<std::sync::atomic::AtomicBool> = OnceLock::new();
-    BORDERED.get_or_init(|| std::sync::atomic::AtomicBool::new(false))
+/// Which switches this build of Windows answered to, once a capture has been
+/// started: the cursor and the capture border, in that order.
+fn switches() -> &'static Mutex<Option<(bool, bool)>> {
+    static SWITCHES: OnceLock<Mutex<Option<(bool, bool)>>> = OnceLock::new();
+    SWITCHES.get_or_init(|| Mutex::new(None))
 }
 
 /// Whether the window being read is wearing Windows' yellow capture border.
 pub fn border_drawn() -> bool {
-    bordered().load(std::sync::atomic::Ordering::Relaxed)
+    matches!(*switches().lock().unwrap(), Some((_, false)))
+}
+
+/// What the switches said, for a report: (asked, answered) per switch.
+pub fn switch_state() -> Option<(bool, bool)> {
+    *switches().lock().unwrap()
+}
+
+/// Which Windows this is, from the kernel rather than from the compatibility
+/// layer that lies to unmanifested programs: (major, minor, build).
+///
+/// The build number is the whole question about the capture border — the
+/// switch that turns it off arrived in build 20348, and nothing before that
+/// can be asked to stop drawing it.
+pub fn version() -> Option<(u32, u32, u32)> {
+    use windows::Wdk::System::SystemServices::RtlGetVersion;
+    use windows::Win32::System::SystemInformation::OSVERSIONINFOW;
+
+    let mut info = OSVERSIONINFOW { dwOSVersionInfoSize: std::mem::size_of::<OSVERSIONINFOW>() as u32, ..Default::default() };
+    unsafe { RtlGetVersion(&mut info) }.is_ok().then_some((
+        info.dwMajorVersion,
+        info.dwMinorVersion,
+        info.dwBuildNumber,
+    ))
 }
 
 /// Receives frames and keeps the newest.
@@ -112,11 +135,14 @@ pub fn start(title: &str) -> Result<(), String> {
     // switch is missing the border is the system's and cannot be removed.
     let cursor_switch = GraphicsCaptureApi::is_cursor_settings_supported().unwrap_or(false);
     let border_switch = GraphicsCaptureApi::is_border_settings_supported().unwrap_or(false);
-    log::info!("windows capture: cursor switch {cursor_switch}, border switch {border_switch}");
+    log::info!(
+        "windows capture on {:?}: cursor switch {cursor_switch}, border switch {border_switch}",
+        version()
+    );
+    *switches().lock().unwrap() = Some((cursor_switch, border_switch));
     let cursor =
         if cursor_switch { CursorCaptureSettings::WithoutCursor } else { CursorCaptureSettings::Default };
     let border = if border_switch { DrawBorderSettings::WithoutBorder } else { DrawBorderSettings::Default };
-    bordered().store(!border_switch, std::sync::atomic::Ordering::Relaxed);
 
     let settings = Settings::new(
         window,

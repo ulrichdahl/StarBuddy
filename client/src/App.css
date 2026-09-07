@@ -482,3 +482,19 @@ th {
   flex: 1 1 100%;
   margin: 0;
 }
+
+/* The system-info block: something to select and paste into a bug report. */
+.report {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: ui-monospace, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  user-select: text;
+}

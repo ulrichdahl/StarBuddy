@@ -46,7 +46,9 @@ windows-capture = "2"
 # Watching the keyboard for hotkeys the system's own hotkey table never
 # delivers, and asking whether this process is running as administrator.
 windows = { version = "0.62", features = [
+    "Wdk_System_SystemServices",
     "Win32_Foundation",
+    "Win32_System_SystemInformation",
     "Win32_Security",
     "Win32_System_LibraryLoader",
     "Win32_System_Threading",

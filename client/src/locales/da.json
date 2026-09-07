@@ -333,7 +333,10 @@
       "refinery": "raffinaderiordre",
       "capture": "træningsbillede",
       "reading": "skærmaflæsning"
-    }
+    },
+    "report": "Systemoplysninger",
+    "reportCopy": "Kopiér",
+    "reportCopied": "Kopieret"
   },
   "changes": {
     "sinceLive_one": "Nyheder — {{count}} ændring siden v{{version}}",

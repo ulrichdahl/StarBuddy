@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
@@ -720,6 +720,18 @@ pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
     }
 }
 
+/// The last hotkey to arrive, and when — the fact a report about hotkeys
+/// turns on, and what stops one press being acted on twice.
+fn last_heard() -> &'static Mutex<Option<(String, Instant)>> {
+    static LAST: OnceLock<Mutex<Option<(String, Instant)>>> = OnceLock::new();
+    LAST.get_or_init(|| Mutex::new(None))
+}
+
+/// The last hotkey the client heard, and how long ago.
+pub fn heard() -> Option<(String, Duration)> {
+    last_heard().lock().ok()?.as_ref().map(|(action, at)| (action.clone(), at.elapsed()))
+}
+
 /// Do what a hotkey asks, wherever the key came from.
 ///
 /// The plugin's X11 grab and the desktop portal both end up here, and both
@@ -729,8 +741,7 @@ pub fn run_action(app: &AppHandle, action: &str) {
     // the keyboard watcher — and on a machine where both work, both arrive.
     // One press is one action.
     {
-        static LAST: Mutex<Option<(String, Instant)>> = Mutex::new(None);
-        let mut last = LAST.lock().unwrap();
+        let mut last = last_heard().lock().unwrap();
         if let Some((was, when)) = last.as_ref() {
             if was == action && when.elapsed() < Duration::from_millis(300) {
                 return;

@@ -262,6 +262,9 @@ function App() {
   const [hotkeyError, setHotkeyError] = useState<string | null>(null);
   /** The last hotkey that actually arrived, which says delivery works. */
   const [heardHotkey, setHeardHotkey] = useState<string | null>(null);
+  /** Everything about this machine a bug report needs, when asked for. */
+  const [report, setReport] = useState<string | null>(null);
+  const [reportCopied, setReportCopied] = useState(false);
   const [statusOpen, setStatusOpen] = useState<boolean | null>(null);
   const [kdeRule, setKdeRule] = useState<KdeRuleInfo | null>(null);
   const [kdeRuleError, setKdeRuleError] = useState<string | null>(null);
@@ -896,6 +899,34 @@ function App() {
             {t(`overlay.capture.${captureStatus.phase}`, { detail: captureStatus.detail })}
           </p>
         )}
+        {/* What to send when something here does not work. The answers are
+            all things the client knows and nobody should have to dig a log
+            file out of a hidden folder for. */}
+        <div className="row">
+          <button
+            onClick={() =>
+              void invoke<string>("system_report").then((r) => {
+                setReport(r);
+                setReportCopied(false);
+              })
+            }
+          >
+            {t("overlay.report")}
+          </button>
+          {report && (
+            <button
+              onClick={() =>
+                void navigator.clipboard
+                  .writeText(report)
+                  .then(() => setReportCopied(true))
+                  .catch(() => setReportCopied(false))
+              }
+            >
+              {reportCopied ? t("overlay.reportCopied") : t("overlay.reportCopy")}
+            </button>
+          )}
+        </div>
+        {report && <pre className="report">{report}</pre>}
         {scanError && <p className="error">{scanError}</p>}
         {overlayError && <p className="error">{overlayError}</p>}
         {hotkeyError && <p className="error">{hotkeyError}</p>}
