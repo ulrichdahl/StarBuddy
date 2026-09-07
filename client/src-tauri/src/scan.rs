@@ -565,9 +565,7 @@ pub fn analyze(engine: &OcrEngine, cap: &Captured, started: Instant) -> Result<S
     let badges = find_badges(engine, cap);
     let lines = run_ocr(engine, cap)?;
     let numbers = lines.iter().flat_map(|l| numbers_in(&l.text)).collect();
-    // Badges only: a text-label fallback once read our own overlay's
-    // "Signature …" title back as a reading.
-    let signature = badges.first().map(|b| b.value);
+    let signature = badges.first().map(|b| b.value).or_else(|| signature_in_text(&lines, cap));
     let mass = labelled(&lines, &["MASS"]);
     Ok(ScanResult {
         captured_at: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
@@ -615,6 +613,43 @@ fn numbers_in(text: &str) -> Vec<f64> {
 
 /// Number labelled by any of the given words: on the same line after the
 /// label, else the first number on the next line.
+/// The signature from the text alone, for a badge whose icon went unrecognised.
+///
+/// The icon is what makes a number on the HUD a signature rather than a
+/// distance or a speed, so it was once the only thing trusted. That was when
+/// the whole screen was read and the client's own windows were in it. What is
+/// read now is the small framed area the badge is printed in, where a bare
+/// number standing on its own is the badge's number or nothing at all — and
+/// refusing to say so, with the figure plainly on screen and plainly read, is
+/// worse than the risk of reading the wrong one.
+///
+/// Kept narrow all the same: only a cell that is nothing but a number, only
+/// values a signature can take, and the nearest to the middle of the area when
+/// there are two.
+fn signature_in_text(lines: &[OcrLine], cap: &Captured) -> Option<f64> {
+    const PLAUSIBLE: std::ops::RangeInclusive<f64> = 500.0..=250_000.0;
+    let middle = (cap.width as i32 / 2, cap.height as i32 / 2);
+    let mut found: Vec<(i32, f64)> = lines
+        .iter()
+        .filter(|line| {
+            let text = line.text.trim();
+            !text.is_empty() && text.chars().all(|c| c.is_ascii_digit() || c == ',' || c == '.' || c == ' ')
+        })
+        .filter_map(|line| {
+            let value = numbers_in(&line.text).into_iter().next()?;
+            if !PLAUSIBLE.contains(&value) {
+                return None;
+            }
+            let (x, y) = (line.x + line.w / 2 - middle.0, line.y + line.h / 2 - middle.1);
+            Some((x * x + y * y, value))
+        })
+        .collect();
+    found.sort_by_key(|(distance, _)| *distance);
+    let (_, value) = found.first()?;
+    log::debug!("signature {value} read without its icon");
+    Some(*value)
+}
+
 fn labelled(lines: &[OcrLine], labels: &[&str]) -> Option<f64> {
     for (i, line) in lines.iter().enumerate() {
         let upper = line.text.to_uppercase();
@@ -818,11 +853,24 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
                     }
                 }
             }
-            let badges = find_badges(engine.as_ref().unwrap(), &cap);
+            let engine = engine.as_ref().unwrap();
+            let badges = find_badges(engine, &cap);
+            // Only when the icon was not found: a read of the area costs a
+            // few hundred milliseconds, against two for the pixel scan, and
+            // there is nothing to gain by it when the badge is already in hand.
+            let without_icon = badges
+                .is_empty()
+                .then(|| run_ocr(engine, &cap).ok().and_then(|lines| signature_in_text(&lines, &cap)))
+                .flatten();
+            let signature = badges.first().map(|b| b.value).or(without_icon);
             LiveReading {
                 at: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
-                signature: badges.first().map(|b| b.value),
-                matches: badges.first().map(|b| crate::sigs::lookup(&app, b.value)).unwrap_or_default(),
+                signature,
+                // Named from whichever reading was had: a signature with no
+                // icon behind it is still a signature, and a window that
+                // printed the number and then said nothing about the mineral
+                // would be the same silence in a new place.
+                matches: signature.map(|value| crate::sigs::lookup(&app, value)).unwrap_or_default(),
                 badges,
                 region_px: region_px(region, cap.width, cap.full_height),
                 elapsed_ms: started.elapsed().as_millis(),
@@ -908,6 +956,44 @@ mod tests {
         assert_eq!(labelled(&lines, &["SIGNATURE"]), Some(1850.0));
         assert_eq!(labelled(&lines, &["MASS"]), Some(4120.0));
         assert_eq!(labelled(&lines, &["RESISTANCE"]), None);
+    }
+
+    /// A frame is 512×201 of HUD; the badge's number sits near the middle.
+    fn framed(lines: &[(&str, i32, i32)]) -> (Vec<OcrLine>, Captured) {
+        let read = lines
+            .iter()
+            .map(|(text, x, y)| OcrLine { text: (*text).into(), x: *x, y: *y, w: 40, h: 14 })
+            .collect();
+        let cap = Captured {
+            rgb: vec![0; 512 * 201 * 3],
+            width: 512,
+            height: 201,
+            source: "test".into(),
+            full_height: 1440,
+            origin: (1024, 374),
+        };
+        (read, cap)
+    }
+
+    #[test]
+    fn a_signature_is_read_without_its_icon_but_not_from_anything() {
+        // What the player sees on the panel while the icon goes unrecognised.
+        let (lines, cap) = framed(&[("11,700", 230, 95)]);
+        assert_eq!(signature_in_text(&lines, &cap), Some(11700.0));
+
+        // The nearest to the middle of the area wins, because that is where
+        // the badge is printed and the rest of the HUD is not.
+        let (lines, cap) = framed(&[("2,000", 240, 100), ("48,300", 10, 8)]);
+        assert_eq!(signature_in_text(&lines, &cap), Some(2000.0));
+
+        // A distance, a percentage and a speed are numbers too, and none of
+        // them is a signature.
+        let (lines, cap) = framed(&[("10.4km", 240, 100), ("98%", 250, 90), ("0 m/s", 230, 110)]);
+        assert_eq!(signature_in_text(&lines, &cap), None, "only a bare number counts");
+
+        // Nor is every bare number: a signature is thousands, not a tally.
+        let (lines, cap) = framed(&[("23", 250, 100)]);
+        assert_eq!(signature_in_text(&lines, &cap), None);
     }
 
     /// Real captures from screenshots/ — needs the OCR models, so it is
