@@ -1214,6 +1214,7 @@ pub fn run() {
             overlay::overlay_close,
             overlay::overlay_hotkey,
             overlay::overlay_set_hotkey,
+            overlay::restart_as_administrator,
             kde_rule::overlay_kde_rule,
             kde_rule::overlay_set_kde_rule,
             scan::scan_now,

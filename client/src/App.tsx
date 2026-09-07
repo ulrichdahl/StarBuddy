@@ -788,7 +788,17 @@ function App() {
         <p className="hint">{t("overlay.panelHint")}</p>
         {/* On Windows a hotkey can register and still never fire, and no error
             is raised for either reason it happens. */}
-        {hotkey?.windows && <p className="hint">{t("overlay.hotkeyWindows")}</p>}
+        {hotkey?.windows && (
+          <>
+            <p className="hint">{t("overlay.hotkeyWindows")}</p>
+            <div className="row">
+              <button onClick={() => void invoke("restart_as_administrator").catch((e) => setOverlayError(String(e)))}>
+                {t("overlay.hotkeyElevate")}
+              </button>
+              <span className="hint">{t("overlay.hotkeyElevateHint")}</span>
+            </div>
+          </>
+        )}
         {/* Wayland: the compositor delivers the keys, so it is also the place
             they can be changed for good. */}
         {hotkey?.desktop_owned && <p className="hint">{t("overlay.hotkeyDesktop")}</p>}
@@ -840,6 +850,9 @@ function App() {
             : t("overlay.readingHint")}
         </p>
         {reading?.error && <p className="error">{reading.error}</p>}
+        {/* Windows 10 draws a yellow border round whatever is being captured
+            and offers no way to turn it off; Windows 11 does, and it is. */}
+        {reading?.on && hotkey?.windows && <p className="hint">{t("overlay.readingBorder")}</p>}
         <div className="row">
           <button onClick={toggleStatusWindow}>
             {statusOpen ? t("overlay.hideStatus") : t("overlay.showStatus")}

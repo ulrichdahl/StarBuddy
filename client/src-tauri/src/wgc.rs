@@ -92,21 +92,18 @@ pub fn start(title: &str) -> Result<(), String> {
         .map_err(|_| format!("The window \"{title}\" is not open — is the game running?"))?;
 
     // Windows 10 has the capture API but not every switch on it, and asking
-    // for one it lacks fails the whole capture. So ask only where it answers,
-    // and take the compositor's own default elsewhere: a cursor or a border in
-    // the frame is worth far more than no frames at all.
-    let cursor = if GraphicsCaptureApi::is_cursor_settings_supported().unwrap_or(false) {
-        CursorCaptureSettings::WithoutCursor
-    } else {
-        CursorCaptureSettings::Default
-    };
-    // A border would be captured too, and every area framed inside the window
-    // would be off by its width.
-    let border = if GraphicsCaptureApi::is_border_settings_supported().unwrap_or(false) {
-        DrawBorderSettings::WithoutBorder
-    } else {
-        DrawBorderSettings::Default
-    };
+    // for one it lacks fails the whole capture — not at this call but in the
+    // capture's own thread, where it shows up as a stream that never sends a
+    // frame. So each switch is asked for only where the build answers to it,
+    // and the answers are logged: the yellow border Windows draws round a
+    // captured window is switched off through one of them, and where the
+    // switch is missing the border is the system's and cannot be removed.
+    let cursor_switch = GraphicsCaptureApi::is_cursor_settings_supported().unwrap_or(false);
+    let border_switch = GraphicsCaptureApi::is_border_settings_supported().unwrap_or(false);
+    log::info!("windows capture: cursor switch {cursor_switch}, border switch {border_switch}");
+    let cursor =
+        if cursor_switch { CursorCaptureSettings::WithoutCursor } else { CursorCaptureSettings::Default };
+    let border = if border_switch { DrawBorderSettings::WithoutBorder } else { DrawBorderSettings::Default };
 
     let settings = Settings::new(
         window,
@@ -120,6 +117,7 @@ pub fn start(title: &str) -> Result<(), String> {
     );
 
     let control = Reader::start_free_threaded(settings).map_err(|e| format!("Windows refused the capture: {e}"))?;
+    log::info!("windows capture started on \"{title}\"");
     *running().lock().map_err(|_| "screen reading is in a bad state")? = Some(Running { control });
     Ok(())
 }

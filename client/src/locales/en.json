@@ -322,7 +322,10 @@
     "hotkeyDesktop": "Your desktop delivers these hotkeys, so they work while the game has focus — and it has the last word on them: setting one here is a request, and the key you end up with is the one shown. They can also be changed under your desktop's own keyboard shortcut settings, listed as StarBuddy.",
     "hotkeyDesktopUnset": "Your desktop has taken these hotkeys over but has not put a key on any of them yet — until it does, they only work while a StarBuddy window has focus. Open your desktop's keyboard shortcut settings, find StarBuddy, and give each one a key. If it is not listed there, bind these commands to keys instead.",
     "hotkeyChange": "Click to change",
-    "hotkeyNone": "none"
+    "hotkeyNone": "none",
+    "hotkeyElevate": "Restart as administrator",
+    "hotkeyElevateHint": "Only needed if the game itself runs as administrator — Windows will not deliver an ordinary program's hotkeys to it.",
+    "readingBorder": "A yellow border round the game window is Windows saying the window is being captured. Windows 11 lets it be switched off and StarBuddy does; Windows 10 does not, and there it stays until reading is switched off."
   },
   "changes": {
     "sinceLive_one": "What’s new — {{count}} change since v{{version}}",

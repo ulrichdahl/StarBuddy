@@ -371,12 +371,9 @@ fn send_for_training(app: &AppHandle, cap: &Captured, order: &RefineryTerminal) 
 /// small panel text mushy; reading a few shorter bands keeps each one nearer its
 /// native scale. Bands overlap so a row that straddles a cut is still whole in
 /// one of them, and duplicates are dropped on merge.
-fn read_in_bands(engine: &ocrs::OcrEngine, cap: &Captured) -> Result<Vec<OcrLine>, String> {
-    read_bands_with(engine, cap, &|_, _| {})
-}
-
-/// The same, telling the caller which band it is on. A read of a tall panel is
-/// seconds of nothing otherwise, and on a slow machine rather more than that.
+///
+/// `progress` is told which band is being read: a tall panel is otherwise
+/// seconds of nothing, and on a slow machine rather more than that.
 fn read_bands_with(
     engine: &ocrs::OcrEngine,
     cap: &Captured,
@@ -2620,7 +2617,7 @@ mod corpus {
                 source: name.into(),
                 full_height: crop.height(),
             };
-            let lines = read_in_bands(&engine, &cap).unwrap();
+            let lines = read_bands_with(&engine, &cap, &|_, _| {}).unwrap();
             let order = parse(&lines);
             println!("\n=== {name}  {}×{} ===", cap.width, cap.height);
             println!("station {:?}  ship {:?}  capacity {:?}", order.station, order.ship, order.capacity_percent);

@@ -543,6 +543,29 @@ pub struct HotkeyInfo {
     pub windows: bool,
 }
 
+/// Start again as administrator, and let this instance go.
+///
+/// Windows will not deliver an ordinary program's hotkeys to a window that is
+/// running as administrator, and Star Citizen's launcher often is. Matching it
+/// is the only cure, and it needs a fresh process to do it.
+#[tauri::command]
+pub fn restart_as_administrator(app: AppHandle) -> Result<(), String> {
+    if !cfg!(windows) {
+        return Err("Only Windows has this problem.".into());
+    }
+    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+    let exe = exe.to_string_lossy().replace('\'', "''");
+    // PowerShell's own elevation prompt, so nothing here has to link the shell
+    // API for one call.
+    std::process::Command::new("powershell")
+        .args(["-NoProfile", "-Command", &format!("Start-Process -FilePath '{exe}' -Verb RunAs")])
+        .spawn()
+        .map_err(|e| format!("Could not ask Windows to start it as administrator: {e}"))?;
+    save_now(&app);
+    app.exit(0);
+    Ok(())
+}
+
 fn on_wayland() -> bool {
     std::env::var("XDG_SESSION_TYPE").map(|v| v == "wayland").unwrap_or(false)
         || std::env::var_os("WAYLAND_DISPLAY").is_some()
@@ -716,6 +739,10 @@ pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
 /// The plugin's X11 grab and the desktop portal both end up here, and both
 /// call from a thread of their own.
 pub fn run_action(app: &AppHandle, action: &str) {
+    // Logged for the reports that say a key does nothing: this line is the
+    // difference between a hotkey that never reached the client and one that
+    // reached it and then failed at something else.
+    log::info!("hotkey: {action}");
     let app2 = app.clone();
     let action = action.to_string();
     // The plugin calls this from its own listener thread, and anything that

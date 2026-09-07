@@ -322,7 +322,10 @@
     "hotkeyDesktop": "Dit skrivebord leverer disse genvejstaster, så de virker mens spillet har fokus — og det har sidste ord: at vælge en her er en anmodning, og tasten du ender med er den der vises. De kan også ændres i skrivebordets egne indstillinger for tastaturgenveje, opført som StarBuddy.",
     "hotkeyDesktopUnset": "Dit skrivebord har overtaget disse genvejstaster, men har endnu ikke sat en tast på nogen af dem — indtil det sker, virker de kun mens et StarBuddy-vindue har fokus. Åbn skrivebordets indstillinger for tastaturgenveje, find StarBuddy, og giv hver enkelt en tast. Er den ikke opført der, så bind disse kommandoer til taster i stedet.",
     "hotkeyChange": "Klik for at ændre",
-    "hotkeyNone": "ingen"
+    "hotkeyNone": "ingen",
+    "hotkeyElevate": "Genstart som administrator",
+    "hotkeyElevateHint": "Kun nødvendigt hvis spillet selv kører som administrator — Windows leverer ikke et almindeligt programs genvejstaster til det.",
+    "readingBorder": "En gul kant om spilvinduet er Windows, der fortæller at vinduet optages. Windows 11 lader den slå fra, og det gør StarBuddy; Windows 10 gør ikke, og der bliver den til aflæsning slås fra."
   },
   "changes": {
     "sinceLive_one": "Nyheder — {{count}} ændring siden v{{version}}",
