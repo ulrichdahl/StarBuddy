@@ -529,6 +529,11 @@ pub struct HotkeyInfo {
     pub failed: HashMap<String, String>,
     /// The actions whose shortcut is registered and waiting for a key.
     pub live: Vec<String>,
+    /// Windows, running as administrator. A game started as administrator
+    /// takes every key an ordinary program asked for, and matching it is the
+    /// only answer — so the window says which this is rather than leaving the
+    /// player to remember whether the last restart took.
+    pub administrator: bool,
     /// True where the desktop has taken the shortcuts but put no key on any of
     /// them, which is where they have to be assigned in its own settings.
     pub desktop_offered: bool,
@@ -558,9 +563,16 @@ pub fn restart_as_administrator(app: AppHandle) -> Result<(), String> {
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let exe = exe.to_string_lossy().replace('\'', "''");
     // PowerShell's own elevation prompt, so nothing here has to link the shell
-    // API for one call.
+    // API for one call. It waits first: StarBuddy allows one instance, and a
+    // new one that starts while this one is still up hands over its arguments
+    // and exits — which would leave the player with the same unelevated client
+    // they asked to replace.
     std::process::Command::new("powershell")
-        .args(["-NoProfile", "-Command", &format!("Start-Process -FilePath '{exe}' -Verb RunAs")])
+        .args([
+            "-NoProfile",
+            "-Command",
+            &format!("Start-Sleep -Milliseconds 1500; Start-Process -FilePath '{exe}' -Verb RunAs"),
+        ])
         .spawn()
         .map_err(|e| format!("Could not ask Windows to start it as administrator: {e}"))?;
     save_now(&app);
@@ -588,6 +600,7 @@ pub fn overlay_hotkey(app: AppHandle) -> HotkeyInfo {
         action_command: format!("\"{exe}\" {ACTION_FLAG} "),
         failed: app.state::<OverlayState>().failures.lock().unwrap().clone(),
         live: app.state::<OverlayState>().registered.lock().unwrap().iter().map(|(_, a)| a.clone()).collect(),
+        administrator: crate::winkeys::elevated(),
         windows: cfg!(windows),
     }
 }
@@ -711,6 +724,7 @@ pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
             }
         }
     }
+    crate::winkeys::set_bindings(&state.prefs.lock().unwrap().all_hotkeys());
     log::info!("hotkeys wanted: {}; registered {}, refused {}", names.join(" "), registered.len(), failures.len());
     for (action, why) in &failures {
         log::warn!("hotkey {action} refused: {why}");
@@ -747,6 +761,19 @@ pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
 /// The plugin's X11 grab and the desktop portal both end up here, and both
 /// call from a thread of their own.
 pub fn run_action(app: &AppHandle, action: &str) {
+    // Two roads carry a key here on Windows — the system's hotkey table and
+    // the keyboard watcher — and on a machine where both work, both arrive.
+    // One press is one action.
+    {
+        static LAST: Mutex<Option<(String, Instant)>> = Mutex::new(None);
+        let mut last = LAST.lock().unwrap();
+        if let Some((was, when)) = last.as_ref() {
+            if was == action && when.elapsed() < Duration::from_millis(300) {
+                return;
+            }
+        }
+        *last = Some((action.to_string(), Instant::now()));
+    }
     // Logged for the reports that say a key does nothing: this line is the
     // difference between a hotkey that never reached the client and one that
     // reached it and then failed at something else.

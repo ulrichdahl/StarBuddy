@@ -335,7 +335,8 @@
       "refinery": "raffinaderiordre",
       "capture": "træningsbillede",
       "reading": "skærmaflæsning"
-    }
+    },
+    "hotkeyIsAdmin": "StarBuddy kører som administrator, så et spil der gør det samme er ikke det, der tager tasterne."
   },
   "changes": {
     "sinceLive_one": "Nyheder — {{count}} ændring siden v{{version}}",

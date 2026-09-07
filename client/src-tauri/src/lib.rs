@@ -17,6 +17,7 @@ mod wgc;
 mod portal;
 mod overlay;
 mod shortcuts;
+mod winkeys;
 mod refinery;
 mod region;
 pub mod scan;
@@ -1172,6 +1173,10 @@ pub fn run() {
             // in its own time; when it does, the X11 grabs are dropped so a key
             // cannot fire twice.
             shortcuts::start(&handle);
+            // And on Windows, watch the keyboard itself: the system's hotkey
+            // table accepts every shortcut there and then delivers none of
+            // them while the game is in front.
+            winkeys::watch(&handle);
             overlay::show_if_open(&handle, overlay::STATUS);
             overlay::show_if_open(&handle, scan::SCAN);
             let args: Vec<String> = std::env::args().collect();

@@ -335,7 +335,8 @@
       "refinery": "refinery order",
       "capture": "training screenshot",
       "reading": "screen reading"
-    }
+    },
+    "hotkeyIsAdmin": "StarBuddy is running as administrator, so a game that does the same is not what is taking the keys."
   },
   "changes": {
     "sinceLive_one": "What’s new — {{count}} change since v{{version}}",

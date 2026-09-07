@@ -43,6 +43,16 @@ tauri-plugin-log = "2"
 # Windows.Graphics.Capture: the same idea as the portal — one window, streamed
 # by the compositor, arriving whether or not it is in front of anything.
 windows-capture = "2"
+# Watching the keyboard for hotkeys the system's own hotkey table never
+# delivers, and asking whether this process is running as administrator.
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Threading",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # Capturing one window on Wayland. The compositor will not let an ordinary
