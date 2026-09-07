@@ -173,10 +173,10 @@ pub struct Captured {
     /// Height of the whole game frame this came from (== height unless a
     /// region crop); scales the badge-icon size window.
     pub full_height: u32,
-    /// Where this sits in that frame (0,0 unless a region crop). Everything
-    /// found inside a crop is found at crop coordinates, and a position in a
-    /// crop is not a position anybody can point at on their screen — so the
-    /// origin travels with it and the two can be added back together.
+    /// Where this sits in the game's window (0,0 unless a region crop).
+    /// Everything found inside a crop is found at crop coordinates, and those
+    /// name nothing anybody can point at — so the origin travels with the crop
+    /// and the two can be added back together into a place in the window.
     pub origin: (u32, u32),
 }
 
@@ -466,8 +466,9 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
             if shape >= PIN_MIN_SCORE {
                 blobs.push(Blob { x, y, w, h, shape });
             } else if shape >= PIN_MIN_SCORE - 0.1 {
-                // In frame coordinates, which is where a player can point at
-                // it: inside the framed area these numbers name nothing.
+                // In the game window's own coordinates, which is what a
+                // player can point at: inside the framed area the same badge
+                // is at a different pair of numbers on every screen.
                 log::debug!(
                     "HUD blob at {},{} {w}×{h} rejected: pin score {shape:.2}",
                     x + cap.origin.0 as i32,
