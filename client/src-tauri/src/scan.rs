@@ -657,8 +657,14 @@ async fn scan_inner(app: &AppHandle) -> Result<ScanResult, String> {
         }
         let engine = engine.as_ref().unwrap();
 
-        status(&app2, "capturing", "capturing screen", None);
-        let cap = capture_game(&app2)?;
+        // The same area the live loop watches, and for the same reasons: the
+        // badge is printed in one place — a little above the middle of the
+        // window — and reading the whole window instead means every lit thing
+        // in the HUD gets weighed as a possible badge, on a picture some
+        // twenty times larger than the one that holds the answer.
+        let region = current_region(&app2);
+        status(&app2, "capturing", "capturing the signature area", None);
+        let cap = capture_region(&app2, region)?;
         status(&app2, "ocr", format!("reading {}×{}", cap.width, cap.height), None);
         analyze(engine, &cap, started)
     })
