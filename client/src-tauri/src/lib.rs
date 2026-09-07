@@ -880,6 +880,9 @@ fn system_report(app: tauri::AppHandle) -> String {
             ),
             None => "capture switches: not asked yet, screen reading has not run".into(),
         });
+        if let Some(answer) = wgc::borderless() {
+            lines.push(format!("borderless capture: {answer}"));
+        }
         lines.push(format!("running as administrator: {}", winkeys::elevated()));
     }
     #[cfg(target_os = "linux")]

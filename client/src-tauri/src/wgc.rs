@@ -46,6 +46,17 @@ pub fn switch_state() -> Option<(bool, bool)> {
     *switches().lock().unwrap()
 }
 
+/// What Windows answered when asked for borderless capture, in words.
+fn borderless_answer() -> &'static Mutex<Option<String>> {
+    static ANSWER: OnceLock<Mutex<Option<String>>> = OnceLock::new();
+    ANSWER.get_or_init(|| Mutex::new(None))
+}
+
+/// The same answer, for a report.
+pub fn borderless() -> Option<String> {
+    borderless_answer().lock().unwrap().clone()
+}
+
 /// Which Windows this is, from the kernel rather than from the compatibility
 /// layer that lies to unmanifested programs: (major, minor, build).
 ///
@@ -117,6 +128,44 @@ pub fn open_windows() -> Vec<String> {
         .unwrap_or_default()
 }
 
+/// Ask Windows for permission to capture without its border.
+///
+/// The border is not a setting, it is a permission: `IsBorderRequired = false`
+/// is ignored — silently, no error anywhere — until the program has asked for
+/// borderless capture and been granted it. That is the whole reason a window
+/// StarBuddy reads wears a yellow frame on a build whose switch reports itself
+/// as present and working.
+///
+/// The answer is worth logging whatever it is: "not declared by app" says the
+/// permission needs something this build cannot ask for, and only then is
+/// there nothing left to try.
+fn ask_for_borderless() -> String {
+    use windows::Graphics::Capture::{GraphicsCaptureAccess, GraphicsCaptureAccessKind};
+    use windows::Security::Authorization::AppCapabilityAccess::AppCapabilityAccessStatus;
+    use windows::Win32::System::WinRT::{RoInitialize, RO_INIT_MULTITHREADED};
+
+    // The request is a WinRT call and needs an apartment on this thread. An
+    // apartment already set is fine, and a different one is fine too — both
+    // come back as an error that means "there is one".
+    let _ = unsafe { RoInitialize(RO_INIT_MULTITHREADED) };
+
+    let asked = GraphicsCaptureAccess::RequestAccessAsync(GraphicsCaptureAccessKind::Borderless)
+        .and_then(|request| request.get());
+    match asked {
+        Ok(status) => match status {
+            AppCapabilityAccessStatus::Allowed => "allowed".into(),
+            AppCapabilityAccessStatus::DeniedBySystem => "denied by the system".into(),
+            AppCapabilityAccessStatus::DeniedByUser => "denied by the player".into(),
+            AppCapabilityAccessStatus::NotDeclaredByApp => "not declared by the app".into(),
+            AppCapabilityAccessStatus::UserPromptRequired => "the player has not been asked yet".into(),
+            other => format!("unknown answer {}", other.0),
+        },
+        // Windows 10 has no such request to make, and says so by not having
+        // the interface at all.
+        Err(e) => format!("could not ask ({e})"),
+    }
+}
+
 /// Start streaming the window with this title.
 pub fn start(title: &str) -> Result<(), String> {
     stop();
@@ -142,6 +191,9 @@ pub fn start(title: &str) -> Result<(), String> {
     *switches().lock().unwrap() = Some((cursor_switch, border_switch));
     let cursor =
         if cursor_switch { CursorCaptureSettings::WithoutCursor } else { CursorCaptureSettings::Default };
+    let borderless = if border_switch { ask_for_borderless() } else { "no switch to ask about".into() };
+    log::info!("borderless capture: {borderless}");
+    *borderless_answer().lock().unwrap() = Some(borderless);
     let border = if border_switch { DrawBorderSettings::WithoutBorder } else { DrawBorderSettings::Default };
 
     let settings = Settings::new(
