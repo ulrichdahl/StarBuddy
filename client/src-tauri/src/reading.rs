@@ -105,6 +105,9 @@ pub struct Reading {
     /// that have the switch for it can take it off. True where it is being
     /// drawn, so the window can say what it is rather than leave it a mystery.
     pub capture_border: bool,
+    /// And true where the border is there because this machine refused
+    /// borderless capture, which is a refusal the player can take back.
+    pub border_refused: bool,
 }
 
 #[cfg(target_os = "linux")]
@@ -117,6 +120,7 @@ pub fn state(app: &tauri::AppHandle) -> Reading {
         error: trouble(),
         picks_from_list: false,
         capture_border: false,
+        border_refused: false,
     }
 }
 
@@ -155,7 +159,8 @@ pub fn state(app: &tauri::AppHandle) -> Reading {
         source: crate::load_client_prefs(app).screen_source,
         error: trouble(),
         picks_from_list: true,
-        capture_border: crate::wgc::border_drawn(),
+        capture_border: crate::wgc::border_drawn() || crate::wgc::borderless().is_some_and(|a| a.starts_with("denied")),
+        border_refused: crate::wgc::borderless().is_some_and(|a| a == "denied by the player"),
     }
 }
 

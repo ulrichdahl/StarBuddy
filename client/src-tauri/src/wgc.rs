@@ -128,6 +128,21 @@ pub fn open_windows() -> Vec<String> {
         .unwrap_or_default()
 }
 
+/// Where Windows keeps its answer about this program, so a player who said no
+/// once can find the decision and take it back.
+///
+/// The store is keyed by the executable's own path, which is why an app
+/// installed twice — once per user, once for the machine — has an entry each,
+/// and why editing "the StarBuddy one" is a coin toss unless the path is
+/// spelled out.
+pub fn borderless_consent_key() -> String {
+    let exe = std::env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default();
+    format!(
+        "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\graphicsCaptureWithoutBorder\\NonPackaged\\{}",
+        exe.replace('\\', "#")
+    )
+}
+
 /// Ask Windows for permission to capture without its border.
 ///
 /// The border is not a setting, it is a permission: `IsBorderRequired = false`
@@ -165,6 +180,8 @@ fn ask_for_borderless() -> String {
         Ok(status) => match status {
             AppCapabilityAccessStatus::Allowed => "allowed".into(),
             AppCapabilityAccessStatus::DeniedBySystem => "denied by the system".into(),
+            // The one answer with a way back: the refusal is remembered per
+            // program, and deleting it is what makes Windows ask again.
             AppCapabilityAccessStatus::DeniedByUser => "denied by the player".into(),
             AppCapabilityAccessStatus::NotDeclaredByApp => "not declared by the app".into(),
             AppCapabilityAccessStatus::UserPromptRequired => "the player has not been asked yet".into(),

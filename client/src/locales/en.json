@@ -336,7 +336,8 @@
     },
     "report": "System info",
     "reportCopy": "Copy",
-    "reportCopied": "Copied"
+    "reportCopied": "Copied",
+    "readingBorderRefused": "This machine refused StarBuddy borderless capture once, and Windows remembers the answer — which is why the border is there while other machines have none. Press System info below: it prints the registry key holding that answer. Delete the key, start StarBuddy again, and Windows will ask once more."
   },
   "changes": {
     "sinceLive_one": "What’s new — {{count}} change since v{{version}}",

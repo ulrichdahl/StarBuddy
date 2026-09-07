@@ -118,6 +118,8 @@ interface Reading {
   picks_from_list: boolean;
   /** Windows is drawing its yellow capture border round the game's window. */
   capture_border: boolean;
+  /** The border is there because borderless capture was refused on this machine. */
+  border_refused: boolean;
 }
 
 /** KWin window rule that keeps overlays above the fullscreen game (Linux/KDE). */
@@ -863,6 +865,7 @@ function App() {
         {/* Windows 10 draws a yellow border round whatever is being captured
             and offers no way to turn it off; Windows 11 does, and it is. */}
         {reading?.on && reading.capture_border && <p className="hint">{t("overlay.readingBorder")}</p>}
+        {reading?.on && reading.border_refused && <p className="hint">{t("overlay.readingBorderRefused")}</p>}
         <div className="row">
           <button onClick={toggleStatusWindow}>
             {statusOpen ? t("overlay.hideStatus") : t("overlay.showStatus")}

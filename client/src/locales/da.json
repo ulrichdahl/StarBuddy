@@ -336,7 +336,8 @@
     },
     "report": "Systemoplysninger",
     "reportCopy": "Kopiér",
-    "reportCopied": "Kopieret"
+    "reportCopied": "Kopieret",
+    "readingBorderRefused": "Denne maskine har én gang nægtet StarBuddy optagelse uden kant, og Windows husker svaret — derfor er kanten her, mens andre maskiner ingen har. Tryk på Systemoplysninger nedenfor: den viser den registreringsnøgle, svaret ligger i. Slet nøglen, start StarBuddy igen, så spørger Windows en gang til."
   },
   "changes": {
     "sinceLive_one": "Nyheder — {{count}} ændring siden v{{version}}",
