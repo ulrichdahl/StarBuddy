@@ -229,6 +229,34 @@ pub(crate) fn crop_region(full: Captured, region: ScanRegion) -> Result<Captured
     })
 }
 
+/// One number, whichever way the panel and the reader between them spelled it.
+///
+/// The game prints its thousands with a comma and the reader gives that back
+/// as a full stop about as often as not — so "16.720" is sixteen thousand
+/// seven hundred and twenty, not sixteen and change. Read the other way it is
+/// a signature thrown away for being too small to be one, and a scan that
+/// silently does nothing.
+///
+/// A separator followed by exactly three digits, all the way along, is a
+/// thousands separator. Anything else is a decimal point.
+fn parse_number(text: &str) -> Result<f64, std::num::ParseFloatError> {
+    let grouped = {
+        let mut parts = text.split(['.', ',']);
+        let first = parts.next().unwrap_or_default();
+        let rest: Vec<&str> = parts.collect();
+        !rest.is_empty()
+            && (1..=3).contains(&first.len())
+            // "0.500" is half of something, never five hundred: nothing writes
+            // a thousand with a leading zero.
+            && !first.starts_with('0')
+            && rest.iter().all(|group| group.len() == 3 && group.chars().all(|c| c.is_ascii_digit()))
+    };
+    if grouped {
+        return text.replace(['.', ','], "").parse();
+    }
+    text.replace(',', "").parse()
+}
+
 /// Read with the engine the app already has, loading it once if it has none.
 ///
 /// The two models are twelve megabytes of weights, and parsing them again for
@@ -593,8 +621,7 @@ fn numbers_in(text: &str) -> Vec<f64> {
     let mut cur = String::new();
     let flush = |cur: &mut String, out: &mut Vec<f64>| {
         if !cur.is_empty() {
-            let cleaned = cur.replace(',', "");
-            if let Ok(v) = cleaned.parse::<f64>() {
+            if let Ok(v) = parse_number(cur) {
                 out.push(v);
             }
             cur.clear();
@@ -632,8 +659,13 @@ fn signature_in_text(lines: &[OcrLine], cap: &Captured) -> Option<f64> {
     let mut found: Vec<(i32, f64)> = lines
         .iter()
         .filter(|line| {
+            // The icon beside the number is read as a character as often as
+            // not — "? 16.720" — and that is the badge, not a disqualification.
+            // A letter is: every other number on the HUD wears a unit.
             let text = line.text.trim();
-            !text.is_empty() && text.chars().all(|c| c.is_ascii_digit() || c == ',' || c == '.' || c == ' ')
+            !text.is_empty()
+                && text.chars().any(|c| c.is_ascii_digit())
+                && !text.chars().any(|c| c.is_ascii_alphabetic())
         })
         .filter_map(|line| {
             let value = numbers_in(&line.text).into_iter().next()?;
@@ -947,7 +979,15 @@ mod tests {
     #[test]
     fn numbers_and_labels() {
         assert_eq!(numbers_in("MASS 4,120 kg · SIG 1850"), vec![4120.0, 1850.0]);
-        assert_eq!(numbers_in("3.600 (18.0%)"), vec![3.6, 18.0]);
+        // The reader gives the game's thousands comma back as a full stop
+        // about as often as not, and a signature of 16,720 read as 16.72 is
+        // thrown away for being too small to be one.
+        assert_eq!(numbers_in("3.600 (18.0%)"), vec![3600.0, 18.0]);
+        assert_eq!(numbers_in("? 16.720"), vec![16720.0], "a badge, icon and all");
+        assert_eq!(numbers_in("221.180"), vec![221180.0]);
+        assert_eq!(numbers_in("0.50"), vec![0.5], "a resistance is not five hundred");
+        assert_eq!(numbers_in("0.500"), vec![0.5], "nor is it, written to three places");
+        assert_eq!(numbers_in("1,234.56"), vec![1234.56]);
         let lines = vec![
             OcrLine { text: "SIGNATURE".into(), x: 0, y: 0, w: 10, h: 10 },
             OcrLine { text: "1850".into(), x: 0, y: 12, w: 10, h: 10 },
@@ -977,9 +1017,15 @@ mod tests {
 
     #[test]
     fn a_signature_is_read_without_its_icon_but_not_from_anything() {
-        // What the player sees on the panel while the icon goes unrecognised.
+        // What the player sees on the panel while the icon goes unrecognised,
+        // spelled both ways the reader spells it, and with the icon itself
+        // read as a character of its own.
         let (lines, cap) = framed(&[("11,700", 230, 95)]);
         assert_eq!(signature_in_text(&lines, &cap), Some(11700.0));
+        let (lines, cap) = framed(&[("11.700", 230, 95)]);
+        assert_eq!(signature_in_text(&lines, &cap), Some(11700.0));
+        let (lines, cap) = framed(&[("? 16.720", 230, 95)]);
+        assert_eq!(signature_in_text(&lines, &cap), Some(16720.0));
 
         // The nearest to the middle of the area wins, because that is where
         // the badge is printed and the rest of the HUD is not.
