@@ -529,11 +529,6 @@ pub struct HotkeyInfo {
     pub failed: HashMap<String, String>,
     /// The actions whose shortcut is registered and waiting for a key.
     pub live: Vec<String>,
-    /// Windows, running as administrator. A game started as administrator
-    /// takes every key an ordinary program asked for, and matching it is the
-    /// only answer — so the window says which this is rather than leaving the
-    /// player to remember whether the last restart took.
-    pub administrator: bool,
     /// True where the desktop has taken the shortcuts but put no key on any of
     /// them, which is where they have to be assigned in its own settings.
     pub desktop_offered: bool,
@@ -548,36 +543,6 @@ pub struct HotkeyInfo {
     /// administrator, which Windows will not let a normal program's hotkeys
     /// reach. The window says so there rather than leaving it a mystery.
     pub windows: bool,
-}
-
-/// Start again as administrator, and let this instance go.
-///
-/// Windows will not deliver an ordinary program's hotkeys to a window that is
-/// running as administrator, and Star Citizen's launcher often is. Matching it
-/// is the only cure, and it needs a fresh process to do it.
-#[tauri::command]
-pub fn restart_as_administrator(app: AppHandle) -> Result<(), String> {
-    if !cfg!(windows) {
-        return Err("Only Windows has this problem.".into());
-    }
-    let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    let exe = exe.to_string_lossy().replace('\'', "''");
-    // PowerShell's own elevation prompt, so nothing here has to link the shell
-    // API for one call. It waits first: StarBuddy allows one instance, and a
-    // new one that starts while this one is still up hands over its arguments
-    // and exits — which would leave the player with the same unelevated client
-    // they asked to replace.
-    std::process::Command::new("powershell")
-        .args([
-            "-NoProfile",
-            "-Command",
-            &format!("Start-Sleep -Milliseconds 1500; Start-Process -FilePath '{exe}' -Verb RunAs"),
-        ])
-        .spawn()
-        .map_err(|e| format!("Could not ask Windows to start it as administrator: {e}"))?;
-    save_now(&app);
-    app.exit(0);
-    Ok(())
 }
 
 fn on_wayland() -> bool {
@@ -600,7 +565,6 @@ pub fn overlay_hotkey(app: AppHandle) -> HotkeyInfo {
         action_command: format!("\"{exe}\" {ACTION_FLAG} "),
         failed: app.state::<OverlayState>().failures.lock().unwrap().clone(),
         live: app.state::<OverlayState>().registered.lock().unwrap().iter().map(|(_, a)| a.clone()).collect(),
-        administrator: crate::winkeys::elevated(),
         windows: cfg!(windows),
     }
 }

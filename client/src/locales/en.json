@@ -318,13 +318,11 @@
     "hotkeyListening": "Listening — hold the keys",
     "hotkeyPress": "Hold the combination you want. Escape cancels.",
     "hotkeyHold": "{{keys}} — keep holding, {{seconds}}s",
-    "hotkeyWindows": "If a hotkey does nothing on Windows: something else may already own it — F6–F9 are taken by GeForce Experience, the Xbox Game Bar and Discord — so hold a combination with Ctrl, Alt or Shift instead. If it still does nothing, the game is probably running as administrator, and Windows will not deliver a normal program's hotkeys to it; start StarBuddy as administrator too.",
+    "hotkeyWindows": "If a hotkey does nothing on Windows, StarBuddy also watches the keyboard directly, so a combination another program already owns still reaches it. If nothing arrives at all, the line above says so — and the usual cause left is keyboard software that remaps these keys for the game.",
     "hotkeyDesktop": "Your desktop delivers these hotkeys, so they work while the game has focus — and it has the last word on them: setting one here is a request, and the key you end up with is the one shown. They can also be changed under your desktop's own keyboard shortcut settings, listed as StarBuddy.",
     "hotkeyDesktopUnset": "Your desktop has taken these hotkeys over but has not put a key on any of them yet — until it does, they only work while a StarBuddy window has focus. Open your desktop's keyboard shortcut settings, find StarBuddy, and give each one a key. If it is not listed there, bind these commands to keys instead.",
     "hotkeyChange": "Click to change",
     "hotkeyNone": "none",
-    "hotkeyElevate": "Restart as administrator",
-    "hotkeyElevateHint": "Only needed if the game itself runs as administrator — Windows will not deliver an ordinary program's hotkeys to it.",
     "readingBorder": "A yellow border round the game window is Windows saying the window is being captured. Windows 11 lets it be switched off and StarBuddy does; Windows 10 does not, and there it stays until reading is switched off.",
     "hotkeyHeard": "Last key received: {{action}}. The keys are reaching StarBuddy.",
     "hotkeyNoneHeard_one": "{{count}} shortcut registered, and no key has reached StarBuddy yet this session.",
@@ -335,8 +333,7 @@
       "refinery": "refinery order",
       "capture": "training screenshot",
       "reading": "screen reading"
-    },
-    "hotkeyIsAdmin": "StarBuddy is running as administrator, so a game that does the same is not what is taking the keys."
+    }
   },
   "changes": {
     "sinceLive_one": "What’s new — {{count}} change since v{{version}}",

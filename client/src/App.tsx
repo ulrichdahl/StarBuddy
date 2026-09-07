@@ -93,8 +93,6 @@ interface HotkeyInfo {
   failed: Record<string, string>;
   /** The actions whose shortcut is registered and waiting for a key. */
   live: string[];
-  /** Windows: this client is running as administrator. */
-  administrator: boolean;
   /** Windows, where a hotkey can be registered and still never arrive. */
   windows: boolean;
   /** The desktop holds the shortcuts but has put no key on them yet. */
@@ -807,21 +805,7 @@ function App() {
               : t("overlay.hotkeyNoneHeard", { count: hotkey.live.length })}
           </p>
         )}
-        {hotkey?.windows && (
-          <>
-            <p className="hint">{t("overlay.hotkeyWindows")}</p>
-            <div className="row">
-              {!hotkey.administrator && (
-                <button onClick={() => void invoke("restart_as_administrator").catch((e) => setOverlayError(String(e)))}>
-                  {t("overlay.hotkeyElevate")}
-                </button>
-              )}
-              <span className="hint">
-                {hotkey.administrator ? t("overlay.hotkeyIsAdmin") : t("overlay.hotkeyElevateHint")}
-              </span>
-            </div>
-          </>
-        )}
+        {hotkey?.windows && <p className="hint">{t("overlay.hotkeyWindows")}</p>}
         {/* Wayland: the compositor delivers the keys, so it is also the place
             they can be changed for good. */}
         {hotkey?.desktop_owned && <p className="hint">{t("overlay.hotkeyDesktop")}</p>}
