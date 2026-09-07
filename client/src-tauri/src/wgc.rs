@@ -143,6 +143,53 @@ pub fn borderless_consent_key() -> String {
     )
 }
 
+/// What the machine has decided about capturing without a border, before the
+/// client asks for anything.
+///
+/// A refusal the player made themselves is remembered per program and can be
+/// taken back. A refusal made by policy cannot: Windows never asks, answers no
+/// every time, and writes the answer down as though someone had chosen it —
+/// which is what a hardened machine looks like from in here. The two are worth
+/// telling apart, and only the registry tells them apart.
+pub fn borderless_policy() -> Vec<String> {
+    use winreg::enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE};
+    use winreg::RegKey;
+
+    const CONSENT: &str =
+        r"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\graphicsCaptureWithoutBorder";
+    let mut found = Vec::new();
+
+    let machine = RegKey::predef(HKEY_LOCAL_MACHINE);
+    if let Ok(privacy) = machine.open_subkey(r"SOFTWARE\Policies\Microsoft\Windows\AppPrivacy") {
+        if let Ok(policy) = privacy.get_value::<u32, _>("LetAppsAccessGraphicsCaptureWithoutBorder") {
+            found.push(format!(
+                "policy LetAppsAccessGraphicsCaptureWithoutBorder = {policy} ({})",
+                match policy {
+                    0 => "the player decides",
+                    1 => "always allowed",
+                    2 => "always refused — this is what puts the border there",
+                    _ => "unknown",
+                }
+            ));
+        }
+    }
+
+    let user = RegKey::predef(HKEY_CURRENT_USER);
+    if let Ok(store) = user.open_subkey(CONSENT) {
+        if let Ok(value) = store.get_value::<String, _>("Value") {
+            found.push(format!("consent for every program: {value}"));
+        }
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        let path = format!(r"{CONSENT}\NonPackaged\{}", exe.to_string_lossy().replace('\\', "#"));
+        match user.open_subkey(&path).and_then(|k| k.get_value::<String, _>("Value")) {
+            Ok(value) => found.push(format!("consent for this client: {value}")),
+            Err(_) => found.push("consent for this client: nothing written".into()),
+        }
+    }
+    found
+}
+
 /// Ask Windows for permission to capture without its border.
 ///
 /// The border is not a setting, it is a permission: `IsBorderRequired = false`

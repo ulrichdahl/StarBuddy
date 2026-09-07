@@ -45,6 +45,9 @@ tauri-plugin-log = "2"
 windows-capture = "2"
 # Watching the keyboard for hotkeys the system's own hotkey table never
 # delivers, and asking whether this process is running as administrator.
+# Reading the two registry values that decide whether a window can be captured
+# without Windows drawing a border round it.
+winreg = "0.55"
 # Waiting for one WinRT call to answer. The trait that does the waiting lives
 # here rather than in `windows`, which does not re-export it.
 windows-future = "0.3"

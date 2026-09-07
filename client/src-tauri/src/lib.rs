@@ -883,6 +883,7 @@ fn system_report(app: tauri::AppHandle) -> String {
         if let Some(answer) = wgc::borderless() {
             lines.push(format!("borderless capture: {answer}"));
             if answer.starts_with("denied") {
+                lines.extend(wgc::borderless_policy().into_iter().map(|line| format!("  {line}")));
                 lines.push(format!("  the answer is remembered here: {}", wgc::borderless_consent_key()));
                 lines.push("  delete that key and start StarBuddy again to be asked once more".into());
             }
