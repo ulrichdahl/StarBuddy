@@ -668,7 +668,12 @@ fn signature_in_text(lines: &[OcrLine], cap: &Captured) -> Option<f64> {
                 && !text.chars().any(|c| c.is_ascii_alphabetic())
         })
         .filter_map(|line| {
-            let value = numbers_in(&line.text).into_iter().next()?;
+            // Read as strictly as a badge's own number is: a token has to be
+            // digits and thousands separators and nothing else. A reader that
+            // turns one digit into a letter — "16,72O" — then hands back 1672
+            // is worse than one that says nothing, because 1672 is a signature
+            // somebody could believe.
+            let value = badge_number(&line.text)?;
             if !PLAUSIBLE.contains(&value) {
                 return None;
             }
@@ -1039,6 +1044,16 @@ mod tests {
 
         // Nor is every bare number: a signature is thousands, not a tally.
         let (lines, cap) = framed(&[("23", 250, 100)]);
+        assert_eq!(signature_in_text(&lines, &cap), None);
+
+        // A digit the reader turned into a letter is not read as the number
+        // that is left over: 16,720 misread is nothing, never 1672.
+        let (lines, cap) = framed(&[("16,72O", 230, 95)]);
+        assert_eq!(signature_in_text(&lines, &cap), None, "a misread digit reads as nothing");
+        let (lines, cap) = framed(&[("l5,600", 230, 95)]);
+        assert_eq!(signature_in_text(&lines, &cap), None);
+        // And a number that never was one: groups have to be groups.
+        let (lines, cap) = framed(&[("16,72", 230, 95)]);
         assert_eq!(signature_in_text(&lines, &cap), None);
     }
 
