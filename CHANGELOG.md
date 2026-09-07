@@ -5,6 +5,26 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## 0.1.14 — 2026-09-07
+
+**Reading the screen is a switch you own, and the keys work while you fly.**
+
+### New
+
+- **Screen reading is off until you switch it on.** It reads one window — the game's — streamed by the desktop itself, so a panel can be read while the game is behind an overlay, covered, or not in front at all. Switching it on asks which window once and remembers the answer; a hotkey turns it on and off mid-flight, and everything that reads the screen is greyed out until it is on. While it runs, your desktop shows a window is being shared, because one is.
+- **Hotkeys that work while the game has focus.** On Windows the keys are watched at the keyboard as well as registered with the system, because the system was accepting them and delivering none. On Wayland desktops they are registered with the desktop itself, which delivers them whoever is in front — the old X11 grab could only ever reach a program on the same X server, which a Wayland-native game is not. They are passed on untouched either way: the game still gets its F8.
+- **F10 switches reading on and off**, and every hotkey row now says what it does and what it is set to.
+- **System info**, in the overlay panel: one button, one block to copy into a bug report — the build, the machine, what the capture and the hotkeys are actually doing. It answers in one press what used to take an evening of questions.
+- **Every game channel is found**, LIVE and HOTFIX automatically, PTU and TECH-PREVIEW offered but never chosen for you.
+
+### Fixed
+
+- **A refinery read takes seconds, not minutes**, and says how far it has got while it works. Pressing the key again during a read tells you where it is instead of refusing, and the window no longer sits there saying nothing at all.
+- **Terminals that lay their panels out the other way round are read.** One station prints the state at a panel's right edge and the order number under it at the left, which read as no order at all: no materials, no method, no cost. The station's name is found even when the framed area cuts the title off.
+- **A scan reports the signature it read.** The number was being read and thrown away whenever the icon beside it went unrecognised, and thrown away again whenever the reader gave the game's thousands comma back as a full stop — the same badge working one second and silent the next.
+- **A scan reads the small area it is supposed to.** "Scan now" was searching the whole game window, thirty-six times more picture than the badge lives in, and weighing every lit thing in the HUD as a possible signature.
+- Rows are no longer doubled when a long order is read twice to catch what scrolled, a row the server refuses is marked where it is wrong, rows can be added and removed by hand, and the processing time can be typed into.
+
 ## 0.1.13 — 2026-09-05
 
 **The overlay windows behave.**
