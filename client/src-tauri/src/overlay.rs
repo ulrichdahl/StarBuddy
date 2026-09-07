@@ -527,6 +527,8 @@ pub struct HotkeyInfo {
     pub action_command: String,
     /// action → why that shortcut is not currently registered.
     pub failed: HashMap<String, String>,
+    /// The actions whose shortcut is registered and waiting for a key.
+    pub live: Vec<String>,
     /// True where the desktop has taken the shortcuts but put no key on any of
     /// them, which is where they have to be assigned in its own settings.
     pub desktop_offered: bool,
@@ -585,6 +587,7 @@ pub fn overlay_hotkey(app: AppHandle) -> HotkeyInfo {
         toggle_command: format!("\"{exe}\" {TOGGLE_FLAG}"),
         action_command: format!("\"{exe}\" {ACTION_FLAG} "),
         failed: app.state::<OverlayState>().failures.lock().unwrap().clone(),
+        live: app.state::<OverlayState>().registered.lock().unwrap().iter().map(|(_, a)| a.clone()).collect(),
         windows: cfg!(windows),
     }
 }
@@ -694,6 +697,7 @@ pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
     let mut registered = Vec::new();
     let mut first_err = None;
     let mut failures = HashMap::new();
+    let names: Vec<String> = wanted.iter().map(|(a, k)| format!("{a}={k}")).collect();
     for (action, key) in wanted {
         let outcome = key
             .parse::<Shortcut>()
@@ -706,6 +710,10 @@ pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
                 failures.insert(action, format!("{key}: {e}"));
             }
         }
+    }
+    log::info!("hotkeys wanted: {}; registered {}, refused {}", names.join(" "), registered.len(), failures.len());
+    for (action, why) in &failures {
+        log::warn!("hotkey {action} refused: {why}");
     }
     *state.registered.lock().unwrap() = registered;
     *state.failures.lock().unwrap() = failures;
@@ -743,6 +751,11 @@ pub fn run_action(app: &AppHandle, action: &str) {
     // difference between a hotkey that never reached the client and one that
     // reached it and then failed at something else.
     log::info!("hotkey: {action}");
+    // Said out loud so the window can show that a key arrived at all. "The
+    // hotkey does nothing" is two different faults — a key that never reaches
+    // the client, and one that reaches it and fails at what it asks for — and
+    // nothing else on screen tells them apart.
+    let _ = app.emit("hotkey-fired", action);
     let app2 = app.clone();
     let action = action.to_string();
     // The plugin calls this from its own listener thread, and anything that

@@ -91,6 +91,8 @@ interface HotkeyInfo {
   toggle_command: string;
   /** action → why that shortcut is not registered, e.g. another app owns it. */
   failed: Record<string, string>;
+  /** The actions whose shortcut is registered and waiting for a key. */
+  live: string[];
   /** Windows, where a hotkey can be registered and still never arrive. */
   windows: boolean;
   /** The desktop holds the shortcuts but has put no key on them yet. */
@@ -114,6 +116,8 @@ interface Reading {
   error: string | null;
   /** Windows draws its own list of windows; elsewhere the desktop asks. */
   picks_from_list: boolean;
+  /** Windows is drawing its yellow capture border round the game's window. */
+  capture_border: boolean;
 }
 
 /** KWin window rule that keeps overlays above the fullscreen game (Linux/KDE). */
@@ -256,6 +260,8 @@ function App() {
   const [scanLive, setScanLive] = useState(false);
   const [logDir, setLogDir] = useState<string | null>(null);
   const [hotkeyError, setHotkeyError] = useState<string | null>(null);
+  /** The last hotkey that actually arrived, which says delivery works. */
+  const [heardHotkey, setHeardHotkey] = useState<string | null>(null);
   const [statusOpen, setStatusOpen] = useState<boolean | null>(null);
   const [kdeRule, setKdeRule] = useState<KdeRuleInfo | null>(null);
   const [kdeRuleError, setKdeRuleError] = useState<string | null>(null);
@@ -305,6 +311,7 @@ function App() {
       listen<Reading>("screen-reading", (e) => setReading(e.payload)),
       // The desktop answers about the hotkeys in its own time, and can change
       // them from its own settings afterwards.
+      listen<string>("hotkey-fired", (e) => setHeardHotkey(e.payload)),
       listen("hotkeys-changed", () => {
         invoke<HotkeyInfo>("overlay_hotkey").then(setHotkey).catch(() => {});
       }),
@@ -788,6 +795,16 @@ function App() {
         <p className="hint">{t("overlay.panelHint")}</p>
         {/* On Windows a hotkey can register and still never fire, and no error
             is raised for either reason it happens. */}
+        {/* "The hotkey does nothing" is two faults — a key that never reaches
+            the client, and one that reaches it and fails at what it asks for.
+            This line is the only thing on screen that tells them apart. */}
+        {hotkey && (
+          <p className="hint">
+            {heardHotkey
+              ? t("overlay.hotkeyHeard", { action: t(`overlay.hotkeyName.${heardHotkey}`) })
+              : t("overlay.hotkeyNoneHeard", { count: hotkey.live.length })}
+          </p>
+        )}
         {hotkey?.windows && (
           <>
             <p className="hint">{t("overlay.hotkeyWindows")}</p>
@@ -852,7 +869,7 @@ function App() {
         {reading?.error && <p className="error">{reading.error}</p>}
         {/* Windows 10 draws a yellow border round whatever is being captured
             and offers no way to turn it off; Windows 11 does, and it is. */}
-        {reading?.on && hotkey?.windows && <p className="hint">{t("overlay.readingBorder")}</p>}
+        {reading?.on && reading.capture_border && <p className="hint">{t("overlay.readingBorder")}</p>}
         <div className="row">
           <button onClick={toggleStatusWindow}>
             {statusOpen ? t("overlay.hideStatus") : t("overlay.showStatus")}

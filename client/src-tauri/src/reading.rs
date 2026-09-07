@@ -101,6 +101,10 @@ pub struct Reading {
     /// Whether choosing means picking from a list this client provides
     /// (Windows) rather than the desktop's own picker (Wayland).
     pub picks_from_list: bool,
+    /// Windows draws a border round a window it is capturing, and only builds
+    /// that have the switch for it can take it off. True where it is being
+    /// drawn, so the window can say what it is rather than leave it a mystery.
+    pub capture_border: bool,
 }
 
 #[cfg(target_os = "linux")]
@@ -112,6 +116,7 @@ pub fn state(app: &tauri::AppHandle) -> Reading {
         source: streaming().then(|| "the window you chose".to_string()),
         error: trouble(),
         picks_from_list: false,
+        capture_border: false,
     }
 }
 
@@ -150,6 +155,7 @@ pub fn state(app: &tauri::AppHandle) -> Reading {
         source: crate::load_client_prefs(app).screen_source,
         error: trouble(),
         picks_from_list: true,
+        capture_border: crate::wgc::border_drawn(),
     }
 }
 

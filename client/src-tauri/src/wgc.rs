@@ -29,6 +29,18 @@ fn running() -> &'static Mutex<Option<Running>> {
     RUNNING.get_or_init(|| Mutex::new(None))
 }
 
+/// Whether Windows is drawing its capture border round the window, because
+/// this build has no switch to turn it off.
+fn bordered() -> &'static std::sync::atomic::AtomicBool {
+    static BORDERED: OnceLock<std::sync::atomic::AtomicBool> = OnceLock::new();
+    BORDERED.get_or_init(|| std::sync::atomic::AtomicBool::new(false))
+}
+
+/// Whether the window being read is wearing Windows' yellow capture border.
+pub fn border_drawn() -> bool {
+    bordered().load(std::sync::atomic::Ordering::Relaxed)
+}
+
 /// Receives frames and keeps the newest.
 struct Reader;
 
@@ -104,6 +116,7 @@ pub fn start(title: &str) -> Result<(), String> {
     let cursor =
         if cursor_switch { CursorCaptureSettings::WithoutCursor } else { CursorCaptureSettings::Default };
     let border = if border_switch { DrawBorderSettings::WithoutBorder } else { DrawBorderSettings::Default };
+    bordered().store(!border_switch, std::sync::atomic::Ordering::Relaxed);
 
     let settings = Settings::new(
         window,

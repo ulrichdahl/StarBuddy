@@ -325,7 +325,17 @@
     "hotkeyNone": "none",
     "hotkeyElevate": "Restart as administrator",
     "hotkeyElevateHint": "Only needed if the game itself runs as administrator — Windows will not deliver an ordinary program's hotkeys to it.",
-    "readingBorder": "A yellow border round the game window is Windows saying the window is being captured. Windows 11 lets it be switched off and StarBuddy does; Windows 10 does not, and there it stays until reading is switched off."
+    "readingBorder": "A yellow border round the game window is Windows saying the window is being captured. Windows 11 lets it be switched off and StarBuddy does; Windows 10 does not, and there it stays until reading is switched off.",
+    "hotkeyHeard": "Last key received: {{action}}. The keys are reaching StarBuddy.",
+    "hotkeyNoneHeard_one": "{{count}} shortcut registered, and no key has reached StarBuddy yet this session.",
+    "hotkeyNoneHeard_other": "{{count}} shortcuts registered, and no key has reached StarBuddy yet this session.",
+    "hotkeyName": {
+      "status": "status window",
+      "scan": "scan",
+      "refinery": "refinery order",
+      "capture": "training screenshot",
+      "reading": "screen reading"
+    }
   },
   "changes": {
     "sinceLive_one": "What’s new — {{count}} change since v{{version}}",
