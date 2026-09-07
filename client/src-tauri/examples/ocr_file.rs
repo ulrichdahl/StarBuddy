@@ -6,7 +6,7 @@
 //! harness and the client see the same files.
 
 use ocrs::{ImageSource, OcrEngine, OcrEngineParams, TextItem};
-use starbuddy_client_lib::scan::{analyze, Captured};
+use starbuddy_client_lib::scan::{analyze, digit_engine_from_dir, Captured, Reader};
 use std::path::PathBuf;
 use std::time::Instant;
 
@@ -56,6 +56,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ..Default::default()
     })?;
 
+    // The badge's number is read by a reader that may only produce digits,
+    // the same as in the client.
+    let digits = digit_engine_from_dir(&dir)?;
+
     for file in files {
         let mut img = image::open(&file)?.into_rgb8();
         if let Some((x, y, w, h)) = crop {
@@ -66,9 +70,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         // Full pipeline (badge detection + readout) exactly as the client runs it.
         if scale == 1 && crop.is_none() {
-            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.clone(), full_height: img.height() };
+            let cap = Captured {
+                rgb: img.as_raw().clone(),
+                width: img.width(),
+                height: img.height(),
+                source: file.clone(),
+                full_height: img.height(),
+                origin: (0, 0),
+            };
             let started = Instant::now();
-            let result = analyze(&engine, &cap, started)?;
+            let result = analyze(&Reader { text: &engine, digits: &digits }, &cap, started)?;
             println!("== {file}: signature {:?}, mass {:?}, {} badge(s), {} lines, {} ms", result.signature, result.mass, result.badges.len(), result.lines.len(), result.elapsed_ms);
             for b in &result.badges {
                 println!("   badge at {},{} {}×{} → {} ({:?})", b.x, b.y, b.w, b.h, b.value, b.text);

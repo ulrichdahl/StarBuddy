@@ -111,6 +111,8 @@ pub struct LiveReading {
 #[derive(Default)]
 pub struct ScanState {
     engine: Mutex<Option<OcrEngine>>,
+    /// The same models, told they may only produce digits — see [`Reader`].
+    digits: Mutex<Option<OcrEngine>>,
     last: Mutex<Option<ScanResult>>,
     busy: Mutex<bool>,
     /// Stop flag of the running live loop, if any.
@@ -281,15 +283,63 @@ pub(crate) fn with_engine<T>(
     read(engine.as_ref().expect("just loaded"))
 }
 
+/// Both readers, loaded the first time a scan asks for them.
+pub(crate) fn with_reader<T>(
+    app: &AppHandle,
+    det: &PathBuf,
+    rec: &PathBuf,
+    read: impl FnOnce(Reader) -> Result<T, String>,
+) -> Result<T, String> {
+    let state = app.state::<ScanState>();
+    let mut engine = state.engine.lock().map_err(|_| "the OCR engine is in a bad state")?;
+    if engine.is_none() {
+        *engine = Some(load_engine(det, rec)?);
+    }
+    let mut digits = state.digits.lock().map_err(|_| "the OCR engine is in a bad state")?;
+    if digits.is_none() {
+        *digits = Some(load_digit_engine(det, rec)?);
+    }
+    read(Reader { text: engine.as_ref().expect("just loaded"), digits: digits.as_ref().expect("just loaded") })
+}
+
 pub(crate) fn load_engine(det: &PathBuf, rec: &PathBuf) -> Result<OcrEngine, String> {
+    engine_with(det, rec, None)
+}
+
+/// The characters a signature can be made of.
+///
+/// The game's zero is drawn as a plain ring — no slash, no dot — and at HUD
+/// size the reader calls it the letter O: 16,700 comes back as "16,7OO" and a
+/// signature with no zero in it, like 21,245, is read every time. A reader
+/// that cannot produce a letter cannot make that mistake, and the badge beside
+/// the pin is only ever a number.
+const DIGITS: &str = "0123456789,.";
+
+/// Both readers over one set of models.
+///
+/// The panel around the badge is read as text, where a letter is worth having
+/// — a distance wears "km" and that is how it is known not to be a signature.
+/// The badge itself is read as digits and nothing else.
+pub struct Reader<'a> {
+    pub text: &'a OcrEngine,
+    pub digits: &'a OcrEngine,
+}
+
+fn engine_with(det: &PathBuf, rec: &PathBuf, allowed_chars: Option<String>) -> Result<OcrEngine, String> {
     let detection_model = rten::Model::load_file(det).map_err(|e| format!("detection model: {e}"))?;
     let recognition_model = rten::Model::load_file(rec).map_err(|e| format!("recognition model: {e}"))?;
     OcrEngine::new(OcrEngineParams {
         detection_model: Some(detection_model),
         recognition_model: Some(recognition_model),
+        allowed_chars,
         ..Default::default()
     })
     .map_err(|e| e.to_string())
+}
+
+/// The digits-only reader, for anything that is a number or nothing.
+pub(crate) fn load_digit_engine(det: &PathBuf, rec: &PathBuf) -> Result<OcrEngine, String> {
+    engine_with(det, rec, Some(DIGITS.to_string()))
 }
 
 /// Cut a detected line where the gap is too wide to be a space.
@@ -391,9 +441,23 @@ const PIN_TEMPLATE: [&str; 14] = [
     "############",
     "...######...",
 ];
-/// Corpus (HUD mask): real pins score 0.78–0.89, every other blob of pin
-/// size and aspect ≤ 0.65, a solid square 0.50.
-const PIN_MIN_SCORE: f32 = 0.70;
+/// How much like the pin a blob has to look before its number is worth
+/// reading.
+///
+/// It was 0.70, which was measured on three screenshots of one ship. Over
+/// twenty-five, across a MOLE, a Pisces and a Starrunner, the same pin scores
+/// 0.45 to 0.89 — the HUD draws it differently per ship and the compression
+/// thins it further — and at 0.70 twenty of the twenty-five signatures on
+/// those screens went unread.
+///
+/// The shape was never what tells a badge from a lit speck anyway: the number
+/// beside it is. A speck's strip reads as "KNOWN" or "1-FUEL" or nothing, and
+/// is thrown out for not being a number. So this is a floor that keeps the
+/// reader from being asked about every bright thing on the screen, not proof
+/// of anything.
+const PIN_MIN_SCORE: f32 = 0.45;
+/// How many candidates are read before the frame is given up on.
+const MOST_STRIPS: usize = 6;
 
 /// 1 − mean absolute difference between the blob's amber mask, resampled
 /// to the template grid by area averaging, and the template.
@@ -489,12 +553,18 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
         let (lo, hi) = ((10.0 * k) as usize, (36.0 * k).ceil() as usize);
         // The pin is about as tall as it is wide (22×22, 20×24, 18×22 seen).
         let aspect = bh as f32 / bw as f32;
-        if (lo..=hi).contains(&bw) && (lo..=hi).contains(&bh) && fill > 0.35 && (0.8..=1.5).contains(&aspect) {
+        // Fill was 0.35, and a Starrunner's pin measures 0.34 — a hollower
+        // icon, or a screenshot the compression thinned. What decides whether
+        // a blob is the pin is its shape, a few lines below; this only keeps
+        // the shape test from being asked about every lit speck.
+        if (lo..=hi).contains(&bw) && (lo..=hi).contains(&bh) && fill > 0.25 && (0.8..=1.5).contains(&aspect) {
             let (x, y, w, h) = ((minx * 2) as i32, (miny * 2) as i32, bw as i32, bh as i32);
             let shape = pin_score(cap, x, y, w, h);
-            if shape >= PIN_MIN_SCORE {
-                blobs.push(Blob { x, y, w, h, shape });
-            } else if shape >= PIN_MIN_SCORE - 0.1 {
+            // Every candidate is returned with what it scored; whether that is
+            // good enough to read is the caller's to decide, which is also
+            // what lets a corpus say how close the near misses were.
+            blobs.push(Blob { x, y, w, h, shape });
+            if shape < PIN_MIN_SCORE && shape >= PIN_MIN_SCORE - 0.1 {
                 // In the game window's own coordinates, which is what a
                 // player can point at: inside the framed area the same badge
                 // is at a different pair of numbers on every screen.
@@ -523,7 +593,7 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
     // Nearest the centre first — the pinged contact is what the player looks at.
     let (cx, cy) = (cap.width as i32 / 2, cap.height as i32 / 2);
     blobs.sort_by_key(|b| (b.x + b.w / 2 - cx).pow(2) + (b.y + b.h / 2 - cy).pow(2));
-    blobs.truncate(10);
+    blobs.truncate(24);
     blobs
 }
 
@@ -571,16 +641,31 @@ fn badge_number(text: &str) -> Option<f64> {
     if digits.len() < 3 {
         return None;
     }
-    digits.parse().ok()
+    let value: f64 = digits.parse().ok()?;
+    // A reader told it may only produce digits cannot read the pin beside the
+    // number as a letter any more — it reads it as a digit, and a digit that
+    // fuses to the front of the number makes 15,600 into 715,600 with nothing
+    // to mark it as wrong. No signature in the game is anywhere near that, so
+    // the range is the guard.
+    SIGNATURE_RANGE.contains(&value).then_some(value)
 }
 
+/// What a signature can be. The smallest thing the scanner names is a piece of
+/// salvage at 2,000 and the largest is a cluster of several rich rocks; a
+/// quarter of a million leaves room for any of it and still catches a digit
+/// that was never printed.
+const SIGNATURE_RANGE: std::ops::RangeInclusive<f64> = 500.0..=250_000.0;
+
 /// Find signature badges: OCR the strip right of every icon candidate.
-pub fn find_badges(engine: &OcrEngine, cap: &Captured) -> Vec<Badge> {
+pub fn find_badges(reader: &Reader, cap: &Captured) -> Vec<Badge> {
     let k = cap.full_height as f32 / 1440.0;
     let mut out = Vec::new();
-    for b in find_amber_icons(cap) {
+    // Nearest the middle first, and only so many: reading a strip costs about
+    // ten milliseconds, and a HUD full of lit specks would otherwise turn one
+    // frame into two and a half seconds of reading.
+    for b in find_amber_icons(cap).into_iter().filter(|b| b.shape >= PIN_MIN_SCORE).take(MOST_STRIPS) {
         let Some(crop) = crop_upscaled(cap, b.x + b.w - (4.0 * k) as i32, b.y - (8.0 * k) as i32, (150.0 * k) as i32, b.h + (16.0 * k) as i32, 3) else { continue };
-        let Ok(text) = ocr_text(engine, &crop) else { continue };
+        let Ok(text) = ocr_text(reader.digits, &crop) else { continue };
         if let Some(value) = badge_number(&text) {
             out.push(Badge { x: b.x, y: b.y, w: b.w, h: b.h, shape: b.shape, value, text: text.trim().to_string() });
         }
@@ -589,9 +674,9 @@ pub fn find_badges(engine: &OcrEngine, cap: &Captured) -> Vec<Badge> {
 }
 
 /// Whole analysis of one capture — shared by the app and the harness.
-pub fn analyze(engine: &OcrEngine, cap: &Captured, started: Instant) -> Result<ScanResult, String> {
-    let badges = find_badges(engine, cap);
-    let lines = run_ocr(engine, cap)?;
+pub fn analyze(reader: &Reader, cap: &Captured, started: Instant) -> Result<ScanResult, String> {
+    let badges = find_badges(reader, cap);
+    let lines = run_ocr(reader.text, cap)?;
     let numbers = lines.iter().flat_map(|l| numbers_in(&l.text)).collect();
     let signature = badges.first().map(|b| b.value).or_else(|| signature_in_text(&lines, cap));
     let mass = labelled(&lines, &["MASS"]);
@@ -613,6 +698,11 @@ pub fn analyze(engine: &OcrEngine, cap: &Captured, started: Instant) -> Result<S
 /// Load the OCR engine from a models directory (app or harness).
 pub fn engine_from_dir(dir: &std::path::Path) -> Result<OcrEngine, String> {
     load_engine(&dir.join("text-detection.rten"), &dir.join("text-recognition.rten"))
+}
+
+/// The digits-only reader from the same directory — see [`Reader`].
+pub fn digit_engine_from_dir(dir: &std::path::Path) -> Result<OcrEngine, String> {
+    load_digit_engine(&dir.join("text-detection.rten"), &dir.join("text-recognition.rten"))
 }
 
 fn numbers_in(text: &str) -> Vec<f64> {
@@ -654,7 +744,6 @@ fn numbers_in(text: &str) -> Vec<f64> {
 /// values a signature can take, and the nearest to the middle of the area when
 /// there are two.
 fn signature_in_text(lines: &[OcrLine], cap: &Captured) -> Option<f64> {
-    const PLAUSIBLE: std::ops::RangeInclusive<f64> = 500.0..=250_000.0;
     let middle = (cap.width as i32 / 2, cap.height as i32 / 2);
     let mut found: Vec<(i32, f64)> = lines
         .iter()
@@ -674,9 +763,6 @@ fn signature_in_text(lines: &[OcrLine], cap: &Captured) -> Option<f64> {
             // is worse than one that says nothing, because 1672 is a signature
             // somebody could believe.
             let value = badge_number(&line.text)?;
-            if !PLAUSIBLE.contains(&value) {
-                return None;
-            }
             let (x, y) = (line.x + line.w / 2 - middle.0, line.y + line.h / 2 - middle.1);
             Some((x * x + y * y, value))
         })
@@ -736,14 +822,6 @@ async fn scan_inner(app: &AppHandle) -> Result<ScanResult, String> {
     let app2 = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let started = Instant::now();
-        let state = app2.state::<ScanState>();
-        let mut engine = state.engine.lock().unwrap();
-        if engine.is_none() {
-            status(&app2, "ocr", "loading OCR models", None);
-            *engine = Some(load_engine(&det, &rec)?);
-        }
-        let engine = engine.as_ref().unwrap();
-
         // The same area the live loop watches, and for the same reasons: the
         // badge is printed in one place — a little above the middle of the
         // window — and reading the whole window instead means every lit thing
@@ -753,7 +831,7 @@ async fn scan_inner(app: &AppHandle) -> Result<ScanResult, String> {
         status(&app2, "capturing", "capturing the signature area", None);
         let cap = capture_region(&app2, region)?;
         status(&app2, "ocr", format!("reading {}×{}", cap.width, cap.height), None);
-        analyze(engine, &cap, started)
+        with_reader(&app2, &det, &rec, |reader| analyze(&reader, &cap, started))
     })
     .await
     .map_err(|e| e.to_string())?
@@ -891,13 +969,23 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
                 }
             }
             let engine = engine.as_ref().unwrap();
-            let badges = find_badges(engine, &cap);
+            // The badge's own number is read by the digits reader, which is
+            // loaded beside the first one and kept for as long as it is.
+            let mut digits = state.digits.lock().unwrap();
+            if digits.is_none() {
+                match models_dir(&app).and_then(|dir| digit_engine_from_dir(&dir)) {
+                    Ok(e) => *digits = Some(e),
+                    Err(e) => log::warn!("digits-only reader unavailable, reading badges as text: {e}"),
+                }
+            }
+            let reader = Reader { text: engine, digits: digits.as_ref().unwrap_or(engine) };
+            let badges = find_badges(&reader, &cap);
             // Only when the icon was not found: a read of the area costs a
             // few hundred milliseconds, against two for the pixel scan, and
             // there is nothing to gain by it when the badge is already in hand.
             let without_icon = badges
                 .is_empty()
-                .then(|| run_ocr(engine, &cap).ok().and_then(|lines| signature_in_text(&lines, &cap)))
+                .then(|| run_ocr(reader.text, &cap).ok().and_then(|lines| signature_in_text(&lines, &cap)))
                 .flatten();
             let signature = badges.first().map(|b| b.value).or(without_icon);
             LiveReading {
@@ -1057,6 +1145,70 @@ mod tests {
         assert_eq!(signature_in_text(&lines, &cap), None);
     }
 
+    /// Every scan-mode screenshot, scored against the value in its own name.
+    ///
+    ///     4.10.0-crusader_starrunner-scan_mode-6800-1.jpg      → 6800
+    ///     4.10.0-crusader_starrunner-scan_mode-4612_11490_4193-3.jpg → three
+    ///     4.10.0-argo_mole-scan_mode--none-2.png               → nothing to find
+    ///
+    ///     cargo test --release --lib scan_corpus -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn scan_corpus() {
+        let models = dirs::data_dir().unwrap().join("io.github.ulrichdahl.starbuddy").join("ocr");
+        let text = engine_from_dir(&models).unwrap();
+        let digits = digit_engine_from_dir(&models).unwrap();
+        let reader = Reader { text: &text, digits: &digits };
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../screenshots");
+        let mut files: Vec<String> = std::fs::read_dir(&root)
+            .unwrap()
+            .filter_map(|e| e.ok().map(|e| e.file_name().to_string_lossy().into_owned()))
+            .filter(|n| n.contains("scan_mode"))
+            .collect();
+        files.sort();
+
+        let (mut right, mut missed, mut wrong) = (0, 0, 0);
+        for file in &files {
+            // The name says what is in the picture: "-6800-1", "-none-2",
+            // or several joined by underscores.
+            let stem = file.rsplit_once('.').map(|(s, _)| s).unwrap_or(file);
+            let part = stem.rsplit("scan_mode-").next().unwrap_or("");
+            let wanted: Vec<f64> = part
+                .trim_start_matches('-')
+                .split(['-', '_'])
+                .filter_map(|piece| piece.parse::<f64>().ok())
+                .filter(|v| *v >= 500.0)
+                .collect();
+
+            let img = image::open(root.join(file)).unwrap().into_rgb8();
+            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.clone(), full_height: img.height(), origin: (0, 0) };
+            // Every one of these is the game's own window — a 49-inch
+            // ultrawide is one screen — so all of them are framed the way the
+            // client frames what it reads.
+            let framed = crop_region(cap, ScanRegion::default()).unwrap();
+            let started = Instant::now();
+            let found: Vec<f64> = find_badges(&reader, &framed).iter().map(|b| b.value).collect();
+
+            let mut hits = 0;
+            for want in &wanted {
+                if found.contains(want) {
+                    hits += 1;
+                } else {
+                    missed += 1;
+                }
+            }
+            let extra = found.iter().filter(|v| !wanted.contains(v)).count();
+            wrong += extra;
+            right += hits;
+            let verdict = if hits == wanted.len() && extra == 0 { "ok  " } else { "MISS" };
+            println!(
+                "{verdict} {file:52} want {wanted:?} found {found:?} ({} ms)",
+                started.elapsed().as_millis()
+            );
+        }
+        println!("\n{right} read, {missed} missed, {wrong} that were never there");
+    }
+
     /// Real captures from screenshots/ — needs the OCR models, so it is
     /// opt-in:  cargo test --release --lib scan -- --ignored
     #[test]
@@ -1067,10 +1219,11 @@ mod tests {
             ("4.10.0-argo_mole-scanning_signature-b.jpg", 15600.0),
             // Cyan HUD, whole 5120×1440 desktop with the game centred.
             ("4.10.0-anvil-f7c-m-scanning-signature.png", 10200.0),
-            ("07-09-26_17_51_44.png", 7170.0),
         ];
         let models = dirs::data_dir().unwrap().join("io.github.ulrichdahl.starbuddy").join("ocr");
-        let engine = engine_from_dir(&models).expect("OCR models present");
+        let text = engine_from_dir(&models).expect("OCR models present");
+        let digits = digit_engine_from_dir(&models).expect("OCR models present");
+        let engine = Reader { text: &text, digits: &digits };
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../screenshots");
         for (file, want) in expected {
             let img = image::open(root.join(file)).unwrap().into_rgb8();
@@ -1091,13 +1244,17 @@ mod tests {
 
     #[test]
     fn pin_template_scoring() {
-        // The template itself scores 1; a solid block or nothing at all
-        // sits at 0.5, well under the acceptance threshold.
+        // The template itself scores 1, and a solid block half that. The
+        // floor sits below a solid block on purpose: the same pin scores
+        // anywhere from 0.45 to 0.89 depending on the ship whose HUD drew it,
+        // so a score high enough to exclude a block would exclude a Pisces.
+        // What tells a badge from a block is that a badge has a number beside
+        // it — see PIN_MIN_SCORE.
         let (w, h) = (PIN_TEMPLATE[0].len(), PIN_TEMPLATE.len());
         let exact: Vec<bool> = PIN_TEMPLATE.iter().flat_map(|r| r.bytes().map(|c| c == b'#')).collect();
         assert!((pin_score_mask(&exact, w, h) - 1.0).abs() < 1e-6);
         assert!((pin_score_mask(&vec![true; 20 * 20], 20, 20) - 0.5).abs() < 0.01);
-        assert!(pin_score_mask(&vec![false; 20 * 20], 20, 20) < PIN_MIN_SCORE);
+        assert!(pin_score_mask(&exact, w, h) > pin_score_mask(&vec![true; 20 * 20], 20, 20));
         // Resampling keeps the score: the template drawn at 2× still matches.
         let big: Vec<bool> = (0..h * 2).flat_map(|y| (0..w * 2).map(move |x| PIN_TEMPLATE[y / 2].as_bytes()[x / 2] == b'#')).collect();
         assert!(pin_score_mask(&big, w * 2, h * 2) > 0.99);
@@ -1112,8 +1269,12 @@ mod tests {
         assert_eq!(badge_number("99%"), None);
         assert_eq!(badge_number("7.4km"), None);
         assert_eq!(badge_number("11.8 C"), None);
-        assert_eq!(badge_number("1,234,500"), Some(1234500.0));
+        assert_eq!(badge_number("104,500"), Some(104500.0), "two groups");
         assert_eq!(badge_number("960"), Some(960.0));
+        // A digit the reader made out of the pin beside the number, fused to
+        // the front of it. No signature is a million, so the range catches it.
+        assert_eq!(badge_number("715,600"), None);
+        assert_eq!(badge_number("1,234,500"), None);
         assert!(is_hud(220, 120, 30)); // amber pin
         assert!(is_hud(64, 202, 202)); // cyan pin (F7C-M HUD)
         assert!(!is_hud(200, 200, 200)); // grey
