@@ -26,6 +26,10 @@ use std::sync::{Mutex, OnceLock};
 #[derive(Default)]
 struct Feed {
     frame: Option<Captured>,
+    /// When it arrived. A stream that quietly stops sending looks exactly like
+    /// a game with nothing on screen — the same frame answers every time — and
+    /// the age is the only thing that tells them apart.
+    at: Option<std::time::Instant>,
     live: bool,
     error: Option<String>,
 }
@@ -39,6 +43,7 @@ fn feed() -> &'static Mutex<Feed> {
 pub fn set_frame(frame: Captured) {
     if let Ok(mut feed) = feed().lock() {
         feed.frame = Some(frame);
+        feed.at = Some(std::time::Instant::now());
         feed.live = true;
         feed.error = None;
     }
@@ -48,6 +53,7 @@ pub fn set_frame(frame: Captured) {
 pub fn set_stopped(error: Option<String>) {
     if let Ok(mut feed) = feed().lock() {
         feed.frame = None;
+        feed.at = None;
         feed.live = false;
         feed.error = error;
     }
@@ -61,6 +67,11 @@ pub fn frame() -> Option<Captured> {
 /// Whether frames are arriving.
 pub fn streaming() -> bool {
     feed().lock().map(|f| f.live).unwrap_or(false)
+}
+
+/// How long ago the newest frame arrived.
+pub fn frame_age() -> Option<std::time::Duration> {
+    feed().lock().ok()?.at.map(|at| at.elapsed())
 }
 
 /// Why the stream is not running, when it is not.

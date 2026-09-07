@@ -424,6 +424,7 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
             mask[y * w + x] = is_hud(cap.rgb[i], cap.rgb[i + 1], cap.rgb[i + 2]);
         }
     }
+    let lit = mask.iter().filter(|m| **m).count();
     let mut seen = vec![false; w * h];
     let mut blobs = Vec::new();
     let mut stack = Vec::new();
@@ -476,6 +477,20 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
                 );
             }
         }
+    }
+    if blobs.is_empty() {
+        // Two different faults wear the same face here. An area with nothing
+        // lit in it is a badge that is not on screen — or an area framed over
+        // the wrong part of the window. An area full of HUD with no icon found
+        // in it is the detector's problem, and a different search entirely.
+        log::debug!(
+            "no badge in the {}×{} area at {},{}: {lit} of {} sampled pixels lit",
+            cap.width,
+            cap.height,
+            cap.origin.0,
+            cap.origin.1,
+            w * h,
+        );
     }
     // Nearest the centre first — the pinged contact is what the player looks at.
     let (cx, cy) = (cap.width as i32 / 2, cap.height as i32 / 2);
@@ -821,8 +836,9 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
         }
         if last_report.elapsed() >= Duration::from_secs(60) {
             log::info!(
-                "live scan: {reads} reads, {found} with a signature, {failed} captures failed, {} ms each on average",
+                "live scan: {reads} reads, {found} with a signature, {failed} captures failed, {} ms each on average, newest frame {} ms old",
                 spent.as_millis() as u64 / reads.max(1),
+                crate::reading::frame_age().map(|a| a.as_millis() as u64).unwrap_or(0),
             );
             (reads, found, failed, spent) = (0, 0, 0, Duration::ZERO);
             last_report = Instant::now();
@@ -904,6 +920,7 @@ mod tests {
             ("4.10.0-argo_mole-scanning_signature-b.jpg", 15600.0),
             // Cyan HUD, whole 5120×1440 desktop with the game centred.
             ("4.10.0-anvil-f7c-m-scanning-signature.png", 10200.0),
+            ("07-09-26_17_51_44.png", 7170.0),
         ];
         let models = dirs::data_dir().unwrap().join("io.github.ulrichdahl.starbuddy").join("ocr");
         let engine = engine_from_dir(&models).expect("OCR models present");
@@ -911,9 +928,17 @@ mod tests {
         for (file, want) in expected {
             let img = image::open(root.join(file)).unwrap().into_rgb8();
             let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.into(), full_height: img.height(), origin: (0, 0) };
-            let result = analyze(&engine, &cap, Instant::now()).unwrap();
+            let result = analyze(&engine, &cap.clone(), Instant::now()).unwrap();
             assert_eq!(result.signature, Some(want), "{file}");
             assert_eq!(result.badges.len(), 1, "{file}: exactly one badge");
+
+            // And again through the crop the client actually reads, which is
+            // the one place a badge has to survive: whole-frame reads are a
+            // debugging convenience, the framed area is the product.
+            let framed = crop_region(cap, ScanRegion::default()).unwrap();
+            let result = analyze(&engine, &framed, Instant::now()).unwrap();
+            println!("{file}: framed {}×{} -> {:?}", framed.width, framed.height, result.signature);
+            assert_eq!(result.signature, Some(want), "{file}, framed area");
         }
     }
 
