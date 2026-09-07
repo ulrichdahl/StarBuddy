@@ -1,10 +1,11 @@
 //! Scan v1 — capture the game screen, find the signature badge, read it.
 //!
 //! In scan mode the game shows a pinged contact's radar signature as a
-//! small amber badge (pin icon + number such as "2,000" or "15,600") next
+//! small badge (pin icon + number such as "2,000" or "15,600") next
 //! to the contact. Full-frame OCR misses that small text; a 3× upscaled
 //! crop next to the icon reads it reliably (see screenshots/ and the
-//! ocr_file example). So: find icon-sized amber blobs, OCR the strip to
+//! ocr_file example). So: find icon-sized blobs in the ship's own HUD
+//! colour — amber on one MOLE, cyan on an F7C-M — OCR the strip to
 //! the right of each, keep the ones that read as a number, and prefer the
 //! one nearest the screen centre. The full-frame readout is kept as a
 //! debug aid. Nothing leaves the machine: the OCR models are downloaded
@@ -172,6 +173,11 @@ pub struct Captured {
     /// Height of the whole game frame this came from (== height unless a
     /// region crop); scales the badge-icon size window.
     pub full_height: u32,
+    /// Where this sits in that frame (0,0 unless a region crop). Everything
+    /// found inside a crop is found at crop coordinates, and a position in a
+    /// crop is not a position anybody can point at on their screen — so the
+    /// origin travels with it and the two can be added back together.
+    pub origin: (u32, u32),
 }
 
 /// The frame a purpose is framed against: the game's window, always.
@@ -213,7 +219,14 @@ pub(crate) fn crop_region(full: Captured, region: ScanRegion) -> Result<Captured
     let (x, y, w, h) = region_px(region, full.width, full.height);
     let img = image::RgbImage::from_raw(full.width, full.height, full.rgb).ok_or("bad frame")?;
     let crop = image::imageops::crop_imm(&img, x as u32, y as u32, w as u32, h as u32).to_image();
-    Ok(Captured { rgb: crop.into_raw(), width: w as u32, height: h as u32, source: full.source, full_height: full.height })
+    Ok(Captured {
+        rgb: crop.into_raw(),
+        width: w as u32,
+        height: h as u32,
+        source: full.source,
+        full_height: full.height,
+        origin: (x as u32, y as u32),
+    })
 }
 
 /// Read with the engine the app already has, loading it once if it has none.
@@ -453,7 +466,13 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
             if shape >= PIN_MIN_SCORE {
                 blobs.push(Blob { x, y, w, h, shape });
             } else if shape >= PIN_MIN_SCORE - 0.1 {
-                log::debug!("amber blob at {x},{y} {w}×{h} rejected: pin score {shape:.2}");
+                // In frame coordinates, which is where a player can point at
+                // it: inside the framed area these numbers name nothing.
+                log::debug!(
+                    "HUD blob at {},{} {w}×{h} rejected: pin score {shape:.2}",
+                    x + cap.origin.0 as i32,
+                    y + cap.origin.1 as i32,
+                );
             }
         }
     }
@@ -884,7 +903,7 @@ mod tests {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../screenshots");
         for (file, want) in expected {
             let img = image::open(root.join(file)).unwrap().into_rgb8();
-            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.into(), full_height: img.height() };
+            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.into(), full_height: img.height(), origin: (0, 0) };
             let result = analyze(&engine, &cap, Instant::now()).unwrap();
             assert_eq!(result.signature, Some(want), "{file}");
             assert_eq!(result.badges.len(), 1, "{file}: exactly one badge");

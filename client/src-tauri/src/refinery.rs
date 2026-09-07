@@ -439,6 +439,7 @@ fn crop_rows(cap: &Captured, top: u32, height: u32) -> Captured {
         height,
         source: cap.source.clone(),
         full_height: cap.full_height,
+        origin: (cap.origin.0, cap.origin.1 + top),
     }
 }
 
@@ -2616,6 +2617,7 @@ mod corpus {
                 height: crop.height(),
                 source: name.into(),
                 full_height: crop.height(),
+                origin: (0, 0),
             };
             let lines = read_bands_with(&engine, &cap, &|_, _| {}).unwrap();
             let order = parse(&lines);

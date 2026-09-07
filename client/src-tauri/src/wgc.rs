@@ -105,6 +105,7 @@ impl GraphicsCaptureApiHandler for Reader {
             height,
             source: "window (Windows capture)".into(),
             full_height: height,
+            origin: (0, 0),
         });
         Ok(())
     }

@@ -250,7 +250,7 @@ fn to_capture(
             rgb.extend_from_slice(&[pixel[r], pixel[g], pixel[b]]);
         }
     }
-    Some(Captured { rgb, width, height, source: "window (portal)".into(), full_height: height })
+    Some(Captured { rgb, width, height, source: "window (portal)".into(), full_height: height, origin: (0, 0) })
 }
 
 /// The running stream, if screen reading is on.
