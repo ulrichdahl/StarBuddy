@@ -150,7 +150,7 @@ fn ask_for_borderless() -> String {
     let _ = unsafe { RoInitialize(RO_INIT_MULTITHREADED) };
 
     let asked = GraphicsCaptureAccess::RequestAccessAsync(GraphicsCaptureAccessKind::Borderless)
-        .and_then(|request| request.get());
+        .and_then(|request| windows_future::Async::join(&request));
     match asked {
         Ok(status) => match status {
             AppCapabilityAccessStatus::Allowed => "allowed".into(),
