@@ -149,8 +149,18 @@ fn ask_for_borderless() -> String {
     // come back as an error that means "there is one".
     let _ = unsafe { RoInitialize(RO_INIT_MULTITHREADED) };
 
-    let asked = GraphicsCaptureAccess::RequestAccessAsync(GraphicsCaptureAccessKind::Borderless)
-        .and_then(|request| windows_future::Async::join(&request));
+    // Waited for by hand: the trait that does the waiting is private in this
+    // version of the bindings, and the permission is asked for once, at the
+    // start of a capture, so a short poll costs nothing.
+    let asked = GraphicsCaptureAccess::RequestAccessAsync(GraphicsCaptureAccessKind::Borderless).and_then(|request| {
+        for _ in 0..200 {
+            if request.Status()? != windows_future::AsyncStatus::Started {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        request.GetResults()
+    });
     match asked {
         Ok(status) => match status {
             AppCapabilityAccessStatus::Allowed => "allowed".into(),
