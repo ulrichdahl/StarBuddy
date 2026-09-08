@@ -44,7 +44,7 @@ function remaining(order: RefineryOrder, now: number): number | null {
 
 export function RefineryPage() {
   const { t, i18n } = useTranslation()
-  type SortField = 'placed_at' | 'station' | 'method' | 'completed_at' | 'eta' | 'source'
+  type SortField = 'placed_at' | 'station' | 'completed_at' | 'eta' | 'source'
   const [sort, setSort] = useState<SortField>('placed_at')
   const [openId, setOpenId] = useState<RefineryOrderTarget>(null)
   // A minute is enough for a list; the dialog ticks every second.
@@ -54,7 +54,7 @@ export function RefineryPage() {
     if (sort === field) setDir(dir === 'asc' ? 'desc' : 'asc')
     else {
       setSort(field)
-      setDir(field === 'station' || field === 'method' || field === 'source' ? 'asc' : 'desc')
+      setDir(field === 'station' || field === 'source' ? 'asc' : 'desc')
     }
   }
   const header = (label: string, field: SortField) => (
@@ -105,7 +105,10 @@ export function RefineryPage() {
               <TableRow>
                 {header(t('refinery.columns.station'), 'station')}
                 <TableCell>{t('refinery.columns.materials')}</TableCell>
-                {header(t('refinery.columns.method'), 'method')}
+                {/* Not sortable: where the materials are is the refinery
+                    until they are collected, and the sort is one column or
+                    the other, never the answer. */}
+                <TableCell>{t('refinery.columns.location')}</TableCell>
                 <TableCell>{t('refinery.columns.status')}</TableCell>
                 <TableCell>{t('refinery.columns.remaining')}</TableCell>
                 {header(t('refinery.columns.eta'), 'eta')}
@@ -128,7 +131,11 @@ export function RefineryPage() {
                   >
                     <TableCell>{order.location?.name ?? order.station}</TableCell>
                     <TableCell>{materialSummary(order)}</TableCell>
-                    <TableCell>{order.method ?? t('common.none')}</TableCell>
+                    {/* Where the haul is: the refinery while it is refining,
+                        wherever it was carried once collected. */}
+                    <TableCell>
+                      {order.collected_location?.name ?? order.location?.name ?? order.station}
+                    </TableCell>
                     <TableCell>
                       <Chip size="small" label={t(labelKey)} color={color} variant="outlined" />
                     </TableCell>
