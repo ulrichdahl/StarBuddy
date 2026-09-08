@@ -37,6 +37,10 @@ import { LanguageSwitcher } from './LanguageSwitcher'
 import { StatusAlertBanner } from './StatusAlertBanner'
 
 const DRAWER_WIDTH = 232
+/// Wide enough for the icon and its focus ring, and nothing else. A portrait
+/// 1080-wide screen is a normal second monitor, and 232px of mostly-empty
+/// navigation is a fifth of it.
+const RAIL_WIDTH = 60
 
 // Labels are translation keys under nav.*
 const NAV_ITEMS = [
@@ -64,6 +68,19 @@ export function AppShell({ me }: AppShellProps) {
   const { t } = useTranslation()
   const theme = useTheme()
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'))
+  // Below 1200 the navigation shrinks to icons on its own — 1080 wide is a
+  // second screen stood on its end, and the width is worth more to the tables.
+  const narrow = useMediaQuery(theme.breakpoints.down('lg'))
+  // null follows the screen; true or false is the player having said otherwise.
+  const [railChoice, setRailChoice] = useState<boolean | null>(null)
+  // Crossing the breakpoint hands the decision back to the screen, so a choice
+  // made on one monitor does not follow the window to another.
+  const [lastNarrow, setLastNarrow] = useState(narrow)
+  if (lastNarrow !== narrow) {
+    setLastNarrow(narrow)
+    setRailChoice(null)
+  }
+  const rail = railChoice ?? narrow
   const [mobileOpen, setMobileOpen] = useState(false)
   const [itemQuery, setItemQuery] = useState('')
   const { pathname } = useLocation()
@@ -77,32 +94,43 @@ export function AppShell({ me }: AppShellProps) {
     navigate({ pathname: '/craft', search: `?${new URLSearchParams({ search: term, all: '1' })}` })
   }
 
-  const drawerContent = (
+  // `mini` draws the same navigation as icons alone. The overlay drawer on a
+  // phone is never mini: it is opened on purpose and has the room.
+  const drawerContent = (mini: boolean) => (
     <Box role="navigation" aria-label={t('nav.mainNavigation')}>
-      <Toolbar>
-        <BrandMark />
-      </Toolbar>
+      <Toolbar />
       <List>
         {NAV_ITEMS.map((item) => (
           <ListItem key={item.to} disablePadding>
-            <ListItemButton
-              component={NavLink}
-              to={item.to}
-              selected={pathname === item.to}
-              onClick={() => setMobileOpen(false)}
-              sx={{
-                '&.Mui-selected': {
-                  borderLeft: 2,
-                  borderColor: 'primary.main',
-                  bgcolor: 'rgba(91, 200, 219, 0.08)',
-                },
-              }}
-            >
-              <ListItemIcon sx={{ minWidth: 40, color: pathname === item.to ? 'primary.main' : 'inherit' }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={t(`nav.${item.key}`)} />
-            </ListItemButton>
+            <Tooltip title={mini ? t(`nav.${item.key}`) : ''} placement="right">
+              <ListItemButton
+                component={NavLink}
+                to={item.to}
+                selected={pathname === item.to}
+                onClick={() => setMobileOpen(false)}
+                sx={{
+                  justifyContent: mini ? 'center' : 'flex-start',
+                  px: mini ? 1 : 2,
+                  '&.Mui-selected': {
+                    borderLeft: 2,
+                    borderColor: 'primary.main',
+                    bgcolor: 'rgba(91, 200, 219, 0.08)',
+                  },
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    minWidth: 0,
+                    mr: mini ? 0 : 2,
+                    justifyContent: 'center',
+                    color: pathname === item.to ? 'primary.main' : 'inherit',
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                {!mini && <ListItemText primary={t(`nav.${item.key}`)} />}
+              </ListItemButton>
+            </Tooltip>
           </ListItem>
         ))}
       </List>
@@ -113,11 +141,15 @@ export function AppShell({ me }: AppShellProps) {
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
         <Toolbar sx={{ gap: 1 }}>
-          {!isDesktop && (
-            <IconButton edge="start" aria-label={t('nav.openNavigation')} onClick={() => setMobileOpen(true)}>
-              <MenuIcon />
-            </IconButton>
-          )}
+          {/* One button, two jobs: it opens the navigation on a phone and
+              folds it to icons on anything wider. */}
+          <IconButton
+            edge="start"
+            aria-label={isDesktop ? t('nav.toggleNavigation') : t('nav.openNavigation')}
+            onClick={() => (isDesktop ? setRailChoice(!rail) : setMobileOpen(true))}
+          >
+            <MenuIcon />
+          </IconButton>
           <Box component="h1" sx={{ m: 0, display: 'flex', alignItems: 'center' }}>
             <BrandMark />
           </Box>
@@ -165,12 +197,18 @@ export function AppShell({ me }: AppShellProps) {
         <Drawer
           variant="permanent"
           sx={{
-            width: DRAWER_WIDTH,
+            width: rail ? RAIL_WIDTH : DRAWER_WIDTH,
             flexShrink: 0,
-            '& .MuiDrawer-paper': { width: DRAWER_WIDTH, boxSizing: 'border-box' },
+            transition: theme.transitions.create('width', { duration: theme.transitions.duration.shorter }),
+            '& .MuiDrawer-paper': {
+              width: rail ? RAIL_WIDTH : DRAWER_WIDTH,
+              boxSizing: 'border-box',
+              overflowX: 'hidden',
+              transition: theme.transitions.create('width', { duration: theme.transitions.duration.shorter }),
+            },
           }}
         >
-          {drawerContent}
+          {drawerContent(rail)}
         </Drawer>
       ) : (
         <Drawer
@@ -180,7 +218,7 @@ export function AppShell({ me }: AppShellProps) {
           ModalProps={{ keepMounted: true }}
           sx={{ '& .MuiDrawer-paper': { width: DRAWER_WIDTH } }}
         >
-          {drawerContent}
+          {drawerContent(false)}
         </Drawer>
       )}
 

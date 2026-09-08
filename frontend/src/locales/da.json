@@ -21,6 +21,7 @@
     "import": "Import",
     "admin": "Admin",
     "openNavigation": "Åbn navigation",
+    "toggleNavigation": "Vis eller skjul menuteksten",
     "mainNavigation": "Hovednavigation",
     "findItem": "Find en genstand",
     "findItemPlaceholder": "Find en genstand…",
@@ -360,7 +361,8 @@
     "bulk": {
       "open": "Tilføj flere",
       "title": "Tilføj flere genstande",
-      "help": "Én linje pr. stak. Lokation gælder hele holdet; synlighed er pr. linje, og en ny linje arver den fra linjen ovenfor. Kvalitet er valgfri — til craftet eller købt udstyr."
+      "help": "Én linje pr. stak. Lokation gælder hele holdet; synlighed er pr. linje, og en ny linje arver den fra linjen ovenfor. Kvalitet er valgfri — til craftet eller købt udstyr.",
+      "add": "Tilføj genstande"
     }
   },
   "blueprints": {
@@ -423,7 +425,8 @@
       "eta": "ETA",
       "source": "Kilde",
       "materials": "Materialer",
-      "remaining": "Tid tilbage"
+      "remaining": "Tid tilbage",
+      "location": "Lokation"
     },
     "status": {
       "completed": "Færdig",
@@ -561,7 +564,8 @@
       "open": "Tilføj flere",
       "title": "Tilføj flere materialer",
       "help": "Én linje pr. stak. Lokation gælder hele holdet; synlighed er pr. linje, og en ny linje arver den fra linjen ovenfor.",
-      "noMatch": "Intet materiale med det navn"
+      "noMatch": "Intet materiale med det navn",
+      "add": "Tilføj materialer"
     },
     "refining": "(raffinerer)",
     "refiningAt": "Raffineres på {{station}} — hent den på Rafinaderi-siden"
@@ -569,7 +573,8 @@
   "locations": {
     "label": "Lokation",
     "groupPersonal": "Personlig",
-    "groupUnknown": "Ukendt system"
+    "groupUnknown": "Ukendt system",
+    "placeLabel": "System eller lokation"
   },
   "status": {
     "region": "Star Citizen-servicestatus",

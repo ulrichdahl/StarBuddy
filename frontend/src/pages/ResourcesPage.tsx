@@ -32,6 +32,7 @@ import DiamondIcon from '@mui/icons-material/Diamond'
 import EditIcon from '@mui/icons-material/Edit'
 import GroupsIcon from '@mui/icons-material/Groups'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
+import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd'
 import ViewListIcon from '@mui/icons-material/ViewList'
 import { qualityColor, rarityColor as resourceRarityColor } from '../lib/rarity'
 import { api, apiErrorDetail } from '../lib/api'
@@ -40,12 +41,11 @@ import { formatResourceQuantity } from '../lib/quantity'
 import { usePaginatedList } from '../lib/usePaginatedList'
 import { PageHeader } from '../components/PageHeader'
 import { ListPager } from '../components/ListPager'
-import { ResourceEntryForm } from '../components/ResourceEntryForm'
 import { MaterialGridDialog } from '../components/MaterialGridDialog'
 import { LocationSelect } from '../components/LocationSelect'
+import { PlaceSelect, type Place } from '../components/PlaceSelect'
 import { VisibilitySelect } from '../components/VisibilitySelect'
 import { OrgMatrixTable } from '../components/OrgMatrixTable'
-import { useSystems } from '../lib/locations'
 import { useMe } from '../lib/auth'
 
 /** Desaturated WoW ladder, shared by both rarity axes. */
@@ -171,10 +171,8 @@ export function ResourcesPage() {
   const [search, setSearch] = useState('')
   const [qualityMin, setQualityMin] = useState('')
   const [qualityMax, setQualityMax] = useState('')
-  const [filterSystem, setFilterSystem] = useState('')
-  const [filterLocation, setFilterLocation] = useState<Location | null>(null)
+  const [place, setPlace] = useState<Place | null>(null)
   const [filterVisibility, setFilterVisibility] = useState('')
-  const systems = useSystems()
   const { me } = useMe()
   // Org mates' org-visible stacks are listed too; only your own can be edited.
   const isMine = (stack: ResourceStack) => me?.id === stack.user_id
@@ -187,8 +185,8 @@ export function ResourcesPage() {
       search: search || undefined,
       quality_min: qualityMin || undefined,
       quality_max: qualityMax || undefined,
-      system: filterSystem || undefined,
-      location_id: filterLocation?.id,
+      system: place?.kind === 'system' ? place.system : undefined,
+      location_id: place?.kind === 'location' ? place.location.id : undefined,
       visibility: filterVisibility || undefined,
       sort,
       dir,
@@ -208,8 +206,8 @@ export function ResourcesPage() {
     search: search || undefined,
     quality_min: qualityMin || undefined,
     quality_max: qualityMax || undefined,
-    system: filterSystem || undefined,
-    location_id: filterLocation?.id,
+    system: place?.kind === 'system' ? place.system : undefined,
+    location_id: place?.kind === 'location' ? place.location.id : undefined,
     sort: orgSort,
     dir: orgDir,
   }, { enabled: view === 'org' })
@@ -250,13 +248,24 @@ export function ResourcesPage() {
           </ToggleButtonGroup>
         }
       />
-      <Paper sx={{ p: 1.5, mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+      {/* One row from tablet up: the fields give up width to each other
+          rather than pushing the button onto a line of its own. */}
+      <Paper
+        sx={{
+          p: 1.5,
+          mb: 2,
+          display: 'flex',
+          flexWrap: { xs: 'wrap', md: 'nowrap' },
+          gap: 1.5,
+          alignItems: 'center',
+        }}
+      >
         <TextField
           size="small"
           label={t('materials.filters.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          sx={{ minWidth: 180 }}
+          sx={{ flex: '2 1 140px', minWidth: 110 }}
         />
         <TextField
           size="small"
@@ -264,7 +273,7 @@ export function ResourcesPage() {
           type="number"
           value={qualityMin}
           onChange={(e) => setQualityMin(e.target.value)}
-          sx={{ width: 110 }}
+          sx={{ flex: '0 1 110px', minWidth: 84 }}
           slotProps={{ htmlInput: { min: 0, max: 1000 } }}
         />
         <TextField
@@ -273,30 +282,14 @@ export function ResourcesPage() {
           type="number"
           value={qualityMax}
           onChange={(e) => setQualityMax(e.target.value)}
-          sx={{ width: 110 }}
+          sx={{ flex: '0 1 110px', minWidth: 84 }}
           slotProps={{ htmlInput: { min: 0, max: 1000 } }}
         />
-        <TextField
+        <PlaceSelect
           size="small"
-          select
-          label={t('materials.fields.system')}
-          value={filterSystem}
-          onChange={(e) => setFilterSystem(e.target.value)}
-          sx={{ width: 150 }}
-        >
-          <MenuItem value="">{t('materials.filters.all')}</MenuItem>
-          {systems.map((s) => (
-            <MenuItem key={s} value={s}>
-              {s}
-            </MenuItem>
-          ))}
-        </TextField>
-        <LocationSelect
-          size="small"
-          value={filterLocation}
-          onChange={setFilterLocation}
-          label={t('materials.fields.location')}
-          sx={{ minWidth: 220 }}
+          value={place}
+          onChange={setPlace}
+          sx={{ flex: '3 1 200px', minWidth: 150 }}
         />
         {view === 'stacks' && (
           <TextField
@@ -305,13 +298,21 @@ export function ResourcesPage() {
             label={t('materials.fields.visibility')}
             value={filterVisibility}
             onChange={(e) => setFilterVisibility(e.target.value)}
-            sx={{ width: 130 }}
+            sx={{ flex: '0 1 130px', minWidth: 104 }}
           >
             <MenuItem value="">{t('materials.filters.all')}</MenuItem>
             <MenuItem value="private">{t('materials.visibility.private')}</MenuItem>
             <MenuItem value="org">{t('materials.visibility.org')}</MenuItem>
           </TextField>
         )}
+        <Button
+          variant="contained"
+          startIcon={<PlaylistAddIcon />}
+          onClick={() => setBulkOpen(true)}
+          sx={{ ml: 'auto', flexShrink: 0 }}
+        >
+          {t('materials.bulk.add')}
+        </Button>
       </Paper>
       {view === 'org' ? (
         <Paper>
@@ -355,113 +356,103 @@ export function ResourcesPage() {
           <ListPager total={org.total} page={org.page} rowsPerPage={org.rowsPerPage} onPageChange={org.setPage} onRowsPerPageChange={org.setRowsPerPage} />
         </Paper>
       ) : (
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 3,
-          gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 340px' },
-          alignItems: 'start',
-        }}
-      >
-        <Paper>
-          {isLoading && <LinearProgress />}
-          {isError && <Alert severity="error">{t('materials.loadError')}</Alert>}
-          <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table size="small" aria-label={t('materials.tableLabel')}>
-              <TableHead>
-                <TableRow>
-                  {header(t('materials.columns.material'), 'resource')}
-                  <TableCell align="center" sx={{ width: 40 }} aria-label={t('materials.columns.category')} />
-                  {header(t('materials.fields.quality'), 'quality', 'right')}
-                  {header(t('materials.fields.quantity'), 'quantity', 'right')}
-                  {header(t('materials.fields.system'), 'system')}
-                  {header(t('materials.fields.location'), 'location')}
-                  {header(t('materials.fields.visibility'), 'visibility')}
-                  <TableCell sx={{ width: 40 }} />
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {stacks.map((stack) => (
-                  <TableRow
-                    key={stack.id}
-                    hover
-                    onDoubleClick={() => isMine(stack) && setEditing(stack)}
-                    sx={{
-                      '& td:first-of-type': {
-                        borderLeft: `4px solid ${resourceRarityColor(stack.resource_type.rarity)}`,
-                      },
-                    }}
-                  >
-                    <TableCell>
-                      {stack.resource_type.name}
-                      {stack.refining && (
-                        // Owned, but the refinery still has it. Marked rather
-                        // than hidden: it counts towards what can be crafted,
-                        // it just is not in hand yet.
-                        <Tooltip title={t('materials.refiningAt', { station: stack.refining_at ?? '' })}>
-                          <Box
-                            component="span"
-                            sx={{ ml: 0.75, color: 'text.secondary', fontSize: '0.8em', whiteSpace: 'nowrap' }}
-                          >
-                            {t('materials.refining')}
-                          </Box>
-                        </Tooltip>
-                      )}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Tooltip title={categoryLabel(t, stack.resource_type.category)}>
-                        <Box component="span" sx={{ display: 'inline-flex', verticalAlign: 'middle' }}>
-                          <CategoryIcon category={stack.resource_type.category} />
+      <Paper>
+        {isLoading && <LinearProgress />}
+        {isError && <Alert severity="error">{t('materials.loadError')}</Alert>}
+        <TableContainer sx={{ overflowX: 'auto' }}>
+          <Table size="small" aria-label={t('materials.tableLabel')}>
+            <TableHead>
+              <TableRow>
+                {header(t('materials.columns.material'), 'resource')}
+                <TableCell align="center" sx={{ width: 40 }} aria-label={t('materials.columns.category')} />
+                {header(t('materials.fields.quality'), 'quality', 'right')}
+                {header(t('materials.fields.quantity'), 'quantity', 'right')}
+                {header(t('materials.fields.system'), 'system')}
+                {header(t('materials.fields.location'), 'location')}
+                {header(t('materials.fields.visibility'), 'visibility')}
+                <TableCell sx={{ width: 40 }} />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {stacks.map((stack) => (
+                <TableRow
+                  key={stack.id}
+                  hover
+                  onDoubleClick={() => isMine(stack) && setEditing(stack)}
+                  sx={{
+                    '& td:first-of-type': {
+                      borderLeft: `4px solid ${resourceRarityColor(stack.resource_type.rarity)}`,
+                    },
+                  }}
+                >
+                  <TableCell>
+                    {stack.resource_type.name}
+                    {stack.refining && (
+                      // Owned, but the refinery still has it. Marked rather
+                      // than hidden: it counts towards what can be crafted,
+                      // it just is not in hand yet.
+                      <Tooltip title={t('materials.refiningAt', { station: stack.refining_at ?? '' })}>
+                        <Box
+                          component="span"
+                          sx={{ ml: 0.75, color: 'text.secondary', fontSize: '0.8em', whiteSpace: 'nowrap' }}
+                        >
+                          {t('materials.refining')}
                         </Box>
                       </Tooltip>
-                    </TableCell>
-                    <TableCell align="right" sx={{ color: qualityColor(stack.quality), fontVariantNumeric: 'tabular-nums' }}>
-                      {stack.quality ?? '—'}
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {formatQuantity(stack, t, i18n.language)}
-                    </TableCell>
-                    <TableCell>{stack.location.system ?? t('locations.groupPersonal')}</TableCell>
-                    <TableCell>{stack.location.name}</TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={t(`materials.visibilityChip.${stack.visibility}`)}
-                        color={stack.visibility === 'org' ? 'secondary' : 'default'}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {isMine(stack) ? (
-                        <IconButton size="small" aria-label={t('materials.editStack')} onClick={() => setEditing(stack)}>
-                          <EditIcon fontSize="inherit" />
-                        </IconButton>
-                      ) : (
-                        <Tooltip title={t('materials.ownedBy', { handle: stack.user?.handle ?? stack.user?.name ?? '?' })}>
-                          <Box component="span" sx={{ display: 'inline-flex', p: 0.5, color: 'text.disabled' }}>
-                            <GroupsIcon fontSize="small" />
-                          </Box>
-                        </Tooltip>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {!isLoading && stacks.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8}>
-                      <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                        {t('materials.empty')}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <ListPager total={total} page={page} rowsPerPage={rowsPerPage} onPageChange={setPage} onRowsPerPageChange={setRowsPerPage} />
-        </Paper>
-        <ResourceEntryForm onAddMultiple={() => setBulkOpen(true)} />
-      </Box>
+                    )}
+                  </TableCell>
+                  <TableCell align="center">
+                    <Tooltip title={categoryLabel(t, stack.resource_type.category)}>
+                      <Box component="span" sx={{ display: 'inline-flex', verticalAlign: 'middle' }}>
+                        <CategoryIcon category={stack.resource_type.category} />
+                      </Box>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell align="right" sx={{ color: qualityColor(stack.quality), fontVariantNumeric: 'tabular-nums' }}>
+                    {stack.quality ?? '—'}
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {formatQuantity(stack, t, i18n.language)}
+                  </TableCell>
+                  <TableCell>{stack.location.system ?? t('locations.groupPersonal')}</TableCell>
+                  <TableCell>{stack.location.name}</TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={t(`materials.visibilityChip.${stack.visibility}`)}
+                      color={stack.visibility === 'org' ? 'secondary' : 'default'}
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {isMine(stack) ? (
+                      <IconButton size="small" aria-label={t('materials.editStack')} onClick={() => setEditing(stack)}>
+                        <EditIcon fontSize="inherit" />
+                      </IconButton>
+                    ) : (
+                      <Tooltip title={t('materials.ownedBy', { handle: stack.user?.handle ?? stack.user?.name ?? '?' })}>
+                        <Box component="span" sx={{ display: 'inline-flex', p: 0.5, color: 'text.disabled' }}>
+                          <GroupsIcon fontSize="small" />
+                        </Box>
+                      </Tooltip>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!isLoading && stacks.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8}>
+                    <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+                      {t('materials.empty')}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <ListPager total={total} page={page} rowsPerPage={rowsPerPage} onPageChange={setPage} onRowsPerPageChange={setRowsPerPage} />
+      </Paper>
       )}
       {editing && <EditStackDialog stack={editing} onClose={() => setEditing(null)} />}
       <MaterialGridDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
