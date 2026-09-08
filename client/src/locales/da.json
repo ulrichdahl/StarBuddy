@@ -323,7 +323,7 @@
     "hotkeyDesktopUnset": "Dit skrivebord har overtaget disse genvejstaster, men har endnu ikke sat en tast på nogen af dem — indtil det sker, virker de kun mens et StarBuddy-vindue har fokus. Åbn skrivebordets indstillinger for tastaturgenveje, find StarBuddy, og giv hver enkelt en tast. Er den ikke opført der, så bind disse kommandoer til taster i stedet.",
     "hotkeyChange": "Klik for at ændre",
     "hotkeyNone": "ingen",
-    "readingBorder": "En gul kant om spilvinduet er Windows, der fortæller at vinduet optages. Windows 11 lader den slå fra, og det gør StarBuddy; Windows 10 gør ikke, og der bliver den til aflæsning slås fra.",
+    "readingBorder": "En gul kant om spilvinduet er Windows, der fortæller at vinduet optages. Windows 11 lader den slå fra, og det beder StarBuddy om; Windows 10 gør ikke, og der bliver den til aflæsning slås fra.",
     "hotkeyHeard": "Sidst modtagne tast: {{action}}. Tasterne når frem til StarBuddy.",
     "hotkeyNoneHeard_one": "{{count}} genvej registreret, og ingen tast er nået frem til StarBuddy i denne session.",
     "hotkeyNoneHeard_other": "{{count}} genveje registreret, og ingen tast er nået frem til StarBuddy i denne session.",
@@ -337,7 +337,7 @@
     "report": "Systemoplysninger",
     "reportCopy": "Kopiér",
     "reportCopied": "Kopieret",
-    "readingBorderRefused": "Denne maskine har én gang nægtet StarBuddy optagelse uden kant, og Windows husker svaret — derfor er kanten her, mens andre maskiner ingen har. Tryk på Systemoplysninger nedenfor: den viser den registreringsnøgle, svaret ligger i. Slet nøglen, start StarBuddy igen, så spørger Windows en gang til."
+    "readingBorderRefused": "Windows har ikke ladet StarBuddy slå den kant fra på denne maskine. Åbn Indstillinger › Beskyttelse af personlige oplysninger og sikkerhed › Skærmbilledkanter — den ligger nederst på listen — og slå \"Adgang til indstillinger for skærmbilledkanter\", \"Lad apps slå skærmbilledkanten fra\" og \"Lad computerprogrammer slå skærmbilledkanten fra\" til, hvor StarBuddy står. Kanten forsvinder, næste gang aflæsning slås til."
   },
   "changes": {
     "sinceLive_one": "Nyheder — {{count}} ændring siden v{{version}}",
