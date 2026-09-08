@@ -22,6 +22,7 @@ class RefineryOrderTest extends TestCase
 
     private User $me;
     private int $hangarId;
+    private int $levskiId;
 
     protected function setUp(): void
     {
@@ -40,6 +41,9 @@ class RefineryOrderTest extends TestCase
         $this->hangarId = Location::create([
             'user_id' => $this->me->id, 'kind' => 'hangar', 'name' => 'Area18 hangar',
         ])->id;
+
+        // The shared catalogue: a station an order can be placed at.
+        $this->levskiId = Location::create(['kind' => 'station', 'system' => 'Nyx', 'name' => 'Levski'])->id;
     }
 
     /** @return array<string, mixed> */
@@ -66,7 +70,7 @@ class RefineryOrderTest extends TestCase
         ], $overrides);
     }
 
-    public function test_a_captured_order_records_its_source_and_its_refinery_as_a_location(): void
+    public function test_a_captured_order_records_its_source_and_the_catalogue_station_it_names(): void
     {
         $response = $this->actingAs($this->me)
             ->postJson('/api/refinery-orders', $this->order())
@@ -76,20 +80,40 @@ class RefineryOrderTest extends TestCase
             ->assertJsonPath('unit', 'cSCU')
             ->assertJsonPath('open', true);
 
-        // The refinery is a place, so its yields have somewhere to sit.
-        $location = Location::where('kind', 'refinery')->sole();
-        $this->assertSame('LEVSKI', $location->name);
-        $this->assertSame($location->id, $response->json('location.id'));
+        // The terminal shouts the name; the catalogue's Levski is the place.
+        $this->assertSame($this->levskiId, $response->json('location.id'));
+        $this->assertSame(2, Location::count(), 'the catalogue station and the hangar, nothing minted');
     }
 
-    public function test_a_second_order_reuses_the_same_refinery_location(): void
+    public function test_a_station_the_catalogue_does_not_know_leaves_the_order_placeless(): void
     {
-        $this->actingAs($this->me)->postJson('/api/refinery-orders', $this->order())->assertCreated();
-        $this->actingAs($this->me)
-            ->postJson('/api/refinery-orders', $this->order(['work_order_number' => 2]))
-            ->assertCreated();
+        $response = $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order(['station' => 'Orbituary']))
+            ->assertCreated()
+            ->assertJsonPath('station', 'Orbituary');
 
-        $this->assertSame(1, Location::where('kind', 'refinery')->count(), 'one Levski, not one per order');
+        // The name it read is worth keeping; a location row for it is not.
+        $this->assertNull($response->json('location'));
+        $this->assertSame(2, Location::count());
+    }
+
+    public function test_a_station_matches_the_catalogue_however_it_is_spelled(): void
+    {
+        Location::create(['kind' => 'station', 'system' => 'Stanton', 'name' => 'Grim HEX']);
+
+        $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order(['station' => 'GRIMHEX']))
+            ->assertCreated()
+            ->assertJsonPath('location.name', 'Grim HEX');
+    }
+
+    public function test_players_cannot_add_to_the_location_catalogue(): void
+    {
+        $this->actingAs($this->me)
+            ->postJson('/api/locations', ['name' => 'My secret cave', 'kind' => 'other'])
+            ->assertStatus(405);
+
+        $this->assertSame(2, Location::count());
     }
 
     public function test_only_the_rows_being_refined_become_stacks(): void
@@ -339,32 +363,15 @@ class RefineryOrderTest extends TestCase
             ->assertJsonPath('data.0.id', $open);
     }
 
-    public function test_locations_can_be_filtered_to_refineries(): void
+    public function test_locations_can_be_filtered_by_kind(): void
     {
-        $this->actingAs($this->me)->postJson('/api/refinery-orders', $this->order())->assertCreated();
-
-        // Not every place has a refinery, so placing an order only offers those.
-        $refineries = $this->actingAs($this->me)->getJson('/api/locations?kind=refinery')->assertOk()->json();
-        $this->assertCount(1, $refineries);
-        $this->assertSame('LEVSKI', $refineries[0]['name']);
+        $stations = $this->actingAs($this->me)->getJson('/api/locations?kind=station')->assertOk()->json();
+        $this->assertCount(1, $stations);
+        $this->assertSame('Levski', $stations[0]['name']);
 
         // The unfiltered list still has the hangar for collection.
         $all = $this->actingAs($this->me)->getJson('/api/locations')->assertOk()->json();
         $this->assertCount(2, $all);
-    }
-
-    public function test_a_new_refinery_location_takes_the_system_the_catalogue_knows(): void
-    {
-        // The terminal prints a station name and no star system, so a refinery
-        // created from one has to get its system from the place it already is.
-        Location::create(['kind' => 'station', 'system' => 'Nyx', 'name' => 'Levski']);
-
-        $this->actingAs($this->me)
-            ->postJson('/api/refinery-orders', [...$this->order(), 'station' => 'Levski'])
-            ->assertCreated();
-
-        $refinery = Location::where('kind', 'refinery')->where('name', 'Levski')->firstOrFail();
-        $this->assertSame('Nyx', $refinery->system, 'a system-less location reads as one of the player\'s own');
     }
 
     public function test_a_completion_from_an_older_client_no_longer_invents_an_order(): void
@@ -506,6 +513,8 @@ class RefineryOrderTest extends TestCase
 
     public function test_renaming_the_station_moves_the_order_to_that_refinery(): void
     {
+        Location::create(['kind' => 'station', 'system' => 'Stanton', 'name' => 'ARCCORP 141']);
+
         $id = $this->actingAs($this->me)
             ->postJson('/api/refinery-orders', $this->order())
             ->assertCreated()

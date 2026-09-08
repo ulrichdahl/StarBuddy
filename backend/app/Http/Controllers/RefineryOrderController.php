@@ -94,7 +94,7 @@ class RefineryOrderController extends Controller
         $data['unit'] ??= 'cSCU';
         $data['source'] ??= 'manual';
         $data['placed_at'] ??= now();
-        $data['location_id'] = $this->refineryLocation($request, $data['station'])->id;
+        $data['location_id'] = $this->refineryLocation($data['station'])?->id;
         $visibility = $data['visibility'] ?? 'private';
         $data['visibility'] = $visibility;
 
@@ -134,10 +134,9 @@ class RefineryOrderController extends Controller
         $visibility = $data['visibility'] ?? $refineryOrder->visibility ?? 'private';
         $data['visibility'] = $visibility;
 
-        // Only a changed station has to find a place; re-resolving an unchanged
-        // one would create a location row for a rename that never happened.
+        // Only a changed station has to find a place.
         if (isset($data['station']) && $data['station'] !== $refineryOrder->station) {
-            $data['location_id'] = $this->refineryLocation($request, $data['station'])->id;
+            $data['location_id'] = $this->refineryLocation($data['station'])?->id;
         }
 
         DB::transaction(function () use ($refineryOrder, $data, $user, $visibility) {
@@ -224,43 +223,23 @@ class RefineryOrderController extends Controller
     }
 
     /**
-     * The refinery as a place. Refineries are stations the player returns to,
-     * so one is kept per name rather than created per order.
+     * The refinery as a place in the catalogue.
+     *
+     * The terminal prints a station name and nothing else, so the name is
+     * matched against the shared catalogue the way the sync matches it —
+     * case- and space-insensitively, because players write "GrimHEX" and the
+     * catalogue says "Grim HEX". A station the catalogue does not know leaves
+     * the order without a location: the order still records the name it read,
+     * and inventing a location row would put one player's spelling in front of
+     * everyone else.
      */
-    private function refineryLocation(Request $request, string $station): Location
+    private function refineryLocation(string $station): ?Location
     {
-        $user = $request->user();
-        $orgId = $user->orgs()->value('orgs.id');
+        $needle = str_replace(' ', '', mb_strtolower($station));
 
-        $existing = Location::where('kind', 'refinery')
-            ->whereRaw('LOWER(name) = ?', [strtolower($station)])
-            ->where(function ($q) use ($user, $orgId) {
-                $q->where('user_id', $user->id)
-                    ->orWhere(fn ($q) => $q->whereNotNull('org_id')->where('org_id', $orgId))
-                    ->orWhere(fn ($q) => $q->whereNull('user_id')->whereNull('org_id'));
-            })
+        return Location::whereNull('user_id')->whereNull('org_id')
+            ->whereRaw("replace(lower(name), ' ', '') = ?", [$needle])
             ->first();
-
-        if ($existing) {
-            return $existing;
-        }
-
-        // A refinery is a place the catalogue usually already knows under
-        // another kind — Levski is a station there — so the new row takes that
-        // row's star system. Without it the location has no system at all, and
-        // a system-less location reads as one of the player's own, which a
-        // refinery is not.
-        $system = Location::whereRaw('LOWER(name) = ?', [strtolower($station)])
-            ->whereNotNull('system')
-            ->value('system');
-
-        return Location::create([
-            'user_id' => $user->id,
-            'org_id' => $orgId,
-            'kind' => 'refinery',
-            'name' => $station,
-            'system' => $system,
-        ]);
     }
 
     /**
@@ -271,9 +250,18 @@ class RefineryOrderController extends Controller
      * A material the catalogue does not know is left on the order rather than
      * silently dropped — the order is still worth recording, and `unmatched`
      * says what could not be placed.
+     *
+     * A stack has to sit somewhere, so an order whose station the catalogue
+     * cannot place yields none. The order keeps its numbers, and correcting the
+     * station to a real place rebuilds the stacks — which is what an edit to an
+     * open order does anyway.
      */
     private function openStacks(RefineryOrder $order, $user, string $visibility = 'private'): void
     {
+        if ($order->location_id === null) {
+            return;
+        }
+
         $orgId = $user->orgs()->value('orgs.id');
 
         foreach ($order->materials ?? [] as $material) {
