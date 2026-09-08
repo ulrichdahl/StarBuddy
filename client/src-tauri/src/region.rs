@@ -45,19 +45,11 @@ pub struct Frame {
 /// picture cannot move while it is being framed, and it is the frame the
 /// capture itself produces, so a rectangle drawn on it means exactly what it
 /// looks like even when the capture is a game window rather than the monitor.
-fn grab_frame() -> Result<Frame, String> {
-    // A live grab first, then the last frame a read got. The selector is
-    // opened from the client's own window, so on a game the screenshot tool
-    // can only reach as the *active* window there is nothing live to grab —
-    // and the fallback of no picture at all is a black sheet over a fullscreen
-    // game, which is worse than a frame a few minutes old. The geometry is
-    // what the area is drawn against, and that does not go stale.
-    let cap = match crate::scan::capture() {
-        Ok(cap) => cap,
-        Err(live) => crate::scan::last_frame().ok_or_else(|| {
-            format!("{live} — open the panel in game and press the read hotkey once, then pick the area")
-        })?,
-    };
+fn grab_frame(app: &AppHandle, purpose: &Purpose) -> Result<Frame, String> {
+    // The stream's newest frame. It is the same picture the reader works from,
+    // which is the whole property an area depends on: its fractions mean
+    // nothing except against the frame they were measured on.
+    let cap = crate::scan::capture_for(app, purpose)?;
     let buffer = image::RgbImage::from_raw(cap.width, cap.height, cap.rgb.clone())
         .ok_or("capture did not fit its own dimensions")?;
     let mut out = std::io::Cursor::new(Vec::new());
@@ -133,7 +125,7 @@ fn open_selector(app: &AppHandle, purpose: &str) -> Result<(), String> {
     // compositor paints black: the panel cannot be seen, the area gets drawn
     // by guesswork, and every read afterwards is of the wrong rectangle with
     // nothing to say why. Refusing says what to do instead.
-    let frame = grab_frame().inspect_err(|e| log::warn!("region selector: no backdrop ({e})"))?;
+    let frame = grab_frame(app, &Purpose::parse(purpose)?).inspect_err(|e| log::warn!("region selector: no backdrop ({e})"))?;
     *app.state::<SelectorState>().frame.lock().unwrap() = Some(frame);
 
     let url = WebviewUrl::App(format!("index.html?window=region&purpose={purpose}").into());

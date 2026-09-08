@@ -1,16 +1,18 @@
 //! Scan v1 — capture the game screen, find the signature badge, read it.
 //!
 //! In scan mode the game shows a pinged contact's radar signature as a
-//! small amber badge (pin icon + number such as "2,000" or "15,600") next
+//! small badge (pin icon + number such as "2,000" or "15,600") next
 //! to the contact. Full-frame OCR misses that small text; a 3× upscaled
 //! crop next to the icon reads it reliably (see screenshots/ and the
-//! ocr_file example). So: find icon-sized amber blobs, OCR the strip to
+//! ocr_file example). So: find icon-sized blobs in the ship's own HUD
+//! colour — amber on one MOLE, cyan on an F7C-M — OCR the strip to
 //! the right of each, keep the ones that read as a number, and prefer the
 //! one nearest the screen centre. The full-frame readout is kept as a
 //! debug aid. Nothing leaves the machine: the OCR models are downloaded
 //! once, the capture lives in memory only.
 
 use ocrs::{ImageSource, OcrEngine, OcrEngineParams, TextItem};
+use rten_imageproc::{BoundingRect, RotatedRect};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -109,6 +111,8 @@ pub struct LiveReading {
 #[derive(Default)]
 pub struct ScanState {
     engine: Mutex<Option<OcrEngine>>,
+    /// The same models, told they may only produce digits — see [`Reader`].
+    digits: Mutex<Option<OcrEngine>>,
     last: Mutex<Option<ScanResult>>,
     busy: Mutex<bool>,
     /// Stop flag of the running live loop, if any.
@@ -171,153 +175,29 @@ pub struct Captured {
     /// Height of the whole game frame this came from (== height unless a
     /// region crop); scales the badge-icon size window.
     pub full_height: u32,
+    /// Where this sits in the game's window (0,0 unless a region crop).
+    /// Everything found inside a crop is found at crop coordinates, and those
+    /// name nothing anybody can point at — so the origin travels with the crop
+    /// and the two can be added back together into a place in the window.
+    pub origin: (u32, u32),
 }
 
-/// Windows: the game window if it is up, else the primary monitor.
-#[cfg(windows)]
-pub(crate) fn capture() -> Result<Captured, String> {
-    let game = xcap::Window::all()
-        .map_err(|e| e.to_string())?
-        .into_iter()
-        .find(|w| {
-            let title = w.title().unwrap_or_default();
-            title.contains("Star Citizen") && !w.is_minimized().unwrap_or(true)
-        });
-    let (img, source) = match game {
-        Some(w) => (w.capture_image().map_err(|e| e.to_string())?, format!("window: {}", w.title().unwrap_or_default())),
-        None => {
-            let monitors = xcap::Monitor::all().map_err(|e| e.to_string())?;
-            let m = monitors
-                .iter()
-                .find(|m| m.is_primary().unwrap_or(false))
-                .or(monitors.first())
-                .ok_or("no monitor")?;
-            (m.capture_image().map_err(|e| e.to_string())?, "monitor".to_string())
-        }
-    };
-    let (width, height) = img.dimensions();
-    let rgb = img.pixels().flat_map(|p| [p[0], p[1], p[2]]).collect();
-    Ok(Captured { rgb, width, height, source, full_height: height })
-}
-
-/// Linux: GetImage on the game's own X window. The client runs through
-/// XWayland like the Wine game, but XWayland is rootless — the root window
-/// has no pixels (GetImage on it is a BadMatch) — so the window itself is
-/// read. If the game is not an X client (native Wayland Wine) or the read
-/// fails, the desktop's screenshot tool grabs the *active* window.
+/// The frame a purpose is framed against: the game's window, always.
 ///
-/// Always the game's window, never the desktop. A scan region is fractions of
-/// the frame it was chosen on, so the frame has to be the same thing every
-/// time: a game running in half the screen's width had its region land on the
-/// right-hand half of the panel at half the size whenever a read went to the
-/// desktop instead, and a read like that comes back empty. Better to say the
-/// game was not found than to read the wrong rectangle.
-#[cfg(target_os = "linux")]
-pub(crate) fn capture() -> Result<Captured, String> {
-    let cap = match capture_x11_window() {
-        Ok(c) => Ok(c),
-        Err(x11_err) => capture_with_tool().map_err(|tool_err| format!("{x11_err}; {tool_err}")),
-    }?;
-    remember_frame(&cap);
-    Ok(cap)
+/// Every area a player frames is fractions of this, so there is one frame and
+/// no other. It used to be whichever of several capture routes answered, and
+/// they did not agree with each other — a region drawn against one of them
+/// landed somewhere else entirely when another answered the next time.
+pub(crate) fn capture_for(app: &AppHandle, _purpose: &crate::region::Purpose) -> Result<Captured, String> {
+    capture_game(app)
 }
 
-#[cfg(target_os = "linux")]
-fn capture_x11_window() -> Result<Captured, String> {
-    capture_x11_rect(None)
-}
-
-/// GetImage on the game window, whole or a sub-rectangle (relative region).
-#[cfg(target_os = "linux")]
-fn capture_x11_rect(region: Option<ScanRegion>) -> Result<Captured, String> {
-    use x11rb::connection::Connection;
-    use x11rb::protocol::xproto::{AtomEnum, ConnectionExt, ImageFormat, Window};
-
-    let (conn, screen_num) = x11rb::connect(None).map_err(|e| format!("X11 connect failed: {e}"))?;
-    let root = conn.setup().roots[screen_num].root;
-    let net_wm_name = conn.intern_atom(false, b"_NET_WM_NAME").map_err(|e| e.to_string())?.reply().map_err(|e| e.to_string())?.atom;
-    let utf8 = conn.intern_atom(false, b"UTF8_STRING").map_err(|e| e.to_string())?.reply().map_err(|e| e.to_string())?.atom;
-
-    fn name_of(conn: &impl Connection, win: Window, net_wm_name: u32, utf8: u32) -> String {
-        for (prop, ty) in [(net_wm_name, utf8), (AtomEnum::WM_NAME.into(), AtomEnum::STRING.into())] {
-            if let Ok(Ok(r)) = conn.get_property(false, win, prop, ty, 0, 256).map(|c| c.reply()) {
-                if !r.value.is_empty() {
-                    return String::from_utf8_lossy(&r.value).into_owned();
-                }
-            }
-        }
-        String::new()
+/// The game's window, from the stream the player switched on.
+pub(crate) fn capture_game(app: &AppHandle) -> Result<Captured, String> {
+    if !crate::reading::state(app).on {
+        return Err("Screen reading is off. Switch it on in StarBuddy and choose the game's window.".into());
     }
-
-    // Breadth-first over the tree: WMs may reparent the game window once.
-    let mut queue = vec![root];
-    let mut depth = 0;
-    let mut game: Option<(Window, String)> = None;
-    while !queue.is_empty() && depth < 3 && game.is_none() {
-        let mut next = Vec::new();
-        for win in queue.drain(..) {
-            let Ok(Ok(tree)) = conn.query_tree(win).map(|c| c.reply()) else { continue };
-            for child in tree.children {
-                let name = name_of(&conn, child, net_wm_name, utf8);
-                if name.contains("Star Citizen") {
-                    game = Some((child, name));
-                    break;
-                }
-                next.push(child);
-            }
-            if game.is_some() {
-                break;
-            }
-        }
-        queue = next;
-        depth += 1;
-    }
-    let (win, title) = game.ok_or("no Star Citizen X11 window")?;
-    let geo = conn.get_geometry(win).map_err(|e| e.to_string())?.reply().map_err(|e| e.to_string())?;
-    let (fx, fy, fw, fh) = match region {
-        Some(r) => region_px(r, geo.width as u32, geo.height as u32),
-        None => (0, 0, geo.width as i32, geo.height as i32),
-    };
-    let (width, height) = (fw as u32, fh as u32);
-    let img = conn
-        .get_image(ImageFormat::Z_PIXMAP, win, fx as i16, fy as i16, fw as u16, fh as u16, !0)
-        .map_err(|e| e.to_string())?
-        .reply()
-        .map_err(|e| format!("X11 GetImage on the game window failed: {e}"))?;
-    let bpp = img.data.len() / (width as usize * height as usize);
-    if bpp < 3 {
-        return Err(format!("unexpected pixel format ({bpp} bytes/px)"));
-    }
-    // ZPixmap is BGRx in memory on little-endian servers.
-    let rgb = img.data.chunks_exact(bpp).flat_map(|px| [px[2], px[1], px[0]]).collect();
-    Ok(Captured { rgb, width, height, source: format!("window: {title}"), full_height: geo.height as u32 })
-}
-
-/// The last frame a capture actually got out of the game.
-///
-/// A game running on Wine's Wayland driver has no X11 window to read, so the
-/// only way to its pixels is the screenshot tool's *active window* — which
-/// means the game has to be the window in front. Pressing the hotkey in game
-/// satisfies that; opening the region selector from the client's own window
-/// never can, and a selector with no picture under it is a black sheet over a
-/// fullscreen game, which is how an area comes to be drawn by guesswork.
-///
-/// So the frames that do arrive are kept, and the selector draws on the last
-/// one. It is the same frame the reader works from, which is the property the
-/// region depends on: its fractions only mean anything against the frame they
-/// were measured on.
-static LAST_FRAME: std::sync::OnceLock<std::sync::Mutex<Option<Captured>>> = std::sync::OnceLock::new();
-
-fn remember_frame(cap: &Captured) {
-    let slot = LAST_FRAME.get_or_init(|| std::sync::Mutex::new(None));
-    if let Ok(mut last) = slot.lock() {
-        *last = Some(cap.clone());
-    }
-}
-
-/// The last frame the game gave up, if there has been one this run.
-pub(crate) fn last_frame() -> Option<Captured> {
-    LAST_FRAME.get()?.lock().ok()?.clone()
+    crate::reading::game_frame()
 }
 
 /// Region fractions → pixel rect inside a frame of the given size.
@@ -329,97 +209,54 @@ pub(crate) fn region_px(r: ScanRegion, width: u32, height: u32) -> (i32, i32, i3
     (x, y, w.max(8), h.max(8))
 }
 
-/// Only the signature region of the game frame (the live loop's capture).
-fn capture_region(region: ScanRegion) -> Result<Captured, String> {
-    #[cfg(target_os = "linux")]
-    {
-        match capture_x11_rect(Some(region)) {
-            Ok(c) => return Ok(c),
-            // Native-Wayland game: the tool grabs the game's window, and the
-            // region is cut out of it here. The whole frame is worth keeping
-            // before it is cut down — it is the same frame the region selector
-            // needs to draw on, and a live scan is often the only thing that
-            // has the game in front of it.
-            Err(x11_err) => {
-                let full = capture_with_tool().map_err(|tool_err| format!("{x11_err}; {tool_err}"))?;
-                remember_frame(&full);
-                return crop_region(full, region);
-            }
-        }
-    }
-    #[cfg(not(target_os = "linux"))]
-    {
-        crop_region(capture()?, region)
-    }
+/// The signature region of the game frame (the live loop's capture).
+///
+/// One frame, cut down. There is no separate route for a region: the stream
+/// gives the window, and every area a player framed is fractions of it.
+fn capture_region(app: &AppHandle, region: ScanRegion) -> Result<Captured, String> {
+    crop_region(capture_game(app)?, region)
 }
 
 pub(crate) fn crop_region(full: Captured, region: ScanRegion) -> Result<Captured, String> {
     let (x, y, w, h) = region_px(region, full.width, full.height);
     let img = image::RgbImage::from_raw(full.width, full.height, full.rgb).ok_or("bad frame")?;
     let crop = image::imageops::crop_imm(&img, x as u32, y as u32, w as u32, h as u32).to_image();
-    Ok(Captured { rgb: crop.into_raw(), width: w as u32, height: h as u32, source: full.source, full_height: full.height })
+    Ok(Captured {
+        rgb: crop.into_raw(),
+        width: w as u32,
+        height: h as u32,
+        source: full.source,
+        full_height: full.height,
+        origin: (x as u32, y as u32),
+    })
 }
 
-/// KDE spectacle / wlroots grim / GNOME screenshot into a temp PNG.
-/// This is the route for a game running as a native Wayland client (Wine's
-/// Wayland driver), which has no X11 window to read. Spectacle first grabs
-/// the *active window* — while playing that is the game frame itself, so
-/// the region fractions apply to the real frame regardless of monitor size
-/// — and falls back to the current screen when the active window cannot be
-/// the game (too small: our own overlay that was just clicked, a dialog).
-/// Tools run through host_command so the AppImage's library paths never
-/// reach them.
-#[cfg(target_os = "linux")]
-fn capture_with_tool() -> Result<Captured, String> {
-    let out = std::env::temp_dir().join(format!("starbuddy-scan-{}.png", std::process::id()));
-    let out_s = out.to_string_lossy().into_owned();
-    // The active window only. A whole-screen grab would succeed and give the
-    // wrong frame, which is worse than not reading at all: the region means
-    // fractions of the game's window, and the desktop is a different size.
-    let attempts: [(&str, &str, Vec<String>); 1] =
-        [("spectacle", "window", vec!["-b".into(), "-n".into(), "-a".into(), "-o".into(), out_s.clone()])];
-    let mut tried = Vec::new();
-    for (tool, what, args) in attempts {
-        let _ = fs::remove_file(&out);
-        let output = match crate::host_command(tool).args(&args).output() {
-            Ok(o) => o,
-            Err(e) => {
-                if e.kind() != std::io::ErrorKind::NotFound {
-                    log::debug!("{tool}: {e}");
-                }
-                tried.push(format!("{tool} (not installed)"));
-                continue;
-            }
-        };
-        if !(output.status.success() && out.exists()) {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            log::warn!("{tool} {what}: exited {} without an image: {}", output.status, stderr.trim());
-            tried.push(format!("{tool} {what} ({})", output.status));
-            continue;
-        }
-        let img = image::open(&out).map_err(|e| e.to_string())?.into_rgb8();
-        let _ = fs::remove_file(&out);
-        let (width, height) = img.dimensions();
-        // Not the game: too small, or not a widescreen frame (the client's
-        // own window is ~1130×858 — that is what was captured once). The
-        // active window is whatever was clicked last, so this is the only
-        // check standing between a read and somebody's file manager.
-        if width < 1280 || height < 720 || (width as f32 / height as f32) < 1.5 {
-            log::debug!("active window is {width}×{height}, which is not the game");
-            tried.push(format!("{tool} window ({width}×{height})"));
-            continue;
-        }
-        return Ok(Captured { rgb: img.into_raw(), width, height, source: format!("{what} ({tool})"), full_height: height });
+/// One number, whichever way the panel and the reader between them spelled it.
+///
+/// The game prints its thousands with a comma and the reader gives that back
+/// as a full stop about as often as not — so "16.720" is sixteen thousand
+/// seven hundred and twenty, not sixteen and change. Read the other way it is
+/// a signature thrown away for being too small to be one, and a scan that
+/// silently does nothing.
+///
+/// A separator followed by exactly three digits, all the way along, is a
+/// thousands separator. Anything else is a decimal point.
+fn parse_number(text: &str) -> Result<f64, std::num::ParseFloatError> {
+    let grouped = {
+        let mut parts = text.split(['.', ',']);
+        let first = parts.next().unwrap_or_default();
+        let rest: Vec<&str> = parts.collect();
+        !rest.is_empty()
+            && (1..=3).contains(&first.len())
+            // "0.500" is half of something, never five hundred: nothing writes
+            // a thousand with a leading zero.
+            && !first.starts_with('0')
+            && rest.iter().all(|group| group.len() == 3 && group.chars().all(|c| c.is_ascii_digit()))
+    };
+    if grouped {
+        return text.replace(['.', ','], "").parse();
     }
-    Err(format!(
-        "The game's window could not be found — is Star Citizen running, and was it the last window you clicked? (tried {})",
-        tried.join(", ")
-    ))
-}
-
-#[cfg(not(any(windows, target_os = "linux")))]
-pub(crate) fn capture() -> Result<Captured, String> {
-    Err("screen capture is not supported on this platform yet".into())
+    text.replace(',', "").parse()
 }
 
 /// Read with the engine the app already has, loading it once if it has none.
@@ -446,22 +283,108 @@ pub(crate) fn with_engine<T>(
     read(engine.as_ref().expect("just loaded"))
 }
 
+/// Both readers, loaded the first time a scan asks for them.
+pub(crate) fn with_reader<T>(
+    app: &AppHandle,
+    det: &PathBuf,
+    rec: &PathBuf,
+    read: impl FnOnce(Reader) -> Result<T, String>,
+) -> Result<T, String> {
+    let state = app.state::<ScanState>();
+    let mut engine = state.engine.lock().map_err(|_| "the OCR engine is in a bad state")?;
+    if engine.is_none() {
+        *engine = Some(load_engine(det, rec)?);
+    }
+    let mut digits = state.digits.lock().map_err(|_| "the OCR engine is in a bad state")?;
+    if digits.is_none() {
+        *digits = Some(load_digit_engine(det, rec)?);
+    }
+    read(Reader { text: engine.as_ref().expect("just loaded"), digits: digits.as_ref().expect("just loaded") })
+}
+
 pub(crate) fn load_engine(det: &PathBuf, rec: &PathBuf) -> Result<OcrEngine, String> {
+    engine_with(det, rec, None)
+}
+
+/// The characters a signature can be made of.
+///
+/// The game's zero is drawn as a plain ring — no slash, no dot — and at HUD
+/// size the reader calls it the letter O: 16,700 comes back as "16,7OO" and a
+/// signature with no zero in it, like 21,245, is read every time. A reader
+/// that cannot produce a letter cannot make that mistake, and the badge beside
+/// the pin is only ever a number.
+const DIGITS: &str = "0123456789,.";
+
+/// Both readers over one set of models.
+///
+/// The panel around the badge is read as text, where a letter is worth having
+/// — a distance wears "km" and that is how it is known not to be a signature.
+/// The badge itself is read as digits and nothing else.
+pub struct Reader<'a> {
+    pub text: &'a OcrEngine,
+    pub digits: &'a OcrEngine,
+}
+
+fn engine_with(det: &PathBuf, rec: &PathBuf, allowed_chars: Option<String>) -> Result<OcrEngine, String> {
     let detection_model = rten::Model::load_file(det).map_err(|e| format!("detection model: {e}"))?;
     let recognition_model = rten::Model::load_file(rec).map_err(|e| format!("recognition model: {e}"))?;
     OcrEngine::new(OcrEngineParams {
         detection_model: Some(detection_model),
         recognition_model: Some(recognition_model),
+        allowed_chars,
         ..Default::default()
     })
     .map_err(|e| e.to_string())
+}
+
+/// The digits-only reader, for anything that is a number or nothing.
+pub(crate) fn load_digit_engine(det: &PathBuf, rec: &PathBuf) -> Result<OcrEngine, String> {
+    engine_with(det, rec, Some(DIGITS.to_string()))
+}
+
+/// Cut a detected line where the gap is too wide to be a space.
+///
+/// The detector joins every word that shares a baseline, and a refinery
+/// terminal stands three panels side by side — so one "line" runs from the
+/// station's specialization list, across the gutter, into a completed order's
+/// yield column. That is nonsense as a row, and it also reads badly: the
+/// recognizer squeezes the whole width, gutters included, into a fixed input,
+/// and text that reads cleanly on its own comes out mush. Cutting the line
+/// before it is read gives each panel its own.
+fn split_at_gutters(mut words: Vec<RotatedRect>) -> Vec<Vec<RotatedRect>> {
+    if words.len() < 2 {
+        return vec![words];
+    }
+    words.sort_by(|a, b| a.bounding_rect().left().total_cmp(&b.bounding_rect().left()));
+    // A space between two words is roughly a third of the text's height; the
+    // gap between two panels is several times it. Twice the height sits in
+    // between with room on both sides, and follows the text's own scale, so it
+    // holds at any resolution.
+    let mut heights: Vec<f32> = words.iter().map(|w| w.bounding_rect().height()).collect();
+    heights.sort_by(f32::total_cmp);
+    let limit = heights[heights.len() / 2] * 1.2;
+
+    let mut out = Vec::new();
+    let mut line: Vec<RotatedRect> = Vec::new();
+    let mut right = f32::MIN;
+    for word in words {
+        let bounds = word.bounding_rect();
+        if !line.is_empty() && bounds.left() - right > limit {
+            out.push(std::mem::take(&mut line));
+        }
+        right = if line.is_empty() { bounds.right() } else { right.max(bounds.right()) };
+        line.push(word);
+    }
+    out.push(line);
+    out
 }
 
 pub(crate) fn run_ocr(engine: &OcrEngine, cap: &Captured) -> Result<Vec<OcrLine>, String> {
     let source = ImageSource::from_bytes(&cap.rgb, (cap.width, cap.height)).map_err(|e| e.to_string())?;
     let input = engine.prepare_input(source).map_err(|e| e.to_string())?;
     let words = engine.detect_words(&input).map_err(|e| e.to_string())?;
-    let line_rects = engine.find_text_lines(&input, &words);
+    let line_rects: Vec<Vec<RotatedRect>> =
+        engine.find_text_lines(&input, &words).into_iter().flat_map(split_at_gutters).collect();
     let lines = engine.recognize_text(&input, &line_rects).map_err(|e| e.to_string())?;
     let mut out: Vec<OcrLine> = lines
         .into_iter()
@@ -518,9 +441,23 @@ const PIN_TEMPLATE: [&str; 14] = [
     "############",
     "...######...",
 ];
-/// Corpus (HUD mask): real pins score 0.78–0.89, every other blob of pin
-/// size and aspect ≤ 0.65, a solid square 0.50.
-const PIN_MIN_SCORE: f32 = 0.70;
+/// How much like the pin a blob has to look before its number is worth
+/// reading.
+///
+/// It was 0.70, which was measured on three screenshots of one ship. Over
+/// twenty-five, across a MOLE, a Pisces and a Starrunner, the same pin scores
+/// 0.45 to 0.89 — the HUD draws it differently per ship and the compression
+/// thins it further — and at 0.70 twenty of the twenty-five signatures on
+/// those screens went unread.
+///
+/// The shape was never what tells a badge from a lit speck anyway: the number
+/// beside it is. A speck's strip reads as "KNOWN" or "1-FUEL" or nothing, and
+/// is thrown out for not being a number. So this is a floor that keeps the
+/// reader from being asked about every bright thing on the screen, not proof
+/// of anything.
+const PIN_MIN_SCORE: f32 = 0.45;
+/// How many candidates are read before the frame is given up on.
+const MOST_STRIPS: usize = 6;
 
 /// 1 − mean absolute difference between the blob's amber mask, resampled
 /// to the template grid by area averaging, and the template.
@@ -579,6 +516,7 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
             mask[y * w + x] = is_hud(cap.rgb[i], cap.rgb[i + 1], cap.rgb[i + 2]);
         }
     }
+    let lit = mask.iter().filter(|m| **m).count();
     let mut seen = vec![false; w * h];
     let mut blobs = Vec::new();
     let mut stack = Vec::new();
@@ -615,20 +553,47 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
         let (lo, hi) = ((10.0 * k) as usize, (36.0 * k).ceil() as usize);
         // The pin is about as tall as it is wide (22×22, 20×24, 18×22 seen).
         let aspect = bh as f32 / bw as f32;
-        if (lo..=hi).contains(&bw) && (lo..=hi).contains(&bh) && fill > 0.35 && (0.8..=1.5).contains(&aspect) {
+        // Fill was 0.35, and a Starrunner's pin measures 0.34 — a hollower
+        // icon, or a screenshot the compression thinned. What decides whether
+        // a blob is the pin is its shape, a few lines below; this only keeps
+        // the shape test from being asked about every lit speck.
+        if (lo..=hi).contains(&bw) && (lo..=hi).contains(&bh) && fill > 0.25 && (0.8..=1.5).contains(&aspect) {
             let (x, y, w, h) = ((minx * 2) as i32, (miny * 2) as i32, bw as i32, bh as i32);
             let shape = pin_score(cap, x, y, w, h);
-            if shape >= PIN_MIN_SCORE {
-                blobs.push(Blob { x, y, w, h, shape });
-            } else if shape >= PIN_MIN_SCORE - 0.1 {
-                log::debug!("amber blob at {x},{y} {w}×{h} rejected: pin score {shape:.2}");
+            // Every candidate is returned with what it scored; whether that is
+            // good enough to read is the caller's to decide, which is also
+            // what lets a corpus say how close the near misses were.
+            blobs.push(Blob { x, y, w, h, shape });
+            if shape < PIN_MIN_SCORE && shape >= PIN_MIN_SCORE - 0.1 {
+                // In the game window's own coordinates, which is what a
+                // player can point at: inside the framed area the same badge
+                // is at a different pair of numbers on every screen.
+                log::debug!(
+                    "HUD blob at {},{} {w}×{h} rejected: pin score {shape:.2}",
+                    x + cap.origin.0 as i32,
+                    y + cap.origin.1 as i32,
+                );
             }
         }
+    }
+    if blobs.is_empty() {
+        // Two different faults wear the same face here. An area with nothing
+        // lit in it is a badge that is not on screen — or an area framed over
+        // the wrong part of the window. An area full of HUD with no icon found
+        // in it is the detector's problem, and a different search entirely.
+        log::debug!(
+            "no badge in the {}×{} area at {},{}: {lit} of {} sampled pixels lit",
+            cap.width,
+            cap.height,
+            cap.origin.0,
+            cap.origin.1,
+            w * h,
+        );
     }
     // Nearest the centre first — the pinged contact is what the player looks at.
     let (cx, cy) = (cap.width as i32 / 2, cap.height as i32 / 2);
     blobs.sort_by_key(|b| (b.x + b.w / 2 - cx).pow(2) + (b.y + b.h / 2 - cy).pow(2));
-    blobs.truncate(10);
+    blobs.truncate(24);
     blobs
 }
 
@@ -676,16 +641,31 @@ fn badge_number(text: &str) -> Option<f64> {
     if digits.len() < 3 {
         return None;
     }
-    digits.parse().ok()
+    let value: f64 = digits.parse().ok()?;
+    // A reader told it may only produce digits cannot read the pin beside the
+    // number as a letter any more — it reads it as a digit, and a digit that
+    // fuses to the front of the number makes 15,600 into 715,600 with nothing
+    // to mark it as wrong. No signature in the game is anywhere near that, so
+    // the range is the guard.
+    SIGNATURE_RANGE.contains(&value).then_some(value)
 }
 
+/// What a signature can be. The smallest thing the scanner names is a piece of
+/// salvage at 2,000 and the largest is a cluster of several rich rocks; a
+/// quarter of a million leaves room for any of it and still catches a digit
+/// that was never printed.
+const SIGNATURE_RANGE: std::ops::RangeInclusive<f64> = 500.0..=250_000.0;
+
 /// Find signature badges: OCR the strip right of every icon candidate.
-pub fn find_badges(engine: &OcrEngine, cap: &Captured) -> Vec<Badge> {
+pub fn find_badges(reader: &Reader, cap: &Captured) -> Vec<Badge> {
     let k = cap.full_height as f32 / 1440.0;
     let mut out = Vec::new();
-    for b in find_amber_icons(cap) {
+    // Nearest the middle first, and only so many: reading a strip costs about
+    // ten milliseconds, and a HUD full of lit specks would otherwise turn one
+    // frame into two and a half seconds of reading.
+    for b in find_amber_icons(cap).into_iter().filter(|b| b.shape >= PIN_MIN_SCORE).take(MOST_STRIPS) {
         let Some(crop) = crop_upscaled(cap, b.x + b.w - (4.0 * k) as i32, b.y - (8.0 * k) as i32, (150.0 * k) as i32, b.h + (16.0 * k) as i32, 3) else { continue };
-        let Ok(text) = ocr_text(engine, &crop) else { continue };
+        let Ok(text) = ocr_text(reader.digits, &crop) else { continue };
         if let Some(value) = badge_number(&text) {
             out.push(Badge { x: b.x, y: b.y, w: b.w, h: b.h, shape: b.shape, value, text: text.trim().to_string() });
         }
@@ -694,13 +674,11 @@ pub fn find_badges(engine: &OcrEngine, cap: &Captured) -> Vec<Badge> {
 }
 
 /// Whole analysis of one capture — shared by the app and the harness.
-pub fn analyze(engine: &OcrEngine, cap: &Captured, started: Instant) -> Result<ScanResult, String> {
-    let badges = find_badges(engine, cap);
-    let lines = run_ocr(engine, cap)?;
+pub fn analyze(reader: &Reader, cap: &Captured, started: Instant) -> Result<ScanResult, String> {
+    let badges = find_badges(reader, cap);
+    let lines = run_ocr(reader.text, cap)?;
     let numbers = lines.iter().flat_map(|l| numbers_in(&l.text)).collect();
-    // Badges only: a text-label fallback once read our own overlay's
-    // "Signature …" title back as a reading.
-    let signature = badges.first().map(|b| b.value);
+    let signature = badges.first().map(|b| b.value).or_else(|| signature_in_text(&lines, cap));
     let mass = labelled(&lines, &["MASS"]);
     Ok(ScanResult {
         captured_at: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
@@ -722,14 +700,18 @@ pub fn engine_from_dir(dir: &std::path::Path) -> Result<OcrEngine, String> {
     load_engine(&dir.join("text-detection.rten"), &dir.join("text-recognition.rten"))
 }
 
+/// The digits-only reader from the same directory — see [`Reader`].
+pub fn digit_engine_from_dir(dir: &std::path::Path) -> Result<OcrEngine, String> {
+    load_digit_engine(&dir.join("text-detection.rten"), &dir.join("text-recognition.rten"))
+}
+
 fn numbers_in(text: &str) -> Vec<f64> {
     // 1850 · 4,120 · 3.600 · 18.0% — thousands separators are dropped.
     let mut out = Vec::new();
     let mut cur = String::new();
     let flush = |cur: &mut String, out: &mut Vec<f64>| {
         if !cur.is_empty() {
-            let cleaned = cur.replace(',', "");
-            if let Ok(v) = cleaned.parse::<f64>() {
+            if let Ok(v) = parse_number(cur) {
                 out.push(v);
             }
             cur.clear();
@@ -748,6 +730,49 @@ fn numbers_in(text: &str) -> Vec<f64> {
 
 /// Number labelled by any of the given words: on the same line after the
 /// label, else the first number on the next line.
+/// The signature from the text alone, for a badge whose icon went unrecognised.
+///
+/// The icon is what makes a number on the HUD a signature rather than a
+/// distance or a speed, so it was once the only thing trusted. That was when
+/// the whole screen was read and the client's own windows were in it. What is
+/// read now is the small framed area the badge is printed in, where a bare
+/// number standing on its own is the badge's number or nothing at all — and
+/// refusing to say so, with the figure plainly on screen and plainly read, is
+/// worse than the risk of reading the wrong one.
+///
+/// Kept narrow all the same: only a cell that is nothing but a number, only
+/// values a signature can take, and the nearest to the middle of the area when
+/// there are two.
+fn signature_in_text(lines: &[OcrLine], cap: &Captured) -> Option<f64> {
+    let middle = (cap.width as i32 / 2, cap.height as i32 / 2);
+    let mut found: Vec<(i32, f64)> = lines
+        .iter()
+        .filter(|line| {
+            // The icon beside the number is read as a character as often as
+            // not — "? 16.720" — and that is the badge, not a disqualification.
+            // A letter is: every other number on the HUD wears a unit.
+            let text = line.text.trim();
+            !text.is_empty()
+                && text.chars().any(|c| c.is_ascii_digit())
+                && !text.chars().any(|c| c.is_ascii_alphabetic())
+        })
+        .filter_map(|line| {
+            // Read as strictly as a badge's own number is: a token has to be
+            // digits and thousands separators and nothing else. A reader that
+            // turns one digit into a letter — "16,72O" — then hands back 1672
+            // is worse than one that says nothing, because 1672 is a signature
+            // somebody could believe.
+            let value = badge_number(&line.text)?;
+            let (x, y) = (line.x + line.w / 2 - middle.0, line.y + line.h / 2 - middle.1);
+            Some((x * x + y * y, value))
+        })
+        .collect();
+    found.sort_by_key(|(distance, _)| *distance);
+    let (_, value) = found.first()?;
+    log::debug!("signature {value} read without its icon");
+    Some(*value)
+}
+
 fn labelled(lines: &[OcrLine], labels: &[&str]) -> Option<f64> {
     for (i, line) in lines.iter().enumerate() {
         let upper = line.text.to_uppercase();
@@ -797,18 +822,16 @@ async fn scan_inner(app: &AppHandle) -> Result<ScanResult, String> {
     let app2 = app.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let started = Instant::now();
-        let state = app2.state::<ScanState>();
-        let mut engine = state.engine.lock().unwrap();
-        if engine.is_none() {
-            status(&app2, "ocr", "loading OCR models", None);
-            *engine = Some(load_engine(&det, &rec)?);
-        }
-        let engine = engine.as_ref().unwrap();
-
-        status(&app2, "capturing", "capturing screen", None);
-        let cap = capture()?;
+        // The same area the live loop watches, and for the same reasons: the
+        // badge is printed in one place — a little above the middle of the
+        // window — and reading the whole window instead means every lit thing
+        // in the HUD gets weighed as a possible badge, on a picture some
+        // twenty times larger than the one that holds the answer.
+        let region = current_region(&app2);
+        status(&app2, "capturing", "capturing the signature area", None);
+        let cap = capture_region(&app2, region)?;
         status(&app2, "ocr", format!("reading {}×{}", cap.width, cap.height), None);
-        analyze(engine, &cap, started)
+        with_reader(&app2, &det, &rec, |reader| analyze(&reader, &cap, started))
     })
     .await
     .map_err(|e| e.to_string())?
@@ -848,6 +871,10 @@ pub(crate) fn live_running(app: &AppHandle) -> bool {
 
 /// Start or stop the live loop; returns whether it is running afterwards.
 pub fn live_toggle(app: &AppHandle) -> bool {
+    if !crate::reading::state(app).on {
+        status(app, "error", "Screen reading is off. Switch it on in StarBuddy and choose the game's window.", None);
+        return false;
+    }
     let state = app.state::<ScanState>();
     let mut live = state.live.lock().unwrap();
     if let Some(stop) = live.take() {
@@ -872,15 +899,34 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
     let mut prev: Option<Vec<u8>> = None;
     let mut last_error = String::new();
     let mut idle_since = Instant::now();
+    // A session's own account of itself, at Info so it is there in a release
+    // build. A loop that quietly stops finding anything looks exactly like one
+    // that is working on a screen with nothing to find, and after an hour
+    // nobody can say which it was.
+    let (mut reads, mut found, mut failed, mut spent) = (0u64, 0u64, 0u64, Duration::ZERO);
+    let mut last_report = Instant::now();
     while !stop.load(Ordering::Relaxed) {
+        // Reading can be switched off mid-flight, and without frames this loop
+        // is nothing but a warning every two seconds. End with the stream.
+        if !crate::reading::state(&app).on {
+            log::info!("live scan: screen reading went off");
+            status(&app, "error", "Screen reading was switched off.", None);
+            break;
+        }
         let region = current_region(&app);
-        let cap = match capture_region(region) {
+        let cap = match capture_region(&app, region) {
             Ok(c) => c,
             Err(e) => {
-                if e != last_error {
+                failed += 1;
+                // Compared without the size the message carries: the active
+                // window is a different size each time it is the wrong one, so
+                // the same fault would otherwise announce itself every couple
+                // of seconds for as long as the session lasts.
+                let kind = e.split(" (tried").next().unwrap_or(&e).to_string();
+                if kind != last_error {
                     log::warn!("live scan capture: {e}");
                     status(&app, "error", format!("live: {e}"), None);
-                    last_error = e;
+                    last_error = kind;
                 }
                 std::thread::sleep(Duration::from_millis(2000));
                 continue;
@@ -897,7 +943,7 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
         let changed = prev.as_ref().map(|p| frame_diff(p, &cap.rgb) > 4.0).unwrap_or(true);
         prev = Some(cap.rgb.clone());
         if !changed && idle_since.elapsed() < Duration::from_secs(3) {
-            std::thread::sleep(Duration::from_millis(if cap.source.contains(" (") { 400 } else { 250 }));
+            std::thread::sleep(Duration::from_millis(250));
             continue;
         }
         idle_since = Instant::now();
@@ -922,24 +968,58 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
                     }
                 }
             }
-            let badges = find_badges(engine.as_ref().unwrap(), &cap);
+            let engine = engine.as_ref().unwrap();
+            // The badge's own number is read by the digits reader, which is
+            // loaded beside the first one and kept for as long as it is.
+            let mut digits = state.digits.lock().unwrap();
+            if digits.is_none() {
+                match models_dir(&app).and_then(|dir| digit_engine_from_dir(&dir)) {
+                    Ok(e) => *digits = Some(e),
+                    Err(e) => log::warn!("digits-only reader unavailable, reading badges as text: {e}"),
+                }
+            }
+            let reader = Reader { text: engine, digits: digits.as_ref().unwrap_or(engine) };
+            let badges = find_badges(&reader, &cap);
+            // Only when the icon was not found: a read of the area costs a
+            // few hundred milliseconds, against two for the pixel scan, and
+            // there is nothing to gain by it when the badge is already in hand.
+            let without_icon = badges
+                .is_empty()
+                .then(|| run_ocr(reader.text, &cap).ok().and_then(|lines| signature_in_text(&lines, &cap)))
+                .flatten();
+            let signature = badges.first().map(|b| b.value).or(without_icon);
             LiveReading {
                 at: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
-                signature: badges.first().map(|b| b.value),
-                matches: badges.first().map(|b| crate::sigs::lookup(&app, b.value)).unwrap_or_default(),
+                signature,
+                // Named from whichever reading was had: a signature with no
+                // icon behind it is still a signature, and a window that
+                // printed the number and then said nothing about the mineral
+                // would be the same silence in a new place.
+                matches: signature.map(|value| crate::sigs::lookup(&app, value)).unwrap_or_default(),
                 badges,
                 region_px: region_px(region, cap.width, cap.full_height),
                 elapsed_ms: started.elapsed().as_millis(),
             }
         };
+        reads += 1;
+        spent += started.elapsed();
         if reading.signature.is_some() {
+            found += 1;
             log::debug!("live scan: signature {:?} in {} ms", reading.signature, reading.elapsed_ms);
         }
+        if last_report.elapsed() >= Duration::from_secs(60) {
+            log::info!(
+                "live scan: {reads} reads, {found} with a signature, {failed} captures failed, {} ms each on average, newest frame {} ms old",
+                spent.as_millis() as u64 / reads.max(1),
+                crate::reading::frame_age().map(|a| a.as_millis() as u64).unwrap_or(0),
+            );
+            (reads, found, failed, spent) = (0, 0, 0, Duration::ZERO);
+            last_report = Instant::now();
+        }
         let _ = app.emit("scan-live", &reading);
-        // A screenshot tool costs ~0.7 s per frame on its own; a short pause
-        // keeps the loop near one reading per second without spinning.
-        let pause = if cap.source.contains(" (") { 300 } else { 400 };
-        std::thread::sleep(Duration::from_millis(pause));
+        // Taking the newest frame off the stream costs nothing, so the pause
+        // is only here to keep the loop near one reading per second.
+        std::thread::sleep(Duration::from_millis(400));
     }
     // Loop ended on its own (error) — reflect that in the state.
     let state = app.state::<ScanState>();
@@ -992,7 +1072,15 @@ mod tests {
     #[test]
     fn numbers_and_labels() {
         assert_eq!(numbers_in("MASS 4,120 kg · SIG 1850"), vec![4120.0, 1850.0]);
-        assert_eq!(numbers_in("3.600 (18.0%)"), vec![3.6, 18.0]);
+        // The reader gives the game's thousands comma back as a full stop
+        // about as often as not, and a signature of 16,720 read as 16.72 is
+        // thrown away for being too small to be one.
+        assert_eq!(numbers_in("3.600 (18.0%)"), vec![3600.0, 18.0]);
+        assert_eq!(numbers_in("? 16.720"), vec![16720.0], "a badge, icon and all");
+        assert_eq!(numbers_in("221.180"), vec![221180.0]);
+        assert_eq!(numbers_in("0.50"), vec![0.5], "a resistance is not five hundred");
+        assert_eq!(numbers_in("0.500"), vec![0.5], "nor is it, written to three places");
+        assert_eq!(numbers_in("1,234.56"), vec![1234.56]);
         let lines = vec![
             OcrLine { text: "SIGNATURE".into(), x: 0, y: 0, w: 10, h: 10 },
             OcrLine { text: "1850".into(), x: 0, y: 12, w: 10, h: 10 },
@@ -1001,6 +1089,124 @@ mod tests {
         assert_eq!(labelled(&lines, &["SIGNATURE"]), Some(1850.0));
         assert_eq!(labelled(&lines, &["MASS"]), Some(4120.0));
         assert_eq!(labelled(&lines, &["RESISTANCE"]), None);
+    }
+
+    /// A frame is 512×201 of HUD; the badge's number sits near the middle.
+    fn framed(lines: &[(&str, i32, i32)]) -> (Vec<OcrLine>, Captured) {
+        let read = lines
+            .iter()
+            .map(|(text, x, y)| OcrLine { text: (*text).into(), x: *x, y: *y, w: 40, h: 14 })
+            .collect();
+        let cap = Captured {
+            rgb: vec![0; 512 * 201 * 3],
+            width: 512,
+            height: 201,
+            source: "test".into(),
+            full_height: 1440,
+            origin: (1024, 374),
+        };
+        (read, cap)
+    }
+
+    #[test]
+    fn a_signature_is_read_without_its_icon_but_not_from_anything() {
+        // What the player sees on the panel while the icon goes unrecognised,
+        // spelled both ways the reader spells it, and with the icon itself
+        // read as a character of its own.
+        let (lines, cap) = framed(&[("11,700", 230, 95)]);
+        assert_eq!(signature_in_text(&lines, &cap), Some(11700.0));
+        let (lines, cap) = framed(&[("11.700", 230, 95)]);
+        assert_eq!(signature_in_text(&lines, &cap), Some(11700.0));
+        let (lines, cap) = framed(&[("? 16.720", 230, 95)]);
+        assert_eq!(signature_in_text(&lines, &cap), Some(16720.0));
+
+        // The nearest to the middle of the area wins, because that is where
+        // the badge is printed and the rest of the HUD is not.
+        let (lines, cap) = framed(&[("2,000", 240, 100), ("48,300", 10, 8)]);
+        assert_eq!(signature_in_text(&lines, &cap), Some(2000.0));
+
+        // A distance, a percentage and a speed are numbers too, and none of
+        // them is a signature.
+        let (lines, cap) = framed(&[("10.4km", 240, 100), ("98%", 250, 90), ("0 m/s", 230, 110)]);
+        assert_eq!(signature_in_text(&lines, &cap), None, "only a bare number counts");
+
+        // Nor is every bare number: a signature is thousands, not a tally.
+        let (lines, cap) = framed(&[("23", 250, 100)]);
+        assert_eq!(signature_in_text(&lines, &cap), None);
+
+        // A digit the reader turned into a letter is not read as the number
+        // that is left over: 16,720 misread is nothing, never 1672.
+        let (lines, cap) = framed(&[("16,72O", 230, 95)]);
+        assert_eq!(signature_in_text(&lines, &cap), None, "a misread digit reads as nothing");
+        let (lines, cap) = framed(&[("l5,600", 230, 95)]);
+        assert_eq!(signature_in_text(&lines, &cap), None);
+        // And a number that never was one: groups have to be groups.
+        let (lines, cap) = framed(&[("16,72", 230, 95)]);
+        assert_eq!(signature_in_text(&lines, &cap), None);
+    }
+
+    /// Every scan-mode screenshot, scored against the value in its own name.
+    ///
+    ///     4.10.0-crusader_starrunner-scan_mode-6800-1.jpg      → 6800
+    ///     4.10.0-crusader_starrunner-scan_mode-4612_11490_4193-3.jpg → three
+    ///     4.10.0-argo_mole-scan_mode--none-2.png               → nothing to find
+    ///
+    ///     cargo test --release --lib scan_corpus -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn scan_corpus() {
+        let models = dirs::data_dir().unwrap().join("io.github.ulrichdahl.starbuddy").join("ocr");
+        let text = engine_from_dir(&models).unwrap();
+        let digits = digit_engine_from_dir(&models).unwrap();
+        let reader = Reader { text: &text, digits: &digits };
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../screenshots");
+        let mut files: Vec<String> = std::fs::read_dir(&root)
+            .unwrap()
+            .filter_map(|e| e.ok().map(|e| e.file_name().to_string_lossy().into_owned()))
+            .filter(|n| n.contains("scan_mode"))
+            .collect();
+        files.sort();
+
+        let (mut right, mut missed, mut wrong) = (0, 0, 0);
+        for file in &files {
+            // The name says what is in the picture: "-6800-1", "-none-2",
+            // or several joined by underscores.
+            let stem = file.rsplit_once('.').map(|(s, _)| s).unwrap_or(file);
+            let part = stem.rsplit("scan_mode-").next().unwrap_or("");
+            let wanted: Vec<f64> = part
+                .trim_start_matches('-')
+                .split(['-', '_'])
+                .filter_map(|piece| piece.parse::<f64>().ok())
+                .filter(|v| *v >= 500.0)
+                .collect();
+
+            let img = image::open(root.join(file)).unwrap().into_rgb8();
+            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.clone(), full_height: img.height(), origin: (0, 0) };
+            // Every one of these is the game's own window — a 49-inch
+            // ultrawide is one screen — so all of them are framed the way the
+            // client frames what it reads.
+            let framed = crop_region(cap, ScanRegion::default()).unwrap();
+            let started = Instant::now();
+            let found: Vec<f64> = find_badges(&reader, &framed).iter().map(|b| b.value).collect();
+
+            let mut hits = 0;
+            for want in &wanted {
+                if found.contains(want) {
+                    hits += 1;
+                } else {
+                    missed += 1;
+                }
+            }
+            let extra = found.iter().filter(|v| !wanted.contains(v)).count();
+            wrong += extra;
+            right += hits;
+            let verdict = if hits == wanted.len() && extra == 0 { "ok  " } else { "MISS" };
+            println!(
+                "{verdict} {file:52} want {wanted:?} found {found:?} ({} ms)",
+                started.elapsed().as_millis()
+            );
+        }
+        println!("\n{right} read, {missed} missed, {wrong} that were never there");
     }
 
     /// Real captures from screenshots/ — needs the OCR models, so it is
@@ -1015,26 +1221,40 @@ mod tests {
             ("4.10.0-anvil-f7c-m-scanning-signature.png", 10200.0),
         ];
         let models = dirs::data_dir().unwrap().join("io.github.ulrichdahl.starbuddy").join("ocr");
-        let engine = engine_from_dir(&models).expect("OCR models present");
+        let text = engine_from_dir(&models).expect("OCR models present");
+        let digits = digit_engine_from_dir(&models).expect("OCR models present");
+        let engine = Reader { text: &text, digits: &digits };
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../screenshots");
         for (file, want) in expected {
             let img = image::open(root.join(file)).unwrap().into_rgb8();
-            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.into(), full_height: img.height() };
-            let result = analyze(&engine, &cap, Instant::now()).unwrap();
+            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.into(), full_height: img.height(), origin: (0, 0) };
+            let result = analyze(&engine, &cap.clone(), Instant::now()).unwrap();
             assert_eq!(result.signature, Some(want), "{file}");
             assert_eq!(result.badges.len(), 1, "{file}: exactly one badge");
+
+            // And again through the crop the client actually reads, which is
+            // the one place a badge has to survive: whole-frame reads are a
+            // debugging convenience, the framed area is the product.
+            let framed = crop_region(cap, ScanRegion::default()).unwrap();
+            let result = analyze(&engine, &framed, Instant::now()).unwrap();
+            println!("{file}: framed {}×{} -> {:?}", framed.width, framed.height, result.signature);
+            assert_eq!(result.signature, Some(want), "{file}, framed area");
         }
     }
 
     #[test]
     fn pin_template_scoring() {
-        // The template itself scores 1; a solid block or nothing at all
-        // sits at 0.5, well under the acceptance threshold.
+        // The template itself scores 1, and a solid block half that. The
+        // floor sits below a solid block on purpose: the same pin scores
+        // anywhere from 0.45 to 0.89 depending on the ship whose HUD drew it,
+        // so a score high enough to exclude a block would exclude a Pisces.
+        // What tells a badge from a block is that a badge has a number beside
+        // it — see PIN_MIN_SCORE.
         let (w, h) = (PIN_TEMPLATE[0].len(), PIN_TEMPLATE.len());
         let exact: Vec<bool> = PIN_TEMPLATE.iter().flat_map(|r| r.bytes().map(|c| c == b'#')).collect();
         assert!((pin_score_mask(&exact, w, h) - 1.0).abs() < 1e-6);
         assert!((pin_score_mask(&vec![true; 20 * 20], 20, 20) - 0.5).abs() < 0.01);
-        assert!(pin_score_mask(&vec![false; 20 * 20], 20, 20) < PIN_MIN_SCORE);
+        assert!(pin_score_mask(&exact, w, h) > pin_score_mask(&vec![true; 20 * 20], 20, 20));
         // Resampling keeps the score: the template drawn at 2× still matches.
         let big: Vec<bool> = (0..h * 2).flat_map(|y| (0..w * 2).map(move |x| PIN_TEMPLATE[y / 2].as_bytes()[x / 2] == b'#')).collect();
         assert!(pin_score_mask(&big, w * 2, h * 2) > 0.99);
@@ -1049,8 +1269,12 @@ mod tests {
         assert_eq!(badge_number("99%"), None);
         assert_eq!(badge_number("7.4km"), None);
         assert_eq!(badge_number("11.8 C"), None);
-        assert_eq!(badge_number("1,234,500"), Some(1234500.0));
+        assert_eq!(badge_number("104,500"), Some(104500.0), "two groups");
         assert_eq!(badge_number("960"), Some(960.0));
+        // A digit the reader made out of the pin beside the number, fused to
+        // the front of it. No signature is a million, so the range catches it.
+        assert_eq!(badge_number("715,600"), None);
+        assert_eq!(badge_number("1,234,500"), None);
         assert!(is_hud(220, 120, 30)); // amber pin
         assert!(is_hud(64, 202, 202)); // cyan pin (F7C-M HUD)
         assert!(!is_hud(200, 200, 200)); // grey

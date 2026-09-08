@@ -15,7 +15,7 @@
   "scan": {
     "title": "Star Citizen installation",
     "detected": "Detected:",
-    "notDetected": "No installation auto-detected. Browse to your StarCitizen LIVE folder, or type its path below:",
+    "notDetected": "No installation auto-detected. Browse to your StarCitizen folder, or type the path to a channel below:",
     "dirPlaceholder": "…/StarCitizen/LIVE",
     "scanButton": "Scan log history",
     "scanning": "Scanning…",
@@ -23,7 +23,11 @@
     "preparing": "Preparing scan…",
     "browse": "Find your installation…",
     "browseChange": "Change…",
-    "browseTitle": "Select the Star Citizen LIVE folder"
+    "browseTitle": "Select the StarCitizen folder, or one channel inside it",
+    "channels": "Channel:",
+    "played": "last played {{when}}",
+    "neverPlayed": "never played",
+    "manualOnly": "test"
   },
   "watcher": {
     "title": "Live watcher",
@@ -270,7 +274,7 @@
       "phase": {
         "downloading": "Getting the OCR models…",
         "capturing": "Capturing the panel…",
-        "ocr": "Reading the panel…",
+        "ocr": "Reading the panel… {{detail}}",
         "error": "{{detail}}"
       },
       "orderCount": "{{count}} work order(s)",
@@ -292,14 +296,48 @@
         "done": "Done"
       },
       "notRefined": "Not being refined (no yield)",
-      "total": "Total"
+      "total": "Total",
+      "addRow": "Add a material row",
+      "removeRow": "Remove this row"
     },
     "capture": {
       "capturing": "Capturing the game window…",
       "uploading": "Sending…",
       "sent": "{{detail}}",
       "error": "{{detail}}"
-    }
+    },
+    "readingStart": "Switch screen reading on",
+    "readingStop": "Switch screen reading off",
+    "readingPick": "Choose the game's window…",
+    "readingHint": "Off. Reading a refinery order, watching the scan badge and sending a training screenshot all need the game's window — switch this on and pick it once. The choice is remembered, so switching on again asks nothing, and the hotkey turns it on and off mid-flight. While it is on, your desktop shows that a window is being shared.",
+    "readingOn": "On — reading {{source}}. Frames are read and dropped; nothing is stored and nothing leaves this machine unless you send it.",
+    "readingSourceUnknown": "the window you chose",
+    "readingNeeded": "These need screen reading switched on.",
+    "hotkeyReading": "Screen reading on/off",
+    "hotkeyUnset": "Click to set",
+    "hotkeyListening": "Listening — hold the keys",
+    "hotkeyPress": "Hold the combination you want. Escape cancels.",
+    "hotkeyHold": "{{keys}} — keep holding, {{seconds}}s",
+    "hotkeyWindows": "If a hotkey does nothing on Windows, StarBuddy also watches the keyboard directly, so a combination another program already owns still reaches it. If nothing arrives at all, the line above says so — and the usual cause left is keyboard software that remaps these keys for the game.",
+    "hotkeyDesktop": "Your desktop delivers these hotkeys, so they work while the game has focus — and it has the last word on them: setting one here is a request, and the key you end up with is the one shown. They can also be changed under your desktop's own keyboard shortcut settings, listed as StarBuddy.",
+    "hotkeyDesktopUnset": "Your desktop has taken these hotkeys over but has not put a key on any of them yet — until it does, they only work while a StarBuddy window has focus. Open your desktop's keyboard shortcut settings, find StarBuddy, and give each one a key. If it is not listed there, bind these commands to keys instead.",
+    "hotkeyChange": "Click to change",
+    "hotkeyNone": "none",
+    "readingBorder": "A yellow border round the game window is Windows saying the window is being captured. Windows 11 lets it be switched off and StarBuddy does; Windows 10 does not, and there it stays until reading is switched off.",
+    "hotkeyHeard": "Last key received: {{action}}. The keys are reaching StarBuddy.",
+    "hotkeyNoneHeard_one": "{{count}} shortcut registered, and no key has reached StarBuddy yet this session.",
+    "hotkeyNoneHeard_other": "{{count}} shortcuts registered, and no key has reached StarBuddy yet this session.",
+    "hotkeyName": {
+      "status": "status window",
+      "scan": "scan",
+      "refinery": "refinery order",
+      "capture": "training screenshot",
+      "reading": "screen reading"
+    },
+    "report": "System info",
+    "reportCopy": "Copy",
+    "reportCopied": "Copied",
+    "readingBorderRefused": "This machine refused StarBuddy borderless capture once, and Windows remembers the answer — which is why the border is there while other machines have none. Press System info below: it prints the registry key holding that answer. Delete the key, start StarBuddy again, and Windows will ask once more."
   },
   "changes": {
     "sinceLive_one": "What’s new — {{count}} change since v{{version}}",

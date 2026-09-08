@@ -16,6 +16,12 @@ interface OrderMaterial {
   refine: boolean;
 }
 
+/** A save the server refused, and the fields it refused. */
+interface SaveRejected {
+  message: string;
+  fields: Record<string, string>;
+}
+
 interface WorkOrder {
   state: OrderState;
   number: number | null;
@@ -81,16 +87,27 @@ function qualityTier(quality: number | null): string | null {
  * Save is pressed.
  */
 export function RefineryOverlay() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [terminal, setTerminal] = useState<RefineryTerminal | null>(null);
   const [status, setStatus] = useState<RefineryStatus>({ phase: "idle", detail: "" });
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
   const [savedIndexes, setSavedIndexes] = useState<number[]>([]);
+  // What the server refused, by the path it names the field with
+  // ("materials.2.quality"), so the row and the cell can be marked.
+  const [rejected, setRejected] = useState<SaveRejected | null>(null);
+  // The duration field while it is being typed in. Reformatting every
+  // keystroke turned "1" into "1m" under the caret and left a field reading
+  // "unknown" impossible to type a number into at all.
+  const [draftDuration, setDraftDuration] = useState<{ order: number; text: string } | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showLines, setShowLines] = useState(false);
 
   useEffect(() => {
     invoke<RefineryTerminal | null>("refinery_last").then((r) => r && setTerminal(r)).catch(() => {});
+    // The hotkey opens this window and starts the read in the same breath, so
+    // the first phases are sent before there is anything here to hear them.
+    // Ask, or a read already running looks like nothing happening.
+    invoke<RefineryStatus>("refinery_status").then(setStatus).catch(() => {});
     const subs = [
       listen<RefineryStatus>("refinery-status", (e) => setStatus(e.payload)),
       listen<RefineryTerminal>("refinery-order", (e) => {
@@ -130,10 +147,71 @@ export function RefineryOverlay() {
     if (!terminal || savingIndex !== null) return;
     setSavingIndex(index);
     setSaveError(null);
+    setRejected(null);
     invoke("refinery_save", { terminal, order: terminal.orders[index] })
-      .then(() => setSavedIndexes((seen) => [...seen, index]))
-      .catch((e: unknown) => setSaveError(String(e)))
+      .then(() => {
+        setSavedIndexes((seen) => [...seen, index]);
+        // The order is recorded, so the window has nothing left to say about
+        // it. Leaving it up with a saved order in it invites a second save of
+        // the same job, and leaves the next read to be merged into a reading
+        // that is already filed. Everything after the last order is saved: the
+        // reading is dropped and the window goes away.
+        if (terminal.orders.every((_, at) => at === index || savedIndexes.includes(at))) {
+          void invoke("refinery_clear").catch(() => {});
+          setTerminal(null);
+          setSavedIndexes([]);
+          void invoke("overlay_toggle", { name: "refinery" }).catch(() => {});
+        }
+      })
+      .catch((e: unknown) => {
+        // A rejection arrives as the server's own message plus the fields it
+        // refused; anything else is a plain string.
+        const refusal = e as SaveRejected;
+        if (refusal && typeof refusal === "object" && typeof refusal.message === "string") {
+          setSaveError(refusal.message);
+          setRejected(refusal);
+        } else {
+          setSaveError(String(e));
+          setRejected(null);
+        }
+      })
       .finally(() => setSavingIndex(null));
+  };
+
+  /** The server's complaint about one cell, if it made one. */
+  const refusalFor = (rowIndex: number, column: string) =>
+    rejected?.fields[`materials.${rowIndex}.${column}`] ?? null;
+
+  const addRow = (index: number) => {
+    setRejected(null);
+    setTerminal((current) => {
+      if (!current) return current;
+      const orders = current.orders.map((order, at) =>
+        at === index
+          ? {
+              ...order,
+              materials: [
+                ...order.materials,
+                { resource: "", quality: null, qty: null, yield_amount: null, to_do: null, done: null, refine: true },
+              ],
+            }
+          : order,
+      );
+      return { ...current, orders };
+    });
+    setSavedIndexes([]);
+  };
+
+  const removeRow = (index: number, rowIndex: number) => {
+    setRejected(null);
+    setTerminal((current) => {
+      if (!current) return current;
+      const orders = current.orders.map((order, at) =>
+        at === index ? { ...order, materials: order.materials.filter((_, r) => r !== rowIndex) } : order,
+      );
+      return { ...current, orders };
+    });
+    setSavedIndexes([]);
   };
 
   const patchTerminal = (change: Partial<RefineryTerminal>) => {
@@ -168,7 +246,11 @@ export function RefineryOverlay() {
     return raw.trim() === "" || Number.isNaN(value) ? null : value;
   };
 
-  const fmt = (n: number | null) => (n === null ? "" : n.toLocaleString(i18n.language));
+  /**
+   * A number in a field that is read back as a number, so no grouping: a
+   * Danish locale writes 2333 as "2.333", which comes back as 2.333.
+   */
+  const fmt = (n: number | null) => (n === null ? "" : String(n));
 
   /** "1d 7m 45s" back into seconds; a bare number is minutes. */
   const parseDuration = (text: string): number | null => {
@@ -257,18 +339,21 @@ export function RefineryOverlay() {
                       {column !== "quality" && ` (${order.unit})`}
                     </th>
                   ))}
+                  <th className="ov-rowbtn" />
                 </tr>
               </thead>
             )}
             <tbody>
               {rows.map((material, rowIndex) => {
                 const at = order.materials.indexOf(material);
+                const bad = (column: string) => refusalFor(at, column);
                 return (
                   <tr key={rowIndex} className={material.refine ? undefined : "ov-off"}>
                     <td>
                       <input
                         value={material.resource}
-                        title={material.refine ? undefined : t("overlay.refinery.notRefined")}
+                        className={bad("resource") ? "ov-bad" : undefined}
+                        title={bad("resource") ?? (material.refine ? undefined : t("overlay.refinery.notRefined"))}
                         onChange={(e) => patchMaterial(index, at, { resource: e.target.value })}
                       />
                     </td>
@@ -276,16 +361,30 @@ export function RefineryOverlay() {
                       <td key={column}>
                         <input
                           inputMode="decimal"
-                          className={
-                            column === "quality"
-                              ? `ov-num ov-quality ov-rarity-${qualityTier(material.quality) ?? "poor"}`
-                              : "ov-num"
-                          }
+                          className={[
+                            "ov-num",
+                            column === "quality" ? `ov-quality ov-rarity-${qualityTier(material.quality) ?? "poor"}` : "",
+                            bad(column) ? "ov-bad" : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ")}
+                          title={bad(column) ?? undefined}
                           value={fmt(material[column] as number | null)}
                           onChange={(e) => patchMaterial(index, at, { [column]: numberOrNull(e.target.value) })}
                         />
                       </td>
                     ))}
+                    {!compact && (
+                      <td className="ov-rowbtn">
+                        <button
+                          type="button"
+                          title={t("overlay.refinery.removeRow")}
+                          onClick={() => removeRow(index, at)}
+                        >
+                          ×
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
@@ -301,6 +400,11 @@ export function RefineryOverlay() {
                       {column === "quality" ? "" : fmt(totals[i])}
                     </td>
                   ))}
+                  <td className="ov-rowbtn">
+                    <button type="button" title={t("overlay.refinery.addRow")} onClick={() => addRow(index)}>
+                      +
+                    </button>
+                  </td>
                 </tr>
               </tfoot>
             )}
@@ -314,8 +418,23 @@ export function RefineryOverlay() {
             <span>{order.state === "setup" ? t("overlay.refinery.duration") : t("overlay.refinery.remaining")}</span>
             <input
               className="ov-num"
-              value={duration(order.duration_seconds)}
-              onChange={(e) => patchOrder(index, { duration_seconds: parseDuration(e.target.value) })}
+              // What was typed, while it is being typed. The field otherwise
+              // reformatted on every keystroke — "1" became "1m" under the
+              // caret, and a field showing the word for an unread time could
+              // not be typed a number into at all, because "unknown1" parses
+              // to nothing and put the word straight back.
+              value={draftDuration?.order === index ? draftDuration.text : duration(order.duration_seconds)}
+              onFocus={() =>
+                setDraftDuration({
+                  order: index,
+                  text: order.duration_seconds === null ? "" : duration(order.duration_seconds),
+                })
+              }
+              onBlur={() => setDraftDuration(null)}
+              onChange={(e) => {
+                setDraftDuration({ order: index, text: e.target.value });
+                patchOrder(index, { duration_seconds: parseDuration(e.target.value) });
+              }}
             />
           </label>
           <label className="ov-field">

@@ -1,6 +1,6 @@
 [package]
 name = "starbuddy-client"
-version = "0.1.13"
+version = "0.1.14"
 description = "StarBuddy desktop client — Star Citizen Game.log watcher and org ledger companion"
 authors = ["Ulrich Dahl <ulrich.dahl@gmail.com>"]
 license = "AGPL-3.0-or-later"
@@ -28,15 +28,55 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "mul
 hostname = "0.4"
 ocrs = "0.12"
 rten = "0.24"
+# Word boxes from the detector, so a line can be cut where a panel's column
+# ends rather than run across the gutter into the next one.
+rten-imageproc = "0.24"
 base64 = "0.22"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 log = "0.4"
 tauri-plugin-log = "2"
 
-# Screen capture: xcap on Windows; on Linux the client runs through XWayland
-# (like the Wine game), so plain X11 covers it without PipeWire/DRM deps.
+# Screen capture is a stream of one window on both platforms, taken from the
+# compositor: it is the only way to keep reading a window that is not in front,
+# which is every moment after the player clicks an overlay.
 [target.'cfg(windows)'.dependencies]
-xcap = "0.9"
+# Windows.Graphics.Capture: the same idea as the portal — one window, streamed
+# by the compositor, arriving whether or not it is in front of anything.
+windows-capture = "2"
+# Watching the keyboard for hotkeys the system's own hotkey table never
+# delivers, and asking whether this process is running as administrator.
+# Waiting for one WinRT call to answer. The trait that does the waiting lives
+# here rather than in `windows`, which does not re-export it.
+windows-future = "0.3"
+windows = { version = "0.62", features = [
+    "Graphics_Capture",
+    "Security_Authorization_AppCapabilityAccess",
+    "Wdk_System_SystemServices",
+    "Win32_Foundation",
+    "Win32_System_SystemInformation",
+    "Win32_Security",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Threading",
+    "Win32_System_WinRT",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_WindowsAndMessaging",
+] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-x11rb = "0.13"
+# Capturing one window on Wayland. The compositor will not let an ordinary
+# program screenshot a window it did not put in front, so the desktop portal
+# asks the player which window instead and hands back a PipeWire stream of it —
+# the same road every screen-sharing app takes, and the only one that keeps
+# working when the game is behind something.
+ashpd = { version = "0.13", default-features = false, features = ["tokio", "screencast", "global_shortcuts"] }
+# Reading the portal's stream of shortcut presses.
+futures-util = { version = "0.3", default-features = false, features = ["std"] }
+pipewire = "0.10"
+
+# The OCR crates are unusable unoptimised: one refinery panel takes two and a
+# half minutes in a debug build against two seconds in a release one, which
+# reads as a hung client rather than a slow one. Dependencies are optimised
+# even in dev; the client's own code is not, so it can still be stepped
+# through.
+[profile.dev.package."*"]
+opt-level = 3

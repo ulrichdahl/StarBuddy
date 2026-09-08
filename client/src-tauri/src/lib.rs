@@ -10,7 +10,14 @@ use tauri::{Emitter, Manager};
 
 mod changes;
 mod kde_rule;
+mod reading;
+#[cfg(windows)]
+mod wgc;
+#[cfg(target_os = "linux")]
+mod portal;
 mod overlay;
+mod shortcuts;
+mod winkeys;
 mod refinery;
 mod region;
 pub mod scan;
@@ -116,16 +123,42 @@ fn load_localization(live_dir: &Path) -> HashMap<String, String> {
     map
 }
 
-/// Candidate LIVE directories on this machine, most likely first.
-fn candidate_live_dirs() -> Vec<PathBuf> {
-    let mut dirs_found = Vec::new();
-    let suffix = "Program Files/Roberts Space Industries/StarCitizen/LIVE";
+/// The game's channels, as the launcher names its folders.
+///
+/// LIVE and HOTFIX are the two a player is normally in, and which of them holds
+/// the current build is not something the folder names settle: a hotfix is
+/// often installed by renaming LIVE to HOTFIX and back, and sometimes by
+/// copying it, so both can exist with either one being the stale copy. Auto
+/// detection picks between those two by which was last written to.
+///
+/// PTU and TECH-PREVIEW are separate installs a player opts into, and nobody
+/// wants their evening's play recorded against a test server because a folder
+/// happened to be there. They are offered, never chosen.
+const AUTO_CHANNELS: [&str; 2] = ["LIVE", "HOTFIX"];
+const PICK_CHANNELS: [&str; 3] = ["PTU", "EPTU", "TECH-PREVIEW"];
+
+/// One channel folder found on this machine.
+#[derive(Serialize, Clone)]
+pub struct GameChannel {
+    /// LIVE, HOTFIX, PTU, …
+    pub name: String,
+    pub path: String,
+    /// When its Game.log was last written, as unix milliseconds — the only
+    /// honest answer to which of two channels is the one being played, and in
+    /// milliseconds because two of them can be touched in the same second.
+    pub played_at: Option<i64>,
+    /// Whether detection may choose this one on its own.
+    pub automatic: bool,
+}
+
+/// Candidate StarCitizen install roots on this machine, most likely first.
+fn candidate_install_roots() -> Vec<PathBuf> {
+    let mut roots = Vec::new();
+    let suffix = "Program Files/Roberts Space Industries/StarCitizen";
 
     if cfg!(windows) {
         for drive in ["C", "D", "E"] {
-            dirs_found.push(PathBuf::from(format!(
-                "{drive}:/Program Files/Roberts Space Industries/StarCitizen/LIVE"
-            )));
+            roots.push(PathBuf::from(format!("{drive}:/{suffix}")));
         }
     }
 
@@ -136,11 +169,57 @@ fn candidate_live_dirs() -> Vec<PathBuf> {
             "Games/Star Citizen/drive_c",
             ".local/share/lutris/runners/wine/star-citizen/drive_c",
         ] {
-            dirs_found.push(home.join(prefix).join(suffix));
+            roots.push(home.join(prefix).join(suffix));
         }
     }
 
-    dirs_found
+    roots
+}
+
+fn log_written_at(dir: &Path) -> Option<i64> {
+    let modified = fs::metadata(dir.join("Game.log")).ok()?.modified().ok()?;
+    let since = modified.duration_since(std::time::UNIX_EPOCH).ok()?;
+    Some(since.as_millis() as i64)
+}
+
+/// Every channel folder that exists, from every install root, newest first
+/// within each kind. The same channel found under two roots is listed once.
+fn game_channels_found() -> Vec<GameChannel> {
+    let mut out: Vec<GameChannel> = Vec::new();
+    for root in candidate_install_roots() {
+        for (name, automatic) in AUTO_CHANNELS
+            .iter()
+            .map(|n| (*n, true))
+            .chain(PICK_CHANNELS.iter().map(|n| (*n, false)))
+        {
+            let dir = root.join(name);
+            if !looks_like_live_dir(&dir) {
+                continue;
+            }
+            let path = dir.to_string_lossy().into_owned();
+            if out.iter().any(|c| c.path == path) {
+                continue;
+            }
+            out.push(GameChannel { name: name.to_string(), path, played_at: log_written_at(&dir), automatic });
+        }
+    }
+    out
+}
+
+/// The channels on this machine, for the player to choose from.
+#[tauri::command]
+fn game_channels() -> Vec<GameChannel> {
+    game_channels_found()
+}
+
+/// The channel auto-detection would pick: the most recently played of LIVE and
+/// HOTFIX. A folder with no Game.log has never been played and loses to one
+/// that has.
+fn best_automatic_channel() -> Option<GameChannel> {
+    game_channels_found()
+        .into_iter()
+        .filter(|c| c.automatic)
+        .max_by_key(|c| c.played_at.unwrap_or(i64::MIN))
 }
 
 /// Client preferences that are not about the server pairing.
@@ -153,6 +232,10 @@ pub(crate) struct ClientPrefs {
     pub(crate) scan_region: Option<scan::ScanRegion>,
     /// Where the refinery order panel sits, framed by the player (relative).
     pub(crate) refinery_region: Option<scan::ScanRegion>,
+    /// What the client reads the screen from, once the player has chosen it:
+    /// on Wayland the portal's token for the window, on Windows the window's
+    /// own name. Absent means screen reading has never been switched on.
+    pub(crate) screen_source: Option<String>,
 }
 
 fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -179,12 +262,27 @@ fn looks_like_live_dir(path: &Path) -> bool {
     path.join("Game.log").is_file() || path.join("Bin64").is_dir() || path.join("logbackups").is_dir()
 }
 
+/// The channel folder a browsed path means.
+///
+/// A player browsing to the install root means "whichever of these I am
+/// playing", not LIVE in particular — the folder named LIVE is as likely as
+/// not to be last month's build on a machine where hotfixes are installed by
+/// renaming. A test channel is only ever reached by naming it outright.
 fn normalize_live_dir(path: &Path) -> Option<PathBuf> {
     if looks_like_live_dir(path) {
         return Some(path.to_path_buf());
     }
-    let live = path.join("LIVE");
-    looks_like_live_dir(&live).then_some(live)
+    let mut channels: Vec<(PathBuf, Option<i64>)> = AUTO_CHANNELS
+        .iter()
+        .map(|name| path.join(name))
+        .filter(|dir| looks_like_live_dir(dir))
+        .map(|dir| {
+            let played = log_written_at(&dir);
+            (dir, played)
+        })
+        .collect();
+    channels.sort_by_key(|(_, played)| std::cmp::Reverse(played.unwrap_or(i64::MIN)));
+    channels.into_iter().next().map(|(dir, _)| dir)
 }
 
 /// Remember a folder the player browsed to; returns the LIVE folder used.
@@ -193,7 +291,7 @@ fn set_live_dir(app: tauri::AppHandle, path: String) -> Result<String, String> {
     let chosen = PathBuf::from(path.trim());
     let live = normalize_live_dir(&chosen).ok_or_else(|| {
         format!(
-            "{} does not look like Star Citizen's LIVE folder — it should contain Game.log or Bin64 (…/Roberts Space Industries/StarCitizen/LIVE).",
+            "{} is not one of Star Citizen's game folders — pick a channel (LIVE, HOTFIX, PTU, …) or the StarCitizen folder holding them.",
             chosen.display()
         )
     })?;
@@ -201,10 +299,12 @@ fn set_live_dir(app: tauri::AppHandle, path: String) -> Result<String, String> {
     let mut prefs = load_client_prefs(&app);
     prefs.live_dir = Some(live_str.clone());
     save_client_prefs(&app, &prefs)?;
-    log::info!("LIVE folder set to {live_str}");
+    log::info!("game folder set to {live_str}");
     Ok(live_str)
 }
 
+/// The folder to watch: whatever the player last chose, else the channel that
+/// was last played of the two that may be chosen automatically.
 #[tauri::command]
 fn detect_game_log(app: tauri::AppHandle) -> Option<String> {
     if let Some(saved) = load_client_prefs(&app).live_dir {
@@ -212,10 +312,7 @@ fn detect_game_log(app: tauri::AppHandle) -> Option<String> {
             return Some(saved);
         }
     }
-    candidate_live_dirs()
-        .into_iter()
-        .find(|d| d.join("Game.log").is_file() || d.join("logbackups").is_dir())
-        .map(|d| d.to_string_lossy().into_owned())
+    best_automatic_channel().map(|c| c.path)
 }
 
 fn parse_line(line: &str, localization: &HashMap<String, String>, file: &str) -> Option<LogEvent> {
@@ -394,6 +491,37 @@ fn unpair(app: tauri::AppHandle) -> Result<ConnectionView, String> {
     let path = settings_path(&app)?;
     let _ = fs::remove_file(path);
     Ok(view(None))
+}
+
+/// The server's own account of what it refused, field by field.
+///
+/// Laravel names a rejected field by its path in the body — "materials.0.quality"
+/// — which is exactly enough to point at the row and the cell in the window
+/// rather than showing a sentence about a row nobody can find.
+pub(crate) async fn error_fields(resp: reqwest::Response) -> (String, std::collections::BTreeMap<String, String>) {
+    let status = resp.status();
+    let body = resp.json::<serde_json::Value>().await.ok();
+    let message = body
+        .as_ref()
+        .and_then(|v| v.get("message").and_then(|m| m.as_str()).map(String::from))
+        .unwrap_or_default();
+    let fields = body
+        .as_ref()
+        .and_then(|v| v.get("errors").and_then(|e| e.as_object()))
+        .map(|errors| {
+            errors
+                .iter()
+                .filter_map(|(field, messages)| {
+                    let first = match messages {
+                        serde_json::Value::Array(list) => list.first().and_then(|m| m.as_str()),
+                        other => other.as_str(),
+                    }?;
+                    Some((field.clone(), first.to_string()))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    (format!("Server said {status}: {message}"), fields)
 }
 
 pub(crate) async fn error_body(resp: reqwest::Response) -> String {
@@ -719,6 +847,86 @@ fn parse_semver(s: &str) -> Option<(u64, u64, u64)> {
 
 /// Where the debug log lives (Linux ~/.local/share/<id>/logs, Windows
 /// %LOCALAPPDATA%\\<id>\\logs); shown in the client so testers can find it.
+/// Everything a bug report needs about this machine, in one block.
+///
+/// Asking a player to find a log file and quote the right five lines of it is
+/// asking too much, and the answers that matter — which Windows this is, which
+/// capture switches it answered to, whether a hotkey has ever arrived — are
+/// all things the client already knows.
+#[tauri::command]
+fn system_report(app: tauri::AppHandle) -> String {
+    let mut lines = vec![
+        format!(
+            "StarBuddy {} {} on {} {}",
+            env!("CARGO_PKG_VERSION"),
+            option_env!("STARBUDDY_BUILD").unwrap_or("release"),
+            std::env::consts::OS,
+            std::env::consts::ARCH
+        ),
+    ];
+
+    #[cfg(windows)]
+    {
+        lines.push(match wgc::version() {
+            Some((major, minor, build)) => format!("Windows {major}.{minor} build {build}"),
+            None => "Windows version unknown".into(),
+        });
+        lines.push(match wgc::switch_state() {
+            Some((cursor, border)) => format!(
+                "capture switches: cursor {}, border {} ({})",
+                if cursor { "yes" } else { "no" },
+                if border { "yes" } else { "no" },
+                if border { "asked for no border" } else { "no switch for the border on this build" }
+            ),
+            None => "capture switches: not asked yet, screen reading has not run".into(),
+        });
+        if let Some(answer) = wgc::borderless() {
+            lines.push(format!("borderless capture: {answer}"));
+            if answer.starts_with("denied") {
+                lines.push(format!("  the answer is remembered here: {}", wgc::borderless_consent_key()));
+                lines.push("  delete that key and start StarBuddy again to be asked once more".into());
+            }
+        }
+        lines.push(format!("running from: {}", std::env::current_exe().unwrap_or_default().display()));
+        lines.push(format!("running as administrator: {}", winkeys::elevated()));
+    }
+    #[cfg(target_os = "linux")]
+    {
+        lines.push(format!(
+            "session: {}, desktop {}",
+            std::env::var("XDG_SESSION_TYPE").unwrap_or_else(|_| "unknown".into()),
+            std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_else(|_| "unknown".into())
+        ));
+    }
+
+    let reading = reading::state(&app);
+    lines.push(format!(
+        "screen reading: {}, source {:?}{}",
+        if reading.on { "on" } else { "off" },
+        reading.source,
+        reading.error.map(|e| format!(", error {e}")).unwrap_or_default()
+    ));
+    if let Some(frame) = reading::frame() {
+        lines.push(format!("last frame: {}×{} from {}", frame.width, frame.height, frame.source));
+    }
+
+    let hotkeys = overlay::overlay_hotkey(app);
+    lines.push(format!(
+        "hotkeys: {} registered, {} refused{}",
+        hotkeys.live.len(),
+        hotkeys.failed.len(),
+        if hotkeys.desktop_owned { ", delivered by the desktop" } else { "" }
+    ));
+    for (action, why) in &hotkeys.failed {
+        lines.push(format!("  {action} refused: {why}"));
+    }
+    lines.push(match overlay::heard() {
+        Some((action, ago)) => format!("last key heard: {action}, {}s ago", ago.as_secs()),
+        None => "last key heard: none this session".into(),
+    });
+    lines.join("\n")
+}
+
 #[tauri::command]
 fn log_dir(app: tauri::AppHandle) -> Result<String, String> {
     app.path().app_log_dir().map(|p| p.to_string_lossy().into_owned()).map_err(|e| e.to_string())
@@ -818,6 +1026,60 @@ async fn check_for_update() -> Result<UpdateCheck, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A StarCitizen folder with the named channels in it. They are written in
+    /// order, so the last one named has the newest Game.log — which is the
+    /// only thing that separates two channels that both exist. `false` gives a
+    /// channel that was installed and never launched.
+    fn install_with(channels: &[(&str, bool)]) -> std::path::PathBuf {
+        let root =
+            std::env::temp_dir().join(format!("starbuddy-channels-{}-{:?}", std::process::id(), std::thread::current().id()));
+        let _ = fs::remove_dir_all(&root);
+        for (name, played) in channels {
+            let dir = root.join(name);
+            fs::create_dir_all(&dir).expect("channel dir");
+            if *played {
+                fs::write(dir.join("Game.log"), b"x").expect("Game.log");
+                // Coarse clocks exist; a channel written later must read later.
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            } else {
+                fs::create_dir_all(dir.join("Bin64")).expect("Bin64");
+            }
+        }
+        root
+    }
+
+    #[test]
+    fn the_install_folder_means_whichever_channel_was_played_last() {
+        // A hotfix installed by renaming, then reverted: both folders exist and
+        // only the clock says which one the player is in.
+        let root = install_with(&[("LIVE", true), ("HOTFIX", true)]);
+        assert_eq!(normalize_live_dir(&root), Some(root.join("HOTFIX")));
+    }
+
+    #[test]
+    fn a_channel_that_has_never_been_played_loses_to_one_that_has() {
+        // A copied install that was never launched is not where the log is,
+        // however new the folder itself looks.
+        let root = install_with(&[("HOTFIX", true), ("LIVE", false)]);
+        assert_eq!(normalize_live_dir(&root), Some(root.join("HOTFIX")));
+    }
+
+    #[test]
+    fn a_test_channel_is_never_chosen_for_the_player() {
+        // PTU beside nothing else: browsing to the install folder finds no
+        // channel at all rather than quietly recording an evening against a
+        // test server. Naming the folder itself still works.
+        let root = install_with(&[("PTU", true)]);
+        assert_eq!(normalize_live_dir(&root), None);
+        assert_eq!(normalize_live_dir(&root.join("PTU")), Some(root.join("PTU")));
+    }
+
+    #[test]
+    fn a_channel_folder_names_itself() {
+        let root = install_with(&[("HOTFIX", true)]);
+        assert_eq!(normalize_live_dir(&root.join("HOTFIX")), Some(root.join("HOTFIX")));
+    }
 
     #[test]
     fn dev_stamps() {
@@ -937,8 +1199,8 @@ pub fn run() {
     tauri::Builder::default()
         // Must be first: a second launch hands its args to this instance.
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
-            if args.iter().any(|a| a == overlay::TOGGLE_FLAG) {
-                let _ = overlay::toggle(app, overlay::STATUS);
+            if let Some(action) = overlay::action_in(&args) {
+                overlay::run_action(app, &action);
             } else if let Some(main) = app.get_webview_window("main") {
                 let _ = main.show();
                 let _ = main.set_focus();
@@ -979,6 +1241,9 @@ pub fn run() {
                 std::env::consts::OS,
                 std::env::consts::ARCH
             );
+            if cfg!(windows) {
+                log::info!("running as administrator: {}", winkeys::elevated());
+            }
             migrate_old_config_dir(&handle);
             app.manage(overlay::OverlayState::load(&handle));
             app.manage(scan::ScanState::default());
@@ -987,10 +1252,19 @@ pub fn run() {
             if let Err(e) = overlay::register_hotkeys(&handle) {
                 log::warn!("overlay hotkeys: {e}");
             }
+            // And ask the desktop to deliver them too, where it can. It answers
+            // in its own time; when it does, the X11 grabs are dropped so a key
+            // cannot fire twice.
+            shortcuts::start(&handle);
+            // And on Windows, watch the keyboard itself: the system's hotkey
+            // table accepts every shortcut there and then delivers none of
+            // them while the game is in front.
+            winkeys::watch(&handle);
             overlay::show_if_open(&handle, overlay::STATUS);
             overlay::show_if_open(&handle, scan::SCAN);
-            if std::env::args().any(|a| a == overlay::TOGGLE_FLAG) {
-                let _ = overlay::toggle(&handle, overlay::STATUS);
+            let args: Vec<String> = std::env::args().collect();
+            if let Some(action) = overlay::action_in(&args) {
+                overlay::run_action(&handle, &action);
             }
             // Hidden overlay windows would otherwise keep the process alive
             // after the main window is closed.
@@ -1007,6 +1281,11 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             detect_game_log,
+            game_channels,
+            reading::screen_reading,
+            reading::screen_reading_windows,
+            reading::screen_reading_start,
+            reading::screen_reading_stop,
             set_live_dir,
             scan_backlog,
             get_connection,
@@ -1029,6 +1308,7 @@ pub fn run() {
             scan::scan_last,
             refinery::refinery_read,
             refinery::refinery_last,
+            refinery::refinery_status,
             refinery::refinery_save,
             refinery::refinery_clear,
             region::region_select,
@@ -1043,6 +1323,7 @@ pub fn run() {
             check_for_update,
             app_version,
             log_dir,
+            system_report,
             open_log_dir,
             changes::app_changes,
             scan::scan_live_toggle,

@@ -128,10 +128,25 @@ pub struct Specialization {
 pub struct RefineryState {
     pub last: Mutex<Option<RefineryTerminal>>,
     busy: Mutex<bool>,
+    /// Where the read has got to, kept as well as emitted: the hotkey opens
+    /// the window and starts the read together, so the first phases are sent
+    /// before there is anything listening. The window asks for this on the way
+    /// up rather than showing "press the key" over a read already running.
+    phase: Mutex<Phase>,
+}
+
+#[derive(Serialize, Clone, Default)]
+pub struct Phase {
+    pub phase: String,
+    pub detail: String,
 }
 
 fn status(app: &AppHandle, phase: &str, detail: impl Into<String>) {
-    let _ = app.emit("refinery-status", serde_json::json!({ "phase": phase, "detail": detail.into() }));
+    let now = Phase { phase: phase.to_string(), detail: detail.into() };
+    if let Some(state) = app.try_state::<RefineryState>() {
+        *state.phase.lock().unwrap() = now.clone();
+    }
+    let _ = app.emit("refinery-status", now);
 }
 
 /// The region the player framed, or the whole frame when they have not.
@@ -144,6 +159,16 @@ pub fn trigger(app: &AppHandle) {
     if let Err(e) = crate::overlay::show(app, REFINERY) {
         log::error!("refinery window failed to open: {e}");
     }
+    // Pressing the key again while a read is running is someone asking whether
+    // it is working, not asking for another read. Say where it has got to.
+    if *app.state::<RefineryState>().busy.lock().unwrap() {
+        let now = app.state::<RefineryState>().phase.lock().unwrap().clone();
+        let _ = app.emit("refinery-status", now);
+        return;
+    }
+    // Said before the read is even spawned, so the window that is opening at
+    // this moment has something to show the instant it can show anything.
+    status(app, "capturing", "");
     let app2 = app.clone();
     tauri::async_runtime::spawn(async move {
         if let Err(e) = read(app2.clone()).await {
@@ -165,6 +190,9 @@ pub async fn read_with(app: AppHandle, merge_with_last: bool) -> Result<Refinery
     // frame every second or so. Run them together on the machine that is also
     // running the game and a read that takes two seconds takes minutes — so
     // this says which one to stop rather than appearing to hang.
+    if !crate::reading::state(&app).on {
+        return Err("Screen reading is off. Switch it on in StarBuddy and choose the game's window.".into());
+    }
     if crate::scan::live_running(&app) {
         return Err("The live scan is running and needs the whole machine. Stop it, then read the panel.".into());
     }
@@ -212,16 +240,38 @@ async fn read_inner(app: &AppHandle) -> Result<RefineryTerminal, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let started = std::time::Instant::now();
         status(&app2, "capturing", "grabbing the panel");
-        let full = scan::capture()?;
+        let captured = scan::capture_game(&app2)?;
+        // Kept only when the read is of a framed part of it: that is the case
+        // where the terminal's title may be outside what was read.
+        let full = region.is_some().then(|| captured.clone());
         let cap = match region {
-            Some(r) => scan::crop_region(full, r)?,
-            None => full,
+            Some(r) => scan::crop_region(captured, r)?,
+            None => captured,
         };
 
         status(&app2, "ocr", "reading the panel");
-        let lines = scan::with_engine(&app2, &det, &rec, |engine| read_in_bands(engine, &cap))?;
+        let app3 = app2.clone();
+        let lines = scan::with_engine(&app2, &det, &rec, |engine| {
+            read_bands_with(engine, &cap, &|band, of| status(&app3, "ocr", format!("{band}/{of}")))
+        })?;
 
         let mut order = parse(&lines);
+        // The station's name is printed across the top of the terminal, and a
+        // framed area is usually one panel of it — so the name is off the crop
+        // and the order lands with nowhere to file it. The top of the window
+        // is a strip: cheap to read, and the only place the name can be.
+        if order.station.is_none() {
+            if let Some(whole) = full.as_ref() {
+                let strip = crop_rows(whole, 0, whole.height / 6);
+                match scan::with_engine(&app2, &det, &rec, |engine| scan::run_ocr(engine, &strip)) {
+                    Ok(lines) => order.station = station_in(&lines.iter().collect::<Vec<_>>()),
+                    Err(e) => log::debug!("station strip unread: {e}"),
+                }
+                if order.station.is_some() {
+                    order.missing.retain(|field| field != "station");
+                }
+            }
+        }
         snap_qualities(&app2, &mut order);
         order.lines = lines;
         order.captured_at = std::time::SystemTime::now()
@@ -229,6 +279,14 @@ async fn read_inner(app: &AppHandle) -> Result<RefineryTerminal, String> {
             .map(|d| d.as_millis() as i64)
             .unwrap_or(0);
         order.elapsed_ms = started.elapsed().as_millis() as u64;
+        log::info!(
+            "refinery read: {}×{} in {} ms, {} lines, {} order(s)",
+            cap.width,
+            cap.height,
+            order.elapsed_ms,
+            order.lines.len(),
+            order.orders.len(),
+        );
         send_for_training(&app2, &cap, &order);
         Ok(order)
     })
@@ -313,7 +371,14 @@ fn send_for_training(app: &AppHandle, cap: &Captured, order: &RefineryTerminal) 
 /// small panel text mushy; reading a few shorter bands keeps each one nearer its
 /// native scale. Bands overlap so a row that straddles a cut is still whole in
 /// one of them, and duplicates are dropped on merge.
-fn read_in_bands(engine: &ocrs::OcrEngine, cap: &Captured) -> Result<Vec<OcrLine>, String> {
+///
+/// `progress` is told which band is being read: a tall panel is otherwise
+/// seconds of nothing, and on a slow machine rather more than that.
+fn read_bands_with(
+    engine: &ocrs::OcrEngine,
+    cap: &Captured,
+    progress: &dyn Fn(usize, usize),
+) -> Result<Vec<OcrLine>, String> {
     const TARGET_BAND: u32 = 420;
     const OVERLAP: u32 = 60;
 
@@ -321,12 +386,25 @@ fn read_in_bands(engine: &ocrs::OcrEngine, cap: &Captured) -> Result<Vec<OcrLine
         return scan::run_ocr(engine, cap);
     }
 
+    let step = TARGET_BAND - OVERLAP;
+    let bands = (cap.height.div_ceil(step)).max(1) as usize;
+    let mut band_number = 0usize;
     let mut merged: Vec<OcrLine> = Vec::new();
     let mut top = 0u32;
     while top < cap.height {
+        band_number += 1;
+        progress(band_number, bands);
         let height = TARGET_BAND.min(cap.height - top);
         let band = crop_rows(cap, top, height);
+        let started = std::time::Instant::now();
         let mut lines = scan::run_ocr(engine, &band)?;
+        log::debug!(
+            "refinery band {}×{} at y {top}: {} lines in {} ms",
+            band.width,
+            band.height,
+            lines.len(),
+            started.elapsed().as_millis(),
+        );
         for line in &mut lines {
             line.y += top as i32; // band coordinates back into the capture's
         }
@@ -361,6 +439,7 @@ fn crop_rows(cap: &Captured, top: u32, height: u32) -> Captured {
         height,
         source: cap.source.clone(),
         full_height: cap.full_height,
+        origin: (cap.origin.0, cap.origin.1 + top),
     }
 }
 
@@ -417,9 +496,11 @@ fn reads_as_text(text: &str, label: &str) -> bool {
         return true;
     }
     // A heading the panel clipped, or that OCR stopped short of: "REFINEM" for
-    // REFINEMENT. Only from the front, and only when enough of it is there to
-    // be that word and no other.
-    if label.len() >= 6 && text.len() >= 6 && label.starts_with(&text) {
+    // REFINEMENT. Only from the front, and only when nearly all of it is there:
+    // "REFINE", the table's own column heading, is a prefix of REFINEMENT too,
+    // and taking it for the terminal's title names the station after whatever
+    // line happens to sit top left.
+    if label.len() >= 6 && text.len() + 3 >= label.len() && label.starts_with(&text) {
         return true;
     }
     if label.len() < 6 || text.len() < label.len() {
@@ -766,12 +847,32 @@ fn similarity(a: &str, b: &str) -> f64 {
     if (a.contains(b) || b.contains(a)) && a.len().min(b.len()) * 4 >= a.len().max(b.len()) * 3 {
         return 1.0;
     }
-    let (a, b) = (a.as_bytes(), b.as_bytes());
-    if a.len().abs_diff(b.len()) > 1 {
+    // A misread that drops or adds a letter shifts every letter after it, so
+    // comparing position by position reads a near miss as nothing at all: the
+    // YIELD column comes back as "IFLD", which shares not one position with it
+    // and would lose the column. Edit distance sees the missing letter for
+    // what it is.
+    if a.len().abs_diff(b.len()) > 2 {
         return 0.0;
     }
-    let shared = (0..a.len().min(b.len())).filter(|i| a[*i] == b[*i]).count();
-    shared as f64 / a.len().max(b.len()) as f64
+    1.0 - edits(a, b) as f64 / a.len().max(b.len()).max(1) as f64
+}
+
+/// Levenshtein distance, in characters.
+fn edits(a: &str, b: &str) -> usize {
+    let (a, b): (Vec<char>, Vec<char>) = (a.chars().collect(), b.chars().collect());
+    let mut row: Vec<usize> = (0..=b.len()).collect();
+    for (i, ca) in a.iter().enumerate() {
+        let mut previous = row[0];
+        row[0] = i + 1;
+        for (j, cb) in b.iter().enumerate() {
+            let cost = usize::from(ca != cb);
+            let next = (row[j + 1] + 1).min(row[j] + 1).min(previous + cost);
+            previous = row[j + 1];
+            row[j + 1] = next;
+        }
+    }
+    row[b.len()]
 }
 
 impl Table {
@@ -944,6 +1045,12 @@ fn is_label(text: &str) -> bool {
         "REFINERY CAPACITY",
         "USER DETAILS",
     ];
+    // The terminal marks its own headings with a double slash — "// REFINERY
+    // SYSTEM C47.02", "// FUNDS" — so anything wearing one is a heading
+    // whatever it says, including the ones nothing here lists.
+    if text.trim_start().trim_start_matches(|c: char| c.is_ascii_digit() || c.is_whitespace()).starts_with('/') {
+        return true;
+    }
     let canon = canonical(text);
     if EXACT.iter().any(|label| canon == canonical(label))
         || PHRASES.iter().any(|phrase| canon.contains(&canonical(phrase)))
@@ -968,19 +1075,7 @@ fn near(a: &str, b: &str) -> bool {
     if a.len().abs_diff(b.len()) > 2 {
         return false;
     }
-    let (a, b): (Vec<char>, Vec<char>) = (a.chars().collect(), b.chars().collect());
-    let mut row: Vec<usize> = (0..=b.len()).collect();
-    for (i, ca) in a.iter().enumerate() {
-        let mut previous = row[0];
-        row[0] = i + 1;
-        for (j, cb) in b.iter().enumerate() {
-            let cost = usize::from(ca != cb);
-            let next = (row[j + 1] + 1).min(row[j] + 1).min(previous + cost);
-            previous = row[j + 1];
-            row[j + 1] = next;
-        }
-    }
-    row[b.len()] <= (b.len() / 5).max(1)
+    edits(a, b) <= (b.len() / 5).max(1)
 }
 
 /// The heading over the material *names*, which is not a value column.
@@ -1170,6 +1265,11 @@ fn is_traits_line(text: &str) -> bool {
 struct Anchor<'a> {
     state: OrderState,
     line: &'a OcrLine,
+    /// The "WORK ORDER n" line. One station prints it beside the state, another
+    /// under it and hard left — and in the second the state header is the panel's
+    /// right edge, so the title is what says where the column begins. It also
+    /// carries the order's number.
+    title: &'a OcrLine,
 }
 
 /// The state headers on screen, left to right.
@@ -1178,37 +1278,52 @@ struct Anchor<'a> {
 /// ("COMPLETED    WORK ORDER 2"). The section headings inside a panel — "02 //
 /// PROCESSING" — carry no order number, which is what tells them apart.
 fn anchors<'a>(lines: &'a [OcrLine]) -> Vec<Anchor<'a>> {
-    let mut found: Vec<Anchor> = Vec::new();
-    for cell in lines {
-        let state = if reads_as(cell, "SETUP") {
-            OrderState::Setup
+    let state_of = |cell: &OcrLine| {
+        if reads_as(cell, "SETUP") {
+            Some(OrderState::Setup)
         } else if reads_as(cell, "COMPLETED") {
-            OrderState::Completed
+            Some(OrderState::Completed)
         } else if reads_as(cell, "PROCESSING") {
-            OrderState::Processing
+            Some(OrderState::Processing)
         } else {
-            continue;
-        };
-        // The title and the state must be two cells: a single cell reading
-        // "SETUP WORK ORDER" is the station panel's button, not a panel.
-        //
-        // Matched on the baseline rather than on a shared row, because rows are
-        // grouped across the whole capture and the station panel's own lines
-        // interleave with these — one of them landing between the state and its
-        // title is enough to split them, and then the panel is never found.
-        let titled = lines.iter().any(|l| {
-            !std::ptr::eq(l, cell)
-                && reads_as(l, "WORK ORDER")
-                && (centre_y(l) - centre_y(cell)).abs() <= cell.h.max(l.h)
-                && l.x > cell.x
-                && l.x - cell.x <= cell.h.max(6) * 40
-        });
-        if titled {
-            found.push(Anchor { state, line: cell });
+            None
         }
-    }
-    found.sort_by_key(|a| a.line.x);
-    found
+    };
+
+    let mut headers: Vec<(OrderState, &OcrLine)> =
+        lines.iter().filter_map(|l| state_of(l).map(|state| (state, l))).collect();
+    headers.sort_by_key(|(_, l)| l.x);
+
+    // "WORK ORDER n" titles the panel. A cell that is itself a state header is
+    // the station's own "SETUP WORK ORDER" button, not a panel's title.
+    let mut titles: Vec<&OcrLine> =
+        lines.iter().filter(|l| reads_as(l, "WORK ORDER") && state_of(l).is_none()).collect();
+    titles.sort_by_key(|l| l.x);
+
+    // A panel's title sits beside its state header or on the row under it,
+    // never a screen away. This is also what tells a panel header from a
+    // section heading: "02 // PROCESSING" inside a setup panel reads as a
+    // state, but nothing titles it.
+    let together = |header: &OcrLine, title: &OcrLine| {
+        let size = header.h.max(6);
+        let dy = centre_y(title) - centre_y(header);
+        dy >= -size && dy <= size * 3 && (centre_x(title) - centre_x(header)).abs() <= size * 20
+    };
+    let headers: Vec<(OrderState, &OcrLine)> =
+        headers.into_iter().filter(|(_, h)| titles.iter().any(|t| together(h, t))).collect();
+    let titles: Vec<&OcrLine> =
+        titles.into_iter().filter(|t| headers.iter().any(|(_, h)| together(h, t))).collect();
+
+    // The panels stand side by side and each carries one title, so the nth
+    // title from the left belongs to the nth panel. Nearness cannot decide it:
+    // one station prints the state at the panel's right edge and the title at
+    // its left, which puts a panel's state header closer to the *next* panel's
+    // title than to its own.
+    headers
+        .into_iter()
+        .zip(titles)
+        .map(|((state, line), title)| Anchor { state, line, title })
+        .collect()
 }
 
 /// Split the capture into one group of lines per work order panel.
@@ -1220,10 +1335,14 @@ fn panels<'a>(lines: &'a [OcrLine], anchors: &[Anchor<'a>]) -> Vec<Vec<&'a OcrLi
         .iter()
         .enumerate()
         .map(|(index, anchor)| {
-            // A panel's own headings start a little left of its title.
-            let slack = anchor.line.h.max(6) * 4;
-            let left = anchor.line.x - slack;
-            let right = anchors.get(index + 1).map(|next| next.line.x - slack).unwrap_or(i32::MAX);
+            // The column starts at whichever of the two titles is further left,
+            // and a panel's own headings start a little left of that again.
+            let edge = |a: &Anchor| {
+                let slack = a.line.h.max(6);
+                a.line.x.min(a.title.x) - slack * if a.title.x < a.line.x { 1 } else { 4 }
+            };
+            let left = edge(anchor);
+            let right = anchors.get(index + 1).map(edge).unwrap_or(i32::MAX);
             lines.iter().filter(|l| l.x >= left && l.x < right).collect()
         })
         .collect()
@@ -1251,18 +1370,20 @@ fn unit_in(lines: &[&OcrLine]) -> String {
 }
 
 /// Read one work order panel.
-fn parse_order(lines: &[&OcrLine], state: OrderState, anchor: &OcrLine) -> WorkOrder {
+fn parse_order(lines: &[&OcrLine], state: OrderState, title: &OcrLine) -> WorkOrder {
     let rows = rows(lines);
     let mut order = WorkOrder { state, unit: unit_in(lines), ..Default::default() };
 
-    // The panel's number sits on the state header's own row, to its right.
-    if let Some(row) = rows.iter().find(|row| row.iter().any(|l| std::ptr::eq(*l, anchor))) {
-        order.number = row
-            .iter()
-            .filter(|l| l.x > anchor.x)
-            .find_map(|l| numbers_in(&l.text).into_iter().next())
-            .map(|n| n as i64);
-    }
+    // The number is part of the title — "WORK ORDER 2" — whether the reader
+    // kept them together or split them into two cells on the same row.
+    order.number = numbers_in(&title.text)
+        .into_iter()
+        .next()
+        .or_else(|| {
+            let row = rows.iter().find(|row| row.iter().any(|l| std::ptr::eq(*l, title)))?;
+            row.iter().filter(|l| l.x > title.x).find_map(|l| numbers_in(&l.text).into_iter().next())
+        })
+        .map(|n| n as i64);
 
     // Method: the first line under the "PROCESSING SELECTION" heading, with the
     // trade-off line following it. Only a setup panel has one.
@@ -1347,54 +1468,56 @@ fn total_yield_label<'a>(lines: &[&'a OcrLine], table: &Table) -> Option<&'a Ocr
     lines
         .iter()
         .filter(|l| centre_y(l) > table.header_bottom)
-        .filter(|l| canonical(&l.text) == canonical("YIELD"))
+        // On its own line and nothing else, but not necessarily read whole:
+        // this panel's total comes back as "IELN" as often as "YIELD".
+        .filter(|l| {
+            let mut words = l.text.split_whitespace();
+            words.next().is_some_and(|w| column_for(w) == Some(Column::Yield)) && words.next().is_none()
+        })
         .min_by_key(|l| centre_y(l))
         .copied()
+}
+
+/// The station's name: the terminal titles itself "REFINEMENT CENTER", with
+/// the place it is standing in to the left on the same row.
+///
+/// Given the whole terminal or only the strip across the top of the game's
+/// window — a framed area usually cuts the title off, and then the name has to
+/// be looked for in the window itself. That window has other things in it: a
+/// frame-rate overlay sits in the corner of this player's, and "GPU" read off
+/// it is exactly the sort of thing that must never be offered as a station. So
+/// nothing is taken from outside the title's own band: the name is printed
+/// opposite the title, and anything elsewhere is something else.
+fn station_in(all: &[&OcrLine]) -> Option<String> {
+    let title = find(all, "REFINEMENT")?;
+    // The title is set in much larger type than the name beside it, so the two
+    // do not always land in one row once OCR has had its way with their
+    // heights — but they are still opposite each other.
+    let band = title.h.max(8) * 2;
+    all.iter()
+        .filter(|l| !std::ptr::eq(**l, title))
+        .filter(|l| centre_x(l) < centre_x(title))
+        .filter(|l| (centre_y(l) - centre_y(title)).abs() <= band)
+        // A station is named in a word or two, and never in a heading.
+        .filter(|l| !is_label(&l.text))
+        .filter(|l| l.text.split_whitespace().count() <= 5)
+        .filter(|l| l.text.chars().filter(|c| c.is_alphabetic()).count() >= 3)
+        // The name is the largest text on that line of the terminal, which is
+        // what tells it from the section labels printed above and below it.
+        .max_by_key(|l| (l.h, -l.x))
+        .map(|l| clean_station(&l.text))
 }
 
 /// Turn OCR lines from a refinement terminal into everything on screen.
 pub fn parse(lines: &[OcrLine]) -> RefineryTerminal {
     let all: Vec<&OcrLine> = lines.iter().collect();
-    let all_rows = rows(&all);
     let mut terminal = RefineryTerminal::default();
 
-    // Station: the terminal titles itself "REFINEMENT CENTER", with the place
-    // to its left on the same row.
-    // The station's name sits top left, opposite the REFINEMENT CENTER title.
-    if let Some(title) = find(&all, "REFINEMENT") {
-        if let Some(row) = all_rows.iter().find(|row| row.iter().any(|l| std::ptr::eq(*l, title))) {
-            if let Some(left) = row.iter().find(|l| centre_x(l) < centre_x(title) && !is_label(&l.text)) {
-                terminal.station = Some(clean_station(&left.text));
-            }
-        }
-    }
-    // The title is set in much larger type than the name beside it, so the two
-    // often do not share a row once OCR has had its way with their heights.
-    // Falling back on position alone: the name is the first thing printed, in
-    // the left of the panel, and it is not one of the headings.
-    //
-    // Only ever when the title itself was read, so this cannot name a station
-    // on a capture that is not a refinery terminal at all: the fallback is for
-    // a title whose row broke, not for guessing.
-    if terminal.station.is_none() && find(&all, "REFINEMENT").is_some() {
-        let left_edge = all.iter().map(|l| l.x).min().unwrap_or(0);
-        let top_edge = all.iter().map(|l| centre_y(l)).min().unwrap_or(0);
-        let width = all.iter().map(|l| l.x + l.w).max().unwrap_or(0) - left_edge;
-        let height = all.iter().map(|l| centre_y(l)).max().unwrap_or(0) - top_edge;
-        terminal.station = all
-            .iter()
-            .filter(|l| l.x - left_edge < width / 3)
-            .filter(|l| centre_y(l) - top_edge <= height / 4)
-            // A station is named in a word or two, and never in a heading.
-            .filter(|l| l.text.split_whitespace().count() <= 3 && !is_label(&l.text))
-            .filter(|l| l.text.chars().filter(|c| c.is_alphabetic()).count() >= 3)
-            .min_by_key(|l| centre_y(l))
-            .map(|l| clean_station(&l.text));
-    }
+    terminal.station = station_in(&all);
 
     let anchors = anchors(lines);
     for (panel, anchor) in panels(lines, &anchors).into_iter().zip(&anchors) {
-        terminal.orders.push(parse_order(&panel, anchor.state, anchor.line));
+        terminal.orders.push(parse_order(&panel, anchor.state, anchor.title));
     }
 
     // The station panel is whatever sits left of the first work order.
@@ -1481,11 +1604,27 @@ fn same_material(a: &OrderMaterial, b: &OrderMaterial) -> bool {
     if canonical(&a.resource) != canonical(&b.resource) {
         return false;
     }
-    match (a.quality, b.quality) {
-        (Some(x), Some(y)) => (x - y).abs() < 0.5,
-        // Without a quality to tell them apart, fall back to the amount.
-        _ => a.qty == b.qty && a.yield_amount == b.yield_amount,
+    // Quality is what tells two rows of one ore apart — a panel holds Aluminum
+    // Ore at 318 and again at 783 — so where both readings have it, it decides.
+    if let (Some(x), Some(y)) = (a.quality, b.quality) {
+        return (x - y).abs() < 0.5;
     }
+    // One reading missed the quality. It used to take that as a different row,
+    // which is how reading a scrolling list twice ended up with the same
+    // material listed twice: a row is not a new row because a number was lost
+    // in the second look at it. What both readings did get has to agree.
+    let shared: Vec<(f64, f64)> = [
+        (a.qty, b.qty),
+        (a.yield_amount, b.yield_amount),
+        (a.to_do, b.to_do),
+        (a.done, b.done),
+    ]
+    .into_iter()
+    .filter_map(|(x, y)| x.zip(y))
+    .collect();
+    // Nothing read on either side but the name: nothing says they differ, and
+    // the merge keeps whichever reading turns out to hold more.
+    shared.iter().all(|(x, y)| (x - y).abs() < 0.5)
 }
 
 /// How many of a row's columns were actually read.
@@ -1583,6 +1722,12 @@ pub fn refinery_clear(app: AppHandle) {
     *app.state::<RefineryState>().last.lock().unwrap() = None;
 }
 
+/// Where a read has got to, for a window that has only just opened.
+#[tauri::command]
+pub fn refinery_status(app: AppHandle) -> Phase {
+    app.state::<RefineryState>().phase.lock().unwrap().clone()
+}
+
 #[tauri::command]
 pub fn refinery_last(app: AppHandle) -> Option<RefineryTerminal> {
     app.state::<RefineryState>().last.lock().unwrap().clone()
@@ -1598,7 +1743,7 @@ pub async fn refinery_save(
     app: AppHandle,
     terminal: RefineryTerminal,
     order: WorkOrder,
-) -> Result<serde_json::Value, String> {
+) -> Result<serde_json::Value, SaveRejected> {
     let settings = crate::load_settings(&app).ok_or("Not paired with a server yet.")?;
     let station = terminal.station.clone().ok_or("An order needs a station before it can be saved.")?;
 
@@ -1664,9 +1809,33 @@ pub async fn refinery_save(
         .map_err(|e| format!("Could not reach server: {e}"))?;
 
     if !resp.status().is_success() {
-        return Err(crate::error_body(resp).await);
+        let (message, fields) = crate::error_fields(resp).await;
+        return Err(SaveRejected { message, fields });
     }
-    resp.json().await.map_err(|e| e.to_string())
+    resp.json().await.map_err(|e| SaveRejected::from(e.to_string()))
+}
+
+/// Why an order could not be saved, and which of its fields were the reason.
+///
+/// A rejection used to arrive as one sentence about a row the player then had
+/// to find. The server names what it refused — "materials.2.quality" — so the
+/// window can mark the row and the cell instead.
+#[derive(Serialize)]
+pub struct SaveRejected {
+    pub message: String,
+    pub fields: std::collections::BTreeMap<String, String>,
+}
+
+impl From<String> for SaveRejected {
+    fn from(message: String) -> Self {
+        Self { message, fields: Default::default() }
+    }
+}
+
+impl From<&str> for SaveRejected {
+    fn from(message: &str) -> Self {
+        Self::from(message.to_string())
+    }
 }
 
 fn chrono_now_millis() -> i64 {
@@ -1740,6 +1909,28 @@ mod tests {
         let terminal = parse(&lines);
         let order = terminal.orders.first().expect("an order");
         assert_eq!(order.duration_seconds, Some(26));
+    }
+
+    fn row(resource: &str, quality: Option<f64>, qty: Option<f64>) -> OrderMaterial {
+        OrderMaterial { resource: resource.into(), quality, qty, refine: true, ..Default::default() }
+    }
+
+    #[test]
+    fn a_row_read_twice_is_one_row_even_when_a_number_was_lost() {
+        // The second look at a scrolling list read the quality and the first
+        // did not. Same row, and the fuller reading wins.
+        assert!(same_material(&row("Corundum Ore", None, Some(131.0)), &row("Corundum Ore", Some(504.0), Some(131.0))));
+        // Nothing but the name on one side: nothing says they differ.
+        assert!(same_material(&row("Corundum Ore", None, None), &row("Corundum Ore", Some(504.0), Some(131.0))));
+    }
+
+    #[test]
+    fn two_rows_of_one_ore_stay_two_rows() {
+        // A panel holds the same ore at two qualities, and both readings got
+        // them, so they are told apart by quality.
+        assert!(!same_material(&row("Aluminum Ore", Some(318.0), Some(387.0)), &row("Aluminum Ore", Some(783.0), Some(226.0))));
+        // And without a quality on one side, by the amounts that were read.
+        assert!(!same_material(&row("Aluminum Ore", None, Some(387.0)), &row("Aluminum Ore", Some(783.0), Some(226.0))));
     }
 
     #[test]
@@ -1955,6 +2146,122 @@ mod tests {
 
     /// Two finished orders side by side, the state that proves a capture holds
     /// a list of panels rather than one order.
+    /// The strip across the top of the game's window, which is what the reader
+    /// falls back to when the framed area cut the terminal's title off. A
+    /// frame-rate overlay sits in the corner of it.
+    #[test]
+    fn the_station_is_read_from_beside_the_title_and_nowhere_else() {
+        let strip = vec![
+            line("GPU", 11, 16, 42, 17),
+            line("53", 153, 16, 32, 16),
+            line("CPU", 16, 36, 39, 17),
+            line("IKD3D", 24, 58, 55, 16),
+            line("Frametim", 12, 86, 57, 9),
+            line("// REFINERY SYSTEM C47.02", 326, 163, 198, 14),
+            line("MIC-L5 MODERN ICARUS STATION", 317, 191, 548, 28),
+            line("REFINEMENT CENTER", 1198, 195, 237, 20),
+            line("DK-RAVEN", 1766, 192, 79, 13),
+        ];
+        let all: Vec<&OcrLine> = strip.iter().collect();
+        assert_eq!(station_in(&all).as_deref(), Some("MIC-L5 MODERN ICARUS STATION"));
+
+        // With the name unread, nothing else in the window stands in for it —
+        // the overlay in the corner least of all.
+        let without: Vec<OcrLine> = strip
+            .iter()
+            .filter(|l| !l.text.starts_with("MIC-L5"))
+            .cloned()
+            .collect();
+        let all: Vec<&OcrLine> = without.iter().collect();
+        assert_eq!(station_in(&all), None, "a corner overlay is not a station");
+    }
+
+    /// MIC-L5's terminal, which lays a panel out the other way round: the
+    /// state is printed at the panel's right edge and "WORK ORDER n" under it
+    /// at the left, so the state header of one panel sits nearer the *next*
+    /// panel's title than its own.
+    fn icarus_setup_and_completed() -> Vec<OcrLine> {
+        vec![
+            line("MIC-L5 MODERN ICARUS STATION", 22, 31, 556, 30),
+            line("REFINEMENT CENTER", 904, 36, 239, 20),
+            // The station panel, left of both work orders.
+            line("STATION PROFILE", 23, 116, 148, 14),
+            line("CURRENT CAPACITY", 14, 513, 131, 13),
+            line("8323%", 264, 512, 89, 24),
+            // Setup.
+            line("WORK ORDER", 404, 159, 88, 11),
+            line("0", 505, 159, 10, 11),
+            line("SETUP", 740, 117, 90, 32),
+            line("// RAW MATERIALS", 402, 190, 131, 13),
+            line("// IN MANIFEST", 424, 227, 104, 13),
+            line("4859", 491, 255, 51, 18),
+            line("MATERIALS SELECTED", 403, 460, 146, 12),
+            line("QUALITY", 596, 459, 50, 12),
+            line("OTY", 660, 459, 25, 12),
+            // The yield heading as this panel's type actually reads.
+            line("IFLD REFINE", 738, 458, 98, 14),
+            line("INERT MATERIALS", 437, 494, 151, 16),
+            line("1144", 672, 495, 31, 13),
+            line("HEPHAESTANITE ORE", 435, 548, 152, 16),
+            line("330", 613, 551, 25, 12),
+            line("4385", 676, 550, 28, 12),
+            line("1491", 733, 551, 32, 12),
+            line("TOTAL COST", 391, 808, 103, 15),
+            line("1904.00 aUEC", 688, 806, 150, 24),
+            line("PROCESSING TIME", 390, 878, 157, 15),
+            line("42m 15s", 704, 880, 139, 25),
+            // Completed.
+            line("WORK ORDER", 900, 161, 88, 10),
+            line("1", 1000, 161, 8, 10),
+            line("COMPLETED", 1144, 117, 194, 29),
+            line("MATERIALS YIELDED (CSCU)", 900, 220, 186, 12),
+            line("QUALITY", 1158, 217, 56, 16),
+            line("YIELD", 1255, 221, 34, 12),
+            line("CORUNDUM", 910, 249, 129, 18),
+            line("504", 1173, 252, 24, 13),
+            line("174", 1260, 251, 24, 14),
+            line("QUARTZ", 910, 362, 102, 18),
+            line("522", 1175, 365, 23, 12),
+            line("73", 1266, 365, 16, 12),
+            // The order's total, read short of its first letters.
+            line("IELN", 905, 649, 41, 15),
+            line("1588 cSCU", 1229, 650, 102, 21),
+        ]
+    }
+
+    #[test]
+    fn a_panel_titled_under_its_state_is_still_a_panel() {
+        let terminal = parse(&icarus_setup_and_completed());
+        assert_eq!(terminal.station.as_deref(), Some("MIC-L5 MODERN ICARUS STATION"));
+        assert_eq!(terminal.orders.len(), 2, "one panel per work order");
+
+        let setup = &terminal.orders[0];
+        assert_eq!(setup.state, OrderState::Setup);
+        assert_eq!(setup.number, Some(0));
+        assert_eq!(setup.cost, Some(1904.0));
+        assert_eq!(setup.duration_seconds, Some(2535));
+        assert_eq!(setup.in_manifest, Some(4859.0));
+        // Nothing from the station panel or the completed one leaked in.
+        let names: Vec<&str> = setup.materials.iter().map(|m| m.resource.as_str()).collect();
+        assert_eq!(names, vec!["Inert Materials", "Hephaestanite Ore"]);
+        // A row whose quality and yield were never printed keeps its quantity
+        // in the quantity column rather than sliding left into quality.
+        assert_eq!(setup.materials[0].quality, None);
+        assert_eq!(setup.materials[0].qty, Some(1144.0));
+        assert_eq!(setup.materials[1].quality, Some(330.0));
+        assert_eq!(setup.materials[1].qty, Some(4385.0));
+        assert_eq!(setup.materials[1].yield_amount, Some(1491.0));
+
+        let done = &terminal.orders[1];
+        assert_eq!(done.state, OrderState::Completed);
+        assert_eq!(done.number, Some(1));
+        assert_eq!(done.yield_total, Some(1588.0), "the total under the table, not a material row");
+        let names: Vec<&str> = done.materials.iter().map(|m| m.resource.as_str()).collect();
+        assert_eq!(names, vec!["Corundum", "Quartz"]);
+        assert_eq!(done.materials[1].quality, Some(522.0));
+        assert_eq!(done.materials[1].yield_amount, Some(73.0));
+    }
+
     fn levski_completed_pair() -> Vec<OcrLine> {
         let mut lines = vec![
             line("LEVSKI", 330, 210, 55, 12),
@@ -2310,8 +2617,9 @@ mod corpus {
                 height: crop.height(),
                 source: name.into(),
                 full_height: crop.height(),
+                origin: (0, 0),
             };
-            let lines = read_in_bands(&engine, &cap).unwrap();
+            let lines = read_bands_with(&engine, &cap, &|_, _| {}).unwrap();
             let order = parse(&lines);
             println!("\n=== {name}  {}×{} ===", cap.width, cap.height);
             println!("station {:?}  ship {:?}  capacity {:?}", order.station, order.ship, order.capacity_percent);

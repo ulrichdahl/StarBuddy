@@ -43,10 +43,14 @@ pub async fn send(app: AppHandle) -> Result<String, String> {
     // Checked before the grab so an unpaired client says so without taking a
     // screenshot it has nowhere to send.
     crate::load_settings(&app).ok_or("Not paired with a server yet.")?;
+    if !crate::reading::state(&app).on {
+        return Err("Screen reading is off. Switch it on in StarBuddy and choose the game's window.".into());
+    }
     status(&app, "capturing", "grabbing the game window");
 
-    let png = tauri::async_runtime::spawn_blocking(|| {
-        let cap = crate::scan::capture()?;
+    let for_capture = app.clone();
+    let png = tauri::async_runtime::spawn_blocking(move || {
+        let cap = crate::scan::capture_game(&for_capture)?;
         let bytes = encode_png(&cap)?;
         Ok::<_, String>((bytes, cap.width, cap.height))
     })

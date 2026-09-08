@@ -5,8 +5,20 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { isPermissionGranted, requestPermission, sendNotification } from "@tauri-apps/plugin-notification";
 import { useTranslation } from "react-i18next";
+import { HotkeyCapture } from "./HotkeyCapture";
 import { LOCALE_NAMES, SUPPORTED_LOCALES, setLocale, type Locale } from "./i18n";
 import "./App.css";
+
+/** A game channel folder found on this machine. */
+interface GameChannel {
+  /** LIVE, HOTFIX, PTU, … */
+  name: string;
+  path: string;
+  /** When its Game.log was last written, unix milliseconds. */
+  played_at: number | null;
+  /** Whether detection may choose this one on its own. */
+  automatic: boolean;
+}
 
 interface ScanProgress {
   current: number;
@@ -79,6 +91,35 @@ interface HotkeyInfo {
   toggle_command: string;
   /** action → why that shortcut is not registered, e.g. another app owns it. */
   failed: Record<string, string>;
+  /** The actions whose shortcut is registered and waiting for a key. */
+  live: string[];
+  /** Windows, where a hotkey can be registered and still never arrive. */
+  windows: boolean;
+  /** The desktop holds the shortcuts but has put no key on them yet. */
+  desktop_offered: boolean;
+  /** The desktop delivers the hotkeys itself, and owns what they are set to. */
+  desktop_owned: boolean;
+  /** Command a desktop keybinding can run instead, with the action after it. */
+  action_command: string;
+  /** action → the key the desktop bound, when it is the one delivering. */
+  triggers: Record<string, string>;
+}
+
+/** What the client can see of the game, and whether it is looking. */
+interface Reading {
+  /** Frames are arriving from the chosen window. */
+  on: boolean;
+  /** Whether this machine can read the screen at all. */
+  available: boolean;
+  /** What is being read, in words. */
+  source: string | null;
+  error: string | null;
+  /** Windows draws its own list of windows; elsewhere the desktop asks. */
+  picks_from_list: boolean;
+  /** Windows is drawing its yellow capture border round the game's window. */
+  capture_border: boolean;
+  /** The border is there because borderless capture was refused on this machine. */
+  border_refused: boolean;
 }
 
 /** KWin window rule that keeps overlays above the fullscreen game (Linux/KDE). */
@@ -175,6 +216,15 @@ function BodyText({ text }: { text: string }) {
 function App() {
   const { t, i18n } = useTranslation();
   const [liveDir, setLiveDir] = useState<string | null>(null);
+  /** Whether the client is watching the game's window, and what it says about it. */
+  const [reading, setReading] = useState<Reading | null>(null);
+  /** Windows only: the open windows to choose the game from. */
+  const [gameWindows, setGameWindows] = useState<string[]>([]);
+  const [gameWindow, setGameWindow] = useState("");
+  const [readingBusy, setReadingBusy] = useState(false);
+  // The channel folders found on this machine: LIVE and HOTFIX, plus any test
+  // channel installed, which is offered but never chosen on its own.
+  const [channels, setChannels] = useState<GameChannel[]>([]);
   const [customDir, setCustomDir] = useState("");
   const [liveDirError, setLiveDirError] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -207,12 +257,16 @@ function App() {
   // action → what is typed in its field. Seeded from the client's own
   // hotkey map so every action it knows about gets a row, including ones
   // added after this page was written.
-  const [hotkeyDrafts, setHotkeyDrafts] = useState<Record<string, string>>({});
   const [captureStatus, setCaptureStatus] = useState<{ phase: string; detail: string } | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanLive, setScanLive] = useState(false);
   const [logDir, setLogDir] = useState<string | null>(null);
   const [hotkeyError, setHotkeyError] = useState<string | null>(null);
+  /** The last hotkey that actually arrived, which says delivery works. */
+  const [heardHotkey, setHeardHotkey] = useState<string | null>(null);
+  /** Everything about this machine a bug report needs, when asked for. */
+  const [report, setReport] = useState<string | null>(null);
+  const [reportCopied, setReportCopied] = useState(false);
   const [statusOpen, setStatusOpen] = useState<boolean | null>(null);
   const [kdeRule, setKdeRule] = useState<KdeRuleInfo | null>(null);
   const [kdeRuleError, setKdeRuleError] = useState<string | null>(null);
@@ -226,6 +280,7 @@ function App() {
 
   useEffect(() => {
     invoke<string | null>("detect_game_log").then(setLiveDir);
+    invoke<GameChannel[]>("game_channels").then(setChannels).catch(() => setChannels([]));
     invoke<ConnectionView>("get_connection").then(setConnection);
     invoke<boolean>("watcher_status").then(setWatching);
     // Errors (offline, rate-limited, odd tag) mean "no update info", never an update.
@@ -235,10 +290,10 @@ function App() {
     invoke<string>("log_dir").then(setLogDir).catch(() => {});
     invoke<boolean>("scan_live_running").then(setScanLive).catch(() => {});
     invoke<KdeRuleInfo>("overlay_kde_rule").then(setKdeRule).catch(() => {});
+    invoke<Reading>("screen_reading").then(setReading).catch(() => {});
     invoke<HotkeyInfo>("overlay_hotkey")
       .then((h) => {
         setHotkey(h);
-        setHotkeyDrafts(h.hotkeys);
       })
       .catch(() => {});
 
@@ -256,6 +311,15 @@ function App() {
         if (e.payload[0] === "status") setStatusOpen(e.payload[1]);
       }),
       listen<boolean>("scan-live-state", (e) => setScanLive(e.payload)),
+      // The hotkey switches reading on and off mid-game, so this page is not
+      // the only thing that changes it.
+      listen<Reading>("screen-reading", (e) => setReading(e.payload)),
+      // The desktop answers about the hotkeys in its own time, and can change
+      // them from its own settings afterwards.
+      listen<string>("hotkey-fired", (e) => setHeardHotkey(e.payload)),
+      listen("hotkeys-changed", () => {
+        invoke<HotkeyInfo>("overlay_hotkey").then(setHotkey).catch(() => {});
+      }),
       // The training hotkey has no window of its own, so this line is the
       // only sign it did anything.
       listen<{ phase: string; detail: string }>("training-capture", (e) => setCaptureStatus(e.payload)),
@@ -354,43 +418,57 @@ function App() {
     }
   };
 
+  // Windows: the list of open windows, and the one chosen last time.
+  useEffect(() => {
+    if (!reading?.picks_from_list) return;
+    setGameWindow((chosen) => chosen || reading.source || "");
+    if (!reading.on) void listGameWindows();
+  }, [reading?.picks_from_list, reading?.on, reading?.source]);
+
   const saveHotkey = async (action: string, value: string) => {
     setHotkeyError(null);
     try {
       const info = await invoke<HotkeyInfo>("overlay_set_hotkey", { action, hotkey: value });
       setHotkey(info);
-      setHotkeyDrafts(info.hotkeys);
     } catch (e) {
       setHotkeyError(String(e));
     }
   };
 
-  /** The shortcut field and its save button, for one action. */
-  const hotkeyField = (action: string, label: string, placeholder: string) => {
-    const draft = hotkeyDrafts[action] ?? "";
-    return (
-      <>
-        <input
-          type="text"
-          aria-label={label}
-          placeholder={placeholder}
-          style={{ maxWidth: 160, flex: "0 1 auto" }}
-          value={draft}
-          onChange={(e) => setHotkeyDrafts((prev) => ({ ...prev, [action]: e.target.value }))}
-        />
-        <button
-          disabled={!hotkey || draft.trim() === (hotkey.hotkeys[action] ?? "")}
-          onClick={() => saveHotkey(action, draft)}
-        >
-          {t("overlay.saveHotkey")}
-        </button>
-        {hotkey?.failed?.[action] && (
-          <span className="error" style={{ flex: "1 1 100%", margin: 0 }}>
-            {t("overlay.hotkeyTaken", { detail: hotkey.failed[action] })}
-          </span>
-        )}
-      </>
-    );
+  // Hold the keys rather than type their names: a mistyped accelerator is a
+  // hotkey that never fires and never says why.
+  const hotkeyField = (action: string, label: string, _placeholder: string) => (
+    <HotkeyCapture
+      action={action}
+      label={label}
+      current={(hotkey?.desktop_owned ? hotkey.triggers[action] : undefined) ?? hotkey?.hotkeys[action] ?? ""}
+      failed={hotkey?.failed?.[action] && t("overlay.hotkeyTaken", { detail: hotkey.failed[action] })}
+      onCapture={(action, keys) => void saveHotkey(action, keys)}
+    />
+  );
+
+  // Reading the screen: off until switched on, and off again when asked. On
+  // Windows the window is picked from the list below; on Wayland the desktop
+  // asks, which is why nothing is picked here.
+  const listGameWindows = () =>
+    invoke<string[]>("screen_reading_windows")
+      .then(setGameWindows)
+      .catch(() => setGameWindows([]));
+
+  const toggleReading = async () => {
+    setOverlayError(null);
+    setReadingBusy(true);
+    try {
+      setReading(
+        reading?.on
+          ? await invoke<Reading>("screen_reading_stop")
+          : await invoke<Reading>("screen_reading_start", { window: gameWindow || null }),
+      );
+    } catch (e) {
+      setOverlayError(String(e));
+    } finally {
+      setReadingBusy(false);
+    }
   };
 
   // The same thing the training hotkey does, for checking it works without
@@ -472,6 +550,18 @@ function App() {
       if (typeof picked !== "string") return;
       const live = await invoke<string>("set_live_dir", { path: picked });
       setLiveDir(live);
+      setCustomDir("");
+    } catch (e) {
+      setLiveDirError(String(e));
+    }
+  };
+
+  // Switching channel is the same act as browsing to one, so it is saved the
+  // same way: the choice sticks until it is changed again.
+  const chooseChannel = async (path: string) => {
+    setLiveDirError(null);
+    try {
+      setLiveDir(await invoke<string>("set_live_dir", { path }));
       setCustomDir("");
     } catch (e) {
       setLiveDirError(String(e));
@@ -708,6 +798,74 @@ function App() {
       <section className="panel">
         <h2>{t("overlay.panelTitle")}</h2>
         <p className="hint">{t("overlay.panelHint")}</p>
+        {/* On Windows a hotkey can register and still never fire, and no error
+            is raised for either reason it happens. */}
+        {/* "The hotkey does nothing" is two faults — a key that never reaches
+            the client, and one that reaches it and fails at what it asks for.
+            This line is the only thing on screen that tells them apart. */}
+        {hotkey && (
+          <p className="hint">
+            {heardHotkey
+              ? t("overlay.hotkeyHeard", { action: t(`overlay.hotkeyName.${heardHotkey}`) })
+              : t("overlay.hotkeyNoneHeard", { count: hotkey.live.length })}
+          </p>
+        )}
+        {hotkey?.windows && <p className="hint">{t("overlay.hotkeyWindows")}</p>}
+        {/* Wayland: the compositor delivers the keys, so it is also the place
+            they can be changed for good. */}
+        {hotkey?.desktop_owned && <p className="hint">{t("overlay.hotkeyDesktop")}</p>}
+        {/* KDE takes the shortcuts and leaves every one of them unset, so say
+            where the keys are given out — and give the commands for a desktop
+            that will not list them at all. */}
+        {hotkey?.desktop_offered && !hotkey.desktop_owned && (
+          <details className="update-notes">
+            <summary>{t("overlay.hotkeyDesktopUnset")}</summary>
+            <pre>
+              {["status", "scan", "refinery", "capture", "reading"]
+                .map((action) => `${hotkey.action_command}${action}`)
+                .join("\n")}
+            </pre>
+          </details>
+        )}
+        {/* Everything below this reads the game's window, and nothing reads it
+            until this is on: the frames come from a stream the desktop itself
+            shows as running. */}
+        <div className="row">
+          {reading?.picks_from_list && !reading.on && (
+            <select
+              className="locale-select"
+              style={{ marginLeft: 0, flex: "1 1 240px" }}
+              value={gameWindow}
+              onChange={(e) => setGameWindow(e.target.value)}
+              onMouseDown={() => void listGameWindows()}
+            >
+              <option value="">{t("overlay.readingPick")}</option>
+              {gameWindows.map((w) => (
+                <option key={w} value={w}>
+                  {w}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            className={reading?.on ? "active" : undefined}
+            disabled={readingBusy || (reading?.picks_from_list && !reading.on && !gameWindow)}
+            onClick={() => void toggleReading()}
+          >
+            {reading?.on ? t("overlay.readingStop") : t("overlay.readingStart")}
+          </button>
+          {hotkeyField("reading", t("overlay.hotkeyReading"), "F10")}
+        </div>
+        <p className="hint">
+          {reading?.on
+            ? t("overlay.readingOn", { source: reading.source ?? t("overlay.readingSourceUnknown") })
+            : t("overlay.readingHint")}
+        </p>
+        {reading?.error && <p className="error">{reading.error}</p>}
+        {/* Windows 10 draws a yellow border round whatever is being captured
+            and offers no way to turn it off; Windows 11 does, and it is. */}
+        {reading?.on && reading.capture_border && <p className="hint">{t("overlay.readingBorder")}</p>}
+        {reading?.on && reading.border_refused && <p className="hint">{t("overlay.readingBorderRefused")}</p>}
         <div className="row">
           <button onClick={toggleStatusWindow}>
             {statusOpen ? t("overlay.hideStatus") : t("overlay.showStatus")}
@@ -715,8 +873,12 @@ function App() {
           {hotkeyField("status", t("overlay.hotkeyStatus"), "F6")}
         </div>
         <div className="row">
-          <button onClick={toggleLiveScan}>{scanLive ? t("overlay.liveScanStop") : t("overlay.liveScanStart")}</button>
-          <button onClick={scanNow}>{t("overlay.scanNow")}</button>
+          <button disabled={!reading?.on} onClick={toggleLiveScan}>
+            {scanLive ? t("overlay.liveScanStop") : t("overlay.liveScanStart")}
+          </button>
+          <button disabled={!reading?.on} onClick={scanNow}>
+            {t("overlay.scanNow")}
+          </button>
           {hotkeyField("scan", t("overlay.hotkeyScan"), "F7")}
         </div>
         <p className="hint">{t("overlay.scanHint")}</p>
@@ -728,15 +890,46 @@ function App() {
         </div>
         <p className="hint">{t("overlay.refineryHint")}</p>
         <div className="row">
-          <button onClick={sendTrainingCapture}>{t("overlay.captureNow")}</button>
+          <button disabled={!reading?.on} onClick={sendTrainingCapture}>
+            {t("overlay.captureNow")}
+          </button>
           {hotkeyField("capture", t("overlay.hotkeyCapture"), "F9")}
         </div>
         <p className="hint">{t("overlay.captureHint")}</p>
+        {!reading?.on && <p className="hint">{t("overlay.readingNeeded")}</p>}
         {captureStatus && (
           <p className={captureStatus.phase === "error" ? "error" : "hint"}>
             {t(`overlay.capture.${captureStatus.phase}`, { detail: captureStatus.detail })}
           </p>
         )}
+        {/* What to send when something here does not work. The answers are
+            all things the client knows and nobody should have to dig a log
+            file out of a hidden folder for. */}
+        <div className="row">
+          <button
+            onClick={() =>
+              void invoke<string>("system_report").then((r) => {
+                setReport(r);
+                setReportCopied(false);
+              })
+            }
+          >
+            {t("overlay.report")}
+          </button>
+          {report && (
+            <button
+              onClick={() =>
+                void navigator.clipboard
+                  .writeText(report)
+                  .then(() => setReportCopied(true))
+                  .catch(() => setReportCopied(false))
+              }
+            >
+              {reportCopied ? t("overlay.reportCopied") : t("overlay.reportCopy")}
+            </button>
+          )}
+        </div>
+        {report && <pre className="report">{report}</pre>}
         {scanError && <p className="error">{scanError}</p>}
         {overlayError && <p className="error">{overlayError}</p>}
         {hotkeyError && <p className="error">{hotkeyError}</p>}
@@ -775,6 +968,25 @@ function App() {
           </div>
         )}
         {liveDirError && <p className="error">{liveDirError}</p>}
+        {/* One button per channel installed. LIVE and HOTFIX are the two
+            detection chooses between, by which was played last; a test channel
+            is only ever reached by asking for it here. */}
+        {channels.length > 1 && (
+          <div className="row" style={{ flexWrap: "wrap", alignItems: "baseline", gap: 8 }}>
+            <span className="muted">{t("scan.channels")}</span>
+            {channels.map((channel) => (
+              <button
+                key={channel.path}
+                className={channel.path === liveDir ? "chip on" : "chip"}
+                title={`${channel.path}${channel.played_at ? ` · ${t("scan.played", { when: new Date(channel.played_at).toLocaleString() })}` : ` · ${t("scan.neverPlayed")}`}`}
+                onClick={() => void chooseChannel(channel.path)}
+              >
+                {channel.name}
+                {!channel.automatic && <span className="muted"> · {t("scan.manualOnly")}</span>}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="row">
           <input
             type="text"

@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
@@ -20,15 +20,36 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 pub const STATUS: &str = "status";
 /// Default per action. F6 is unbound in Star Citizen's current default
 /// keyset (F1 mobiGlas, F2 starmap, F4 camera, F11 comms, F12 chat are not).
-/// F8 reads the refinery panel, F9 sends the frame for training. Neither is
-/// bound in Star Citizen's current default keyset, like F6 and F7.
-pub const DEFAULT_HOTKEYS: [(&str, &str); 4] =
-    [("status", "F6"), ("scan", "F7"), ("refinery", "F8"), ("capture", "F9")];
+/// F8 reads the refinery panel, F9 sends the frame for training, F10 switches
+/// reading the screen on and off. None is bound in Star Citizen's current
+/// default keyset, like F6 and F7.
+pub const DEFAULT_HOTKEYS: [(&str, &str); 5] = [
+    ("status", "F6"),
+    ("scan", "F7"),
+    ("refinery", "F8"),
+    ("capture", "F9"),
+    ("reading", "F10"),
+];
 /// Pre-F6 default; a stored copy of it is migrated to the new default.
 const LEGACY_DEFAULT_HOTKEY: &str = "Ctrl+Alt+S";
 /// CLI flag a second launch (or a desktop-environment keybinding) uses to
 /// toggle the status window — the hotkey path for Wayland desktops.
 pub const TOGGLE_FLAG: &str = "--toggle-status";
+/// The same thing for any action: `--action refinery`. A desktop that will not
+/// bind a key to the portal's shortcuts will still run a command on one, and
+/// this is that command — the second launch hands the argument to the running
+/// client and exits.
+pub const ACTION_FLAG: &str = "--action";
+
+/// The action a command line asks for, if it asks for one.
+pub fn action_in(args: &[String]) -> Option<String> {
+    if args.iter().any(|a| a == TOGGLE_FLAG) {
+        return Some("status".into());
+    }
+    let at = args.iter().position(|a| a == ACTION_FLAG)?;
+    let wanted = args.get(at + 1)?;
+    DEFAULT_HOTKEYS.iter().find(|(a, _)| a == wanted).map(|(a, _)| a.to_string())
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(default)]
@@ -501,8 +522,27 @@ pub struct HotkeyInfo {
     /// the compositor; the CLI toggle is the way there.
     pub global_supported: bool,
     pub toggle_command: String,
+    /// The same for any action: this with the action's name after it. What a
+    /// desktop that will not bind the portal's shortcuts can be given instead.
+    pub action_command: String,
     /// action → why that shortcut is not currently registered.
     pub failed: HashMap<String, String>,
+    /// The actions whose shortcut is registered and waiting for a key.
+    pub live: Vec<String>,
+    /// True where the desktop has taken the shortcuts but put no key on any of
+    /// them, which is where they have to be assigned in its own settings.
+    pub desktop_offered: bool,
+    /// True where the desktop itself delivers the hotkeys (the portal's global
+    /// shortcuts). The keys are then the desktop's to change, and what the
+    /// client stores is only what it asked for.
+    pub desktop_owned: bool,
+    /// action → the trigger the desktop bound, when it is the one delivering.
+    pub triggers: HashMap<String, String>,
+    /// Windows has two ways for a hotkey to do nothing that no error reports:
+    /// another program holding the combination, and a game running as
+    /// administrator, which Windows will not let a normal program's hotkeys
+    /// reach. The window says so there rather than leaving it a mystery.
+    pub windows: bool,
 }
 
 fn on_wayland() -> bool {
@@ -516,9 +556,16 @@ pub fn overlay_hotkey(app: AppHandle) -> HotkeyInfo {
     let exe = std::env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|_| "starbuddy".into());
     HotkeyInfo {
         hotkeys,
-        global_supported: !(cfg!(target_os = "linux") && on_wayland() && std::env::var("GDK_BACKEND").as_deref() != Ok("x11")),
+        global_supported: crate::shortcuts::in_charge()
+            || !(cfg!(target_os = "linux") && on_wayland() && std::env::var("GDK_BACKEND").as_deref() != Ok("x11")),
+        desktop_offered: crate::shortcuts::registered(),
+        desktop_owned: crate::shortcuts::in_charge(),
+        triggers: crate::shortcuts::triggers(),
         toggle_command: format!("\"{exe}\" {TOGGLE_FLAG}"),
+        action_command: format!("\"{exe}\" {ACTION_FLAG} "),
         failed: app.state::<OverlayState>().failures.lock().unwrap().clone(),
+        live: app.state::<OverlayState>().registered.lock().unwrap().iter().map(|(_, a)| a.clone()).collect(),
+        windows: cfg!(windows),
     }
 }
 
@@ -548,6 +595,14 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
     }
 
     let previous = app.state::<OverlayState>().prefs.lock().unwrap().hotkeys.insert(action.clone(), hotkey.clone());
+    // Where the desktop delivers the hotkeys there is nothing to grab and
+    // nothing to fail: it is handed the new list and decides for itself, so
+    // this is only ever a request. It may bind something else, and says so.
+    if crate::shortcuts::in_charge() {
+        crate::shortcuts::rebind();
+        save(&app, true);
+        return Ok(overlay_hotkey(app));
+    }
     // Only this action's own failure is a reason to refuse the change. Another
     // action's shortcut may be unavailable for good — a key some other program
     // owns — and that must not make every later rebind fail with it.
@@ -571,10 +626,47 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
     Ok(overlay_hotkey(app))
 }
 
+/// Every action and the shortcut it is set to.
+pub fn wanted_hotkeys(app: &AppHandle) -> Vec<(String, String)> {
+    app.state::<OverlayState>().prefs.lock().unwrap().all_hotkeys()
+}
+
+/// What an action does, in words.
+///
+/// The desktop shows this beside the key in its own shortcut settings, where
+/// "refinery" on its own would tell nobody anything.
+pub fn describe_action(action: &str) -> &'static str {
+    match action {
+        "status" => "Show or hide the server status window",
+        "scan" => "Start or stop reading mining scans",
+        "refinery" => "Read the refinery order on screen",
+        "capture" => "Send a screenshot for training",
+        "reading" => "Switch screen reading on or off",
+        _ => "StarBuddy",
+    }
+}
+
+/// Give up the X11 grabs.
+///
+/// Called when the desktop has taken the hotkeys over: with both in place a
+/// key would fire twice while StarBuddy itself has focus.
+pub fn drop_x11_hotkeys(app: &AppHandle) {
+    if let Err(e) = app.global_shortcut().unregister_all() {
+        log::warn!("could not release the X11 hotkeys: {e}");
+    }
+    app.state::<OverlayState>().registered.lock().unwrap().clear();
+    app.state::<OverlayState>().failures.lock().unwrap().clear();
+}
+
 /// (Re)register every action's shortcut. Errors are returned so the
 /// caller can decide; at startup they are only logged — another app may
 /// own the combination.
 pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
+    // Not while the desktop is delivering them: a key held both ways fires
+    // twice whenever StarBuddy has focus.
+    if crate::shortcuts::in_charge() {
+        return Ok(());
+    }
     let state = app.state::<OverlayState>();
     let wanted = state.prefs.lock().unwrap().all_hotkeys();
     let gs = app.global_shortcut();
@@ -582,6 +674,7 @@ pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
     let mut registered = Vec::new();
     let mut first_err = None;
     let mut failures = HashMap::new();
+    let names: Vec<String> = wanted.iter().map(|(a, k)| format!("{a}={k}")).collect();
     for (action, key) in wanted {
         let outcome = key
             .parse::<Shortcut>()
@@ -594,6 +687,11 @@ pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
                 failures.insert(action, format!("{key}: {e}"));
             }
         }
+    }
+    crate::winkeys::set_bindings(&state.prefs.lock().unwrap().all_hotkeys());
+    log::info!("hotkeys wanted: {}; registered {}, refused {}", names.join(" "), registered.len(), failures.len());
+    for (action, why) in &failures {
+        log::warn!("hotkey {action} refused: {why}");
     }
     *state.registered.lock().unwrap() = registered;
     *state.failures.lock().unwrap() = failures;
@@ -616,22 +714,68 @@ pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
         .iter()
         .find(|(s, _)| s == shortcut)
         .map(|(_, a)| a.clone());
+    match action {
+        Some(action) => run_action(app, &action),
+        None => log::warn!("shortcut fired with no action bound to it"),
+    }
+}
+
+/// The last hotkey to arrive, and when — the fact a report about hotkeys
+/// turns on, and what stops one press being acted on twice.
+fn last_heard() -> &'static Mutex<Option<(String, Instant)>> {
+    static LAST: OnceLock<Mutex<Option<(String, Instant)>>> = OnceLock::new();
+    LAST.get_or_init(|| Mutex::new(None))
+}
+
+/// The last hotkey the client heard, and how long ago.
+pub fn heard() -> Option<(String, Duration)> {
+    last_heard().lock().ok()?.as_ref().map(|(action, at)| (action.clone(), at.elapsed()))
+}
+
+/// Do what a hotkey asks, wherever the key came from.
+///
+/// The plugin's X11 grab and the desktop portal both end up here, and both
+/// call from a thread of their own.
+pub fn run_action(app: &AppHandle, action: &str) {
+    // Two roads carry a key here on Windows — the system's hotkey table and
+    // the keyboard watcher — and on a machine where both work, both arrive.
+    // One press is one action.
+    {
+        let mut last = last_heard().lock().unwrap();
+        if let Some((was, when)) = last.as_ref() {
+            if was == action && when.elapsed() < Duration::from_millis(300) {
+                return;
+            }
+        }
+        *last = Some((action.to_string(), Instant::now()));
+    }
+    // Logged for the reports that say a key does nothing: this line is the
+    // difference between a hotkey that never reached the client and one that
+    // reached it and then failed at something else.
+    log::info!("hotkey: {action}");
+    // Said out loud so the window can show that a key arrived at all. "The
+    // hotkey does nothing" is two different faults — a key that never reaches
+    // the client, and one that reaches it and fails at what it asks for — and
+    // nothing else on screen tells them apart.
+    let _ = app.emit("hotkey-fired", action);
+    let app2 = app.clone();
+    let action = action.to_string();
     // The plugin calls this from its own listener thread, and anything that
     // may build or show a window has to be on the main thread — on Linux the
     // toolkit is not thread-safe, so a hotkey that opens a window silently
     // does nothing from here. A hotkey whose window already exists appears to
     // work, which is what made this look like two broken keys rather than one
     // broken thread.
-    let app2 = app.clone();
-    let dispatch = move || match action.as_deref() {
-        Some("status") => {
+    let dispatch = move || match action.as_str() {
+        "status" => {
             if let Err(e) = toggle(&app2, STATUS) {
                 log::error!("overlay toggle failed: {e}");
             }
         }
-        Some("scan") => crate::scan::trigger(&app2),
-        Some("refinery") => crate::refinery::trigger(&app2),
-        Some("capture") => crate::training::trigger(&app2),
+        "scan" => crate::scan::trigger(&app2),
+        "refinery" => crate::refinery::trigger(&app2),
+        "capture" => crate::training::trigger(&app2),
+        "reading" => crate::reading::trigger(&app2),
         other => log::warn!("unhandled shortcut action {other:?}"),
     };
     if let Err(e) = app.run_on_main_thread(dispatch) {

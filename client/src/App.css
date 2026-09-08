@@ -85,6 +85,30 @@ button.active {
   color: var(--bg);
 }
 
+.muted {
+  color: var(--muted);
+}
+
+/* One per game channel installed, small enough to sit in a row of them. */
+button.chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.9em;
+  border-color: var(--muted);
+  color: var(--muted);
+}
+
+button.chip.on {
+  border-color: var(--accent);
+  color: var(--bg);
+  background: var(--accent);
+}
+
+button.chip .muted {
+  opacity: 0.75;
+  font-size: 0.9em;
+}
+
 code,
 .mono {
   font-family: ui-monospace, monospace;
@@ -405,3 +429,72 @@ th {
 .update-notes { margin-top: 6px; font-size: 13px; }
 .update-notes summary { cursor: pointer; color: var(--muted); }
 .update-notes pre { margin: 6px 0 0; white-space: pre-wrap; font: inherit; color: var(--muted); max-height: 220px; overflow: auto; }
+
+/* Setting a hotkey by holding it: the bar is the four seconds it has to be
+   held for, which is what keeps a combination from being taken while the hand
+   is still assembling it. */
+.hotkey {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hotkey-what {
+  color: var(--muted);
+  font-size: 0.92em;
+}
+
+.hotkey-what kbd {
+  font-family: ui-monospace, monospace;
+  color: var(--ink);
+  border: 1px solid var(--muted);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+.hotkey-none {
+  font-style: italic;
+}
+
+.hotkey-hold {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 260px;
+}
+
+.hotkey-hold-track {
+  flex: 0 0 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.hotkey-hold-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 60ms linear;
+}
+
+.hotkey-failed {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+/* The system-info block: something to select and paste into a bug report. */
+.report {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: ui-monospace, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  user-select: text;
+}
