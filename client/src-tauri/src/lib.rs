@@ -883,8 +883,8 @@ fn system_report(app: tauri::AppHandle) -> String {
         if let Some(answer) = wgc::borderless() {
             lines.push(format!("borderless capture: {answer}"));
             if answer.starts_with("denied") {
-                lines.push(format!("  the answer is remembered here: {}", wgc::borderless_consent_key()));
-                lines.push("  delete that key and start StarBuddy again to be asked once more".into());
+                lines.push("  turn it on under Settings > Privacy & security > Screenshot borders".into());
+                lines.push(format!("  (the answer itself is kept at {})", wgc::borderless_consent_key()));
             }
         }
         lines.push(format!("running from: {}", std::env::current_exe().unwrap_or_default().display()));

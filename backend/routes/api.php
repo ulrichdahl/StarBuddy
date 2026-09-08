@@ -32,7 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('crafts/{audit}/undo', [\App\Http\Controllers\CraftabilityController::class, 'undoCraft']);
 
     Route::get('resource-types', [ResourceTypeController::class, 'index']);
-    Route::apiResource('locations', LocationController::class)->only(['index', 'store', 'update', 'destroy']);
+    // Locations are the shared catalogue only — players pick from it, nobody adds to it.
+    Route::apiResource('locations', LocationController::class)->only(['index']);
     Route::apiResource('resource-stacks', ResourceStackController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::apiResource('item-stacks', ItemStackController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('items', [ItemController::class, 'index']);

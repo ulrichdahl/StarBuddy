@@ -21,6 +21,7 @@
     "import": "Import",
     "admin": "Admin",
     "openNavigation": "Open navigation",
+    "toggleNavigation": "Show or hide the menu labels",
     "mainNavigation": "Main navigation",
     "findItem": "Find an item",
     "findItemPlaceholder": "Find an item…",
@@ -360,7 +361,8 @@
     "bulk": {
       "open": "Add multiple",
       "title": "Add multiple items",
-      "help": "One line per stack. Location applies to the whole batch; visibility is per line and a new line inherits the one above. Quality is optional — for crafted or bought gear."
+      "help": "One line per stack. Location applies to the whole batch; visibility is per line and a new line inherits the one above. Quality is optional — for crafted or bought gear.",
+      "add": "Add items"
     }
   },
   "blueprints": {
@@ -423,7 +425,8 @@
       "eta": "ETA",
       "source": "Source",
       "materials": "Materials",
-      "remaining": "Time left"
+      "remaining": "Time left",
+      "location": "Location"
     },
     "status": {
       "completed": "Completed",
@@ -561,7 +564,8 @@
       "open": "Add multiple",
       "title": "Add multiple materials",
       "help": "One line per stack. Location applies to the whole batch; visibility is per line and a new line inherits the one above.",
-      "noMatch": "No material of that name"
+      "noMatch": "No material of that name",
+      "add": "Add materials"
     },
     "refining": "(refining)",
     "refiningAt": "Refining at {{station}} — collect it on the Refinery page"
@@ -569,7 +573,8 @@
   "locations": {
     "label": "Location",
     "groupPersonal": "Personal",
-    "groupUnknown": "Unknown system"
+    "groupUnknown": "Unknown system",
+    "placeLabel": "System or location"
   },
   "status": {
     "region": "Star Citizen service status",

@@ -21,8 +21,9 @@ use League\Csv\Reader;
  * persisted at preview time.
  *
  * Columns: location, resource, quality, quantity, unit? (crates|pieces),
- * visibility? (private|org). Unknown locations are created for the importer;
- * resources must exist in resource_types.
+ * visibility? (private|org). Locations must be in the shared catalogue and
+ * resources in resource_types; a row naming anything else is an error, not a
+ * new row in either table.
  */
 class ImportController extends Controller
 {
@@ -70,6 +71,15 @@ class ImportController extends Controller
             ->unique('id');
         $byHandle = $members->filter(fn ($m) => $m->handle)->keyBy(fn ($m) => Str::lower($m->handle));
         $byName = $members->keyBy(fn ($m) => Str::lower($m->name));
+
+        // Every place a row may name, keyed the forgiving way: "grimhex" and
+        // "Grim HEX" are the one station.
+        $catalogue = Location::where(function ($q) use ($request) {
+            $q->whereNull('user_id')->whereNull('org_id')
+                ->orWhere('user_id', $request->user()->id)
+                ->orWhereIn('org_id', $request->user()->orgs()->pluck('orgs.id'));
+        })->pluck('id', 'name')
+            ->mapWithKeys(fn ($id, $name) => [Str::lower(str_replace(' ', '', $name)) => $id]);
 
         $rows = [];
         $validCount = 0;
@@ -123,8 +133,17 @@ class ImportController extends Controller
                 }
             }
 
-            if (($record['location'] ?? '') === '') {
+            $locationName = trim($record['location'] ?? '');
+            $locationId = null;
+            if ($locationName === '') {
                 $errors[] = 'Location is required';
+            } else {
+                // Only places the catalogue knows: an import cannot mint a
+                // location any more than a player can.
+                $locationId = $catalogue->get(Str::lower(str_replace(' ', '', $locationName)));
+                if (! $locationId) {
+                    $errors[] = "Unknown location \"{$locationName}\" — pick one the catalogue lists";
+                }
             }
 
             $visibility = Str::lower($record['visibility'] ?? '') ?: 'private';
@@ -145,7 +164,8 @@ class ImportController extends Controller
                 'data' => [
                     'member' => $memberName !== '' ? $memberName : ($request->user()->handle ?? $request->user()->name),
                     'user_id' => $target?->id,
-                    'location' => $record['location'] ?? '',
+                    'location' => $locationName,
+                    'location_id' => $locationId,
                     'resource' => $record['resource'] ?? '',
                     'resource_type_id' => $type?->id,
                     'quality' => $quality === false ? null : $quality,
@@ -199,8 +219,6 @@ class ImportController extends Controller
         $imported = 0;
 
         DB::transaction(function () use ($rows, $user, $orgId, &$imported) {
-            $locations = [];
-
             foreach ($rows as $row) {
                 if ($row['errors']) {
                     continue;
@@ -208,20 +226,10 @@ class ImportController extends Controller
                 $d = $row['data'];
                 $targetId = $d['user_id'] ?? $user->id;
 
-                // Reuse a shared landing zone of that name before creating a
-                // personal location for the target member.
-                $locKey = $targetId.'|'.Str::lower($d['location']);
-                $locations[$locKey] ??= (
-                    Location::whereRaw('lower(name) = ?', [Str::lower($d['location'])])
-                        ->where(fn ($q) => $q->whereNull('user_id')->orWhere('user_id', $targetId))
-                        ->value('id')
-                    ?? Location::create(['user_id' => $targetId, 'name' => $d['location'], 'kind' => 'other'])->id
-                );
-
                 ResourceStack::create([
                     'user_id' => $targetId,
                     'org_id' => $orgId,
-                    'location_id' => $locations[$locKey],
+                    'location_id' => $d['location_id'],
                     'resource_type_id' => $d['resource_type_id'],
                     'quality' => $d['quality'],
                     'quantity' => $d['quantity'],

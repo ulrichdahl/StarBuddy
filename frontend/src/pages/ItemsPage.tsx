@@ -29,6 +29,7 @@ import Typography from '@mui/material/Typography'
 import DeleteIcon from '@mui/icons-material/Delete'
 import EditIcon from '@mui/icons-material/Edit'
 import GroupsIcon from '@mui/icons-material/Groups'
+import PlaylistAddIcon from '@mui/icons-material/PlaylistAdd'
 import UndoIcon from '@mui/icons-material/Undo'
 import ViewListIcon from '@mui/icons-material/ViewList'
 import { qualityColor } from '../lib/rarity'
@@ -38,11 +39,10 @@ import type { ItemStack, Location, OrgInventoryExtra, OrgItemRow, Visibility } f
 import { usePaginatedList } from '../lib/usePaginatedList'
 import { PageHeader } from '../components/PageHeader'
 import { ListPager } from '../components/ListPager'
-import { ItemEntryForm } from '../components/ItemEntryForm'
 import { ItemGridDialog } from '../components/ItemGridDialog'
 import { LocationSelect } from '../components/LocationSelect'
+import { PlaceSelect, type Place } from '../components/PlaceSelect'
 import { OrgMatrixTable } from '../components/OrgMatrixTable'
-import { useSystems } from '../lib/locations'
 
 function EditItemStackDialog({ stack, onClose }: { stack: ItemStack; onClose: () => void }) {
   const { t } = useTranslation()
@@ -151,10 +151,8 @@ export function ItemsPage() {
   const [view, setView] = useState<View>('stacks')
   const [editing, setEditing] = useState<ItemStack | null>(null)
   const [search, setSearch] = useState('')
-  const [filterSystem, setFilterSystem] = useState('')
-  const [filterLocation, setFilterLocation] = useState<Location | null>(null)
+  const [place, setPlace] = useState<Place | null>(null)
   const [filterVisibility, setFilterVisibility] = useState('')
-  const systems = useSystems()
   const [sort, setSort] = useState<SortField>('updated_at')
   const [dir, setDir] = useState<'asc' | 'desc'>('desc')
   const sortBy = (field: SortField) => {
@@ -174,8 +172,8 @@ export function ItemsPage() {
   const { rows: stacks, total, page, setPage, rowsPerPage, setRowsPerPage, isLoading, isError } =
     usePaginatedList<ItemStack>('item-stacks', '/api/item-stacks', 50, {
       search: search || undefined,
-      system: filterSystem || undefined,
-      location_id: filterLocation?.id,
+      system: place?.kind === 'system' ? place.system : undefined,
+      location_id: place?.kind === 'location' ? place.location.id : undefined,
       visibility: filterVisibility || undefined,
       sort,
       dir,
@@ -193,8 +191,8 @@ export function ItemsPage() {
   }
   const org = usePaginatedList<OrgItemRow, OrgInventoryExtra>('org-items', '/api/org/items', 50, {
     search: search || undefined,
-    system: filterSystem || undefined,
-    location_id: filterLocation?.id,
+    system: place?.kind === 'system' ? place.system : undefined,
+    location_id: place?.kind === 'location' ? place.location.id : undefined,
     sort: orgSort,
     dir: orgDir,
   }, { enabled: view === 'org' })
@@ -235,35 +233,30 @@ export function ItemsPage() {
           </ToggleButtonGroup>
         }
       />
-      <Paper sx={{ p: 1.5, mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+      {/* One row from tablet up: the fields give up width to each other
+          rather than pushing the button onto a line of its own. */}
+      <Paper
+        sx={{
+          p: 1.5,
+          mb: 2,
+          display: 'flex',
+          flexWrap: { xs: 'wrap', md: 'nowrap' },
+          gap: 1.5,
+          alignItems: 'center',
+        }}
+      >
         <TextField
           size="small"
           label={t('items.filters.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          sx={{ minWidth: 180 }}
+          sx={{ flex: '2 1 140px', minWidth: 110 }}
         />
-        <TextField
+        <PlaceSelect
           size="small"
-          select
-          label={t('items.columns.system')}
-          value={filterSystem}
-          onChange={(e) => setFilterSystem(e.target.value)}
-          sx={{ width: 150 }}
-        >
-          <MenuItem value="">{t('items.filters.all')}</MenuItem>
-          {systems.map((s) => (
-            <MenuItem key={s} value={s}>
-              {s}
-            </MenuItem>
-          ))}
-        </TextField>
-        <LocationSelect
-          size="small"
-          value={filterLocation}
-          onChange={setFilterLocation}
-          label={t('items.columns.location')}
-          sx={{ minWidth: 220 }}
+          value={place}
+          onChange={setPlace}
+          sx={{ flex: '3 1 200px', minWidth: 150 }}
         />
         {view === 'stacks' && (
           <TextField
@@ -272,13 +265,21 @@ export function ItemsPage() {
             label={t('items.columns.visibility')}
             value={filterVisibility}
             onChange={(e) => setFilterVisibility(e.target.value)}
-            sx={{ width: 130 }}
+            sx={{ flex: '0 1 130px', minWidth: 104 }}
           >
             <MenuItem value="">{t('items.filters.all')}</MenuItem>
             <MenuItem value="private">{t('items.entry.private')}</MenuItem>
             <MenuItem value="org">{t('items.entry.orgVisible')}</MenuItem>
           </TextField>
         )}
+        <Button
+          variant="contained"
+          startIcon={<PlaylistAddIcon />}
+          onClick={() => setBulkOpen(true)}
+          sx={{ ml: 'auto', flexShrink: 0 }}
+        >
+          {t('items.bulk.add')}
+        </Button>
       </Paper>
       {view === 'org' ? (
         <Paper>
@@ -309,120 +310,110 @@ export function ItemsPage() {
           <ListPager total={org.total} page={org.page} rowsPerPage={org.rowsPerPage} onPageChange={org.setPage} onRowsPerPageChange={org.setRowsPerPage} />
         </Paper>
       ) : (
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 3,
-          gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 340px' },
-          alignItems: 'start',
-        }}
-      >
-        <Paper>
-          {isLoading && <LinearProgress />}
-          {isError && <Alert severity="error">{t('items.loadFailed')}</Alert>}
-          {undo.isSuccess && (
-            <Alert severity="info" onClose={() => undo.reset()}>
-              {t('items.undoSuccess')}
-            </Alert>
-          )}
-          {undo.isError && (
-            <Alert severity="error" onClose={() => undo.reset()}>
-              {t('items.undoFailed')}
-            </Alert>
-          )}
-          <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table size="small" aria-label={t('items.tableAria')}>
-              <TableHead>
-                <TableRow>
-                  {header(t('items.columns.item'), 'item')}
-                  {header(t('items.columns.quantity'), 'quantity', 'right')}
-                  {header(t('items.columns.quality'), 'quality', 'right')}
-                  {header(t('items.columns.system'), 'system')}
-                  {header(t('items.columns.location'), 'location')}
-                  {header(t('items.columns.visibility'), 'visibility')}
-                  {header(t('items.columns.updated'), 'updated_at')}
-                  <TableCell align="right" sx={{ width: 80 }} />
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {stacks.map((stack) => (
-                  <TableRow key={stack.id} hover onDoubleClick={() => isMine(stack) && setEditing(stack)}>
-                    <TableCell>
-                      <Tooltip title={stack.item_name ? stack.item_class : ''} placement="top-start">
-                        <span>{stack.item_name ?? stack.item_class}</span>
-                      </Tooltip>
-                      {stack.source === 'craft' && (
-                        <Chip
-                          size="small"
-                          label={t('items.crafted')}
-                          variant="outlined"
-                          color="secondary"
-                          sx={{ ml: 1 }}
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {stack.quantity.toLocaleString(i18n.language)}
-                    </TableCell>
-                    <TableCell align="right" sx={{ color: qualityColor(stack.quality), fontVariantNumeric: 'tabular-nums' }}>
-                      {stack.quality ?? t('common.none')}
-                    </TableCell>
-                    <TableCell>{stack.location.system ?? t('locations.groupPersonal')}</TableCell>
-                    <TableCell>{stack.location.name}</TableCell>
-                    <TableCell>
+      <Paper>
+        {isLoading && <LinearProgress />}
+        {isError && <Alert severity="error">{t('items.loadFailed')}</Alert>}
+        {undo.isSuccess && (
+          <Alert severity="info" onClose={() => undo.reset()}>
+            {t('items.undoSuccess')}
+          </Alert>
+        )}
+        {undo.isError && (
+          <Alert severity="error" onClose={() => undo.reset()}>
+            {t('items.undoFailed')}
+          </Alert>
+        )}
+        <TableContainer sx={{ overflowX: 'auto' }}>
+          <Table size="small" aria-label={t('items.tableAria')}>
+            <TableHead>
+              <TableRow>
+                {header(t('items.columns.item'), 'item')}
+                {header(t('items.columns.quantity'), 'quantity', 'right')}
+                {header(t('items.columns.quality'), 'quality', 'right')}
+                {header(t('items.columns.system'), 'system')}
+                {header(t('items.columns.location'), 'location')}
+                {header(t('items.columns.visibility'), 'visibility')}
+                {header(t('items.columns.updated'), 'updated_at')}
+                <TableCell align="right" sx={{ width: 80 }} />
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {stacks.map((stack) => (
+                <TableRow key={stack.id} hover onDoubleClick={() => isMine(stack) && setEditing(stack)}>
+                  <TableCell>
+                    <Tooltip title={stack.item_name ? stack.item_class : ''} placement="top-start">
+                      <span>{stack.item_name ?? stack.item_class}</span>
+                    </Tooltip>
+                    {stack.source === 'craft' && (
                       <Chip
                         size="small"
-                        label={t(`items.visibility.${stack.visibility}`)}
-                        color={stack.visibility === 'org' ? 'secondary' : 'default'}
+                        label={t('items.crafted')}
                         variant="outlined"
+                        color="secondary"
+                        sx={{ ml: 1 }}
                       />
-                    </TableCell>
-                    <TableCell>{new Date(stack.updated_at).toLocaleDateString(i18n.language)}</TableCell>
-                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
-                      {isMine(stack) && (
-                        <IconButton size="small" aria-label={t('items.editStack')} onClick={() => setEditing(stack)}>
-                          <EditIcon fontSize="inherit" />
-                        </IconButton>
-                      )}
-                      {stack.craft_id !== null &&
-                        isMine(stack) &&
-                        (armedId === stack.id ? (
-                          <Button
-                            size="small"
-                            color="error"
-                            variant="contained"
-                            disabled={undo.isPending}
-                            onClick={() => undo.mutate(stack.craft_id!)}
-                            onMouseLeave={() => setArmedId(null)}
-                          >
-                            {undo.isPending ? t('items.undoing') : t('items.undoConfirm')}
-                          </Button>
-                        ) : (
-                          <Tooltip title={t('items.undoTooltip')}>
-                            <IconButton size="small" onClick={() => setArmedId(stack.id)}>
-                              <UndoIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        ))}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {!isLoading && stacks.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8}>
-                      <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                        {t('items.empty')}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <ListPager total={total} page={page} rowsPerPage={rowsPerPage} onPageChange={setPage} onRowsPerPageChange={setRowsPerPage} />
-        </Paper>
-        <ItemEntryForm onAddMultiple={() => setBulkOpen(true)} />
-      </Box>
+                    )}
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {stack.quantity.toLocaleString(i18n.language)}
+                  </TableCell>
+                  <TableCell align="right" sx={{ color: qualityColor(stack.quality), fontVariantNumeric: 'tabular-nums' }}>
+                    {stack.quality ?? t('common.none')}
+                  </TableCell>
+                  <TableCell>{stack.location.system ?? t('locations.groupPersonal')}</TableCell>
+                  <TableCell>{stack.location.name}</TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={t(`items.visibility.${stack.visibility}`)}
+                      color={stack.visibility === 'org' ? 'secondary' : 'default'}
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell>{new Date(stack.updated_at).toLocaleDateString(i18n.language)}</TableCell>
+                  <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                    {isMine(stack) && (
+                      <IconButton size="small" aria-label={t('items.editStack')} onClick={() => setEditing(stack)}>
+                        <EditIcon fontSize="inherit" />
+                      </IconButton>
+                    )}
+                    {stack.craft_id !== null &&
+                      isMine(stack) &&
+                      (armedId === stack.id ? (
+                        <Button
+                          size="small"
+                          color="error"
+                          variant="contained"
+                          disabled={undo.isPending}
+                          onClick={() => undo.mutate(stack.craft_id!)}
+                          onMouseLeave={() => setArmedId(null)}
+                        >
+                          {undo.isPending ? t('items.undoing') : t('items.undoConfirm')}
+                        </Button>
+                      ) : (
+                        <Tooltip title={t('items.undoTooltip')}>
+                          <IconButton size="small" onClick={() => setArmedId(stack.id)}>
+                            <UndoIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      ))}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!isLoading && stacks.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8}>
+                    <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+                      {t('items.empty')}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <ListPager total={total} page={page} rowsPerPage={rowsPerPage} onPageChange={setPage} onRowsPerPageChange={setRowsPerPage} />
+      </Paper>
       )}
       <ItemGridDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
       {editing && <EditItemStackDialog stack={editing} onClose={() => setEditing(null)} />}

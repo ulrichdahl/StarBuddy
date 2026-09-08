@@ -5,11 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\Location;
 use Illuminate\Http\Request;
 
+/**
+ * The place catalogue: cities and stations synced from SC Trade Tools by
+ * `starbuddy:sync-locations`. It is read-only to players — a location a player
+ * invented would be one nobody else could file anything under, and the same
+ * station typed twice would split a hold in two.
+ */
 class LocationController extends Controller
 {
     public function index(Request $request)
     {
-        // Own locations, org locations, and the shared landing zones.
+        // The catalogue, plus any personal or org location from before the
+        // catalogue was the only source — those still hold things.
         return Location::where(function ($q) use ($request) {
             $q->where('user_id', $request->user()->id)
                 ->orWhereIn('org_id', $request->user()->orgs()->pluck('orgs.id'))
@@ -20,40 +27,5 @@ class LocationController extends Controller
             ->when($request->query('kind'), fn ($q, $kind) => $q->where('kind', $kind))
             ->orderBy('name')
             ->get();
-    }
-
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'kind' => ['sometimes', 'in:hangar,freight_elevator,landing_zone,station,ship,base,refinery,other'],
-            'system' => ['nullable', 'string', 'max:255'],
-            'org_id' => ['nullable', 'exists:orgs,id'],
-        ]);
-
-        $data['user_id'] = $request->user()->id;
-
-        return Location::create($data);
-    }
-
-    public function update(Request $request, Location $location)
-    {
-        abort_unless($location->user_id === $request->user()->id, 403);
-
-        $location->update($request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'kind' => ['sometimes', 'in:hangar,freight_elevator,landing_zone,station,ship,base,refinery,other'],
-            'system' => ['nullable', 'string', 'max:255'],
-        ]));
-
-        return $location;
-    }
-
-    public function destroy(Request $request, Location $location)
-    {
-        abort_unless($location->user_id === $request->user()->id, 403);
-        $location->delete();
-
-        return response()->noContent();
     }
 }
