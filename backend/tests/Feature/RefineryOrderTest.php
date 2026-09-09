@@ -429,7 +429,79 @@ class RefineryOrderTest extends TestCase
             ->assertJsonPath('visibility', 'org', 'the rebuilt stacks keep what they had');
     }
 
-    public function test_a_collected_order_is_history_and_cannot_be_changed(): void
+    public function test_a_haul_with_a_material_nobody_can_name_is_not_collected_yet(): void
+    {
+        // "Haestanite" is a terminal read badly: nothing in the catalogue
+        // matches it, so that line yielded nothing at all.
+        $id = $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order([
+                'materials' => [
+                    ['resource' => 'CORUNDUM', 'quality' => 504, 'qty' => 204, 'yield_amount' => 99, 'refine' => true],
+                    ['resource' => 'HAESTANITE', 'quality' => 612, 'qty' => 300, 'yield_amount' => 140, 'refine' => true],
+                ],
+            ]))
+            ->assertCreated()
+            ->json('id');
+
+        $this->actingAs($this->me)
+            ->postJson("/api/refinery-orders/{$id}/collect", ['location_id' => $this->hangarId])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Name these materials before collecting: HAESTANITE.');
+
+        // Fixing the name is all it takes; the haul then collects whole.
+        $this->actingAs($this->me)
+            ->patchJson("/api/refinery-orders/{$id}", [
+                'materials' => [
+                    ['resource' => 'CORUNDUM', 'quality' => 504, 'qty' => 204, 'yield_amount' => 99, 'refine' => true],
+                    ['resource' => 'HADANITE', 'quality' => 612, 'qty' => 300, 'yield_amount' => 140, 'refine' => true],
+                ],
+            ])
+            ->assertOk();
+
+        $this->actingAs($this->me)
+            ->postJson("/api/refinery-orders/{$id}/collect", ['location_id' => $this->hangarId])
+            ->assertOk();
+
+        $this->assertSame(2, ResourceStack::count());
+    }
+
+    public function test_a_name_corrected_after_collection_adds_what_was_never_recorded(): void
+    {
+        $id = $this->actingAs($this->me)
+            ->postJson('/api/refinery-orders', $this->order([
+                'materials' => [
+                    ['resource' => 'CORUNDUM', 'quality' => 504, 'qty' => 204, 'yield_amount' => 99, 'refine' => true],
+                    ['resource' => 'HAESTANITE', 'quality' => 612, 'qty' => 300, 'yield_amount' => 140, 'refine' => true],
+                ],
+            ]))
+            ->assertCreated()
+            ->json('id');
+
+        // Collected the old way, before the gate existed: the misread line
+        // never became anything.
+        RefineryOrder::find($id)->update([
+            'collected_at' => now(),
+            'collected_location_id' => $this->hangarId,
+        ]);
+        ResourceStack::query()->update(['location_id' => $this->hangarId]);
+
+        $this->actingAs($this->me)
+            ->patchJson("/api/refinery-orders/{$id}", [
+                'materials' => [
+                    ['resource' => 'CORUNDUM', 'quality' => 504, 'qty' => 204, 'yield_amount' => 99, 'refine' => true],
+                    ['resource' => 'HADANITE', 'quality' => 612, 'qty' => 300, 'yield_amount' => 140, 'refine' => true],
+                ],
+            ])
+            ->assertOk();
+
+        $added = ResourceStack::whereHas('resourceType', fn ($q) => $q->where('name', 'Hadanite'))->sole();
+        $this->assertSame($this->hangarId, $added->location_id, 'it belongs where the haul was collected');
+        $this->assertSame(612, $added->quality);
+        $this->assertFalse($added->refining, 'a collected order is not still refining');
+        $this->assertSame(2, ResourceStack::count(), 'the material already recorded is not doubled');
+    }
+
+    public function test_a_correction_after_collection_leaves_the_haul_in_hand_alone(): void
     {
         $id = $this->actingAs($this->me)
             ->postJson('/api/refinery-orders', $this->order())
@@ -440,9 +512,21 @@ class RefineryOrderTest extends TestCase
             ->postJson("/api/refinery-orders/{$id}/collect", ['location_id' => $this->hangarId])
             ->assertOk();
 
+        $before = ResourceStack::sole();
+
+        // The player has since spent half of it, and a typo fix must not
+        // rewrite what they are holding.
+        $before->update(['quantity' => 400]);
+
         $this->actingAs($this->me)
             ->patchJson("/api/refinery-orders/{$id}", ['cost' => 1])
-            ->assertStatus(422);
+            ->assertOk()
+            ->assertJsonPath('cost', 1);
+
+        $after = ResourceStack::sole();
+        $this->assertSame(400, $after->quantity);
+        $this->assertSame($this->hangarId, $after->location_id);
+        $this->assertSame($before->id, $after->id, 'the stack was never rebuilt');
     }
 
     public function test_someone_elses_order_cannot_be_edited(): void
