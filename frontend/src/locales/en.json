@@ -454,7 +454,7 @@
       "captures": "Captures merged",
       "showLines": "Show the {{count}} lines that were read",
       "hideLines": "Hide the read lines",
-      "unmatched": "No catalogue entry for {{materials}}, so nothing was added to your materials for it.",
+      "unmatched": "No catalogue entry for {{materials}}, so nothing was added to your materials for it. Fix the name in the sheet above and save.",
       "destination": "Collect to",
       "destinationHelp": "Where the materials actually went",
       "collect": "Collected",
@@ -462,7 +462,8 @@
       "collectFailed": "Could not collect that order.",
       "collectedTo": "Collected to {{location}}.",
       "visibility": "Visible to",
-      "visibilityHelp": "Who sees the haul"
+      "visibilityHelp": "Who sees the haul",
+      "collectBlocked": "Name every material first: {{materials}}"
     },
     "sheet": {
       "newTitle": "New order",
@@ -477,9 +478,9 @@
       "create": "Record order",
       "save": "Save changes",
       "saveFailed": "Could not save that order.",
-      "frozen": "This order has been collected, so it is kept as it was.",
+      "frozen": "This order has been collected. A correction here can only add materials it never recorded — what is already in your inventory stays as it is.",
       "keys": "↑↓←→ move · type to edit · Enter fills the next empty cell in the line and starts a new line once it is complete · Ctrl+Enter repeats the line · Tab walks the cells · in In and Yield, Ctrl+↑↓ and Shift+↑↓ step by 1 and 100",
-      "readyFrozen": "The refinery has finished this job, so its numbers are settled. All that is left is to say where the materials went.",
+      "readyFrozen": "The refinery has finished this job. Correct anything it misread, then say where the materials went.",
       "title": "Refinery order",
       "delete": "Delete order",
       "deleteConfirm": "Delete for good?",

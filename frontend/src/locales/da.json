@@ -454,7 +454,7 @@
       "captures": "Optagelser lagt sammen",
       "showLines": "Vis de {{count}} aflæste linjer",
       "hideLines": "Skjul de aflæste linjer",
-      "unmatched": "Intet katalogopslag for {{materials}}, så der blev ikke tilføjet noget til dine materialer.",
+      "unmatched": "Intet katalogopslag for {{materials}}, så der blev ikke tilføjet noget til dine materialer. Ret navnet i arket ovenfor, og gem.",
       "destination": "Hent til",
       "destinationHelp": "Hvor materialerne faktisk endte",
       "collect": "Hentet",
@@ -462,7 +462,8 @@
       "collectFailed": "Kunne ikke hente ordren.",
       "collectedTo": "Hentet til {{location}}.",
       "visibility": "Synlig for",
-      "visibilityHelp": "Hvem kan se udbyttet"
+      "visibilityHelp": "Hvem kan se udbyttet",
+      "collectBlocked": "Sæt navn på alle materialer først: {{materials}}"
     },
     "sheet": {
       "newTitle": "Ny ordre",
@@ -477,9 +478,9 @@
       "create": "Registrér ordre",
       "save": "Gem ændringer",
       "saveFailed": "Kunne ikke gemme ordren.",
-      "frozen": "Ordren er hentet, så den bevares som den var.",
+      "frozen": "Ordren er hentet. En rettelse her kan kun tilføje materialer, den aldrig fik registreret — det, der allerede står i dit lager, bliver som det er.",
       "keys": "↑↓←→ flytter · skriv for at redigere · Enter går til næste tomme felt i linjen og starter en ny linje når den er udfyldt · Ctrl+Enter gentager linjen · Tab går gennem felterne · i Ind og Udbytte springer Ctrl+↑↓ og Shift+↑↓ med 1 og 100",
-      "readyFrozen": "Raffinaderiet er færdigt med denne ordre, så tallene ligger fast. Tilbage er kun at sige, hvor materialerne endte.",
+      "readyFrozen": "Raffinaderiet er færdigt med denne ordre. Ret hvad den har læst forkert, og sig så hvor materialerne endte.",
       "title": "Raffinaderiordre",
       "delete": "Slet ordre",
       "deleteConfirm": "Slet permanent?",

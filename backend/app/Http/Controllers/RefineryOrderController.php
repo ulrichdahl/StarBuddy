@@ -109,22 +109,28 @@ class RefineryOrderController extends Controller
     }
 
     /**
-     * Correct an order the refinery is still holding.
+     * Correct an order.
      *
      * A terminal is read in a hurry and its numbers are worth having only if a
-     * mistake can be fixed, so an open order stays editable. Once collected it
-     * is history: the materials are in hand somewhere, and rewriting the order
-     * that produced them would rewrite where they came from.
+     * mistake can be fixed, so an order stays correctable for as long as it
+     * exists. What a correction may do to the materials depends on whether the
+     * haul is still at the refinery:
      *
-     * The stacks are rebuilt rather than patched. They are derived entirely
-     * from the materials list, and a row can change material as easily as it
-     * can change a number, so there is no stable identity to patch against —
-     * only the answer to "what is this order producing", which is recomputed.
+     * While the order is open its stacks are a promise nothing else refers to,
+     * so they are rebuilt from the materials list. They are derived entirely
+     * from it, and a row can change material as easily as it can change a
+     * number, so there is no stable identity to patch against — only the answer
+     * to "what is this order producing", which is recomputed.
+     *
+     * Once collected the haul is inventory the player may since have moved,
+     * split or spent, so nothing already recorded is touched. A correction can
+     * only add what was missing: a misread name that now resolves — the reason
+     * a line went unmatched in the first place — becomes the stack it should
+     * always have been, sitting where the haul was collected.
      */
     public function update(Request $request, RefineryOrder $refineryOrder)
     {
         abort_unless($refineryOrder->user_id === $request->user()->id, 403, 'That order is not yours.');
-        abort_unless($refineryOrder->isOpen(), 422, 'A collected order cannot be changed.');
 
         $data = $request->validate($this->rules(creating: false));
         $user = $request->user();
@@ -139,8 +145,17 @@ class RefineryOrderController extends Controller
             $data['location_id'] = $this->refineryLocation($data['station'])?->id;
         }
 
-        DB::transaction(function () use ($refineryOrder, $data, $user, $visibility) {
+        $wasOpen = $refineryOrder->isOpen();
+
+        DB::transaction(function () use ($refineryOrder, $data, $user, $visibility, $wasOpen) {
             $refineryOrder->update($data);
+
+            if (! $wasOpen) {
+                $this->addMissingStacks($refineryOrder->fresh(), $user, $visibility);
+
+                return;
+            }
+
             $refineryOrder->stacks()->delete();
             $this->openStacks($refineryOrder->fresh(), $user, $visibility);
         });
@@ -192,6 +207,13 @@ class RefineryOrderController extends Controller
         abort_unless($refineryOrder->user_id === $request->user()->id, 403, 'That order is not yours.');
         abort_unless($refineryOrder->isOpen(), 422, 'That order has already been collected.');
 
+        // Collecting is the moment the haul becomes inventory. A line nobody
+        // could match yields nothing, and after collection it is far harder to
+        // notice that something never arrived — so the names are corrected
+        // first, while the order is still in front of the player.
+        $unmatched = $this->unmatched($refineryOrder);
+        abort_if($unmatched !== [], 422, 'Name these materials before collecting: '.implode(', ', $unmatched).'.');
+
         $data = $request->validate([
             'location_id' => ['required', 'exists:locations,id'],
             'collected_at' => ['nullable', 'date'],
@@ -214,6 +236,11 @@ class RefineryOrderController extends Controller
                 $refineryOrder->update(['visibility' => $data['visibility']]);
             }
             $refineryOrder->stacks()->update($changes);
+
+            // An order the catalogue could not place produced no stacks at the
+            // time — there was nowhere to put them. Collecting names a place,
+            // so the haul it yielded arrives now rather than never.
+            $this->addMissingStacks($refineryOrder->fresh(), $refineryOrder->user, $refineryOrder->visibility ?? 'private');
         });
 
         return $this->present(
@@ -290,6 +317,82 @@ class RefineryOrderController extends Controller
                 'refinery_order_id' => $order->id,
             ]);
         }
+    }
+
+    /**
+     * Add the stacks a collected order is still missing.
+     *
+     * Every line the order is refining should have a stack; a line whose name
+     * the catalogue could not place has none. Existing stacks are matched off
+     * against the lines they came from — same material, same quality — and
+     * whatever is left over is what the order never produced, so it is created
+     * now, where the haul was collected.
+     */
+    private function addMissingStacks(RefineryOrder $order, $user, string $visibility): void
+    {
+        $place = $order->collected_location_id ?? $order->location_id;
+        if ($place === null) {
+            return;
+        }
+
+        $orgId = $user->orgs()->value('orgs.id');
+        // Keyed by material and quality, counted: two identical lines want two
+        // stacks, and one already recorded covers only one of them.
+        $have = $order->stacks()->get(['resource_type_id', 'quality'])
+            ->countBy(fn ($stack) => $stack->resource_type_id.':'.$stack->quality)
+            ->all();
+
+        foreach ($order->materials ?? [] as $material) {
+            $amount = (float) ($material['yield_amount'] ?? 0);
+            if ($amount <= 0 || ($material['refine'] ?? true) === false) {
+                continue;
+            }
+            $type = RefineryYield::resolveType((string) ($material['resource'] ?? ''));
+            if (! $type instanceof ResourceType) {
+                continue;
+            }
+            $quantity = RefineryYield::toStackQuantity($amount, $order->unit, $type);
+            if ($quantity === null) {
+                continue;
+            }
+
+            $key = $type->id.':'.(int) round((float) ($material['quality'] ?? 0));
+            if (($have[$key] ?? 0) > 0) {
+                $have[$key]--;
+
+                continue;
+            }
+
+            ResourceStack::create([
+                'user_id' => $order->user_id,
+                'org_id' => $orgId,
+                'location_id' => $place,
+                'resource_type_id' => $type->id,
+                'quality' => (int) round((float) ($material['quality'] ?? 0)),
+                'quantity' => $quantity,
+                'visibility' => $visibility,
+                'source' => $order->source === 'ocr' ? 'ocr' : 'manual',
+                'refinery_order_id' => $order->id,
+            ]);
+        }
+    }
+
+    /**
+     * The materials this order is refining that nothing in the catalogue
+     * matches — the names to fix before the haul is worth collecting.
+     *
+     * @return array<int, string>
+     */
+    private function unmatched(RefineryOrder $order): array
+    {
+        return collect($order->materials ?? [])
+            ->filter(fn ($m) => (float) ($m['yield_amount'] ?? 0) > 0 && ($m['refine'] ?? true) !== false)
+            ->reject(fn ($m) => RefineryYield::resolveType((string) ($m['resource'] ?? '')) instanceof ResourceType)
+            ->pluck('resource')
+            ->map(fn ($name) => (string) $name)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /** @return array<string, mixed> */

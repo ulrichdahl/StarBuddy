@@ -11,6 +11,7 @@ import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import Stack from '@mui/material/Stack'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import { api, apiErrorDetail, unwrapList } from '../lib/api'
 import { formatDuration, parseDuration } from '../lib/refining'
@@ -131,9 +132,15 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
    */
   const collected = !creating && data !== undefined && !data.open
   const ready = data?.open === true && remaining !== null && remaining <= 0
-  // Editing is for a job the refinery is still working on. Once it is ready the
-  // numbers are what they were, and the only thing left to do is pick it up.
-  const frozen = collected || ready
+  // A terminal read in a hurry misreads things, and the misreading is often
+  // only noticed later — so the sheet stays correctable at every stage. What a
+  // correction may do differs: an open order rebuilds its stacks, a collected
+  // one can only gain the materials it never recorded.
+  //
+  // Materials nothing in the catalogue matches yielded nothing, so collecting
+  // over them would file a haul that is quietly short. The names are fixed
+  // first, while the order is still on screen.
+  const unmatched = data?.unmatched ?? []
 
   const mine = picked?.order === id ? picked : undefined
   // The materials are at the refinery until someone moves them, so that is the
@@ -146,17 +153,27 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
   const body = () => {
     const materials = linesToMaterials(rows)
     const seconds = !timeEdited && remaining !== null ? Math.max(0, remaining) : parseDuration(duration)
+    // A finished order's clock is history — collected or merely done. It has no
+    // time left to count, so recomputing one would rewrite its length as zero
+    // and re-stamp its finish for the sake of a corrected material name, which
+    // reads back as a fresh job with 0m to run.
+    const clock =
+      (collected || ready) && !timeEdited
+        ? { duration_seconds: data?.duration_seconds ?? null, eta: data?.eta ?? null, state: data?.state ?? null }
+        : {
+            duration_seconds: seconds,
+            // An order still running has an ETA; one already done does not need one.
+            eta: seconds === null ? null : new Date(Date.now() + seconds * 1000).toISOString(),
+            state: seconds !== null && seconds > 0 ? ('processing' as const) : ('completed' as const),
+          }
     return {
+      ...clock,
       station: station?.name ?? '',
       method,
       materials,
       // A new order is read off a terminal, which counts in centi-SCU; an
       // edit keeps whatever unit the order was recorded in.
       unit,
-      duration_seconds: seconds,
-      // An order still running has an ETA; one already done does not need one.
-      eta: seconds === null ? null : new Date(Date.now() + seconds * 1000).toISOString(),
-      state: seconds !== null && seconds > 0 ? ('processing' as const) : ('completed' as const),
       cost: cost.trim() === '' ? null : Number(cost.replace(',', '.')),
       yield_total: materials.reduce((sum, m) => sum + (m.yield_amount ?? 0), 0),
       // Always what the sheet is showing. An edit cannot reshare by accident
@@ -270,16 +287,16 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
               onDuration={(next, typed) => { if (typed) setTimeEdited(true); setDuration(next) }}
               unit={unit}
               autoFocus={creating}
-              readOnly={frozen}
+              readOnly={false}
               remaining={remaining}
             />
 
             {ready && <Alert severity="success">{t('refinery.sheet.readyFrozen')}</Alert>}
             {collected && <Alert severity="info">{t('refinery.sheet.frozen')}</Alert>}
 
-            {data && data.unmatched.length > 0 && (
+            {unmatched.length > 0 && (
               <Alert severity="warning">
-                {t('refinery.dialog.unmatched', { materials: data.unmatched.join(', ') })}
+                {t('refinery.dialog.unmatched', { materials: unmatched.join(', ') })}
               </Alert>
             )}
 
@@ -421,23 +438,28 @@ export function RefineryOrderDialog({ id, onClose }: { id: RefineryOrderTarget; 
           </Box>
         )}
         <Box sx={{ height: 40, display: 'flex', alignItems: 'center', gap: 1 }}>
-          {!collected && (ready ? (
-            <Button
-              variant="contained"
-              disabled={destination === null || collect.isPending}
-              onClick={() => destination !== null && collect.mutate(destination.id)}
-            >
-              {collect.isPending ? t('refinery.dialog.collecting') : t('refinery.dialog.collect')}
-            </Button>
-          ) : (
-            <Button variant="contained" disabled={!savable} onClick={() => save.mutate()}>
-              {save.isPending
-                ? t('common.saving')
-                : creating
-                  ? t('refinery.sheet.create')
-                  : t('refinery.sheet.save')}
-            </Button>
-          ))}
+          {/* Always here: a misread name is worth fixing whether the job is
+              running, finished or already picked up. */}
+          <Button variant="contained" disabled={!savable} onClick={() => save.mutate()}>
+            {save.isPending
+              ? t('common.saving')
+              : creating
+                ? t('refinery.sheet.create')
+                : t('refinery.sheet.save')}
+          </Button>
+          {!collected && ready && (
+            <Tooltip title={unmatched.length > 0 ? t('refinery.dialog.collectBlocked', { materials: unmatched.join(', ') }) : ''}>
+              <span>
+                <Button
+                  variant={unmatched.length > 0 ? 'outlined' : 'contained'}
+                  disabled={destination === null || collect.isPending || unmatched.length > 0}
+                  onClick={() => destination !== null && collect.mutate(destination.id)}
+                >
+                  {collect.isPending ? t('refinery.dialog.collecting') : t('refinery.dialog.collect')}
+                </Button>
+              </span>
+            </Tooltip>
+          )}
           <Button onClick={close}>{t('common.close')}</Button>
         </Box>
       </DialogActions>
