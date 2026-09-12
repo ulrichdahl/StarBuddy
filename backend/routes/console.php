@@ -18,6 +18,8 @@ Schedule::command('starbuddy:sync-scan-signatures')->dailyAt('05:20');
 // Both signature and band references live in the repo, so a nightly run only
 // re-applies a file that changes when someone edits it for a patch.
 Schedule::command('starbuddy:sync-quality-bands')->dailyAt('05:25');
+// After the blueprints, whose keys the pools are matched on.
+Schedule::command('starbuddy:sync-blueprint-pools')->dailyAt('05:27');
 Schedule::command('starbuddy:sync-locations')->dailyAt('05:30');
 Schedule::command('starbuddy:sync-rarity')->weeklyOn(1, '05:50');
 
