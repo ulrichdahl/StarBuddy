@@ -38,7 +38,7 @@ import { BlueprintInfoDialog } from '../components/BlueprintInfoDialog'
 import { gradeLabel } from './CraftPage'
 
 type View = 'checklist' | 'matrix'
-type SortField = 'kiosk' | 'name' | 'type' | 'grade' | 'pool' | 'owners'
+type SortField = 'kiosk' | 'name' | 'type' | 'grade' | 'poolName' | 'pool' | 'owners'
 
 interface Filters {
   search: string
@@ -56,39 +56,46 @@ const CATALOG_KEY = 'blueprints-catalog'
 const typeText = (row: CatalogRow) => `${row.type_display ?? row.category_label}${row.size !== null ? ` · S${row.size}` : ''}`
 
 /**
- * The reward pool a recipe comes out of, and how far through it the player is.
+ * The reward pool a recipe comes out of, and how far through it the player is,
+ * as two cells.
  *
  * The smallest pool only: a recipe is rarely in more than two, the small one
  * is the better chance of it, and a second line of pool names would cost the
  * column more than it is worth. The dialog lists them all.
  */
-function PoolCell({ row }: { row: CatalogRow }) {
+function PoolCells({ row }: { row: CatalogRow }) {
   const { t } = useTranslation()
   const pool = row.pools[0]
-  if (!pool) return <TableCell sx={{ color: 'text.disabled' }}>{t('common.none')}</TableCell>
+  if (!pool) {
+    return (
+      <>
+        <TableCell sx={{ color: 'text.disabled' }}>{t('common.none')}</TableCell>
+        <TableCell />
+      </>
+    )
+  }
 
   return (
-    <TableCell sx={{ whiteSpace: 'nowrap' }}>
-      <Typography variant="body2" component="span" sx={{ mr: 0.75 }}>
+    <>
+      <TableCell sx={{ whiteSpace: 'nowrap' }}>
         {pool.pool_label}
-      </Typography>
-      <Typography
-        variant="caption"
-        component="span"
-        color={pool.owned_percent === 100 ? 'success.main' : 'text.secondary'}
+        {row.pools.length > 1 && (
+          <Typography variant="caption" component="span" color="text.secondary" sx={{ ml: 0.75 }}>
+            {t('blueprints.poolMore', { count: row.pools.length - 1 })}
+          </Typography>
+        )}
+      </TableCell>
+      <TableCell
+        align="right"
+        sx={{ whiteSpace: 'nowrap', color: pool.owned_percent === 100 ? 'success.main' : 'text.secondary' }}
       >
         {t('blueprints.poolProgressShort', {
           owned: pool.owned_in_pool,
           count: pool.in_pool,
           percent: pool.owned_percent,
         })}
-      </Typography>
-      {row.pools.length > 1 && (
-        <Typography variant="caption" component="span" color="text.secondary" sx={{ ml: 0.75 }}>
-          {t('blueprints.poolMore', { count: row.pools.length - 1 })}
-        </Typography>
-      )}
-    </TableCell>
+      </TableCell>
+    </>
   )
 }
 
@@ -316,7 +323,8 @@ function ChecklistView({
               <SortHeader label={t('blueprints.colBlueprint')} field="name" sort={sort} dir={dir} onSort={onSort} />
               <SortHeader label={t('blueprints.colType')} field="type" sort={sort} dir={dir} onSort={onSort} />
               <SortHeader label={t('blueprints.colGrade')} field="grade" sort={sort} dir={dir} onSort={onSort} sx={{ width: 100 }} />
-              <SortHeader label={t('blueprints.colPool')} field="pool" sort={sort} dir={dir} onSort={onSort} />
+              <SortHeader label={t('blueprints.colPool')} field="poolName" sort={sort} dir={dir} onSort={onSort} />
+              <SortHeader label={t('blueprints.colPoolDone')} field="pool" sort={sort} dir={dir} onSort={onSort} align="right" sx={{ width: 120 }} />
               <SortHeader label={t('blueprints.colOwners')} field="owners" sort={sort} dir={dir} onSort={onSort} align="center" sx={{ width: 150 }} />
             </TableRow>
           </TableHead>
@@ -328,7 +336,7 @@ function ChecklistView({
                 <Fragment key={row.id}>
                   {showGroup && (
                     <TableRow>
-                      <TableCell colSpan={6} sx={{ bgcolor: 'rgba(91, 200, 219, 0.06)', color: 'primary.main', fontWeight: 700, fontSize: '0.8125rem', letterSpacing: '0.02em' }}>
+                      <TableCell colSpan={7} sx={{ bgcolor: 'rgba(91, 200, 219, 0.06)', color: 'primary.main', fontWeight: 700, fontSize: '0.8125rem', letterSpacing: '0.02em' }}>
                         {row.category_label}
                       </TableCell>
                     </TableRow>
@@ -346,7 +354,7 @@ function ChecklistView({
                     </TableCell>
                     <TableCell sx={{ color: 'text.secondary' }}>{typeText(row)}</TableCell>
                     <TableCell>{row.grade ? t('craft.grade', { grade: gradeLabel(row.grade) }) : t('common.none')}</TableCell>
-                    <PoolCell row={row} />
+                    <PoolCells row={row} />
                     <TableCell align="center">
                       <OwnersCell isDefault={row.is_default} ownedByMe={row.owned_by_me} owners={row.owners} />
                     </TableCell>
@@ -356,7 +364,7 @@ function ChecklistView({
             })}
             {data && rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={7}>
                   <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
                     {t('blueprints.emptyFiltered')}
                   </Typography>

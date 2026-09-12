@@ -422,7 +422,8 @@
     "markAllShownOwned": "Markér alle viste som ejet ({{count}})",
     "colPool": "Belønningspulje",
     "poolProgressShort": "{{owned}}/{{count}} · {{percent}}%",
-    "poolMore": "+{{count}} mere"
+    "poolMore": "+{{count}} mere",
+    "colPoolDone": "Pulje klaret"
   },
   "refinery": {
     "title": "Raffinering",
