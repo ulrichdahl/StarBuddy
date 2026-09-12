@@ -303,8 +303,39 @@ export interface BlueprintInfo {
   requirement_groups: RequirementGroup[]
   /** How far crafting can move each modified game property: property_key → span. */
   stat_ranges: Record<string, { min_percent: number; max_percent: number }>
-  /** Missions that award the blueprint — filled in later. */
-  missions: unknown[]
+  /** The reward pools holding this blueprint, tightest draw first. */
+  missions: BlueprintPool[]
+}
+
+/** Who hands a pool out: a contractor's missions, or an event's reward tier. */
+export type PoolSource =
+  | { kind: 'contract'; contractor: string | null; chance: number; missions: string[] }
+  | { kind: 'event'; event: string; min_points: number }
+
+/** One recipe in a pool, and whether the player already holds it. */
+export interface PoolMember {
+  blueprint_id: number | null
+  key: string
+  name: string | null
+  draw_percent: number | null
+  owned: boolean
+  is_this_one: boolean
+}
+
+/**
+ * One reward pool a blueprint sits in. Completing a mission that names the
+ * pool draws one blueprint from it, so `draw_percent` is this recipe's share
+ * and `owned_percent` is how far through the pool the player already is.
+ */
+export interface BlueprintPool {
+  pool_key: string
+  pool_label: string
+  in_pool: number
+  owned_in_pool: number
+  owned_percent: number | null
+  contents: PoolMember[]
+  draw_percent: number | null
+  sources: PoolSource[]
 }
 
 export interface CatalogCategory {
