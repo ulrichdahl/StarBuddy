@@ -419,7 +419,10 @@
       "missionsUnnamed": "Missionstitler findes ikke i spildataene"
     },
     "colOwned": "Ejet",
-    "markAllShownOwned": "Markér alle viste som ejet ({{count}})"
+    "markAllShownOwned": "Markér alle viste som ejet ({{count}})",
+    "colPool": "Belønningspulje",
+    "poolProgressShort": "{{owned}}/{{count}} · {{percent}}%",
+    "poolMore": "+{{count}} mere"
   },
   "refinery": {
     "title": "Raffinering",
