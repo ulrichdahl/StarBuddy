@@ -422,7 +422,8 @@
     "markAllShownOwned": "Mark all shown as owned ({{count}})",
     "colPool": "Reward pool",
     "poolProgressShort": "{{owned}}/{{count}} · {{percent}}%",
-    "poolMore": "+{{count}} more"
+    "poolMore": "+{{count}} more",
+    "colPoolDone": "Pool done"
   },
   "refinery": {
     "title": "Refinery",

@@ -103,6 +103,13 @@ class BlueprintController extends Controller
             'type' => fn ($r) => sprintf('%04d %s', $r['_order'], Str::lower($r['name'])),
             'grade' => fn ($r) => sprintf('%s %s', $r['grade'] ?? '9', Str::lower($r['name'])),
             'owners' => fn ($r) => sprintf('%04d %s', 9999 - $r['owner_ids']->count(), Str::lower($r['name'])),
+            // Alphabetical by pool, so a pool's recipes read together.
+            'poolName' => fn ($r) => sprintf(
+                '%d %s %s',
+                $r['pools'] === [] ? 1 : 0,
+                Str::lower($r['pools'][0]['pool_label'] ?? ''),
+                Str::lower($r['name']),
+            ),
             // Nearest to a finished pool first, and recipes no mission awards
             // last either way round — there is nothing to complete there.
             'pool' => fn ($r) => sprintf(

@@ -5,6 +5,26 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## 0.1.15 — 2026-09-12
+
+**Every blueprint now says which mission hands it out, and the site fits a screen stood on its end.**
+
+### New
+
+- **Where a blueprint comes from.** A recipe is not bought: finishing a mission draws one from a pool, and every blueprint now names the pool it sits in, how many of that pool's recipes you already hold, what else is in there — the ones you have marked, the rest a click away — and the missions that pay it out, listed by who offers them. Read out of the game's own data, which the wiki has nothing on.
+- **The blueprint list carries it too**, as two sortable columns: the pool, and how far through it you are. Sort by progress to find the pool you are one mission from finishing.
+- **The site fits 1080 pixels wide.** Below 1200 the menu folds to icons on its own, and the hamburger folds it either way at any width — a portrait second monitor spends its width on the tables instead of the chrome.
+- **One place to add materials and items.** The entry box beside each table is gone; the button that opens the multi-row dialog sits at the end of the filter bar, and the filter bar shrinks to stay on one line rather than pushing it onto another.
+- **System and location are one filter**, listed the way the craft type filter lists Armor and its subtypes: pick a system for everything in it, or a place inside it.
+
+### Fixed
+
+- **A misread material can be corrected after the fact.** A refinery order froze the moment its clock hit zero, so a name the reader got wrong — "Haestanite" for Hephaestanite — stayed wrong and the material never reached your inventory. An order is correctable at every stage now, and a correction to a collected one adds what was missing without touching what you are already holding.
+- **An order is not collected while a material is unnamed.** Collecting is refused until every line the refinery is working on matches something, because after collection it is far harder to notice a haul came up short.
+- **Saving a finished order no longer resets its clock** to zero and marks it in progress again.
+- **One Levski, not two.** Locations are the shared catalogue now: a refinery order matches the station it read against it however it is spelled, and nothing a player does can add a place only they can see. Existing duplicates were folded into the catalogue's own entry, stock and orders with them.
+- **The refinery list says where the haul is** — at the refinery while it refines, wherever you carried it once collected — instead of how it was refined.
+
 ## 0.1.14 — 2026-09-07
 
 **Reading the screen is a switch you own, and the keys work while you fly.**
