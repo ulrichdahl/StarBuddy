@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Blueprint;
 use App\Models\BlueprintOwned;
+use App\Models\BlueprintPoolEntry;
 use App\Models\User;
 use App\Support\BlueprintKind;
+use App\Support\CraftModifiers;
 use App\Support\FabricatorCategory;
+use App\Support\OrgMembers;
+use App\Support\WikiItem;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
@@ -25,7 +29,7 @@ class BlueprintController extends Controller
     /** Org-mates including the viewer, as the matrix/catalog columns. */
     private function members(User $me)
     {
-        return \App\Support\OrgMembers::of($me);
+        return OrgMembers::of($me);
     }
 
     /**
@@ -111,14 +115,13 @@ class BlueprintController extends Controller
 
     /**
      * What a blueprint is: lore and stats (fetched from the wiki once), the
-     * kiosk category, who in the org holds it, and how far crafting quality
-     * can move its quality-scaling stats. `missions` is reserved for the
-     * missions that award it.
+     * kiosk category, who in the org holds it, how far crafting quality can
+     * move its quality-scaling stats, and which missions award it.
      */
     public function show(Request $request, Blueprint $blueprint)
     {
-        \App\Support\WikiItem::enrich($blueprint);
-        \App\Support\CraftModifiers::enrich($blueprint);
+        WikiItem::enrich($blueprint);
+        CraftModifiers::enrich($blueprint);
         $me = $request->user();
         $members = $this->members($me);
         $ownerIds = BlueprintOwned::whereIn('user_id', $members->pluck('id'))
@@ -136,16 +139,86 @@ class BlueprintController extends Controller
             'owners' => $members->filter(fn ($u) => $ownerIds->contains($u->id))
                 ->map(fn ($u) => ['id' => $u->id, 'handle' => $u->handle ?? $u->name, 'mine' => $u->id === $me->id])->values(),
             // The recipe's slots and the stats their materials modify.
-            'requirement_groups' => \App\Support\CraftModifiers::groups($blueprint->requirement_groups),
+            'requirement_groups' => CraftModifiers::groups($blueprint->requirement_groups),
             // What crafting can do to each modified property, worst to best
             // material in every recipe slot: property_key → [min%, max%].
-            'stat_ranges' => collect(\App\Support\CraftModifiers::extremes($blueprint->requirement_groups))
+            'stat_ranges' => collect(CraftModifiers::extremes($blueprint->requirement_groups))
                 ->map(fn (array $ends) => [
                     'min_percent' => round(($ends[0] - 1) * 100, 2),
                     'max_percent' => round(($ends[1] - 1) * 100, 2),
                 ])->all(),
-            'missions' => [],
+            'missions' => $this->pools($blueprint, $me),
         ];
+    }
+
+    /**
+     * Where the recipe comes from: the reward pools holding it, what the draw
+     * is worth, and who to ask for the mission.
+     *
+     * A blueprint is not bought. Completing a mission draws one blueprint from
+     * the pool its contract names, so what a player wants to know is which
+     * missions feed a pool this recipe is in, how thin the pool is spread, and
+     * what else is in there — a pool whose other recipes they already hold is
+     * a pool worth farming, and one they have nothing from is a long evening.
+     */
+    private function pools(Blueprint $blueprint, User $me): array
+    {
+        $entries = BlueprintPoolEntry::with('pool.entries.blueprint')
+            ->where('blueprint_id', $blueprint->id)
+            ->get();
+
+        $pooled = $entries->flatMap(fn (BlueprintPoolEntry $e) => $e->pool->entries->pluck('blueprint_id'))
+            ->filter()->unique();
+        $mine = BlueprintOwned::where('user_id', $me->id)
+            ->whereIn('blueprint_id', $pooled)
+            ->pluck('blueprint_id')
+            ->all();
+
+        return $entries
+            ->map(function (BlueprintPoolEntry $entry) use ($blueprint, $mine) {
+                $pool = $entry->pool;
+                $total = (float) $pool->entries->sum('weight');
+                // Every recipe in the pool, so the player can see what else
+                // the same mission might hand them. A pool entry the wiki has
+                // no recipe for yet keeps its key and says nothing more.
+                $contents = $pool->entries
+                    ->map(fn (BlueprintPoolEntry $sibling) => [
+                        'blueprint_id' => $sibling->blueprint_id,
+                        'key' => $sibling->blueprint_key,
+                        'name' => $sibling->blueprint?->name,
+                        'draw_percent' => $total > 0 ? round($sibling->weight / $total * 100, 1) : null,
+                        'owned' => in_array($sibling->blueprint_id, $mine, true)
+                            || (bool) $sibling->blueprint?->is_default,
+                        'is_this_one' => $sibling->blueprint_id === $blueprint->id,
+                    ])
+                    // The one being looked at first, then what is still
+                    // missing, because that is what the farming is for.
+                    ->sortBy(fn (array $row) => [! $row['is_this_one'], $row['owned'], $row['name'] ?? $row['key']])
+                    ->values()
+                    ->all();
+
+                return [
+                    'pool_key' => $pool->key,
+                    'pool_label' => $pool->label(),
+                    'in_pool' => $pool->entries->count(),
+                    'owned_in_pool' => collect($contents)->where('owned', true)->count(),
+                    // How far through the pool the player is. This is the
+                    // number that says whether the mission is still worth
+                    // flying: a pool they hold nine tenths of has little left
+                    // to give them.
+                    'owned_percent' => $pool->entries->count() > 0
+                        ? round(collect($contents)->where('owned', true)->count() / $pool->entries->count() * 100)
+                        : null,
+                    'contents' => $contents,
+                    // This recipe's share of one draw from the pool.
+                    'draw_percent' => $total > 0 ? round($entry->weight / $total * 100, 1) : null,
+                    'sources' => $pool->sources ?? [],
+                ];
+            })
+            // The tightest pool first: it is the best chance of the recipe.
+            ->sortByDesc('draw_percent')
+            ->values()
+            ->all();
     }
 
     /** Own it or not — one blueprint per player, never consumed. */

@@ -9,7 +9,8 @@
     "language": "Sprog",
     "none": "—",
     "undo": "Fortryd",
-    "clear": "Ryd"
+    "clear": "Ryd",
+    "back": "Tilbage"
   },
   "nav": {
     "dashboard": "Oversigt",
@@ -407,7 +408,15 @@
       "ownersTitle": "Hvem har det",
       "openHint": "Klik på et navn for detaljer",
       "markOwned": "Markér som ejet",
-      "unmarkOwned": "Markér som ikke ejet"
+      "unmarkOwned": "Markér som ikke ejet",
+      "missionsTitle": "Sådan får du den",
+      "unknownContractor": "Unavngiven hvervgiver",
+      "eventTier": "{{event}}-event — fra {{points}} point",
+      "noMissions": "Ingen mission i spildataene for 4.10 giver denne — den uddeles enten ikke endnu, eller den kommer et sted fra, dataene ikke nævner.",
+      "poolHeading": "Du får denne blueprint fra puljen {{pool}}, og du har {{owned}} af dens {{count}} blueprints ({{percent}}%).",
+      "poolHeadingSolo": "Du får denne blueprint fra puljen {{pool}}, og den er den eneste blueprint i den.",
+      "missionsUsing": "Missioner, der uddeler fra denne pulje:",
+      "missionsUnnamed": "Missionstitler findes ikke i spildataene"
     },
     "colOwned": "Ejet",
     "markAllShownOwned": "Markér alle viste som ejet ({{count}})"

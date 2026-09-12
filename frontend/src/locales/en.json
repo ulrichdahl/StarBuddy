@@ -9,7 +9,8 @@
     "language": "Language",
     "none": "—",
     "undo": "Undo",
-    "clear": "Clear"
+    "clear": "Clear",
+    "back": "Back"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -407,7 +408,15 @@
       "ownersTitle": "Who holds it",
       "openHint": "Click a name for details",
       "markOwned": "Mark as owned",
-      "unmarkOwned": "Mark as not owned"
+      "unmarkOwned": "Mark as not owned",
+      "missionsTitle": "How to get it",
+      "unknownContractor": "Unnamed contractor",
+      "eventTier": "{{event}} event — from {{points}} points",
+      "noMissions": "No mission in the 4.10 game data awards this one — it is either not handed out yet, or comes from somewhere the data does not name.",
+      "poolHeading": "You get this blueprint from the {{pool}} pool, and you have {{owned}} of its {{count}} blueprints ({{percent}}%).",
+      "poolHeadingSolo": "You get this blueprint from the {{pool}} pool, and it is the only blueprint in it.",
+      "missionsUsing": "Missions that use rewards from this pool:",
+      "missionsUnnamed": "Mission titles not in the game data"
     },
     "colOwned": "Owned",
     "markAllShownOwned": "Mark all shown as owned ({{count}})"
