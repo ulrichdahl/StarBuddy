@@ -50,6 +50,7 @@ class BlueprintController extends Controller
             ->whereNotNull('blueprint_id')
             ->get(['id', 'blueprint_id', 'user_id'])
             ->groupBy('blueprint_id');
+        $pools = $this->poolProgress($me);
 
         $category = $request->query('category');
         $rows = Blueprint::query()
@@ -58,7 +59,7 @@ class BlueprintController extends Controller
             ->orderBy('name')
             ->get()
             ->filter(fn (Blueprint $b) => ! $category || FabricatorCategory::matches($b, $category))
-            ->map(function (Blueprint $b) use ($owned, $me, $handles) {
+            ->map(function (Blueprint $b) use ($owned, $me, $handles, $pools) {
                 [$cat, $sub] = FabricatorCategory::of($b);
                 $rows = $owned[$b->id] ?? collect();
                 $ownerIds = $rows->pluck('user_id')->unique()->values();
@@ -83,6 +84,10 @@ class BlueprintController extends Controller
                     'owner_ids' => $ownerIds,
                     'owner_count' => $others->count(),
                     'owners' => $others->map(fn ($id) => $handles[$id] ?? null)->filter()->values(),
+                    // The reward pools this recipe is in and how far through
+                    // each the viewer is, so a list can be read for what is
+                    // worth flying for rather than one row at a time.
+                    'pools' => $pools[$b->id] ?? [],
                     '_order' => FabricatorCategory::order($cat, $sub),
                 ];
             })
@@ -98,6 +103,14 @@ class BlueprintController extends Controller
             'type' => fn ($r) => sprintf('%04d %s', $r['_order'], Str::lower($r['name'])),
             'grade' => fn ($r) => sprintf('%s %s', $r['grade'] ?? '9', Str::lower($r['name'])),
             'owners' => fn ($r) => sprintf('%04d %s', 9999 - $r['owner_ids']->count(), Str::lower($r['name'])),
+            // Nearest to a finished pool first, and recipes no mission awards
+            // last either way round — there is nothing to complete there.
+            'pool' => fn ($r) => sprintf(
+                '%d %04d %s',
+                $r['pools'] === [] ? 1 : 0,
+                9999 - (int) ($r['pools'][0]['owned_percent'] ?? 0),
+                Str::lower($r['name']),
+            ),
             default => fn ($r) => sprintf('%04d %s', $r['_order'], Str::lower($r['name'])),
         };
         $rows = $desc ? $rows->sortByDesc($key) : $rows->sortBy($key);
@@ -149,6 +162,56 @@ class BlueprintController extends Controller
                 ])->all(),
             'missions' => $this->pools($blueprint, $me),
         ];
+    }
+
+    /**
+     * Every recipe's pools and the viewer's progress through each, keyed by
+     * blueprint id.
+     *
+     * Two queries for the whole catalogue rather than two per row: the pool
+     * tables are small (a few hundred rows all told) and the checklist shows
+     * two hundred blueprints at a time.
+     */
+    private function poolProgress(User $me): array
+    {
+        $entries = BlueprintPoolEntry::with('pool:id,key,record')->get();
+        $mine = BlueprintOwned::where('user_id', $me->id)->pluck('blueprint_id')
+            ->merge(Blueprint::where('is_default', true)->pluck('id'))
+            ->filter()->unique()->all();
+
+        $byPool = $entries->groupBy('blueprint_pool_id');
+        $progress = [];
+        foreach ($byPool as $poolId => $members) {
+            $pool = $members->first()->pool;
+            if ($pool === null) {
+                continue;
+            }
+            $held = $members->filter(fn (BlueprintPoolEntry $e) => in_array($e->blueprint_id, $mine, true))->count();
+            $progress[$poolId] = [
+                'pool_key' => $pool->key,
+                'pool_label' => $pool->label(),
+                'in_pool' => $members->count(),
+                'owned_in_pool' => $held,
+                'owned_percent' => $members->count() > 0 ? (int) round($held / $members->count() * 100) : null,
+            ];
+        }
+
+        $byBlueprint = [];
+        foreach ($entries as $entry) {
+            if ($entry->blueprint_id === null || ! isset($progress[$entry->blueprint_pool_id])) {
+                continue;
+            }
+            $byBlueprint[$entry->blueprint_id][] = $progress[$entry->blueprint_pool_id];
+        }
+
+        // The smallest pool first, which is the same order the detail dialog
+        // shows: fewest recipes in it is the best chance of this one.
+        foreach ($byBlueprint as $id => $rows) {
+            usort($rows, fn ($a, $b) => $a['in_pool'] <=> $b['in_pool']);
+            $byBlueprint[$id] = $rows;
+        }
+
+        return $byBlueprint;
     }
 
     /**

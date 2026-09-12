@@ -275,6 +275,17 @@ export interface CatalogRow {
   /** Org members besides the viewer who own it. */
   owner_count: number
   owners: string[]
+  /** The reward pools awarding it, smallest first. */
+  pools: PoolProgress[]
+}
+
+/** One pool a recipe is in, and how far through it the viewer is. */
+export interface PoolProgress {
+  pool_key: string
+  pool_label: string
+  in_pool: number
+  owned_in_pool: number
+  owned_percent: number | null
 }
 
 /** GET /api/blueprints/{id}: what a blueprint is, for the info dialog. */

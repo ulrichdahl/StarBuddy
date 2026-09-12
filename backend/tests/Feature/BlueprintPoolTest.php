@@ -116,6 +116,45 @@ class BlueprintPoolTest extends TestCase
             ->assertJsonPath('missions.0.contents.1.owned', true);
     }
 
+    public function test_the_checklist_carries_each_recipes_pool_progress(): void
+    {
+        $mine = $this->blueprint('BP_CRAFT_mine', 'Already Mine');
+        $wanted = $this->blueprint('BP_CRAFT_wanted', 'Still Wanted');
+        BlueprintOwned::create([
+            'user_id' => $this->me->id, 'blueprint_id' => $mine->id,
+            'blueprint_name' => $mine->name, 'source' => 'manual',
+        ]);
+
+        $big = BlueprintPool::create(['key' => 'bp_missionreward_big', 'sources' => []]);
+        foreach ([$mine, $wanted] as $bp) {
+            BlueprintPoolEntry::create([
+                'blueprint_pool_id' => $big->id, 'blueprint_id' => $bp->id,
+                'blueprint_key' => strtolower($bp->key), 'weight' => 1,
+            ]);
+        }
+        // A pool of one holding the same recipe: the smaller pool leads.
+        $solo = BlueprintPool::create(['key' => 'bp_reward_wanted', 'sources' => []]);
+        BlueprintPoolEntry::create([
+            'blueprint_pool_id' => $solo->id, 'blueprint_id' => $wanted->id,
+            'blueprint_key' => strtolower($wanted->key), 'weight' => 1,
+        ]);
+
+        $rows = collect($this->actingAs($this->me)
+            ->getJson('/api/blueprints/catalog?sort=name')
+            ->assertOk()
+            ->json('data'))
+            ->keyBy('name');
+
+        $this->assertSame('bp_reward_wanted', $rows['Still Wanted']['pools'][0]['pool_key']);
+        $this->assertSame(0, $rows['Still Wanted']['pools'][0]['owned_in_pool']);
+        $this->assertSame('bp_missionreward_big', $rows['Still Wanted']['pools'][1]['pool_key']);
+        $this->assertSame(50, $rows['Still Wanted']['pools'][1]['owned_percent']);
+        // The one the player holds counts towards the same pool's progress.
+        $this->assertSame('bp_missionreward_big', $rows['Already Mine']['pools'][0]['pool_key']);
+        $this->assertSame(1, $rows['Already Mine']['pools'][0]['owned_in_pool']);
+        $this->assertSame(50, $rows['Already Mine']['pools'][0]['owned_percent']);
+    }
+
     public function test_a_blueprint_no_mission_awards_lists_nothing(): void
     {
         $orphan = $this->blueprint('BP_CRAFT_orphan', 'Nobody Gives This');

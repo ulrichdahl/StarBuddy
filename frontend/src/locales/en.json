@@ -419,7 +419,10 @@
       "missionsUnnamed": "Mission titles not in the game data"
     },
     "colOwned": "Owned",
-    "markAllShownOwned": "Mark all shown as owned ({{count}})"
+    "markAllShownOwned": "Mark all shown as owned ({{count}})",
+    "colPool": "Reward pool",
+    "poolProgressShort": "{{owned}}/{{count}} · {{percent}}%",
+    "poolMore": "+{{count}} more"
   },
   "refinery": {
     "title": "Refinery",
