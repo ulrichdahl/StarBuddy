@@ -12,11 +12,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class BlueprintPool extends Model
 {
-    protected $fillable = ['key', 'record', 'sources'];
+    protected $fillable = ['key', 'record', 'sources', 'awardable'];
 
     protected function casts(): array
     {
-        return ['sources' => 'array'];
+        return ['sources' => 'array', 'awardable' => 'boolean'];
     }
 
     public function entries(): HasMany

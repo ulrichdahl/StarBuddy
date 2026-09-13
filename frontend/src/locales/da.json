@@ -416,7 +416,10 @@
       "poolHeading": "Du får denne blueprint fra puljen {{pool}}, og du har {{owned}} af dens {{count}} blueprints ({{percent}}%).",
       "poolHeadingSolo": "Du får denne blueprint fra puljen {{pool}}, og den er den eneste blueprint i den.",
       "missionsUsing": "Missioner, der uddeler fra denne pulje:",
-      "missionsUnnamed": "Missionstitler findes ikke i spildataene"
+      "missionsUnnamed": "Missionstitler findes ikke i spildataene",
+      "poolUnawardable": "Ingen mission i spillet uddeler denne pulje lige nu — opskriften ligger i filerne, men intet på kontrakttavlen giver den.",
+      "missionUnreleased": "Skrevet, men ikke live: spillet markerer denne kontrakt som ikke frigivet.",
+      "missionUnreleasedShort": "ikke live"
     },
     "colOwned": "Ejet",
     "markAllShownOwned": "Markér alle viste som ejet ({{count}})",

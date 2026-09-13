@@ -25,6 +25,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import CheckIcon from '@mui/icons-material/Check'
+import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import GridOnIcon from '@mui/icons-material/GridOn'
 import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck'
 import SearchIcon from '@mui/icons-material/Search'
@@ -78,7 +79,24 @@ function PoolCells({ row }: { row: CatalogRow }) {
   return (
     <>
       <TableCell sx={{ whiteSpace: 'nowrap' }}>
-        {pool.pool_label}
+        {/* A pool no live mission hands out: the recipe is in the game files
+            and nowhere on the contract board. */}
+        {!pool.awardable && (
+          <Tooltip title={t('blueprints.info.poolUnawardable')}>
+            <WarningAmberIcon
+              fontSize="inherit"
+              color="warning"
+              sx={{ mr: 0.5, verticalAlign: 'text-bottom' }}
+            />
+          </Tooltip>
+        )}
+        <Typography
+          variant="body2"
+          component="span"
+          sx={{ color: pool.awardable ? undefined : 'text.disabled' }}
+        >
+          {pool.pool_label}
+        </Typography>
         {row.pools.length > 1 && (
           <Typography variant="caption" component="span" color="text.secondary" sx={{ ml: 0.75 }}>
             {t('blueprints.poolMore', { count: row.pools.length - 1 })}
@@ -658,6 +676,7 @@ export function BlueprintsPage() {
               pools: info.missions.map((pool) => ({
                 pool_key: pool.pool_key,
                 pool_label: pool.pool_label,
+                awardable: pool.awardable,
                 in_pool: pool.in_pool,
                 owned_in_pool: pool.owned_in_pool,
                 owned_percent: pool.owned_percent,

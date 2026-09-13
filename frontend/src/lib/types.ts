@@ -283,6 +283,7 @@ export interface CatalogRow {
 export interface PoolProgress {
   pool_key: string
   pool_label: string
+  awardable: boolean
   in_pool: number
   owned_in_pool: number
   owned_percent: number | null
@@ -318,9 +319,16 @@ export interface BlueprintInfo {
   missions: BlueprintPool[]
 }
 
+/** One mission, and whether the game has it on the board yet. */
+export interface PoolMission {
+  title: string | null
+  /** Marked notForRelease in the game data: written, but not live. */
+  unreleased: boolean
+}
+
 /** Who hands a pool out: a contractor's missions, or an event's reward tier. */
 export type PoolSource =
-  | { kind: 'contract'; contractor: string | null; chance: number; missions: string[] }
+  | { kind: 'contract'; contractor: string | null; chance: number; missions: PoolMission[] }
   | { kind: 'event'; event: string; min_points: number }
 
 /** One recipe in a pool, and whether the player already holds it. */
@@ -341,6 +349,8 @@ export interface PoolMember {
 export interface BlueprintPool {
   pool_key: string
   pool_label: string
+  /** False when nothing on the board can hand this pool out today. */
+  awardable: boolean
   in_pool: number
   owned_in_pool: number
   owned_percent: number | null

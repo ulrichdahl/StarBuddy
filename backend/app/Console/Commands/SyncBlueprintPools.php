@@ -53,7 +53,14 @@ class SyncBlueprintPools extends Command
             foreach ($data['pools'] as $pool) {
                 $row = BlueprintPool::updateOrCreate(
                     ['key' => strtolower($pool['key'])],
-                    ['record' => $pool['record'] ?? null, 'sources' => $pool['sources'] ?? []],
+                    [
+                        'record' => $pool['record'] ?? null,
+                        'sources' => $pool['sources'] ?? [],
+                        // A pool every one of whose missions the game marks
+                        // notForRelease cannot be earned today, whatever it
+                        // holds.
+                        'awardable' => $pool['awardable'] ?? true,
+                    ],
                 );
                 $kept[] = $row->id;
                 $pools++;
