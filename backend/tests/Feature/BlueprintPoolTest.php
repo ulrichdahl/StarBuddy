@@ -165,6 +165,71 @@ class BlueprintPoolTest extends TestCase
             ->assertJsonCount(0, 'missions');
     }
 
+    public function test_a_pool_nothing_awards_is_marked_and_ranked_last(): void
+    {
+        $armour = $this->blueprint('BP_CRAFT_monde_daimyo', 'Monde Arms Daimyo');
+
+        // The game has both its missions written and neither on the board.
+        $shelved = BlueprintPool::create([
+            'key' => 'bp_missionreward_rdc_boss',
+            'awardable' => false,
+            'sources' => [[
+                'kind' => 'contract', 'contractor' => 'Bounty Hunters Guild', 'chance' => 0.75,
+                'missions' => [['title' => 'High-Risk Bounty: … at QV Breaker Station', 'unreleased' => true]],
+            ]],
+        ]);
+        $live = BlueprintPool::create([
+            'key' => 'bp_missionreward_rdc_generic',
+            'awardable' => true,
+            'sources' => [[
+                'kind' => 'contract', 'contractor' => 'Vaughn', 'chance' => 1.0,
+                'missions' => [['title' => 'A Well Deserved Break', 'unreleased' => false]],
+            ]],
+        ]);
+        foreach ([$shelved, $live] as $pool) {
+            BlueprintPoolEntry::create([
+                'blueprint_pool_id' => $pool->id, 'blueprint_id' => $armour->id,
+                'blueprint_key' => strtolower($armour->key), 'weight' => 1,
+            ]);
+        }
+
+        // Both pools hold only this recipe, so the draw is equal and what
+        // separates them is whether a player can go and earn it.
+        $this->actingAs($this->me)
+            ->getJson("/api/blueprints/{$armour->id}")
+            ->assertOk()
+            ->assertJsonPath('missions.0.pool_key', 'bp_missionreward_rdc_generic')
+            ->assertJsonPath('missions.0.awardable', true)
+            ->assertJsonPath('missions.1.pool_key', 'bp_missionreward_rdc_boss')
+            ->assertJsonPath('missions.1.awardable', false)
+            ->assertJsonPath('missions.1.sources.0.missions.0.unreleased', true);
+
+        // And the checklist ranks it the same way, so the column shows the
+        // pool worth flying for.
+        $this->actingAs($this->me)
+            ->getJson('/api/blueprints/catalog')
+            ->assertOk()
+            ->assertJsonPath('data.0.pools.0.pool_key', 'bp_missionreward_rdc_generic')
+            ->assertJsonPath('data.0.pools.1.awardable', false);
+    }
+
+    public function test_the_reference_file_flags_the_missions_the_game_has_not_released(): void
+    {
+        $data = json_decode((string) file_get_contents(database_path('data/blueprint-pools.json')), true);
+        $pools = collect($data['pools']);
+
+        // Every mission carries the flag, so nothing reads as live by default.
+        $missions = $pools->flatMap(fn ($p) => collect($p['sources'])->where('kind', 'contract')->flatMap->missions);
+        $this->assertNotEmpty($missions);
+        $missions->each(fn ($m) => $this->assertArrayHasKey('unreleased', $m));
+
+        // The Monde Daimyo armour's pool is the one that prompted this: both
+        // of its missions are written and neither is on the board.
+        $boss = $pools->firstWhere('key', 'bp_missionreward_rdc_boss');
+        $this->assertNotNull($boss);
+        $this->assertFalse($boss['awardable']);
+    }
+
     public function test_the_pool_label_keeps_the_casing_the_record_has(): void
     {
         $pool = BlueprintPool::make([

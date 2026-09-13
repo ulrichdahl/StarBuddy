@@ -17,6 +17,11 @@ writes out:
                         limited-time events. `tierRewards` award pools at a
                         `minPoints` threshold
 
+A contract (or the generator holding it) can be marked `notForRelease` or
+`workInProgress`, which is the game saying the mission is written but not live.
+Those are carried through: a pool whose every mission is flagged has no way of
+being earned at all, however good its contents look.
+
 Mission titles and contractor names are localization keys resolved against
 global.ini.
 
@@ -90,6 +95,10 @@ def read_pools(root):
     return pools
 
 
+def flagged(node, name):
+    return node is not None and (node.findtext(name) or '').strip() == 'true'
+
+
 def read_contracts(root, loc):
     """Every (pool, contractor, mission title) a contract generator awards."""
     hits = []
@@ -120,6 +129,10 @@ def read_contracts(root, loc):
                 'chance': float(node.findtext('chance') or 0),
                 'contractor': clean(resolve(gen.get('Contractor')) or resolve(over.get('Contractor'))),
                 'mission': clean(resolve(over.get('Title'))),
+                # Written but not live. Either flag, on the contract or on the
+                # generator that holds it, takes the mission off the board.
+                'unreleased': any(flagged(n, f) for n in (contract, generator)
+                                  for f in ('notForRelease', 'workInProgress')),
             })
     return hits
 
@@ -166,16 +179,34 @@ def main():
         # One source per contractor: a pool is usually reachable from a dozen
         # missions of theirs, and the player picks the one they like.
         for contractor, group in sorted(collections.Counter(h['contractor'] for h in by_pool[key]).items(), key=lambda kv: -kv[1]):
-            missions = sorted({h['mission'] for h in by_pool[key] if h['contractor'] == contractor and h['mission']})
+            theirs = [h for h in by_pool[key] if h['contractor'] == contractor]
+            # A title the game has more than one contract for is live if any
+            # of them is, and an unnamed mission still says whether it is.
+            missions = {}
+            for hit in theirs:
+                title = hit['mission']
+                missions[title] = missions.get(title, True) and hit['unreleased']
             sources.append({
                 'kind': 'contract',
                 'contractor': contractor,
-                'chance': max(h['chance'] for h in by_pool[key] if h['contractor'] == contractor),
-                'missions': missions,
+                'chance': max(h['chance'] for h in theirs),
+                'missions': [{'title': title, 'unreleased': flag}
+                             for title, flag in sorted(missions.items(), key=lambda kv: (kv[0] is None, kv[0] or ''))],
             })
         for tier in sorted(events[key], key=lambda t: t['min_points']):
             sources.append({'kind': 'event', 'event': tier['event'], 'min_points': tier['min_points']})
-        out.append({'key': key, 'record': pool['record'], 'blueprints': pool['blueprints'], 'sources': sources})
+        # Whether anything on the board can hand this pool out today.
+        awardable = any(
+            source['kind'] == 'event' or any(not m['unreleased'] for m in source['missions'])
+            for source in sources
+        )
+        out.append({
+            'key': key,
+            'record': pool['record'],
+            'awardable': awardable,
+            'blueprints': pool['blueprints'],
+            'sources': sources,
+        })
 
     payload = {
         '_meta': {
@@ -194,7 +225,8 @@ def main():
         fh.write('\n')
 
     awarded = [p for p in out if p['sources']]
-    print(f"{len(out)} pools, {len(awarded)} awarded by something, "
+    live = [p for p in awarded if p['awardable']]
+    print(f"{len(out)} pools, {len(awarded)} awarded by something, {len(live)} of those live now, "
           f"{len({b['key'] for p in out for b in p['blueprints']})} distinct blueprints")
     print(f"wrote {os.path.abspath(OUT)}")
 

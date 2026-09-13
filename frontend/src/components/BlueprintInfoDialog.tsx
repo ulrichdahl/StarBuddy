@@ -68,6 +68,14 @@ function MissionSources({ pools, onOpen }: { pools: BlueprintPool[]; onOpen: (id
                       percent: pool.owned_percent,
                     })}
               </Typography>
+              {/* Every mission that would hand this pool out is marked
+                  not-for-release in the game's own data, so there is nothing
+                  to fly for yet however good the contents look. */}
+              {!pool.awardable && (
+                <Alert severity="warning" sx={{ mt: 0.75, py: 0 }}>
+                  {t('blueprints.info.poolUnawardable')}
+                </Alert>
+              )}
               {/* What else the same mission can hand out. A recipe already
                   held is filled in; the ones still missing are why anyone
                   reads this list. */}
@@ -102,11 +110,23 @@ function MissionSources({ pools, onOpen }: { pools: BlueprintPool[]; onOpen: (id
                         </Typography>
                         {/* One line of titles rather than one line each: a
                             pool can be fed by thirty missions, and the point
-                            is to recognise one on the contract board. */}
+                            is to recognise one on the contract board. A title
+                            the game has not released is struck through — it
+                            reads as a lead, and it is not one. */}
                         <Typography variant="body2" color="text.secondary">
-                          {source.missions.length > 0
-                            ? source.missions.join(' · ')
-                            : t('blueprints.info.missionsUnnamed')}
+                          {source.missions.length === 0 && t('blueprints.info.missionsUnnamed')}
+                          {source.missions.map((mission, m) => (
+                            <Box
+                              key={m}
+                              component="span"
+                              sx={mission.unreleased ? { textDecoration: 'line-through', opacity: 0.6 } : undefined}
+                              title={mission.unreleased ? t('blueprints.info.missionUnreleased') : undefined}
+                            >
+                              {m > 0 && ' · '}
+                              {mission.title ?? t('blueprints.info.missionsUnnamed')}
+                              {mission.unreleased && ` (${t('blueprints.info.missionUnreleasedShort')})`}
+                            </Box>
+                          ))}
                         </Typography>
                       </Box>
                     ))}

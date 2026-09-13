@@ -181,7 +181,7 @@ class BlueprintController extends Controller
      */
     private function poolProgress(User $me): array
     {
-        $entries = BlueprintPoolEntry::with('pool:id,key,record')->get();
+        $entries = BlueprintPoolEntry::with('pool:id,key,record,awardable')->get();
         $mine = BlueprintOwned::where('user_id', $me->id)->pluck('blueprint_id')
             ->merge(Blueprint::where('is_default', true)->pluck('id'))
             ->filter()->unique()->all();
@@ -197,6 +197,7 @@ class BlueprintController extends Controller
             $progress[$poolId] = [
                 'pool_key' => $pool->key,
                 'pool_label' => $pool->label(),
+                'awardable' => (bool) $pool->awardable,
                 'in_pool' => $members->count(),
                 'owned_in_pool' => $held,
                 'owned_percent' => $members->count() > 0 ? (int) round($held / $members->count() * 100) : null,
@@ -214,7 +215,8 @@ class BlueprintController extends Controller
         // The smallest pool first, which is the same order the detail dialog
         // shows: fewest recipes in it is the best chance of this one.
         foreach ($byBlueprint as $id => $rows) {
-            usort($rows, fn ($a, $b) => $a['in_pool'] <=> $b['in_pool']);
+            // A pool that can actually be earned leads, then the smallest.
+            usort($rows, fn ($a, $b) => [! $a['awardable'], $a['in_pool']] <=> [! $b['awardable'], $b['in_pool']]);
             $byBlueprint[$id] = $rows;
         }
 
@@ -270,6 +272,9 @@ class BlueprintController extends Controller
                 return [
                     'pool_key' => $pool->key,
                     'pool_label' => $pool->label(),
+                    // False when every mission that would hand this pool out
+                    // is marked not-for-release in the game's own data.
+                    'awardable' => (bool) $pool->awardable,
                     'in_pool' => $pool->entries->count(),
                     'owned_in_pool' => collect($contents)->where('owned', true)->count(),
                     // How far through the pool the player is. This is the
@@ -285,8 +290,8 @@ class BlueprintController extends Controller
                     'sources' => $pool->sources ?? [],
                 ];
             })
-            // The tightest pool first: it is the best chance of the recipe.
-            ->sortByDesc('draw_percent')
+            // A pool that can be earned first, then the tightest draw.
+            ->sortBy(fn (array $pool) => [! $pool['awardable'], -($pool['draw_percent'] ?? 0)])
             ->values()
             ->all();
     }

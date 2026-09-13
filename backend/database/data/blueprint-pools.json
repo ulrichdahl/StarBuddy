@@ -1,7 +1,7 @@
 {
  "_meta": {
   "patch": "4.10",
-  "updated": "2026-09-12",
+  "updated": "2026-09-13",
   "source": "Data.p4k > Game2.dcb > BlueprintPoolRecord + ContractGenerator + ScenarioProgress, mission titles and contractors resolved against global.ini",
   "notes": "Regenerate with scripts/extract-blueprint-pools.py after a game patch, then run php artisan starbuddy:sync-blueprint-pools.",
   "generator": "scripts/extract-blueprint-pools.py"
@@ -10,6 +10,7 @@
   {
    "key": "bp_missionreward_asd2a",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_ASD2A",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_lmg_energy_01",
@@ -66,7 +67,10 @@
      "contractor": "Hockrow Agency",
      "chance": 1.0,
      "missions": [
-      "Jorrit Dossier: Updated Energy Anomaly Data"
+      {
+       "title": "Jorrit Dossier: Updated Energy Anomaly Data",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -74,6 +78,7 @@
   {
    "key": "bp_missionreward_asd2b",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_ASD2B",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_lmg_energy_01_tint03",
@@ -130,7 +135,10 @@
      "contractor": "Hockrow Agency",
      "chance": 1.0,
      "missions": [
-      "Jorrit Dossier: Updated Security Data"
+      {
+       "title": "Jorrit Dossier: Updated Security Data",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -138,6 +146,7 @@
   {
    "key": "bp_missionreward_asd2c",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_ASD2C",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_sniper_energy_01_tint03",
@@ -206,7 +215,10 @@
      "contractor": "Hockrow Agency",
      "chance": 1.0,
      "missions": [
-      "Jorrit Dossier: Updated Seismic Data"
+      {
+       "title": "Jorrit Dossier: Updated Seismic Data",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -214,6 +226,7 @@
   {
    "key": "bp_missionreward_asd2d",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_ASD2D",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_lmg_energy_01_tint02",
@@ -282,7 +295,10 @@
      "contractor": "Hockrow Agency",
      "chance": 1.0,
      "missions": [
-      "Jorrit Dossier: Updated Power Usage Data"
+      {
+       "title": "Jorrit Dossier: Updated Power Usage Data",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -290,6 +306,7 @@
   {
    "key": "bp_missionreward_asd3",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_ASD3",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_sniper_energy_01_tint01",
@@ -325,13 +342,19 @@
      "kind": "contract",
      "contractor": "Hockrow Agency",
      "chance": 1.0,
-     "missions": []
+     "missions": [
+      {
+       "title": null,
+       "unreleased": false
+      }
+     ]
     }
    ]
   },
   {
    "key": "bp_missionreward_battaglia",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Battaglia",
+   "awardable": false,
    "blueprints": [
     {
      "key": "bp_craft_mining_laser_drak_golem_s1",
@@ -411,6 +434,7 @@
   {
    "key": "bp_missionreward_battaglia_behr_rifle_ballistic_03",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Battaglia_behr_rifle_ballistic_03",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_behr_rifle_ballistic_03",
@@ -423,7 +447,10 @@
      "contractor": "Recco Battaglia",
      "chance": 1.0,
      "missions": [
-      "Blackbox Retrieval Very Dangerous"
+      {
+       "title": "Blackbox Retrieval Very Dangerous",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -431,6 +458,7 @@
   {
    "key": "bp_missionreward_battaglia_rpt0",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Battaglia_RPT0",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_mining_laser_shin_hofstede_s0",
@@ -455,11 +483,26 @@
      "contractor": "Recco Battaglia",
      "chance": 1.0,
      "missions": [
-      "Minor Mining Job",
-      "Need Some Ore Mined",
-      "Ore Scan Needed",
-      "Ore To Be Scanned",
-      "Ship In Distress"
+      {
+       "title": "Minor Mining Job",
+       "unreleased": false
+      },
+      {
+       "title": "Need Some Ore Mined",
+       "unreleased": false
+      },
+      {
+       "title": "Ore Scan Needed",
+       "unreleased": true
+      },
+      {
+       "title": "Ore To Be Scanned",
+       "unreleased": true
+      },
+      {
+       "title": "Ship In Distress",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -467,6 +510,7 @@
   {
    "key": "bp_missionreward_battaglia_rpt1",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Battaglia_RPT1",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_mining_laser_drak_golem_s1",
@@ -515,13 +559,34 @@
      "contractor": "Recco Battaglia",
      "chance": 1.0,
      "missions": [
-      "Crew Hasn’t Checked In",
-      "Full Area Scan for Ore",
-      "Missing Mining Team",
-      "Moraine Data Retrieval",
-      "Ore Deposit Needs Scanning",
-      "Ore Needs Gathering",
-      "Scan And Mining Needed"
+      {
+       "title": "Crew Hasn’t Checked In",
+       "unreleased": false
+      },
+      {
+       "title": "Full Area Scan for Ore",
+       "unreleased": true
+      },
+      {
+       "title": "Missing Mining Team",
+       "unreleased": false
+      },
+      {
+       "title": "Moraine Data Retrieval",
+       "unreleased": false
+      },
+      {
+       "title": "Ore Deposit Needs Scanning",
+       "unreleased": true
+      },
+      {
+       "title": "Ore Needs Gathering",
+       "unreleased": false
+      },
+      {
+       "title": "Scan And Mining Needed",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -529,6 +594,7 @@
   {
    "key": "bp_missionreward_battaglia_rpt2",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Battaglia_RPT2",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_mining_laser_grin_arbor_s1",
@@ -585,18 +651,54 @@
      "contractor": "Recco Battaglia",
      "chance": 1.0,
      "missions": [
-      "Blackbox Retrieval",
-      "Blackbox Retrieval Very Dangerous",
-      "Blackbox Retrieval w/Danger",
-      "Efficient Miners Wanted",
-      "High Priority Ore Scan",
-      "Large Deposit Of Ore To Confirm",
-      "Mining and Data Collection",
-      "Missing Persons",
-      "Moraine Movements",
-      "Salvage Job: Large",
-      "Salvage Job: Mid",
-      "Salvage Job: Small"
+      {
+       "title": "Blackbox Retrieval",
+       "unreleased": false
+      },
+      {
+       "title": "Blackbox Retrieval Very Dangerous",
+       "unreleased": false
+      },
+      {
+       "title": "Blackbox Retrieval w/Danger",
+       "unreleased": false
+      },
+      {
+       "title": "Efficient Miners Wanted",
+       "unreleased": false
+      },
+      {
+       "title": "High Priority Ore Scan",
+       "unreleased": true
+      },
+      {
+       "title": "Large Deposit Of Ore To Confirm",
+       "unreleased": true
+      },
+      {
+       "title": "Mining and Data Collection",
+       "unreleased": false
+      },
+      {
+       "title": "Missing Persons",
+       "unreleased": false
+      },
+      {
+       "title": "Moraine Movements",
+       "unreleased": false
+      },
+      {
+       "title": "Salvage Job: Large",
+       "unreleased": false
+      },
+      {
+       "title": "Salvage Job: Mid",
+       "unreleased": false
+      },
+      {
+       "title": "Salvage Job: Small",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -604,6 +706,7 @@
   {
    "key": "bp_missionreward_battagliaexclusive",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_BattagliaExclusive",
+   "awardable": false,
    "blueprints": [
     {
      "key": "bp_craft_fta_medium_helmet_01_15_16",
@@ -643,6 +746,7 @@
   {
    "key": "bp_missionreward_bhg_asdfacilitydelving_engineeringwing_eliminatespecific",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_BHG_ASDFacilityDelving_EngineeringWing_EliminateSpecific",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_qrt_utility_heavy_arms_01_01_03",
@@ -667,7 +771,10 @@
      "contractor": "Bounty Hunters Guild",
      "chance": 1.0,
      "missions": [
-      "Verified Bounty: … at …"
+      {
+       "title": "Verified Bounty: … at …",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -675,6 +782,7 @@
   {
    "key": "bp_missionreward_bhg_asdfacilitydelving_researchwing_eliminatespecific",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_BHG_ASDFacilityDelving_ResearchWing_EliminateSpecific",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_qrt_utility_heavy_arms_01_01_17",
@@ -715,7 +823,10 @@
      "contractor": "Bounty Hunters Guild",
      "chance": 1.0,
      "missions": [
-      "Verified Bounty: … at …"
+      {
+       "title": "Verified Bounty: … at …",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -723,6 +834,7 @@
   {
    "key": "bp_missionreward_bitzeros_blackboxrecovery",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_BitZeros_BlackBoxRecovery",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_klwe_smg_energy_01",
@@ -778,13 +890,19 @@
      "kind": "contract",
      "contractor": "Bit Zeros",
      "chance": 1.0,
-     "missions": []
+     "missions": [
+      {
+       "title": null,
+       "unreleased": false
+      }
+     ]
     }
    ]
   },
   {
    "key": "bp_missionreward_bitzeros_recoveritem_pyronyx",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_BitZeros_RecoverItem_PyroNyx",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_ksar_smg_energy_01",
@@ -825,7 +943,10 @@
      "contractor": "Bit Zeros",
      "chance": 1.0,
      "missions": [
-      "…"
+      {
+       "title": "…",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -833,6 +954,7 @@
   {
    "key": "bp_missionreward_bitzeros_recoveritem_stanton",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_BitZeros_RecoverItem_Stanton",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_klwe_smg_energy_01",
@@ -877,7 +999,10 @@
      "contractor": "Bit Zeros",
      "chance": 1.0,
      "missions": [
-      "…"
+      {
+       "title": "…",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -885,6 +1010,7 @@
   {
    "key": "bp_missionreward_bountyhuntersguild_paf_eliminatespecific",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_BountyHuntersGuild_PAF_EliminateSpecific",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_behr_rifle_ballistic_02_civilian",
@@ -933,7 +1059,10 @@
      "contractor": "Bounty Hunters Guild",
      "chance": 1.0,
      "missions": [
-      "Verified Bounty: … | …"
+      {
+       "title": "Verified Bounty: … | …",
+       "unreleased": true
+      }
      ]
     },
     {
@@ -941,7 +1070,10 @@
      "contractor": "Rayari Incorporated",
      "chance": 0.25,
      "missions": [
-      "Additional Resources For Research"
+      {
+       "title": "Additional Resources For Research",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -949,6 +1081,7 @@
   {
    "key": "bp_missionreward_cargo_shipmining_pod_golem_btgl",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Cargo_ShipMining_Pod_Golem_BTGL",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cargo_shipmining_pod_golem_btgl",
@@ -961,7 +1094,10 @@
      "contractor": "Recco Battaglia",
      "chance": 1.0,
      "missions": [
-      "Idea for Isaac"
+      {
+       "title": "Idea for Isaac",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -969,6 +1105,7 @@
   {
    "key": "bp_missionreward_cargo_shipmining_pod_moleprospector_btgl",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Cargo_ShipMining_Pod_MoleProspector_BTGL",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cargo_shipmining_pod_moleprospector_btgl",
@@ -981,7 +1118,10 @@
      "contractor": "Recco Battaglia",
      "chance": 1.0,
      "missions": [
-      "Idea for Isaac"
+      {
+       "title": "Idea for Isaac",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -989,6 +1129,7 @@
   {
    "key": "bp_missionreward_cargo_shipmining_pod_prospector",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Cargo_ShipMining_Pod_Prospector",
+   "awardable": false,
    "blueprints": [
     {
      "key": "bp_craft_cargo_shipmining_pod_prospector",
@@ -1000,6 +1141,7 @@
   {
    "key": "bp_missionreward_carryable_2h_fl_missionitem_microsatellite_a",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Carryable_2H_FL_MissionItem_Microsatellite_a",
+   "awardable": false,
    "blueprints": [
     {
      "key": "bp_craft_carryable_2h_fl_missionitem_microsatellite_a",
@@ -1011,6 +1153,7 @@
   {
    "key": "bp_missionreward_carryable_2h_fl_missionitem_prototype_ship_component_2_a",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Carryable_2H_FL_MissionItem_prototype_ship_component_2_a",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_carryable_2h_fl_missionitem_prototype_ship_component_2_a",
@@ -1023,9 +1166,18 @@
      "contractor": null,
      "chance": 1.0,
      "missions": [
-      "Orison Relief: Large Fabrication Order",
-      "Orison Relief: Medium Fabrication Order",
-      "Orison Relief: Small Fabrication Order"
+      {
+       "title": "Orison Relief: Large Fabrication Order",
+       "unreleased": false
+      },
+      {
+       "title": "Orison Relief: Medium Fabrication Order",
+       "unreleased": false
+      },
+      {
+       "title": "Orison Relief: Small Fabrication Order",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -1033,6 +1185,7 @@
   {
    "key": "bp_missionreward_cfp_chainelim_1and2",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_CFP_ChainElim_1and2",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_ksar_rifle_energy_01_red01",
@@ -1065,12 +1218,30 @@
      "contractor": "Citizens for Prosperity",
      "chance": 1.0,
      "missions": [
-      "Alert: … under attack",
-      "Call for Help: …",
-      "Outlaw attack at …",
-      "Reclaiming Outposts from XenoThreat",
-      "Retaking Outposts from Headhunters",
-      "Taking back from the Headhunters"
+      {
+       "title": "Alert: … under attack",
+       "unreleased": false
+      },
+      {
+       "title": "Call for Help: …",
+       "unreleased": false
+      },
+      {
+       "title": "Outlaw attack at …",
+       "unreleased": false
+      },
+      {
+       "title": "Reclaiming Outposts from XenoThreat",
+       "unreleased": false
+      },
+      {
+       "title": "Retaking Outposts from Headhunters",
+       "unreleased": false
+      },
+      {
+       "title": "Taking back from the Headhunters",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -1078,6 +1249,7 @@
   {
    "key": "bp_missionreward_cfp_chainelim_3",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_CFP_ChainElim_3",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_ksar_rifle_energy_01_pink_red01",
@@ -1102,12 +1274,30 @@
      "contractor": "Citizens for Prosperity",
      "chance": 1.0,
      "missions": [
-      "Campaign to reclaim XenoThreat outposts",
-      "Defend … from Outlaws",
-      "Help defend … from Headhunters",
-      "Need multiple CFP outposts retaken",
-      "Protect … from XenoThreat Attack",
-      "Reclaiming Clusters from Headhunters"
+      {
+       "title": "Campaign to reclaim XenoThreat outposts",
+       "unreleased": false
+      },
+      {
+       "title": "Defend … from Outlaws",
+       "unreleased": false
+      },
+      {
+       "title": "Help defend … from Headhunters",
+       "unreleased": false
+      },
+      {
+       "title": "Need multiple CFP outposts retaken",
+       "unreleased": false
+      },
+      {
+       "title": "Protect … from XenoThreat Attack",
+       "unreleased": false
+      },
+      {
+       "title": "Reclaiming Clusters from Headhunters",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -1115,6 +1305,7 @@
   {
    "key": "bp_missionreward_cfp_outpost_regionab",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_CFP_Outpost_RegionAB",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_ksar_rifle_energy_01",
@@ -1147,14 +1338,38 @@
      "contractor": "Citizens for Prosperity",
      "chance": 1.0,
      "missions": [
-      "Assistance needed at …",
-      "Call for Help: …",
-      "Defend … from Outlaws",
-      "Headhunter attack on …",
-      "Protect … from XenoThreat Incursion",
-      "Protect … from XenoThreat Raid",
-      "Reclaim Headhunter Outpost",
-      "… needs assistance"
+      {
+       "title": "Assistance needed at …",
+       "unreleased": false
+      },
+      {
+       "title": "Call for Help: …",
+       "unreleased": false
+      },
+      {
+       "title": "Defend … from Outlaws",
+       "unreleased": false
+      },
+      {
+       "title": "Headhunter attack on …",
+       "unreleased": false
+      },
+      {
+       "title": "Protect … from XenoThreat Incursion",
+       "unreleased": false
+      },
+      {
+       "title": "Protect … from XenoThreat Raid",
+       "unreleased": false
+      },
+      {
+       "title": "Reclaim Headhunter Outpost",
+       "unreleased": false
+      },
+      {
+       "title": "… needs assistance",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -1162,6 +1377,7 @@
   {
    "key": "bp_missionreward_cfp_outpost_regionc",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_CFP_Outpost_RegionC",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_ksar_rifle_energy_01_blue_gold",
@@ -1194,12 +1410,30 @@
      "contractor": "Citizens for Prosperity",
      "chance": 1.0,
      "missions": [
-      "Attack on CFP outpost",
-      "Call for Help: …",
-      "Defenders needed against Headhunters",
-      "Protecting outpost from XenoThreat",
-      "Reclaim XenoThreat Outpost",
-      "… needs help"
+      {
+       "title": "Attack on CFP outpost",
+       "unreleased": false
+      },
+      {
+       "title": "Call for Help: …",
+       "unreleased": false
+      },
+      {
+       "title": "Defenders needed against Headhunters",
+       "unreleased": false
+      },
+      {
+       "title": "Protecting outpost from XenoThreat",
+       "unreleased": false
+      },
+      {
+       "title": "Reclaim XenoThreat Outpost",
+       "unreleased": false
+      },
+      {
+       "title": "… needs help",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -1207,6 +1441,7 @@
   {
    "key": "bp_missionreward_cfp_outpost_regiond",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_CFP_Outpost_RegionD",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_ksar_rifle_energy_01_cian_black01",
@@ -1239,8 +1474,14 @@
      "contractor": "Citizens for Prosperity",
      "chance": 1.0,
      "missions": [
-      "Defenders needed against Headhunters",
-      "Reclaim Headhunter Outpost"
+      {
+       "title": "Defenders needed against Headhunters",
+       "unreleased": false
+      },
+      {
+       "title": "Reclaim Headhunter Outpost",
+       "unreleased": true
+      }
      ]
     }
    ]
@@ -1248,6 +1489,7 @@
   {
    "key": "bp_missionreward_citizensforprosperitydestroyitems_ab",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_CitizensForProsperityDestroyItems_AB",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_behr_lmg_ballistic_01",
@@ -1312,20 +1554,62 @@
      "contractor": "Citizens for Prosperity",
      "chance": 1.0,
      "missions": [
-      "<= UNINITIALIZED =>",
-      "Assistance Needed Against XenoThreat Raid",
-      "Clear Outlaw Data Center",
-      "Destroy Headhunter Stolen Data",
-      "Destroy Outlaw Data Servers",
-      "Destroy XenoThreat Data Servers",
-      "Destroy XenoThreat Logistic Data",
-      "Disable Outlaw Stronghold at …",
-      "Eliminate Fuel Stores",
-      "Halt Narcotics Operation",
-      "Limit Outlaw Operational Capacity",
-      "Reduce Outlaw's Operational Readiness",
-      "Take Outlaws at … Offline",
-      "Wipe Headhunter Data Servers"
+      {
+       "title": "<= UNINITIALIZED =>",
+       "unreleased": true
+      },
+      {
+       "title": "Assistance Needed Against XenoThreat Raid",
+       "unreleased": true
+      },
+      {
+       "title": "Clear Outlaw Data Center",
+       "unreleased": true
+      },
+      {
+       "title": "Destroy Headhunter Stolen Data",
+       "unreleased": false
+      },
+      {
+       "title": "Destroy Outlaw Data Servers",
+       "unreleased": false
+      },
+      {
+       "title": "Destroy XenoThreat Data Servers",
+       "unreleased": false
+      },
+      {
+       "title": "Destroy XenoThreat Logistic Data",
+       "unreleased": false
+      },
+      {
+       "title": "Disable Outlaw Stronghold at …",
+       "unreleased": false
+      },
+      {
+       "title": "Eliminate Fuel Stores",
+       "unreleased": false
+      },
+      {
+       "title": "Halt Narcotics Operation",
+       "unreleased": true
+      },
+      {
+       "title": "Limit Outlaw Operational Capacity",
+       "unreleased": true
+      },
+      {
+       "title": "Reduce Outlaw's Operational Readiness",
+       "unreleased": false
+      },
+      {
+       "title": "Take Outlaws at … Offline",
+       "unreleased": false
+      },
+      {
+       "title": "Wipe Headhunter Data Servers",
+       "unreleased": true
+      }
      ]
     }
    ]
@@ -1333,6 +1617,7 @@
   {
    "key": "bp_missionreward_citizensforprosperitydestroyitems_cd",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_CitizensForProsperityDestroyItems_CD",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_behr_sniper_ballistic_01",
@@ -1389,14 +1674,38 @@
      "contractor": "Citizens for Prosperity",
      "chance": 1.0,
      "missions": [
-      "Destroy Headhunter Stolen Data",
-      "Destroy XenoThreat Logistic Data",
-      "Disable Outlaw Stronghold at …",
-      "Eliminate Fuel Stores",
-      "Eradicate All Traces of Headhunter Data",
-      "Halt Narcotics Operation",
-      "Reduce Outlaw's Operational Readiness",
-      "Take Headhunter Stronghold Offline"
+      {
+       "title": "Destroy Headhunter Stolen Data",
+       "unreleased": false
+      },
+      {
+       "title": "Destroy XenoThreat Logistic Data",
+       "unreleased": false
+      },
+      {
+       "title": "Disable Outlaw Stronghold at …",
+       "unreleased": false
+      },
+      {
+       "title": "Eliminate Fuel Stores",
+       "unreleased": false
+      },
+      {
+       "title": "Eradicate All Traces of Headhunter Data",
+       "unreleased": false
+      },
+      {
+       "title": "Halt Narcotics Operation",
+       "unreleased": true
+      },
+      {
+       "title": "Reduce Outlaw's Operational Readiness",
+       "unreleased": false
+      },
+      {
+       "title": "Take Headhunter Stronghold Offline",
+       "unreleased": true
+      }
      ]
     }
    ]
@@ -1404,6 +1713,7 @@
   {
    "key": "bp_missionreward_citizensforprosperityrecovercargo_pyro",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_CitizensForProsperityRecoverCargo_Pyro",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_behr_smg_ballistic_01",
@@ -1468,11 +1778,26 @@
      "contractor": "Citizens for Prosperity",
      "chance": 1.0,
      "missions": [
-      "Cargo Shipment Must Be Completed",
-      "Crucial Supplies Need Retrieving",
-      "Intercepted Supply Run",
-      "Recovering Valuable Supplies",
-      "Special Recovery Operation"
+      {
+       "title": "Cargo Shipment Must Be Completed",
+       "unreleased": false
+      },
+      {
+       "title": "Crucial Supplies Need Retrieving",
+       "unreleased": false
+      },
+      {
+       "title": "Intercepted Supply Run",
+       "unreleased": false
+      },
+      {
+       "title": "Recovering Valuable Supplies",
+       "unreleased": false
+      },
+      {
+       "title": "Special Recovery Operation",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -1480,6 +1805,7 @@
   {
    "key": "bp_missionreward_combatsuit",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_CombatSuit",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_hdtc_jacket_01_01_01",
@@ -1504,7 +1830,10 @@
      "contractor": "Northrock Service Group",
      "chance": 1.0,
      "missions": [
-      "Bounty Assignment: … (HRT)"
+      {
+       "title": "Bounty Assignment: … (HRT)",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -1512,6 +1841,7 @@
   {
    "key": "bp_missionreward_foxwell_defendentitiesandescort",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Foxwell_DefendEntitiesAndEscort",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_rifle_energy_01",
@@ -1544,16 +1874,46 @@
      "contractor": "Foxwell Enforcement",
      "chance": 1.0,
      "missions": [
-      "Orange Level Contract: Destroy Outlaw Threat",
-      "Orange Level Contract: Take Out Criminal Fleet",
-      "Orange Lvl. Contract: Defend …",
-      "Orange Lvl. Contract: Protect …",
-      "Red Lvl. Contract: Defend …",
-      "Red Lvl. Contract: Protect …",
-      "Yellow Level Contract: Clear Shipjacking Group",
-      "Yellow Level Contract: Neutralize Shipjacking Gang",
-      "Yellow Lvl. Contract: Defend …",
-      "Yellow Lvl. Contract: Protect …"
+      {
+       "title": "Orange Level Contract: Destroy Outlaw Threat",
+       "unreleased": false
+      },
+      {
+       "title": "Orange Level Contract: Take Out Criminal Fleet",
+       "unreleased": false
+      },
+      {
+       "title": "Orange Lvl. Contract: Defend …",
+       "unreleased": false
+      },
+      {
+       "title": "Orange Lvl. Contract: Protect …",
+       "unreleased": false
+      },
+      {
+       "title": "Red Lvl. Contract: Defend …",
+       "unreleased": false
+      },
+      {
+       "title": "Red Lvl. Contract: Protect …",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Level Contract: Clear Shipjacking Group",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Level Contract: Neutralize Shipjacking Gang",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Lvl. Contract: Defend …",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Lvl. Contract: Protect …",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -1561,6 +1921,7 @@
   {
    "key": "bp_missionreward_foxwellenforcement_ambush",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_FoxwellEnforcement_Ambush",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_rifle_energy_01_tint01",
@@ -1593,12 +1954,30 @@
      "contractor": "Foxwell Enforcement",
      "chance": 1.0,
      "missions": [
-      "Orange Level Contract: Return the Favor",
-      "Orange Level Contract: Spring a Trap",
-      "Red Level Contract: Ambush Attack Squad",
-      "Red Level Contract: Surprise Attack",
-      "Yellow Level Contract: Ambush An Amateur",
-      "Yellow Level Contract: Surprise Strike"
+      {
+       "title": "Orange Level Contract: Return the Favor",
+       "unreleased": false
+      },
+      {
+       "title": "Orange Level Contract: Spring a Trap",
+       "unreleased": false
+      },
+      {
+       "title": "Red Level Contract: Ambush Attack Squad",
+       "unreleased": false
+      },
+      {
+       "title": "Red Level Contract: Surprise Attack",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Level Contract: Ambush An Amateur",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Level Contract: Surprise Strike",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -1606,6 +1985,7 @@
   {
    "key": "bp_missionreward_foxwellenforcement_escortships",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_FoxwellEnforcement_EscortShips",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_rifle_energy_01_camo01",
@@ -1638,12 +2018,30 @@
      "contractor": "Foxwell Enforcement",
      "chance": 1.0,
      "missions": [
-      "Orange Level Contract: Protect Our Client’s Interests",
-      "Orange Level Contract: Ship Protection Needed",
-      "Red Level Contract: Save Ships at …",
-      "Red Level Contract: Support VIP Clients",
-      "Yellow Level Contract: Defend …",
-      "Yellow Level Contract: Stand Up to Aggressors"
+      {
+       "title": "Orange Level Contract: Protect Our Client’s Interests",
+       "unreleased": false
+      },
+      {
+       "title": "Orange Level Contract: Ship Protection Needed",
+       "unreleased": false
+      },
+      {
+       "title": "Red Level Contract: Save Ships at …",
+       "unreleased": false
+      },
+      {
+       "title": "Red Level Contract: Support VIP Clients",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Level Contract: Defend …",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Level Contract: Stand Up to Aggressors",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -1651,6 +2049,7 @@
   {
    "key": "bp_missionreward_foxwellenforcement_generator",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_FoxwellEnforcement_Generator",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_qrt_specialist_heavy_arms_01_01_13",
@@ -1691,30 +2090,106 @@
      "contractor": "Foxwell Enforcement",
      "chance": 1.0,
      "missions": [
-      "Carefully Clear Site",
-      "Destroy Dangerous Drugs",
-      "Destroy Illegal Drugs",
-      "Help Protect Site",
-      "Knock Out New Drug Op",
-      "Orange Level Contract: Destroy Outlaw Infrastructure",
-      "Orange Level Contract: Take Out Fuel Supplies",
-      "Orange Level Contract: … Needs Assistance",
-      "Precision Strike on …",
-      "Red Level Contract: Clear PAFs, Recover Cargo, and Deliver to OLP",
-      "Red Level Contract: Destroy Outlaw Infrastructure",
-      "Red Level Contract: Fuel Container Demolition",
-      "Red Level Contract: Recoup Stolen Cargo Haul",
-      "Red Level Contract: Retrieve Cargo Haul",
-      "Red Level Contract: Ship Under Attack",
-      "Still Looking for Work?",
-      "Sweep and Clear Location",
-      "Track Down …",
-      "Yellow Level Contract: Clear Out PAF",
-      "Yellow Level Contract: Disrupt Operations",
-      "Yellow Level Contract: Limiting Potential Threat",
-      "Yellow Level Contract: Merc Work",
-      "Yellow Level Contract: Ship Under Attack",
-      "…"
+      {
+       "title": "Carefully Clear Site",
+       "unreleased": false
+      },
+      {
+       "title": "Destroy Dangerous Drugs",
+       "unreleased": true
+      },
+      {
+       "title": "Destroy Illegal Drugs",
+       "unreleased": true
+      },
+      {
+       "title": "Help Protect Site",
+       "unreleased": false
+      },
+      {
+       "title": "Knock Out New Drug Op",
+       "unreleased": true
+      },
+      {
+       "title": "Orange Level Contract: Destroy Outlaw Infrastructure",
+       "unreleased": false
+      },
+      {
+       "title": "Orange Level Contract: Take Out Fuel Supplies",
+       "unreleased": false
+      },
+      {
+       "title": "Orange Level Contract: … Needs Assistance",
+       "unreleased": false
+      },
+      {
+       "title": "Precision Strike on …",
+       "unreleased": false
+      },
+      {
+       "title": "Red Level Contract: Clear PAFs, Recover Cargo, and Deliver to OLP",
+       "unreleased": false
+      },
+      {
+       "title": "Red Level Contract: Destroy Outlaw Infrastructure",
+       "unreleased": false
+      },
+      {
+       "title": "Red Level Contract: Fuel Container Demolition",
+       "unreleased": false
+      },
+      {
+       "title": "Red Level Contract: Recoup Stolen Cargo Haul",
+       "unreleased": false
+      },
+      {
+       "title": "Red Level Contract: Retrieve Cargo Haul",
+       "unreleased": false
+      },
+      {
+       "title": "Red Level Contract: Ship Under Attack",
+       "unreleased": false
+      },
+      {
+       "title": "Still Looking for Work?",
+       "unreleased": false
+      },
+      {
+       "title": "Sweep and Clear Location",
+       "unreleased": false
+      },
+      {
+       "title": "Track Down …",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Level Contract: Clear Out PAF",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Level Contract: Disrupt Operations",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Level Contract: Limiting Potential Threat",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Level Contract: Merc Work",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Level Contract: Ship Under Attack",
+       "unreleased": false
+      },
+      {
+       "title": "…",
+       "unreleased": false
+      },
+      {
+       "title": null,
+       "unreleased": true
+      }
      ]
     }
    ]
@@ -1722,6 +2197,7 @@
   {
    "key": "bp_missionreward_foxwellenforcement_patrol",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_FoxwellEnforcement_Patrol",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_rifle_energy_01_tint02",
@@ -1754,12 +2230,30 @@
      "contractor": "Foxwell Enforcement",
      "chance": 1.0,
      "missions": [
-      "Orange Level Contract: Potential Security Threat",
-      "Orange Level Contract: Security Patrol",
-      "Red Level Contract: High-Risk Security Patrol",
-      "Red Level Contract: Secure Threatened Space",
-      "Yellow Level Contract: Routine Patrol",
-      "Yellow Level Contract: Security Sweep"
+      {
+       "title": "Orange Level Contract: Potential Security Threat",
+       "unreleased": false
+      },
+      {
+       "title": "Orange Level Contract: Security Patrol",
+       "unreleased": false
+      },
+      {
+       "title": "Red Level Contract: High-Risk Security Patrol",
+       "unreleased": false
+      },
+      {
+       "title": "Red Level Contract: Secure Threatened Space",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Level Contract: Routine Patrol",
+       "unreleased": false
+      },
+      {
+       "title": "Yellow Level Contract: Security Sweep",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -1767,6 +2261,7 @@
   {
    "key": "bp_missionreward_headhunters_mercenaryfps_eliminateall_regionab",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_HeadHunters_MercenaryFPS_EliminateALL_RegionAB",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_lbco_sniper_energy_01",
@@ -1807,34 +2302,122 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "A Swift Reprisal",
-      "A little retaliation",
-      "A tricky tricky task",
-      "Block XenoThreat Expansion",
-      "Butcher Kopion Pack at …",
-      "Deal with Kopions at …",
-      "Death and cargo",
-      "Don't let Windfall Fall",
-      "Driving CFP out",
-      "Halt XenoThreat Expansion",
-      "Hit XenoThreat at …",
-      "Hit a CFP Complex",
-      "Hit on XenoThreat command",
-      "Hitting a CFP site",
-      "Kill Kopions at …",
-      "Need a hitter",
-      "Rally at …",
-      "Reputation Management",
-      "Sweep and clear some CFP haunts",
-      "Take back Carvers Ridge",
-      "Taking XenoThreat Turf",
-      "Taking down a XenoThreat Hideout",
-      "Taking out some XenoThreat trash",
-      "The Yard's under attack",
-      "Turf War",
-      "Wipe … out",
-      "… has been greenlit",
-      "… under attack"
+      {
+       "title": "A Swift Reprisal",
+       "unreleased": false
+      },
+      {
+       "title": "A little retaliation",
+       "unreleased": false
+      },
+      {
+       "title": "A tricky tricky task",
+       "unreleased": true
+      },
+      {
+       "title": "Block XenoThreat Expansion",
+       "unreleased": false
+      },
+      {
+       "title": "Butcher Kopion Pack at …",
+       "unreleased": true
+      },
+      {
+       "title": "Deal with Kopions at …",
+       "unreleased": true
+      },
+      {
+       "title": "Death and cargo",
+       "unreleased": false
+      },
+      {
+       "title": "Don't let Windfall Fall",
+       "unreleased": true
+      },
+      {
+       "title": "Driving CFP out",
+       "unreleased": false
+      },
+      {
+       "title": "Halt XenoThreat Expansion",
+       "unreleased": true
+      },
+      {
+       "title": "Hit XenoThreat at …",
+       "unreleased": false
+      },
+      {
+       "title": "Hit a CFP Complex",
+       "unreleased": false
+      },
+      {
+       "title": "Hit on XenoThreat command",
+       "unreleased": false
+      },
+      {
+       "title": "Hitting a CFP site",
+       "unreleased": false
+      },
+      {
+       "title": "Kill Kopions at …",
+       "unreleased": true
+      },
+      {
+       "title": "Need a hitter",
+       "unreleased": false
+      },
+      {
+       "title": "Rally at …",
+       "unreleased": true
+      },
+      {
+       "title": "Reputation Management",
+       "unreleased": true
+      },
+      {
+       "title": "Sweep and clear some CFP haunts",
+       "unreleased": false
+      },
+      {
+       "title": "Take back Carvers Ridge",
+       "unreleased": true
+      },
+      {
+       "title": "Taking XenoThreat Turf",
+       "unreleased": false
+      },
+      {
+       "title": "Taking down a XenoThreat Hideout",
+       "unreleased": false
+      },
+      {
+       "title": "Taking out some XenoThreat trash",
+       "unreleased": false
+      },
+      {
+       "title": "The Yard's under attack",
+       "unreleased": true
+      },
+      {
+       "title": "Turf War",
+       "unreleased": false
+      },
+      {
+       "title": "Wipe … out",
+       "unreleased": true
+      },
+      {
+       "title": "… has been greenlit",
+       "unreleased": false
+      },
+      {
+       "title": "… under attack",
+       "unreleased": true
+      },
+      {
+       "title": null,
+       "unreleased": true
+      }
      ]
     }
    ]
@@ -1842,6 +2425,7 @@
   {
    "key": "bp_missionreward_headhunters_mercenaryfps_eliminateall_regioncd",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_HeadHunters_MercenaryFPS_EliminateALL_RegionCD",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_lbco_pistol_energy_01",
@@ -1882,16 +2466,46 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "A tricky tricky task",
-      "Back up needed at outpost",
-      "Death and cargo",
-      "Go on the warpath",
-      "Green light on …",
-      "Hit on XenoThreat command",
-      "Looking for a little revenge",
-      "Need a hitter",
-      "Reputation Management",
-      "Time to roll on CFP"
+      {
+       "title": "A tricky tricky task",
+       "unreleased": true
+      },
+      {
+       "title": "Back up needed at outpost",
+       "unreleased": false
+      },
+      {
+       "title": "Death and cargo",
+       "unreleased": false
+      },
+      {
+       "title": "Go on the warpath",
+       "unreleased": false
+      },
+      {
+       "title": "Green light on …",
+       "unreleased": false
+      },
+      {
+       "title": "Hit on XenoThreat command",
+       "unreleased": false
+      },
+      {
+       "title": "Looking for a little revenge",
+       "unreleased": false
+      },
+      {
+       "title": "Need a hitter",
+       "unreleased": false
+      },
+      {
+       "title": "Reputation Management",
+       "unreleased": false
+      },
+      {
+       "title": "Time to roll on CFP",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -1899,6 +2513,7 @@
   {
    "key": "bp_missionreward_headhunters_mercenaryfps_eliminateboss",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_HeadHunters_MercenaryFPS_EliminateBoss",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_ksar_shotgun_ballistic_01",
@@ -1939,7 +2554,10 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "Need a death at …"
+      {
+       "title": "Need a death at …",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -1947,6 +2565,7 @@
   {
    "key": "bp_missionreward_headhunters_mercenaryfps_eliminatespecific_regionab",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_HeadHunters_MercenaryFPS_EliminateSpecific_RegionAB",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_ksar_sniper_ballistic_01",
@@ -1995,18 +2614,54 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "Deep space hit",
-      "Green light on …",
-      "Head of the snake",
-      "Hit on XenoThreat at the Yard",
-      "Kill the king",
-      "Need a CFP taken down",
-      "Need a hit on the Riviera",
-      "Need a scalpel at Carver's",
-      "Need someone taken out",
-      "Shot in the chaos",
-      "Wanted: …",
-      "XenoThreat Lieutenant needs some killing"
+      {
+       "title": "Deep space hit",
+       "unreleased": false
+      },
+      {
+       "title": "Green light on …",
+       "unreleased": false
+      },
+      {
+       "title": "Head of the snake",
+       "unreleased": true
+      },
+      {
+       "title": "Hit on XenoThreat at the Yard",
+       "unreleased": true
+      },
+      {
+       "title": "Kill the king",
+       "unreleased": true
+      },
+      {
+       "title": "Need a CFP taken down",
+       "unreleased": false
+      },
+      {
+       "title": "Need a hit on the Riviera",
+       "unreleased": true
+      },
+      {
+       "title": "Need a scalpel at Carver's",
+       "unreleased": true
+      },
+      {
+       "title": "Need someone taken out",
+       "unreleased": false
+      },
+      {
+       "title": "Shot in the chaos",
+       "unreleased": false
+      },
+      {
+       "title": "Wanted: …",
+       "unreleased": false
+      },
+      {
+       "title": "XenoThreat Lieutenant needs some killing",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2014,6 +2669,7 @@
   {
    "key": "bp_missionreward_headhunters_mercenaryfps_eliminatespecific_regioncd",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_HeadHunters_MercenaryFPS_EliminateSpecific_RegionCD",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_ksar_shotgun_energy_01",
@@ -2054,12 +2710,30 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "Deep space hit",
-      "Drop a XenoThreat",
-      "Kill the king",
-      "Need a CFP taken down",
-      "Paid Target in CFP",
-      "Plug a traitor"
+      {
+       "title": "Deep space hit",
+       "unreleased": false
+      },
+      {
+       "title": "Drop a XenoThreat",
+       "unreleased": false
+      },
+      {
+       "title": "Kill the king",
+       "unreleased": false
+      },
+      {
+       "title": "Need a CFP taken down",
+       "unreleased": false
+      },
+      {
+       "title": "Paid Target in CFP",
+       "unreleased": false
+      },
+      {
+       "title": "Plug a traitor",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2067,6 +2741,7 @@
   {
    "key": "bp_missionreward_ids_recoverencrypteddata",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_IDS_RecoverEncryptedData",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_pistol_energy_01_tint01",
@@ -2131,7 +2806,10 @@
      "contractor": "InterSec Defense Solutions",
      "chance": 1.0,
      "missions": [
-      "Retrieve Additional Smuggler Intel"
+      {
+       "title": "Retrieve Additional Smuggler Intel",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2139,6 +2817,7 @@
   {
    "key": "bp_missionreward_intersec_defendship",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_InterSec_DefendShip",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_pistol_energy_01_tint02",
@@ -2175,11 +2854,26 @@
      "contractor": "InterSec Defense Solutions",
      "chance": 1.0,
      "missions": [
-      "Defend InterSec Operative",
-      "Handle Vanduul Attack on Ship",
-      "Operative Extraction",
-      "Pilot Under Fire From Vanduul",
-      "Protect Vital Asset"
+      {
+       "title": "Defend InterSec Operative",
+       "unreleased": false
+      },
+      {
+       "title": "Handle Vanduul Attack on Ship",
+       "unreleased": false
+      },
+      {
+       "title": "Operative Extraction",
+       "unreleased": false
+      },
+      {
+       "title": "Pilot Under Fire From Vanduul",
+       "unreleased": false
+      },
+      {
+       "title": "Protect Vital Asset",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2187,6 +2881,7 @@
   {
    "key": "bp_missionreward_intersec_patrol",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_InterSec_Patrol",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_smg_energy_01_tint03",
@@ -2247,9 +2942,18 @@
      "contractor": "InterSec Defense Solutions",
      "chance": 1.0,
      "missions": [
-      "Patrol Dangerous Sector",
-      "Patrol Vanduul Hunting Ground",
-      "Patrol to Prevent Possible Attack"
+      {
+       "title": "Patrol Dangerous Sector",
+       "unreleased": false
+      },
+      {
+       "title": "Patrol Vanduul Hunting Ground",
+       "unreleased": false
+      },
+      {
+       "title": "Patrol to Prevent Possible Attack",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2257,6 +2961,7 @@
   {
    "key": "bp_missionreward_intersec_resourcegathering",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_InterSec_ResourceGathering",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_pistol_energy_01",
@@ -2293,8 +2998,14 @@
      "contractor": "InterSec Defense Solutions",
      "chance": 1.0,
      "missions": [
-      "Recover Vanduul Corpses",
-      "Recover Vanduul Tech"
+      {
+       "title": "Recover Vanduul Corpses",
+       "unreleased": false
+      },
+      {
+       "title": "Recover Vanduul Tech",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2302,6 +3013,7 @@
   {
    "key": "bp_missionreward_mining_modules_active_clearcut",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Mining_Modules_Active_Clearcut",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_mining_modules_active_clearcut",
@@ -2314,7 +3026,10 @@
      "contractor": "Recco Battaglia",
      "chance": 1.0,
      "missions": [
-      "Welcome to the System"
+      {
+       "title": "Welcome to the System",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2322,6 +3037,7 @@
   {
    "key": "bp_missionreward_mining_modules_active_stampede",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Mining_Modules_Active_Stampede",
+   "awardable": false,
    "blueprints": [
     {
      "key": "bp_craft_mining_modules_active_stampede",
@@ -2333,6 +3049,7 @@
   {
    "key": "bp_missionreward_mining_modules_passive_deluge",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Mining_Modules_Passive_Deluge",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_mining_modules_passive_deluge",
@@ -2345,7 +3062,10 @@
      "contractor": "Recco Battaglia",
      "chance": 1.0,
      "missions": [
-      "Emergency: Blinding Hope in Trouble"
+      {
+       "title": "Emergency: Blinding Hope in Trouble",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2353,6 +3073,7 @@
   {
    "key": "bp_missionreward_mining_modules_passive_overrun",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Mining_Modules_Passive_Overrun",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_mining_modules_passive_overrun",
@@ -2365,7 +3086,10 @@
      "contractor": "Recco Battaglia",
      "chance": 1.0,
      "missions": [
-      "Emergency: Blinding Hope in Trouble"
+      {
+       "title": "Emergency: Blinding Hope in Trouble",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2373,6 +3097,7 @@
   {
    "key": "bp_missionreward_mining_modules_passive_torrent_mk3",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Mining_Modules_Passive_Torrent_MK3",
+   "awardable": false,
    "blueprints": [
     {
      "key": "bp_craft_mining_modules_passive_torrent_mk3",
@@ -2384,6 +3109,7 @@
   {
    "key": "bp_missionreward_northrockfpskill_eliminateboss",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_NorthRockFPSKill_EliminateBoss",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_gmni_lmg_ballistic_01",
@@ -2440,7 +3166,10 @@
      "contractor": "Northrock Service Group",
      "chance": 1.0,
      "missions": [
-      "Bounty Assignment: … (HRT)"
+      {
+       "title": "Bounty Assignment: … (HRT)",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2448,6 +3177,7 @@
   {
    "key": "bp_missionreward_rayari_recoveritem_hathorloot",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Rayari_RecoverItem_HathorLoot",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_pistol_energy_01",
@@ -2492,8 +3222,14 @@
      "contractor": "Rayari Incorporated",
      "chance": 0.25,
      "missions": [
-      "Need Resource for Research\\n",
-      "Vital Resources Needed For Research"
+      {
+       "title": "Need Resource for Research\\n",
+       "unreleased": false
+      },
+      {
+       "title": "Vital Resources Needed For Research",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2501,6 +3237,7 @@
   {
    "key": "bp_missionreward_rayari_recoveritem_irradiated",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Rayari_RecoverItem_Irradiated",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_volt_shotgun_energy_01_tint02",
@@ -2537,7 +3274,10 @@
      "contractor": "Rayari Incorporated",
      "chance": 0.25,
      "missions": [
-      "Additional Resources For Research"
+      {
+       "title": "Additional Resources For Research",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2545,6 +3285,7 @@
   {
    "key": "bp_missionreward_rdc_boss",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_RDC_Boss",
+   "awardable": false,
    "blueprints": [
     {
      "key": "bp_craft_gmni_shotgun_ballistic_01",
@@ -2597,7 +3338,10 @@
      "contractor": "Vaughn",
      "chance": 1.0,
      "missions": [
-      "End of a Salamander"
+      {
+       "title": "End of a Salamander",
+       "unreleased": true
+      }
      ]
     },
     {
@@ -2605,7 +3349,10 @@
      "contractor": "Bounty Hunters Guild",
      "chance": 0.75,
      "missions": [
-      "High-Risk Bounty: … at QV Breaker Station"
+      {
+       "title": "High-Risk Bounty: … at QV Breaker Station",
+       "unreleased": true
+      }
      ]
     }
    ]
@@ -2613,6 +3360,7 @@
   {
    "key": "bp_missionreward_rdc_exclusive",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_RDC_Exclusive",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_gmni_shotgun_ballistic_01_pink_red01",
@@ -2665,7 +3413,10 @@
      "contractor": null,
      "chance": 1.0,
      "missions": [
-      "…"
+      {
+       "title": "…",
+       "unreleased": false
+      }
      ]
     },
     {
@@ -2673,7 +3424,10 @@
      "contractor": "Bit Zeros",
      "chance": 1.0,
      "missions": [
-      "…"
+      {
+       "title": "…",
+       "unreleased": false
+      }
      ]
     },
     {
@@ -2681,8 +3435,14 @@
      "contractor": "Shubin Interstellar",
      "chance": 1.0,
      "missions": [
-      "QV Breaker Station Mining Rights (Exclusive)",
-      "QV Breaker Station Mining Rights (Shared)"
+      {
+       "title": "QV Breaker Station Mining Rights (Exclusive)",
+       "unreleased": false
+      },
+      {
+       "title": "QV Breaker Station Mining Rights (Shared)",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2690,6 +3450,7 @@
   {
    "key": "bp_missionreward_rdc_generic",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_RDC_Generic",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_gmni_shotgun_ballistic_01",
@@ -2738,7 +3499,14 @@
      "contractor": "Bounty Hunters Guild",
      "chance": 1.0,
      "missions": [
-      "Verified Bounty: … at QV Breaker Station"
+      {
+       "title": "Verified Bounty: … at QV Breaker Station",
+       "unreleased": false
+      },
+      {
+       "title": null,
+       "unreleased": false
+      }
      ]
     },
     {
@@ -2746,12 +3514,30 @@
      "contractor": "InterSec Defense Solutions",
      "chance": 1.0,
      "missions": [
-      "Eliminate Vanduul Ship",
-      "Neutralize UEE Threat: …",
-      "Neutralize Vanduul Target",
-      "New Defense Contract: … Elimination",
-      "Preemptive Strike On …",
-      "Terrorist … to be Neutralized"
+      {
+       "title": "Eliminate Vanduul Ship",
+       "unreleased": false
+      },
+      {
+       "title": "Neutralize UEE Threat: …",
+       "unreleased": false
+      },
+      {
+       "title": "Neutralize Vanduul Target",
+       "unreleased": false
+      },
+      {
+       "title": "New Defense Contract: … Elimination",
+       "unreleased": false
+      },
+      {
+       "title": "Preemptive Strike On …",
+       "unreleased": false
+      },
+      {
+       "title": "Terrorist … to be Neutralized",
+       "unreleased": false
+      }
      ]
     },
     {
@@ -2759,12 +3545,30 @@
      "contractor": "Eckhart Security",
      "chance": 1.0,
      "missions": [
-      "Extremely Dangerous Defense",
-      "High-Risk Ship Encounter",
-      "Save Ship",
-      "Stop Attack on High-Profile Client",
-      "Stop Deadly Ship Attack",
-      "Support Client Under Attack"
+      {
+       "title": "Extremely Dangerous Defense",
+       "unreleased": false
+      },
+      {
+       "title": "High-Risk Ship Encounter",
+       "unreleased": false
+      },
+      {
+       "title": "Save Ship",
+       "unreleased": false
+      },
+      {
+       "title": "Stop Attack on High-Profile Client",
+       "unreleased": false
+      },
+      {
+       "title": "Stop Deadly Ship Attack",
+       "unreleased": false
+      },
+      {
+       "title": "Support Client Under Attack",
+       "unreleased": false
+      }
      ]
     },
     {
@@ -2772,12 +3576,30 @@
      "contractor": "Citizens for Prosperity",
      "chance": 1.0,
      "missions": [
-      "Come to Aid of Convoy",
-      "Convoy Caught in Brutal Attack",
-      "Pilot Seeking Combat Support",
-      "Pilot in Distress",
-      "Respond to Distress Beacon",
-      "Ship Needs Emergency Assistance"
+      {
+       "title": "Come to Aid of Convoy",
+       "unreleased": false
+      },
+      {
+       "title": "Convoy Caught in Brutal Attack",
+       "unreleased": false
+      },
+      {
+       "title": "Pilot Seeking Combat Support",
+       "unreleased": false
+      },
+      {
+       "title": "Pilot in Distress",
+       "unreleased": false
+      },
+      {
+       "title": "Respond to Distress Beacon",
+       "unreleased": false
+      },
+      {
+       "title": "Ship Needs Emergency Assistance",
+       "unreleased": false
+      }
      ]
     },
     {
@@ -2785,7 +3607,10 @@
      "contractor": "Vaughn",
      "chance": 1.0,
      "missions": [
-      "A Well Deserved Break"
+      {
+       "title": "A Well Deserved Break",
+       "unreleased": false
+      }
      ]
     },
     {
@@ -2793,7 +3618,10 @@
      "contractor": "Highpoint Wilderness Specialists",
      "chance": 1.0,
      "missions": [
-      "Reduce Valakkar Breaker Station Population"
+      {
+       "title": "Reduce Valakkar Breaker Station Population",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2801,6 +3629,7 @@
   {
    "key": "bp_missionreward_shubin_resourcegathering_fpsmining_pyro",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Shubin_ResourceGathering_FPSMining_Pyro",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_klwe_pistol_energy_01_engraved01",
@@ -2837,10 +3666,22 @@
      "contractor": "Shubin Interstellar",
      "chance": 1.0,
      "missions": [
-      "Lrg. Purchase Order: Hand Mined Materials",
-      "Med. Purchase Order: Hand Mined Materials",
-      "Small Purchase Order: Hand Mined Materials",
-      "XL Purchase Order: Hand Mined Materials"
+      {
+       "title": "Lrg. Purchase Order: Hand Mined Materials",
+       "unreleased": false
+      },
+      {
+       "title": "Med. Purchase Order: Hand Mined Materials",
+       "unreleased": false
+      },
+      {
+       "title": "Small Purchase Order: Hand Mined Materials",
+       "unreleased": false
+      },
+      {
+       "title": "XL Purchase Order: Hand Mined Materials",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2848,6 +3689,7 @@
   {
    "key": "bp_missionreward_shubin_resourcegathering_fpsmining_stanton",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Shubin_ResourceGathering_FPSMining_Stanton",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_klwe_pistol_energy_01_black01",
@@ -2880,10 +3722,22 @@
      "contractor": "Shubin Interstellar",
      "chance": 1.0,
      "missions": [
-      "Lrg. Purchase Order: Hand Mined Materials",
-      "Med. Purchase Order: Hand Mined Materials",
-      "Small Purchase Order: Hand Mined Materials",
-      "XL Purchase Order: Hand Mined Materials"
+      {
+       "title": "Lrg. Purchase Order: Hand Mined Materials",
+       "unreleased": false
+      },
+      {
+       "title": "Med. Purchase Order: Hand Mined Materials",
+       "unreleased": false
+      },
+      {
+       "title": "Small Purchase Order: Hand Mined Materials",
+       "unreleased": false
+      },
+      {
+       "title": "XL Purchase Order: Hand Mined Materials",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2891,6 +3745,7 @@
   {
    "key": "bp_missionreward_shubin_resourcegathering_shipmining_pyronyx",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Shubin_ResourceGathering_ShipMining_PyroNyx",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_klwe_pistol_energy_01_white01",
@@ -2927,13 +3782,34 @@
      "contractor": "Shubin Interstellar",
      "chance": 1.0,
      "missions": [
-      "Lrg. Purchase Order: Ship Mined Ore",
-      "Med. Purchase Order: Ship Mined Ore",
-      "Mjr. Purchase Order: Ship Mined Ore",
-      "Small Purchase Order: Ship Mined Ore",
-      "Special Purchase Order: Mined Materials",
-      "XL Purchase Order: Ship Mined Ore",
-      "XS Purchase Order: Ship Mined Ore"
+      {
+       "title": "Lrg. Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Med. Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Mjr. Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Small Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Special Purchase Order: Mined Materials",
+       "unreleased": false
+      },
+      {
+       "title": "XL Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "XS Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2941,6 +3817,7 @@
   {
    "key": "bp_missionreward_shubin_resourcegathering_shipmining_stanton",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_Shubin_ResourceGathering_ShipMining_Stanton",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_klwe_pistol_energy_01_black02",
@@ -2977,13 +3854,34 @@
      "contractor": "Shubin Interstellar",
      "chance": 1.0,
      "missions": [
-      "Lrg. Purchase Order: Ship Mined Ore",
-      "Med. Purchase Order: Ship Mined Ore",
-      "Mjr. Purchase Order: Ship Mined Ore",
-      "Small Purchase Order: Ship Mined Ore",
-      "Special Purchase Order: Mined Materials",
-      "XL Purchase Order: Ship Mined Ore",
-      "XS Purchase Order: Ship Mined Ore"
+      {
+       "title": "Lrg. Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Med. Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Mjr. Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Small Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Special Purchase Order: Mined Materials",
+       "unreleased": false
+      },
+      {
+       "title": "XL Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "XS Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -2991,6 +3889,7 @@
   {
    "key": "bp_missionreward_superheavy",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_SuperHeavy",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_superheavy_backpack_01_01_01",
@@ -3011,7 +3910,10 @@
      "contractor": "Northrock Service Group",
      "chance": 1.0,
      "missions": [
-      "Retake Platforms From Nine Tails"
+      {
+       "title": "Retake Platforms From Nine Tails",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3019,6 +3921,7 @@
   {
    "key": "bp_missionreward_vaughngenerator_eliminateboss",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_VaughnGenerator_EliminateBoss",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_none_lmg_ballistic_01",
@@ -3071,8 +3974,14 @@
      "contractor": "Vaughn",
      "chance": 1.0,
      "missions": [
-      "All Things Come To An End",
-      "They Will Be Missed"
+      {
+       "title": "All Things Come To An End",
+       "unreleased": false
+      },
+      {
+       "title": "They Will Be Missed",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3080,6 +3989,7 @@
   {
    "key": "bp_missionreward_vaughngenerator_eliminatespecific",
    "record": "BlueprintPoolRecord.BP_MISSIONREWARD_VaughnGenerator_EliminateSpecific",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_none_rifle_multi_01",
@@ -3136,8 +4046,14 @@
      "contractor": "Vaughn",
      "chance": 1.0,
      "missions": [
-      "A Challenging Contract",
-      "All Things Come To An End"
+      {
+       "title": "A Challenging Contract",
+       "unreleased": true
+      },
+      {
+       "title": "All Things Come To An End",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3145,6 +4061,7 @@
   {
    "key": "bp_reward_apar_hmg_ballistic_01_collector01",
    "record": "BlueprintPoolRecord.BP_REWARD_apar_hmg_ballistic_01_collector01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_apar_hmg_ballistic_01_collector01",
@@ -3157,7 +4074,10 @@
      "contractor": "Wikelo",
      "chance": 1.0,
      "missions": [
-      "Too Much Gun"
+      {
+       "title": "Too Much Gun",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3165,6 +4085,7 @@
   {
    "key": "bp_reward_behr_pistol_ballistic_01_mr01",
    "record": "BlueprintPoolRecord.BP_REWARD_behr_pistol_ballistic_01_mr01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_behr_pistol_ballistic_01_mr01",
@@ -3182,6 +4103,7 @@
   {
    "key": "bp_reward_behr_rifle_ballistic_01_mr01",
    "record": "BlueprintPoolRecord.BP_REWARD_behr_rifle_ballistic_01_mr01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_behr_rifle_ballistic_01_mr01",
@@ -3199,6 +4121,7 @@
   {
    "key": "bp_reward_cds_combat_heavy_arms_01_02_02",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_heavy_arms_01_02_02",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_heavy_arms_01_02_02",
@@ -3216,6 +4139,7 @@
   {
    "key": "bp_reward_cds_combat_heavy_core_01_02_02",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_heavy_core_01_02_02",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_heavy_core_01_02_02",
@@ -3233,6 +4157,7 @@
   {
    "key": "bp_reward_cds_combat_heavy_helmet_01_02_02",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_heavy_helmet_01_02_02",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_heavy_helmet_01_02_02",
@@ -3250,6 +4175,7 @@
   {
    "key": "bp_reward_cds_combat_heavy_legs_01_02_02",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_heavy_legs_01_02_02",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_heavy_legs_01_02_02",
@@ -3267,6 +4193,7 @@
   {
    "key": "bp_reward_cds_combat_light_arms_02_02_01",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_light_arms_02_02_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_light_arms_02_02_01",
@@ -3284,6 +4211,7 @@
   {
    "key": "bp_reward_cds_combat_light_core_02_02_01",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_light_core_02_02_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_light_core_02_02_01",
@@ -3301,6 +4229,7 @@
   {
    "key": "bp_reward_cds_combat_light_helmet_02_02_01",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_light_helmet_02_02_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_light_helmet_02_02_01",
@@ -3318,6 +4247,7 @@
   {
    "key": "bp_reward_cds_combat_light_legs_02_02_01",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_light_legs_02_02_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_light_legs_02_02_01",
@@ -3335,6 +4265,7 @@
   {
    "key": "bp_reward_cds_combat_medium_arms_01_02_01",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_medium_arms_01_02_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_medium_arms_01_02_01",
@@ -3352,6 +4283,7 @@
   {
    "key": "bp_reward_cds_combat_medium_core_01_02_01",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_medium_core_01_02_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_medium_core_01_02_01",
@@ -3369,6 +4301,7 @@
   {
    "key": "bp_reward_cds_combat_medium_helmet_01_02_01",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_medium_helmet_01_02_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_medium_helmet_01_02_01",
@@ -3386,6 +4319,7 @@
   {
    "key": "bp_reward_cds_combat_medium_legs_01_02_01",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_medium_legs_01_02_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_medium_legs_01_02_01",
@@ -3403,6 +4337,7 @@
   {
    "key": "bp_reward_cds_combat_superheavy_backpack_01_03_01",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_superheavy_backpack_01_03_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_superheavy_backpack_01_03_01",
@@ -3415,7 +4350,10 @@
      "contractor": "Wikelo",
      "chance": 1.0,
      "missions": [
-      "Heavy and Bright"
+      {
+       "title": "Heavy and Bright",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3423,6 +4361,7 @@
   {
    "key": "bp_reward_cds_combat_superheavy_helmet_01_03_01",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_superheavy_helmet_01_03_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_superheavy_helmet_01_03_01",
@@ -3435,7 +4374,10 @@
      "contractor": "Wikelo",
      "chance": 1.0,
      "missions": [
-      "Heavy and Bright"
+      {
+       "title": "Heavy and Bright",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3443,6 +4385,7 @@
   {
    "key": "bp_reward_cds_combat_superheavy_suit_01_03_01",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_combat_superheavy_suit_01_03_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_superheavy_suit_01_03_01",
@@ -3455,7 +4398,10 @@
      "contractor": "Wikelo",
      "chance": 1.0,
      "missions": [
-      "Heavy and Bright"
+      {
+       "title": "Heavy and Bright",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3463,6 +4409,7 @@
   {
    "key": "bp_reward_cds_undersuit_01_02_02",
    "record": "BlueprintPoolRecord.BP_REWARD_cds_undersuit_01_02_02",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cds_undersuit_01_02_02",
@@ -3480,6 +4427,7 @@
   {
    "key": "bp_reward_collectormaterial_001",
    "record": "BlueprintPoolRecord.BP_REWARD_CollectorMaterial_001",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_carryable_2h_cy_collectormaterial_001",
@@ -3492,7 +4440,10 @@
      "contractor": "Wikelo",
      "chance": 1.0,
      "missions": [
-      "Extra Special Wolf"
+      {
+       "title": "Extra Special Wolf",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3500,6 +4451,7 @@
   {
    "key": "bp_reward_collectormaterial_002",
    "record": "BlueprintPoolRecord.BP_REWARD_CollectorMaterial_002",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_carryable_2h_sq_collectormaterial_002",
@@ -3512,7 +4464,10 @@
      "contractor": "Wikelo",
      "chance": 1.0,
      "missions": [
-      "Clipper Fight Now"
+      {
+       "title": "Clipper Fight Now",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3520,6 +4475,7 @@
   {
    "key": "bp_reward_ds_combat_medium_helmet_01_02_01",
    "record": "BlueprintPoolRecord.BP_REWARD_ds_combat_medium_helmet_01_02_01",
+   "awardable": false,
    "blueprints": [
     {
      "key": "bp_craft_cds_combat_medium_helmet_01_02_01",
@@ -3531,6 +4487,7 @@
   {
    "key": "bp_reward_klwe_smg_energy_01_mr01",
    "record": "BlueprintPoolRecord.BP_REWARD_klwe_smg_energy_01_mr01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_klwe_smg_energy_01_mr01",
@@ -3548,6 +4505,7 @@
   {
    "key": "bp_reward_none_rifle_multi_01_collector01",
    "record": "BlueprintPoolRecord.BP_REWARD_none_rifle_multi_01_collector01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_none_rifle_multi_01_collector01",
@@ -3560,7 +4518,10 @@
      "contractor": "Wikelo",
      "chance": 1.0,
      "missions": [
-      "Your Best Shot"
+      {
+       "title": "Your Best Shot",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3568,6 +4529,7 @@
   {
    "key": "bp_reward_vgl_flightsuit_01_02_01",
    "record": "BlueprintPoolRecord.BP_REWARD_vgl_flightsuit_01_02_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_vgl_flightsuit_01_02_01",
@@ -3580,7 +4542,10 @@
      "contractor": "Wikelo",
      "chance": 1.0,
      "missions": [
-      "Suit Up Take Off"
+      {
+       "title": "Suit Up Take Off",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3588,6 +4553,7 @@
   {
    "key": "bp_reward_vgl_flightsuit_helmet_01_02_01",
    "record": "BlueprintPoolRecord.BP_REWARD_vgl_flightsuit_helmet_01_02_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_vgl_flightsuit_helmet_01_02_01",
@@ -3600,7 +4566,10 @@
      "contractor": "Wikelo",
      "chance": 1.0,
      "missions": [
-      "Suit Up Take Off"
+      {
+       "title": "Suit Up Take Off",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3608,6 +4577,7 @@
   {
    "key": "bp_rewards_adagioresourcegatheringshipsalvage",
    "record": "BlueprintPoolRecord.BP_REWARDS_AdagioResourceGatheringShipSalvage",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_salvage_modifier_scraper_large",
@@ -3636,9 +4606,22 @@
      "contractor": "Adagio Holdings",
      "chance": 1.0,
      "missions": [
-      "Adagio Holdings in Need of Salvagers",
-      "Salvager Needed (Med. Supply of RMC)",
-      "Salvager Needed (Small Supply of RMC)"
+      {
+       "title": "Adagio Holdings in Need of Salvagers",
+       "unreleased": false
+      },
+      {
+       "title": "Salvager Needed (Med. Supply of RMC)",
+       "unreleased": false
+      },
+      {
+       "title": "Salvager Needed (Small Supply of RMC)",
+       "unreleased": false
+      },
+      {
+       "title": null,
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3646,6 +4629,7 @@
   {
    "key": "bp_rewards_asd3vgear",
    "record": "BlueprintPoolRecord.BP_REWARDS_ASD3Vgear",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_powr_amrs_s01_dynaflux_scitem",
@@ -3665,13 +4649,19 @@
      "kind": "contract",
      "contractor": "Hockrow Agency",
      "chance": 1.0,
-     "missions": []
+     "missions": [
+      {
+       "title": null,
+       "unreleased": false
+      }
+     ]
     }
    ]
   },
   {
    "key": "bp_rewards_assistshipincombata",
    "record": "BlueprintPoolRecord.BP_REWARDS_AssistShipInCombatA",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_espr_ballisticcannon_s1",
@@ -3704,7 +4694,10 @@
      "contractor": "InterSec Defense Solutions",
      "chance": 1.0,
      "missions": [
-      "Assist People's Alliance Vessel Tranquility"
+      {
+       "title": "Assist People's Alliance Vessel Tranquility",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3712,6 +4705,7 @@
   {
    "key": "bp_rewards_assistshipincombatb",
    "record": "BlueprintPoolRecord.BP_REWARDS_AssistShipInCombatB",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_vgl_flightsuit_01_01_01",
@@ -3732,7 +4726,10 @@
      "contractor": "InterSec Defense Solutions",
      "chance": 1.0,
      "missions": [
-      "Assist People's Alliance Vessel Tranquility"
+      {
+       "title": "Assist People's Alliance Vessel Tranquility",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3740,6 +4737,7 @@
   {
    "key": "bp_rewards_bombingrun",
    "record": "BlueprintPoolRecord.BP_REWARDS_BombingRun",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_espr_ballisticcannon_s4",
@@ -3772,7 +4770,10 @@
      "contractor": "InterSec Defense Solutions",
      "chance": 1.0,
      "missions": [
-      "Strategic Bombing"
+      {
+       "title": "Strategic Bombing",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3780,6 +4781,7 @@
   {
    "key": "bp_rewards_bombingrunb",
    "record": "BlueprintPoolRecord.BP_REWARDS_BombingRunB",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_vgl_flightsuit_01_01_01",
@@ -3800,7 +4802,10 @@
      "contractor": "InterSec Defense Solutions",
      "chance": 1.0,
      "missions": [
-      "Strategic Bombing"
+      {
+       "title": "Strategic Bombing",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3808,6 +4813,7 @@
   {
    "key": "bp_rewards_covalexsuper",
    "record": "BlueprintPoolRecord.BP_REWARDS_CovalexSuper",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_qdrv_wetk_s01_vk00_scitem",
@@ -3852,8 +4858,14 @@
      "contractor": "Covalex Independent Contractors",
      "chance": 1.0,
      "missions": [
-      "… Rank - Direct … Cargo Haul",
-      "… Rank - … Cargo Haul"
+      {
+       "title": "… Rank - Direct … Cargo Haul",
+       "unreleased": false
+      },
+      {
+       "title": "… Rank - … Cargo Haul",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3861,6 +4873,7 @@
   {
    "key": "bp_rewards_eckhartsecurityescortshipseasy",
    "record": "BlueprintPoolRecord.BP_REWARDS_EckhartSecurityEscortShipsEasy",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_shld_asas_s01_shimmer_scitem",
@@ -3889,12 +4902,30 @@
      "contractor": "Eckhart Security",
      "chance": 1.0,
      "missions": [
-      "Executive Protection Detail",
-      "Experienced Protection Detail Needed",
-      "Low Risk Protection Detail",
-      "Protection Detail Needed. High Risk.",
-      "Top Tier Operator Needed",
-      "VIP Client Needs Protection"
+      {
+       "title": "Executive Protection Detail",
+       "unreleased": false
+      },
+      {
+       "title": "Experienced Protection Detail Needed",
+       "unreleased": false
+      },
+      {
+       "title": "Low Risk Protection Detail",
+       "unreleased": false
+      },
+      {
+       "title": "Protection Detail Needed. High Risk.",
+       "unreleased": false
+      },
+      {
+       "title": "Top Tier Operator Needed",
+       "unreleased": false
+      },
+      {
+       "title": "VIP Client Needs Protection",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3902,6 +4933,7 @@
   {
    "key": "bp_rewards_eckhartsecurityescortshipshardplus",
    "record": "BlueprintPoolRecord.BP_REWARDS_EckhartSecurityEscortShipsHardPlus",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_apar_ballisticscattergun_s1",
@@ -3934,9 +4966,18 @@
      "contractor": "Eckhart Security",
      "chance": 1.0,
      "missions": [
-      "Protection Detail Needed. High Risk.",
-      "Top Tier Operator Needed",
-      "VIP Client Needs Protection"
+      {
+       "title": "Protection Detail Needed. High Risk.",
+       "unreleased": false
+      },
+      {
+       "title": "Top Tier Operator Needed",
+       "unreleased": false
+      },
+      {
+       "title": "VIP Client Needs Protection",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3944,6 +4985,7 @@
   {
    "key": "bp_rewards_eckhartsecurityescortshipsmed",
    "record": "BlueprintPoolRecord.BP_REWARDS_EckhartSecurityEscortShipsMed",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_shld_asas_s01_veil_scitem",
@@ -3972,10 +5014,22 @@
      "contractor": "Eckhart Security",
      "chance": 1.0,
      "missions": [
-      "Experienced Protection Detail Needed",
-      "Protection Detail Needed. High Risk.",
-      "Top Tier Operator Needed",
-      "VIP Client Needs Protection"
+      {
+       "title": "Experienced Protection Detail Needed",
+       "unreleased": false
+      },
+      {
+       "title": "Protection Detail Needed. High Risk.",
+       "unreleased": false
+      },
+      {
+       "title": "Top Tier Operator Needed",
+       "unreleased": false
+      },
+      {
+       "title": "VIP Client Needs Protection",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -3983,6 +5037,7 @@
   {
    "key": "bp_rewards_eckhartsecuritykillnpcboss",
    "record": "BlueprintPoolRecord.BP_REWARDS_EckhartSecurityKillNPCBoss",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_powr_aegs_s01_fierellcascade_scitem",
@@ -4019,8 +5074,14 @@
      "contractor": "Eckhart Security",
      "chance": 1.0,
      "missions": [
-      "Deal with … and Support Forces",
-      "High-Risk Bounty: …"
+      {
+       "title": "Deal with … and Support Forces",
+       "unreleased": false
+      },
+      {
+       "title": "High-Risk Bounty: …",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4028,6 +5089,7 @@
   {
    "key": "bp_rewards_eckhartsecurityshipambusheasy",
    "record": "BlueprintPoolRecord.BP_REWARDS_EckhartSecurityShipAmbushEasy",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_powr_tydt_s01_soniclite_scitem",
@@ -4056,13 +5118,34 @@
      "contractor": "Eckhart Security",
      "chance": 1.0,
      "missions": [
-      "Dangerous Ambush",
-      "Highly Dangerous Ambush",
-      "Launch Surprise Attack",
-      "New Opportunity - Ambush Strike",
-      "Settle a Score",
-      "Time to Teach a Lesson",
-      "Tricky Ambush"
+      {
+       "title": "Dangerous Ambush",
+       "unreleased": false
+      },
+      {
+       "title": "Highly Dangerous Ambush",
+       "unreleased": false
+      },
+      {
+       "title": "Launch Surprise Attack",
+       "unreleased": false
+      },
+      {
+       "title": "New Opportunity - Ambush Strike",
+       "unreleased": false
+      },
+      {
+       "title": "Settle a Score",
+       "unreleased": false
+      },
+      {
+       "title": "Time to Teach a Lesson",
+       "unreleased": false
+      },
+      {
+       "title": "Tricky Ambush",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4070,6 +5153,7 @@
   {
    "key": "bp_rewards_eckhartsecurityshipambushhardplus",
    "record": "BlueprintPoolRecord.BP_REWARDS_EckhartSecurityShipAmbushHardPlus",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_powr_tydt_s01_slipstream_scitem",
@@ -4098,9 +5182,18 @@
      "contractor": "Eckhart Security",
      "chance": 1.0,
      "missions": [
-      "Dangerous Ambush",
-      "Highly Dangerous Ambush",
-      "Tricky Ambush"
+      {
+       "title": "Dangerous Ambush",
+       "unreleased": false
+      },
+      {
+       "title": "Highly Dangerous Ambush",
+       "unreleased": false
+      },
+      {
+       "title": "Tricky Ambush",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4108,6 +5201,7 @@
   {
    "key": "bp_rewards_eckhartsecurityshipambushmed",
    "record": "BlueprintPoolRecord.BP_REWARDS_EckhartSecurityShipAmbushMed",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_powr_tydt_s01_deltamax_scitem",
@@ -4136,10 +5230,22 @@
      "contractor": "Eckhart Security",
      "chance": 1.0,
      "missions": [
-      "Dangerous Ambush",
-      "Highly Dangerous Ambush",
-      "Launch Surprise Attack",
-      "Tricky Ambush"
+      {
+       "title": "Dangerous Ambush",
+       "unreleased": false
+      },
+      {
+       "title": "Highly Dangerous Ambush",
+       "unreleased": false
+      },
+      {
+       "title": "Launch Surprise Attack",
+       "unreleased": false
+      },
+      {
+       "title": "Tricky Ambush",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4147,6 +5253,7 @@
   {
    "key": "bp_rewards_ftl",
    "record": "BlueprintPoolRecord.BP_REWARDS_FTL",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_qdrv_just_s01_colossus_scitem",
@@ -4179,9 +5286,18 @@
      "contractor": "FTL Courier",
      "chance": 1.0,
      "missions": [
-      "ENTRY LVL. COURIER NEEDED IN NYX",
-      "ENTRY LVL. COURIER NEEDED IN STANTON",
-      "JR. LVL. COURIER NEEDED IN STANTON"
+      {
+       "title": "ENTRY LVL. COURIER NEEDED IN NYX",
+       "unreleased": false
+      },
+      {
+       "title": "ENTRY LVL. COURIER NEEDED IN STANTON",
+       "unreleased": false
+      },
+      {
+       "title": "JR. LVL. COURIER NEEDED IN STANTON",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4189,6 +5305,7 @@
   {
    "key": "bp_rewards_fuelnozzle",
    "record": "BlueprintPoolRecord.BP_REWARDS_FuelNozzle",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_nozzle_fuelgiver_grin_nozzlefast",
@@ -4229,12 +5346,30 @@
      "contractor": "United Wayfarers Club",
      "chance": 1.0,
      "missions": [
-      "CRITICAL FLEET REFUEL",
-      "CRITICAL REFUEL REQUEST: …",
-      "REFUEL REQUEST: …",
-      "URGENT CAPITAL FLEET REFUEL",
-      "URGENT CONVOY REFUEL",
-      "URGENT REFUEL REQUEST: …"
+      {
+       "title": "CRITICAL FLEET REFUEL",
+       "unreleased": false
+      },
+      {
+       "title": "CRITICAL REFUEL REQUEST: …",
+       "unreleased": false
+      },
+      {
+       "title": "REFUEL REQUEST: …",
+       "unreleased": false
+      },
+      {
+       "title": "URGENT CAPITAL FLEET REFUEL",
+       "unreleased": false
+      },
+      {
+       "title": "URGENT CONVOY REFUEL",
+       "unreleased": false
+      },
+      {
+       "title": "URGENT REFUEL REQUEST: …",
+       "unreleased": true
+      }
      ]
     }
    ]
@@ -4242,6 +5377,7 @@
   {
    "key": "bp_rewards_fullstrikeonstationa",
    "record": "BlueprintPoolRecord.BP_REWARDS_FullStrikeOnStationA",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_mrai_flightsuit_01_07_02",
@@ -4306,7 +5442,10 @@
      "contractor": "InterSec Defense Solutions",
      "chance": 1.0,
      "missions": [
-      "Tactical Strike Group Needed"
+      {
+       "title": "Tactical Strike Group Needed",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4314,6 +5453,7 @@
   {
    "key": "bp_rewards_fullstrikeonstationb",
    "record": "BlueprintPoolRecord.BP_REWARDS_FullStrikeOnStationB",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_amrs_lasercannon_s1",
@@ -4362,7 +5502,10 @@
      "contractor": "InterSec Defense Solutions",
      "chance": 1.0,
      "missions": [
-      "Tactical Strike Group Needed"
+      {
+       "title": "Tactical Strike Group Needed",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4370,6 +5513,7 @@
   {
    "key": "bp_rewards_headhuntersmercenaryshipregiona",
    "record": "BlueprintPoolRecord.BP_REWARDS_HeadHuntersMercenaryShipRegionA",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_kbar_ballisticcannon_s1",
@@ -4406,18 +5550,54 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "Crash some ships",
-      "Ghost some XenoTrash",
-      "Hit a CFP Ship",
-      "Kill Order",
-      "Primo Target",
-      "Simple Hit",
-      "Target at …",
-      "Target takedown for a fast track in",
-      "Treat yourself to a fight",
-      "Wanna be a Headhunter?",
-      "Wanted: …",
-      "… needs stomping"
+      {
+       "title": "Crash some ships",
+       "unreleased": false
+      },
+      {
+       "title": "Ghost some XenoTrash",
+       "unreleased": false
+      },
+      {
+       "title": "Hit a CFP Ship",
+       "unreleased": false
+      },
+      {
+       "title": "Kill Order",
+       "unreleased": false
+      },
+      {
+       "title": "Primo Target",
+       "unreleased": false
+      },
+      {
+       "title": "Simple Hit",
+       "unreleased": false
+      },
+      {
+       "title": "Target at …",
+       "unreleased": false
+      },
+      {
+       "title": "Target takedown for a fast track in",
+       "unreleased": false
+      },
+      {
+       "title": "Treat yourself to a fight",
+       "unreleased": false
+      },
+      {
+       "title": "Wanna be a Headhunter?",
+       "unreleased": false
+      },
+      {
+       "title": "Wanted: …",
+       "unreleased": false
+      },
+      {
+       "title": "… needs stomping",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4425,6 +5605,7 @@
   {
    "key": "bp_rewards_headhuntersmercenaryshipregionb",
    "record": "BlueprintPoolRecord.BP_REWARDS_HeadHuntersMercenaryShipRegionB",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cool_tydt_s01_heatsafe_scitem",
@@ -4453,18 +5634,54 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "Crash some ships",
-      "Ghost some XenoTrash",
-      "Hit a CFP Ship",
-      "Kill Order",
-      "Primo Target",
-      "Simple Hit",
-      "Target at …",
-      "Target takedown for a fast track in",
-      "Treat yourself to a fight",
-      "Wanna be a Headhunter?",
-      "Wanted: …",
-      "… needs stomping"
+      {
+       "title": "Crash some ships",
+       "unreleased": false
+      },
+      {
+       "title": "Ghost some XenoTrash",
+       "unreleased": false
+      },
+      {
+       "title": "Hit a CFP Ship",
+       "unreleased": false
+      },
+      {
+       "title": "Kill Order",
+       "unreleased": false
+      },
+      {
+       "title": "Primo Target",
+       "unreleased": false
+      },
+      {
+       "title": "Simple Hit",
+       "unreleased": false
+      },
+      {
+       "title": "Target at …",
+       "unreleased": false
+      },
+      {
+       "title": "Target takedown for a fast track in",
+       "unreleased": false
+      },
+      {
+       "title": "Treat yourself to a fight",
+       "unreleased": false
+      },
+      {
+       "title": "Wanna be a Headhunter?",
+       "unreleased": false
+      },
+      {
+       "title": "Wanted: …",
+       "unreleased": false
+      },
+      {
+       "title": "… needs stomping",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4472,6 +5689,7 @@
   {
    "key": "bp_rewards_headhuntersmercenaryshipregionc",
    "record": "BlueprintPoolRecord.BP_REWARDS_HeadHuntersMercenaryShipRegionC",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cool_tydt_s01_vaporblock_scitem",
@@ -4500,18 +5718,54 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "Crash some ships",
-      "Ghost some XenoTrash",
-      "Hit a CFP Ship",
-      "Kill Order",
-      "Primo Target",
-      "Simple Hit",
-      "Target at …",
-      "Target takedown for a fast track in",
-      "Treat yourself to a fight",
-      "Wanna be a Headhunter?",
-      "Wanted: …",
-      "… needs stomping"
+      {
+       "title": "Crash some ships",
+       "unreleased": false
+      },
+      {
+       "title": "Ghost some XenoTrash",
+       "unreleased": false
+      },
+      {
+       "title": "Hit a CFP Ship",
+       "unreleased": false
+      },
+      {
+       "title": "Kill Order",
+       "unreleased": false
+      },
+      {
+       "title": "Primo Target",
+       "unreleased": false
+      },
+      {
+       "title": "Simple Hit",
+       "unreleased": false
+      },
+      {
+       "title": "Target at …",
+       "unreleased": false
+      },
+      {
+       "title": "Target takedown for a fast track in",
+       "unreleased": false
+      },
+      {
+       "title": "Treat yourself to a fight",
+       "unreleased": false
+      },
+      {
+       "title": "Wanna be a Headhunter?",
+       "unreleased": false
+      },
+      {
+       "title": "Wanted: …",
+       "unreleased": false
+      },
+      {
+       "title": "… needs stomping",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4519,6 +5773,7 @@
   {
    "key": "bp_rewards_headhuntersmercenaryshipregiond",
    "record": "BlueprintPoolRecord.BP_REWARDS_HeadHuntersMercenaryShipRegionD",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cool_tydt_s01_snowblind_scitem",
@@ -4559,18 +5814,54 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "Crash some ships",
-      "Ghost some XenoTrash",
-      "Hit a CFP Ship",
-      "Kill Order",
-      "Primo Target",
-      "Simple Hit",
-      "Target at …",
-      "Target takedown for a fast track in",
-      "Treat yourself to a fight",
-      "Wanna be a Headhunter?",
-      "Wanted: …",
-      "… needs stomping"
+      {
+       "title": "Crash some ships",
+       "unreleased": false
+      },
+      {
+       "title": "Ghost some XenoTrash",
+       "unreleased": false
+      },
+      {
+       "title": "Hit a CFP Ship",
+       "unreleased": false
+      },
+      {
+       "title": "Kill Order",
+       "unreleased": false
+      },
+      {
+       "title": "Primo Target",
+       "unreleased": false
+      },
+      {
+       "title": "Simple Hit",
+       "unreleased": false
+      },
+      {
+       "title": "Target at …",
+       "unreleased": false
+      },
+      {
+       "title": "Target takedown for a fast track in",
+       "unreleased": false
+      },
+      {
+       "title": "Treat yourself to a fight",
+       "unreleased": false
+      },
+      {
+       "title": "Wanna be a Headhunter?",
+       "unreleased": false
+      },
+      {
+       "title": "Wanted: …",
+       "unreleased": false
+      },
+      {
+       "title": "… needs stomping",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4578,6 +5869,7 @@
   {
    "key": "bp_rewards_idsrecoverencrypteddatavgear",
    "record": "BlueprintPoolRecord.BP_REWARDS_IDSRecoverEncryptedDataVgear",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_hrst_laserrepeater_s1",
@@ -4598,7 +5890,10 @@
      "contractor": "InterSec Defense Solutions",
      "chance": 1.0,
      "missions": [
-      "Retrieve Additional Smuggler Intel"
+      {
+       "title": "Retrieve Additional Smuggler Intel",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4606,6 +5901,7 @@
   {
    "key": "bp_rewards_linghard",
    "record": "BlueprintPoolRecord.BP_REWARDS_LingHard",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_qdrv_raco_s01_spectre_scitem",
@@ -4642,8 +5938,14 @@
      "contractor": "Ling Family Hauling",
      "chance": 1.0,
      "missions": [
-      "Cargo Hauling Opportunity with Ling Hauling",
-      "Ling Family … Cargo Haul - … Scale"
+      {
+       "title": "Cargo Hauling Opportunity with Ling Hauling",
+       "unreleased": false
+      },
+      {
+       "title": "Ling Family … Cargo Haul - … Scale",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4651,6 +5953,7 @@
   {
    "key": "bp_rewards_nyxfoxwelleasy",
    "record": "BlueprintPoolRecord.BP_REWARDS_NyxFoxwellEasy",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cool_jspn_s00_froststarsl_scitem",
@@ -4722,13 +6025,19 @@
      "kind": "contract",
      "contractor": "Foxwell Enforcement",
      "chance": 1.0,
-     "missions": []
+     "missions": [
+      {
+       "title": null,
+       "unreleased": false
+      }
+     ]
     }
    ]
   },
   {
    "key": "bp_rewards_nyxfoxwellhard",
    "record": "BlueprintPoolRecord.BP_REWARDS_NyxFoxwellHard",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_klwe_laserrepeater_s1",
@@ -4764,13 +6073,19 @@
      "kind": "contract",
      "contractor": "Foxwell Enforcement",
      "chance": 1.0,
-     "missions": []
+     "missions": [
+      {
+       "title": null,
+       "unreleased": false
+      }
+     ]
     }
    ]
   },
   {
    "key": "bp_rewards_nyxheadhunterseasy",
    "record": "BlueprintPoolRecord.BP_REWARDS_NyxHeadhuntersEasy",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cool_jspn_s00_cryostarsl_scitem",
@@ -4847,12 +6162,30 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "Defend … From Mercs",
-      "Guard … From Rivals",
-      "Keep … Safe",
-      "Provide Protection at …",
-      "Secure … from Upstarts",
-      "Stop Rival Attack at …"
+      {
+       "title": "Defend … From Mercs",
+       "unreleased": false
+      },
+      {
+       "title": "Guard … From Rivals",
+       "unreleased": false
+      },
+      {
+       "title": "Keep … Safe",
+       "unreleased": false
+      },
+      {
+       "title": "Provide Protection at …",
+       "unreleased": false
+      },
+      {
+       "title": "Secure … from Upstarts",
+       "unreleased": false
+      },
+      {
+       "title": "Stop Rival Attack at …",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4860,6 +6193,7 @@
   {
    "key": "bp_rewards_nyxheadhuntershard",
    "record": "BlueprintPoolRecord.BP_REWARDS_NyxHeadhuntersHard",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_gats_ballisticcannon_s1",
@@ -4896,9 +6230,18 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "Defend … From Mercs",
-      "Guard … From Rivals",
-      "Stop Rival Attack at …"
+      {
+       "title": "Defend … From Mercs",
+       "unreleased": false
+      },
+      {
+       "title": "Guard … From Rivals",
+       "unreleased": false
+      },
+      {
+       "title": "Stop Rival Attack at …",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -4906,6 +6249,7 @@
   {
    "key": "bp_rewards_pyrofoxwelleasy",
    "record": "BlueprintPoolRecord.BP_REWARDS_PyroFoxwellEasy",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_powr_lplt_s00_ionwave_scitem",
@@ -4969,13 +6313,19 @@
      "kind": "contract",
      "contractor": "Foxwell Enforcement",
      "chance": 1.0,
-     "missions": []
+     "missions": [
+      {
+       "title": null,
+       "unreleased": false
+      }
+     ]
     }
    ]
   },
   {
    "key": "bp_rewards_pyrofoxwellhard",
    "record": "BlueprintPoolRecord.BP_REWARDS_PyroFoxwellHard",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_cool_aegs_s01_glacier_scitem",
@@ -5007,13 +6357,19 @@
      "kind": "contract",
      "contractor": "Foxwell Enforcement",
      "chance": 1.0,
-     "missions": []
+     "missions": [
+      {
+       "title": null,
+       "unreleased": false
+      }
+     ]
     }
    ]
   },
   {
    "key": "bp_rewards_pyroheadhunterseasy",
    "record": "BlueprintPoolRecord.BP_REWARDS_PyroHeadhuntersEasy",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_powr_lplt_s00_durajet_scitem",
@@ -5050,12 +6406,30 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "Defend … From Mercs",
-      "Guard … From Rivals",
-      "Keep … Safe",
-      "Provide Protection at …",
-      "Secure … from Upstarts",
-      "Stop Rival Attack at …"
+      {
+       "title": "Defend … From Mercs",
+       "unreleased": false
+      },
+      {
+       "title": "Guard … From Rivals",
+       "unreleased": false
+      },
+      {
+       "title": "Keep … Safe",
+       "unreleased": false
+      },
+      {
+       "title": "Provide Protection at …",
+       "unreleased": false
+      },
+      {
+       "title": "Secure … from Upstarts",
+       "unreleased": false
+      },
+      {
+       "title": "Stop Rival Attack at …",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -5063,6 +6437,7 @@
   {
    "key": "bp_rewards_pyroheadhuntershard",
    "record": "BlueprintPoolRecord.BP_REWARDS_PyroHeadhuntersHard",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_behr_ballisticgatling_s4",
@@ -5091,9 +6466,18 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "Defend … From Mercs",
-      "Guard … From Rivals",
-      "Stop Rival Attack at …"
+      {
+       "title": "Defend … From Mercs",
+       "unreleased": false
+      },
+      {
+       "title": "Guard … From Rivals",
+       "unreleased": false
+      },
+      {
+       "title": "Stop Rival Attack at …",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -5101,6 +6485,7 @@
   {
    "key": "bp_rewards_redwind",
    "record": "BlueprintPoolRecord.BP_REWARDS_RedWind",
+   "awardable": false,
    "blueprints": [
     {
      "key": "bp_craft_wep_tractorbeam_s1_utility_1",
@@ -5132,6 +6517,7 @@
   {
    "key": "bp_rewards_shubinrank0to1",
    "record": "BlueprintPoolRecord.BP_REWARDS_ShubinRank0to1",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_mining_laser_grin_arbor_s0",
@@ -5172,12 +6558,30 @@
      "contractor": "Shubin Interstellar",
      "chance": 1.0,
      "missions": [
-      "Lrg. Purchase Order: Ship Mined Ore",
-      "Mjr. Purchase Order: Ship Mined Ore",
-      "Small Purchase Order: Ship Mined Ore",
-      "Special Purchase Order: Mined Materials",
-      "XL Purchase Order: Ship Mined Ore",
-      "XS Purchase Order: Ship Mined Ore"
+      {
+       "title": "Lrg. Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Mjr. Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Small Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Special Purchase Order: Mined Materials",
+       "unreleased": false
+      },
+      {
+       "title": "XL Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "XS Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -5185,6 +6589,7 @@
   {
    "key": "bp_rewards_shubinrank2to3",
    "record": "BlueprintPoolRecord.BP_REWARDS_ShubinRank2to3",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_mining_laser_drak_golem_s1",
@@ -5237,11 +6642,26 @@
      "contractor": "Shubin Interstellar",
      "chance": 1.0,
      "missions": [
-      "Lrg. Purchase Order: Ship Mined Ore",
-      "Med. Purchase Order: Ship Mined Ore",
-      "Mjr. Purchase Order: Ship Mined Ore",
-      "Special Purchase Order: Mined Materials",
-      "XL Purchase Order: Ship Mined Ore"
+      {
+       "title": "Lrg. Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Med. Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Mjr. Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Special Purchase Order: Mined Materials",
+       "unreleased": false
+      },
+      {
+       "title": "XL Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -5249,6 +6669,7 @@
   {
    "key": "bp_rewards_shubinrank4",
    "record": "BlueprintPoolRecord.BP_REWARDS_ShubinRank4",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_mining_laser_grin_arbor_s2",
@@ -5293,10 +6714,22 @@
      "contractor": "Shubin Interstellar",
      "chance": 1.0,
      "missions": [
-      "Lrg. Purchase Order: Ship Mined Ore",
-      "Mjr. Purchase Order: Ship Mined Ore",
-      "Special Purchase Order: Mined Materials",
-      "XL Purchase Order: Ship Mined Ore"
+      {
+       "title": "Lrg. Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Mjr. Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      },
+      {
+       "title": "Special Purchase Order: Mined Materials",
+       "unreleased": false
+      },
+      {
+       "title": "XL Purchase Order: Ship Mined Ore",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -5304,6 +6737,7 @@
   {
    "key": "bp_rewards_stantonfoxwelleasy",
    "record": "BlueprintPoolRecord.BP_REWARDS_StantonFoxwellEasy",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_shld_behr_s01_7sa_scitem",
@@ -5335,13 +6769,19 @@
      "kind": "contract",
      "contractor": "Foxwell Enforcement",
      "chance": 1.0,
-     "missions": []
+     "missions": [
+      {
+       "title": null,
+       "unreleased": false
+      }
+     ]
     }
    ]
   },
   {
    "key": "bp_rewards_stantonfoxwellhard",
    "record": "BlueprintPoolRecord.BP_REWARDS_StantonFoxwellHard",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_hrst_laserrepeater_s4",
@@ -5373,13 +6813,19 @@
      "kind": "contract",
      "contractor": "Foxwell Enforcement",
      "chance": 1.0,
-     "missions": []
+     "missions": [
+      {
+       "title": null,
+       "unreleased": false
+      }
+     ]
     }
    ]
   },
   {
    "key": "bp_rewards_stantonheadhunterseasy",
    "record": "BlueprintPoolRecord.BP_REWARDS_StantonHeadhuntersEasy",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_shld_seco_s00_pin_scitem",
@@ -5440,12 +6886,30 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "Defend … From Mercs",
-      "Guard … From Rivals",
-      "Keep … Safe",
-      "Provide Protection at …",
-      "Secure … from Upstarts",
-      "Stop Rival Attack at …"
+      {
+       "title": "Defend … From Mercs",
+       "unreleased": false
+      },
+      {
+       "title": "Guard … From Rivals",
+       "unreleased": false
+      },
+      {
+       "title": "Keep … Safe",
+       "unreleased": false
+      },
+      {
+       "title": "Provide Protection at …",
+       "unreleased": false
+      },
+      {
+       "title": "Secure … from Upstarts",
+       "unreleased": false
+      },
+      {
+       "title": "Stop Rival Attack at …",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -5453,6 +6917,7 @@
   {
    "key": "bp_rewards_stantonheadhuntershard",
    "record": "BlueprintPoolRecord.BP_REWARDS_StantonHeadhuntersHard",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_behr_ballisticrepeater_s1",
@@ -5485,9 +6950,18 @@
      "contractor": "Headhunters",
      "chance": 1.0,
      "missions": [
-      "Defend … From Mercs",
-      "Guard … From Rivals",
-      "Stop Rival Attack at …"
+      {
+       "title": "Defend … From Mercs",
+       "unreleased": false
+      },
+      {
+       "title": "Guard … From Rivals",
+       "unreleased": false
+      },
+      {
+       "title": "Stop Rival Attack at …",
+       "unreleased": false
+      }
      ]
     }
    ]
@@ -5495,6 +6969,7 @@
   {
    "key": "bp_rewards_xenothreat2_100_01",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_100_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_mxox_neutronrepeater_s1",
@@ -5512,6 +6987,7 @@
   {
    "key": "bp_rewards_xenothreat2_100_02",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_100_02",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_mxox_neutronrepeater_s2",
@@ -5529,6 +7005,7 @@
   {
    "key": "bp_rewards_xenothreat2_100_03",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_100_03",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_mxox_neutronrepeater_s3",
@@ -5546,6 +7023,7 @@
   {
    "key": "bp_rewards_xenothreat2_15_01",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_15_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_vgl_utility_light_arms_01_04_01",
@@ -5563,6 +7041,7 @@
   {
    "key": "bp_rewards_xenothreat2_15_02",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_15_02",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_vgl_utility_light_backpack_01_05_01",
@@ -5580,6 +7059,7 @@
   {
    "key": "bp_rewards_xenothreat2_15_03",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_15_03",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_vgl_utility_light_core_01_04_01",
@@ -5597,6 +7077,7 @@
   {
    "key": "bp_rewards_xenothreat2_15_04",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_15_04",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_vgl_utility_light_legs_01_04_01",
@@ -5614,6 +7095,7 @@
   {
    "key": "bp_rewards_xenothreat2_15_05",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_15_05",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_vgl_utility_light_helmet_01_05_01",
@@ -5631,6 +7113,7 @@
   {
    "key": "bp_rewards_xenothreat2_15_06",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_15_06",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_behr_shotgun_ballistic_01_mr01",
@@ -5648,6 +7131,7 @@
   {
    "key": "bp_rewards_xenothreat2_25_01",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_25_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_qrt_combat_medium_arms_01_02_01",
@@ -5665,6 +7149,7 @@
   {
    "key": "bp_rewards_xenothreat2_25_02",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_25_02",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_qrt_combat_medium_backpack_01_02_01",
@@ -5682,6 +7167,7 @@
   {
    "key": "bp_rewards_xenothreat2_25_03",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_25_03",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_qrt_combat_medium_core_01_02_01",
@@ -5699,6 +7185,7 @@
   {
    "key": "bp_rewards_xenothreat2_25_04",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_25_04",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_qrt_combat_medium_legs_01_02_01",
@@ -5716,6 +7203,7 @@
   {
    "key": "bp_rewards_xenothreat2_25_05",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_25_05",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_qrt_combat_medium_helmet_01_02_01",
@@ -5733,6 +7221,7 @@
   {
    "key": "bp_rewards_xenothreat2_25_06",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_25_06",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_gmni_rifle_ballistic_01_mr01",
@@ -5750,6 +7239,7 @@
   {
    "key": "bp_rewards_xenothreat2_50_01",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_50_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_vgl_combat_heavy_backpack_01_12_01",
@@ -5767,6 +7257,7 @@
   {
    "key": "bp_rewards_xenothreat2_50_02",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_50_02",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_kap_combat_heavy_arms_02_09_01",
@@ -5784,6 +7275,7 @@
   {
    "key": "bp_rewards_xenothreat2_50_03",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_50_03",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_kap_combat_heavy_core_02_09_01",
@@ -5801,6 +7293,7 @@
   {
    "key": "bp_rewards_xenothreat2_50_04",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_50_04",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_kap_combat_heavy_legs_02_09_01",
@@ -5818,6 +7311,7 @@
   {
    "key": "bp_rewards_xenothreat2_50_05",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_50_05",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_kap_combat_heavy_helmet_02_09_01",
@@ -5835,6 +7329,7 @@
   {
    "key": "bp_rewards_xenothreat2_50_06",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_50_06",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_klwe_lmg_energy_01_mr01",
@@ -5852,6 +7347,7 @@
   {
    "key": "bp_rewards_xenothreat2_60_01",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_60_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_powr_aegs_s01_quadracell_scitem",
@@ -5869,6 +7365,7 @@
   {
    "key": "bp_rewards_xenothreat2_60_02",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_60_02",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_powr_aegs_s02_quadracellmt_scitem",
@@ -5886,6 +7383,7 @@
   {
    "key": "bp_rewards_xenothreat2_85_01",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_85_01",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_shld_godi_s01_fr66_scitem",
@@ -5903,6 +7401,7 @@
   {
    "key": "bp_rewards_xenothreat2_85_02",
    "record": "BlueprintPoolRecord.BP_REWARDS_Xenothreat2_85_02",
+   "awardable": true,
    "blueprints": [
     {
      "key": "bp_craft_shld_godi_s02_fr76_scitem",
