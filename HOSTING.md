@@ -318,6 +318,39 @@ Coolify's own scheduled database backup on the `db` service as well. `update.sh`
   gunzip -c data/backups/DUMPFILE.sql.gz | sm exec -T db psql -U starbuddy starbuddy   # your DB_USERNAME / DB_DATABASE from .env
   ```
 
+- **A copy of production on your dev machine** — the quickest way to debug
+  something only the live data shows. Nothing here writes to production:
+  `pg_dump` takes no lock the app notices.
+
+  ```sh
+  # Straight down the pipe, no intermediate file. <DB-CONTAINER> is the
+  # database container on the host (`docker ps -qf name=db-` on Coolify).
+  ssh YOUR-HOST 'docker exec <DB-CONTAINER> pg_dump -U starbuddy -d starbuddy --no-owner --no-acl' \
+    | gzip > ~/starbuddy-prod.sql.gz
+  ```
+
+  Or take a nightly dump instead, which on Coolify lives in a named volume
+  rather than on the host filesystem:
+
+  ```sh
+  docker volume ls | grep backups                       # the project-prefixed name
+  docker run --rm -v <volume>:/backups:ro alpine ls -lt /backups/daily | head
+  docker run --rm -v <volume>:/backups:ro -v /tmp:/out alpine cp /backups/daily/<FILE>.sql.gz /out/
+  ```
+
+  Then, locally — **this destroys your local database**, dev stacks and all:
+
+  ```sh
+  docker compose exec db psql -U starbuddy -d postgres -c 'DROP DATABASE starbuddy WITH (FORCE);'
+  docker compose exec db psql -U starbuddy -d postgres -c 'CREATE DATABASE starbuddy OWNER starbuddy;'
+  gunzip -c ~/starbuddy-prod.sql.gz | docker compose exec -T db psql -U starbuddy -d starbuddy
+  docker compose exec app php artisan migrate --force   # anything merged since the dump
+  ```
+
+  Dropping and recreating avoids the conflicts a plain-SQL dump hits when it
+  lands on existing tables, and `WITH (FORCE)` closes open connections so the
+  app container need not be stopped first.
+
 - **Logs** — `sm logs -f app` (Laravel logs to stderr), `sm logs bot`,
   `sm logs web`.
 - **Game data syncs** run automatically (daily 04:40–05:50, rarity weekly).
