@@ -311,7 +311,9 @@ export function ResourcesPage() {
         </Paper>
       )}
       {/* One row from tablet up: the fields give up width to each other
-          rather than pushing the button onto a line of its own. */}
+          rather than pushing the button onto a line of its own. Hidden on the
+          sales view, which none of them narrow. */}
+      {view !== 'ledger' && (
       <Paper
         sx={{
           p: 1.5,
@@ -367,11 +369,13 @@ export function ResourcesPage() {
             <MenuItem value="org">{t('materials.visibility.org')}</MenuItem>
           </TextField>
         )}
-        <FormControlLabel
-          sx={{ mr: 0 }}
-          control={<Switch size="small" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />}
-          label={<Typography variant="body2">{t('stock.mineOnly')}</Typography>}
-        />
+        {view === 'stacks' && (
+          <FormControlLabel
+            sx={{ mr: 0 }}
+            control={<Switch size="small" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />}
+            label={<Typography variant="body2">{t('stock.mineOnly')}</Typography>}
+          />
+        )}
         <Button
           variant="contained"
           startIcon={<PlaylistAddIcon />}
@@ -381,6 +385,7 @@ export function ResourcesPage() {
           {t('materials.bulk.add')}
         </Button>
       </Paper>
+      )}
       {view === 'ledger' ? (
         <StockLedger stock="material" />
       ) : view === 'org' ? (
@@ -389,7 +394,7 @@ export function ResourcesPage() {
           {org.isError && <Alert severity="error">{t('materials.loadError')}</Alert>}
           <OrgMatrixTable<OrgSortField>
             columns={[
-              { label: t('materials.columns.material'), field: 'name', sx: { minWidth: 200 } },
+              { label: t('materials.columns.material'), field: 'name', wide: true, sx: { minWidth: 200 } },
               { label: '', align: 'center', sx: { width: 40 } },
               { label: t('materials.fields.quality'), field: 'quality', align: 'right' },
             ]}
@@ -550,12 +555,19 @@ export function ResourcesPage() {
       <StockHandoverDialog
         open={handover}
         stock="material"
-        stacks={[...picked.values()].map((s) => ({
-          id: s.id,
-          name: s.resource_type.name,
-          quality: s.quality,
-          amount: formatQuantity(s, t, i18n.language),
-        }))}
+        stacks={[...picked.values()].map((s) => {
+          const pieces = s.resource_type.unit === 'pieces'
+          return {
+            id: s.id,
+            name: s.resource_type.name,
+            quality: s.quality,
+            held: pieces ? (s.quantity_pieces ?? 0) : (s.quantity_mscu ?? 0) / 1000,
+            unit: pieces ? t('materials.units.pcs') : t('materials.units.scu'),
+            factor: pieces ? 1 : 1000,
+            step: pieces ? 1 : 0.001,
+            rarity: s.resource_type.rarity,
+          }
+        })}
         onClose={() => setHandover(false)}
         onDone={() => setPicked(new Map())}
       />

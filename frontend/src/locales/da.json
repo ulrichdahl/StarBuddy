@@ -801,7 +801,7 @@
     "mineOnly": "Kun mine",
     "ledgerView": "Salg",
     "handover": {
-      "open": "Flyt eller sælg",
+      "open": "Flyt, del eller sælg",
       "title_one": "{{count}} stak",
       "title": "{{count}} stakke",
       "subtitle": "Én ting, med dem alle.",
@@ -809,7 +809,7 @@
       "sell": "Sælg",
       "newLocation": "Flyt dem til",
       "buyer": "Solgt til",
-      "handleHelp": "En org-makker, et hvilket som helst StarBuddy-handle, eller et navn StarBuddy aldrig har hørt om.",
+      "handleHelp": "StarBuddy-handle, som regel handlet i spillet",
       "price": "Pris (aUEC)",
       "priceHelp": "Nul, hvis du giver dem væk.",
       "note": "Note (valgfri)",
@@ -818,7 +818,14 @@
       "failed": "Det gik ikke igennem. Tjek handlet, og prøv igen.",
       "confirmMove": "Flyt dem",
       "confirmGive": "Giv dem væk",
-      "confirmSell": "Registrér salget"
+      "confirmSell": "Registrér salget",
+      "share": "Del",
+      "visibility": "Vis disse for",
+      "visibilityHelp": "Org-synligt lager tæller med i, hvad orgen kan crafte, og vises i Org-visningen. Privat er kun dit.",
+      "confirmShare": "Sæt synlighed",
+      "howMuch": "Hvor meget af hver der ryger — det hele, hvis du ikke siger andet",
+      "all": "Alt",
+      "ofHeld": "af {{held}} {{unit}}"
     },
     "ledger": {
       "loadFailed": "Kunne ikke hente salgene.",

@@ -19,6 +19,12 @@ export interface OrgMatrixColumn<S extends string> {
   field?: S
   align?: 'right' | 'center'
   sx?: SxProps<Theme>
+  /**
+   * Takes the width the fixed columns do not need. Set it on the one column
+   * whose content has no natural length — a name, a title — and leave every
+   * other column to size itself.
+   */
+  wide?: boolean
 }
 
 export interface OrgMatrixRow {
@@ -48,6 +54,21 @@ interface OrgMatrixTableProps<S extends string> {
 
 const memberCol = { width: 72, minWidth: 72, maxWidth: 72, px: 0.5 } as const
 const meCol = { ...memberCol, bgcolor: 'action.hover' } as const
+/**
+ * A column of numbers is as wide as its numbers; a column of names is as wide
+ * as the table can spare. Asking for 1% and 100% is how a table is told which
+ * is which — the browser gives every 100% column an equal share of what is
+ * left after the rest have taken what they need.
+ */
+const tightCol = { width: '1%', whiteSpace: 'nowrap' } as const
+const wideCol = { width: '100%' } as const
+// A member's handle, written up the page at a slant so a dozen of them fit
+// across a screen and still read as words.
+const handleSlant = {
+  display: 'inline-block',
+  writingMode: 'vertical-rl',
+  transform: 'rotate(225deg)',
+} as const
 
 /**
  * The blueprint matrix, carrying quantities: one row per grouped thing,
@@ -87,11 +108,11 @@ export function OrgMatrixTable<S extends string>({ columns, rows, members, forma
       <Table size="small" stickyHeader aria-label={ariaLabel}>
         <TableHead>
           <TableRow>
-            {columns.map((c) => sortHeader(c.label, c.field, c.align, c.sx))}
-            {sortHeader(t('org.total'), 'total' as S, 'right')}
-            {sortHeader(t('org.stacks'), 'stacks' as S, 'right')}
+            {columns.map((c) => sortHeader(c.label, c.field, c.align, { ...(c.wide ? wideCol : tightCol), ...c.sx }))}
+            {sortHeader(t('org.total'), 'total' as S, 'right', tightCol)}
+            {sortHeader(t('org.stacks'), 'stacks' as S, 'right', tightCol)}
             <TableCell align="center" sx={{ ...meCol, verticalAlign: 'bottom' }}>
-              <Typography variant="caption" component="span" sx={{ display: 'inline-block', writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontWeight: 700, color: 'primary.main' }}>
+              <Typography variant="caption" component="span" sx={{ ...handleSlant, fontWeight: 700, color: 'primary.main' }}>
                 {t('org.you')}
               </Typography>
             </TableCell>
@@ -101,7 +122,7 @@ export function OrgMatrixTable<S extends string>({ columns, rows, members, forma
                   <Typography
                     variant="caption"
                     component="span"
-                    sx={{ display: 'inline-block', writingMode: 'vertical-rl', transform: 'rotate(180deg)', maxHeight: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}
+                    sx={{ ...handleSlant, maxHeight: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}
                   >
                     {m.handle}
                   </Typography>
@@ -114,14 +135,14 @@ export function OrgMatrixTable<S extends string>({ columns, rows, members, forma
           {rows.map((row) => (
             <TableRow key={row.key} hover sx={row.sx}>
               {row.cells.map((cell, i) => (
-                <TableCell key={i} align={columns[i]?.align} sx={columns[i]?.sx}>
+                <TableCell key={i} align={columns[i]?.align} sx={{ ...(columns[i]?.wide ? wideCol : tightCol), ...columns[i]?.sx }}>
                   {cell}
                 </TableCell>
               ))}
-              <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+              <TableCell align="right" sx={{ ...tightCol, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
                 {format(row, row.total)}
               </TableCell>
-              <TableCell align="right" sx={{ fontVariantNumeric: 'tabular-nums', color: 'text.secondary' }}>
+              <TableCell align="right" sx={{ ...tightCol, fontVariantNumeric: 'tabular-nums', color: 'text.secondary' }}>
                 {row.stacks}
               </TableCell>
               <TableCell align="center" sx={meCol}>
