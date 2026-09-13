@@ -15,7 +15,10 @@ class ItemStackController extends Controller
                 ->orWhereLike('item_stacks.item_class', "%{$s}%", caseSensitive: false)))
             ->when($request->query('location_id'), fn ($q, $id) => $q->where('item_stacks.location_id', $id))
             ->when($request->query('system'), fn ($q, $s) => $q->whereHas('location', fn ($l) => $l->where('system', $s)))
-            ->when($request->query('visibility'), fn ($q, $v) => $q->where('item_stacks.visibility', $v));
+            ->when($request->query('visibility'), fn ($q, $v) => $q->where('item_stacks.visibility', $v))
+            // Mine only: an org's pooled stock is what the list is for most of
+            // the time, but not when the question is what *I* am carrying.
+            ->when($request->boolean('mine'), fn ($q) => $q->where('item_stacks.user_id', $request->user()->id));
         $dir = $request->query('dir') === 'asc' ? 'asc' : 'desc';
         match ($request->query('sort')) {
             'item' => $query->orderByRaw('coalesce(item_name, item_class) '.$dir),

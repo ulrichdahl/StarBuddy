@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
+import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
 import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
@@ -12,7 +13,9 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import IconButton from '@mui/material/IconButton'
 import LinearProgress from '@mui/material/LinearProgress'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import Paper from '@mui/material/Paper'
+import Switch from '@mui/material/Switch'
 import Stack from '@mui/material/Stack'
 import MenuItem from '@mui/material/MenuItem'
 import Table from '@mui/material/Table'
@@ -29,6 +32,7 @@ import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import DeleteIcon from '@mui/icons-material/Delete'
 import DiamondIcon from '@mui/icons-material/Diamond'
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz'
 import EditIcon from '@mui/icons-material/Edit'
 import GroupsIcon from '@mui/icons-material/Groups'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
@@ -42,6 +46,8 @@ import { usePaginatedList } from '../lib/usePaginatedList'
 import { PageHeader } from '../components/PageHeader'
 import { ListPager } from '../components/ListPager'
 import { MaterialGridDialog } from '../components/MaterialGridDialog'
+import { StockHandoverDialog } from '../components/StockHandoverDialog'
+import { StockLedger } from '../components/StockLedger'
 import { LocationSelect } from '../components/LocationSelect'
 import { PlaceSelect, type Place } from '../components/PlaceSelect'
 import { VisibilitySelect } from '../components/VisibilitySelect'
@@ -162,7 +168,7 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
 
 type SortField = 'resource' | 'quality' | 'quantity' | 'system' | 'location' | 'visibility' | 'updated_at'
 type OrgSortField = 'name' | 'quality' | 'total' | 'stacks' | 'holders'
-type View = 'stacks' | 'org'
+type View = 'stacks' | 'org' | 'ledger'
 
 export function ResourcesPage() {
   const { t, i18n } = useTranslation()
@@ -172,6 +178,15 @@ export function ResourcesPage() {
   const [qualityMin, setQualityMin] = useState('')
   const [qualityMax, setQualityMax] = useState('')
   const [place, setPlace] = useState<Place | null>(null)
+  // Stock the player is carrying themselves, rather than everything the org
+  // has pooled — the question behind "what do I actually have on me".
+  const [mineOnly, setMineOnly] = useState(false)
+  /**
+   * The hold being worked on, kept by id and by row: the rows are needed for
+   * the dialog's summary and a selected stack can page out of the list.
+   */
+  const [picked, setPicked] = useState<Map<number, ResourceStack>>(new Map())
+  const [handover, setHandover] = useState(false)
   const [filterVisibility, setFilterVisibility] = useState('')
   const { me } = useMe()
   // Org mates' org-visible stacks are listed too; only your own can be edited.
@@ -188,9 +203,30 @@ export function ResourcesPage() {
       system: place?.kind === 'system' ? place.system : undefined,
       location_id: place?.kind === 'location' ? place.location.id : undefined,
       visibility: filterVisibility || undefined,
+      mine: mineOnly ? 1 : undefined,
       sort,
       dir,
     }, { enabled: view === 'stacks' })
+
+  // Picking is per stack and survives paging, so a hold gathered across three
+  // pages can be moved in one go.
+  const mineHere = stacks.filter(isMine)
+  const pick = (stack: ResourceStack) =>
+    setPicked((prev) => {
+      const next = new Map(prev)
+      if (next.has(stack.id)) next.delete(stack.id)
+      else next.set(stack.id, stack)
+      return next
+    })
+  const pickAll = (on: boolean) =>
+    setPicked((prev) => {
+      const next = new Map(prev)
+      for (const stack of mineHere) {
+        if (on) next.set(stack.id, stack)
+        else next.delete(stack.id)
+      }
+      return next
+    })
 
   // Org view: org-visible stacks of every member, one row per material + quality.
   const [orgSort, setOrgSort] = useState<OrgSortField>('name')
@@ -245,9 +281,35 @@ export function ResourcesPage() {
               <GroupsIcon fontSize="small" sx={{ mr: 0.5 }} />
               {t('materials.view.org')}
             </ToggleButton>
+            <ToggleButton value="ledger">
+              <SwapHorizIcon fontSize="small" sx={{ mr: 0.5 }} />
+              {t('stock.ledgerView')}
+            </ToggleButton>
           </ToggleButtonGroup>
         }
       />
+      {/* What is picked out, and the one button that acts on it. It sits
+          under the view switch so it is in the same place whatever is on
+          screen, and says nothing at all until something is picked. */}
+      {view === 'stacks' && picked.size > 0 && (
+        <Paper sx={{ p: 1.5, mb: 2, display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Typography variant="body2">
+            {t('stock.selected', { count: picked.size })}
+          </Typography>
+          <Button size="small" onClick={() => setPicked(new Map())}>
+            {t('stock.clear')}
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<SwapHorizIcon />}
+            sx={{ ml: 'auto' }}
+            onClick={() => setHandover(true)}
+          >
+            {t('stock.handover.open')}
+          </Button>
+        </Paper>
+      )}
       {/* One row from tablet up: the fields give up width to each other
           rather than pushing the button onto a line of its own. */}
       <Paper
@@ -305,6 +367,11 @@ export function ResourcesPage() {
             <MenuItem value="org">{t('materials.visibility.org')}</MenuItem>
           </TextField>
         )}
+        <FormControlLabel
+          sx={{ mr: 0 }}
+          control={<Switch size="small" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />}
+          label={<Typography variant="body2">{t('stock.mineOnly')}</Typography>}
+        />
         <Button
           variant="contained"
           startIcon={<PlaylistAddIcon />}
@@ -314,7 +381,9 @@ export function ResourcesPage() {
           {t('materials.bulk.add')}
         </Button>
       </Paper>
-      {view === 'org' ? (
+      {view === 'ledger' ? (
+        <StockLedger stock="material" />
+      ) : view === 'org' ? (
         <Paper>
           {org.isLoading && <LinearProgress />}
           {org.isError && <Alert severity="error">{t('materials.loadError')}</Alert>}
@@ -371,6 +440,18 @@ export function ResourcesPage() {
                 {header(t('materials.fields.location'), 'location')}
                 {header(t('materials.fields.visibility'), 'visibility')}
                 <TableCell sx={{ width: 40 }} />
+                <TableCell align="center" padding="checkbox">
+                  {/* Picks every one of yours on this page; an org mate's
+                      stock is visible so it can be counted, not spent. */}
+                  <Checkbox
+                    size="small"
+                    checked={mineHere.length > 0 && mineHere.every((s) => picked.has(s.id))}
+                    indeterminate={mineHere.some((s) => picked.has(s.id)) && !mineHere.every((s) => picked.has(s.id))}
+                    disabled={mineHere.length === 0}
+                    onChange={(e) => pickAll(e.target.checked)}
+                    slotProps={{ input: { 'aria-label': t('stock.pickAllAria') } }}
+                  />
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -437,6 +518,16 @@ export function ResourcesPage() {
                       </Tooltip>
                     )}
                   </TableCell>
+                  <TableCell align="center" padding="checkbox">
+                    {isMine(stack) && (
+                      <Checkbox
+                        size="small"
+                        checked={picked.has(stack.id)}
+                        onChange={() => pick(stack)}
+                        slotProps={{ input: { 'aria-label': t('stock.pickAria', { name: stack.resource_type.name }) } }}
+                      />
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
               {!isLoading && stacks.length === 0 && (
@@ -456,6 +547,18 @@ export function ResourcesPage() {
       )}
       {editing && <EditStackDialog stack={editing} onClose={() => setEditing(null)} />}
       <MaterialGridDialog open={bulkOpen} onClose={() => setBulkOpen(false)} />
+      <StockHandoverDialog
+        open={handover}
+        stock="material"
+        stacks={[...picked.values()].map((s) => ({
+          id: s.id,
+          name: s.resource_type.name,
+          quality: s.quality,
+          amount: formatQuantity(s, t, i18n.language),
+        }))}
+        onClose={() => setHandover(false)}
+        onDone={() => setPicked(new Map())}
+      />
     </Box>
   )
 }

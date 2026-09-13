@@ -791,5 +791,51 @@
       "discard": "Kassér",
       "readerLines": "{{count}} linjer læseren fandt"
     }
+  },
+  "stock": {
+    "selected_one": "{{count}} stak valgt",
+    "selected": "{{count}} stakke valgt",
+    "clear": "Ryd",
+    "pickAria": "Vælg {{name}}",
+    "pickAllAria": "Vælg alle mine stakke på denne side",
+    "mineOnly": "Kun mine",
+    "ledgerView": "Salg",
+    "handover": {
+      "open": "Flyt eller sælg",
+      "title_one": "{{count}} stak",
+      "title": "{{count}} stakke",
+      "subtitle": "Én ting, med dem alle.",
+      "move": "Flyt",
+      "sell": "Sælg",
+      "newLocation": "Flyt dem til",
+      "buyer": "Solgt til",
+      "handleHelp": "En org-makker, et hvilket som helst StarBuddy-handle, eller et navn StarBuddy aldrig har hørt om.",
+      "price": "Pris (aUEC)",
+      "priceHelp": "Nul, hvis du giver dem væk.",
+      "note": "Note (valgfri)",
+      "handoverHelp": "Hører handlet til en StarBuddy-spiller, flytter stakkene til dem — private, og hvor de allerede står. Gør det ikke, forlader de bare dit lager, og overdragelsen står her.",
+      "contents": "Det der ryger",
+      "failed": "Det gik ikke igennem. Tjek handlet, og prøv igen.",
+      "confirmMove": "Flyt dem",
+      "confirmGive": "Giv dem væk",
+      "confirmSell": "Registrér salget"
+    },
+    "ledger": {
+      "loadFailed": "Kunne ikke hente salgene.",
+      "tableAria": "Lager solgt og givet væk",
+      "when": "Dato",
+      "who": "Spiller",
+      "what": "Indhold",
+      "price": "Pris",
+      "gift": "Givet",
+      "amount": "{{amount}} aUEC",
+      "stranger": "ikke på StarBuddy",
+      "total": "Hentet hjem for lager i alt: {{amount}} aUEC",
+      "empty": "Der er ikke solgt noget endnu. Vælg nogle stakke i listen, og brug Flyt eller sælg.",
+      "direction": {
+        "out": "Du solgte dette",
+        "in": "Dette blev solgt til dig"
+      }
+    }
   }
 }
