@@ -116,19 +116,33 @@ type Selection = Record<string, Set<number>>
 type QualityPref = 'low' | 'mid' | 'high'
 const LIST_STEP = 5
 
-/** Order holdings by the member's quality preference for this material. */
+/**
+ * Order holdings by the member's quality preference for this material, then by
+ * whose they are.
+ *
+ * Two stacks of the same quality are not equal: spending your own before an
+ * org mate's is the courtesy anyone would extend at the kiosk, and this order
+ * is also what the picker ticks, so the default craft eats your stock first.
+ * Members after that go alphabetically, so the list does not shuffle between
+ * openings.
+ */
 function sortHoldings(holdings: Holding[], pref: QualityPref): Holding[] {
-  const sorted = [...holdings]
-  if (pref === 'low') {
-    sorted.sort((a, b) => a.quality - b.quality)
-  } else if (pref === 'mid') {
-    const qs = holdings.map((h) => h.quality)
-    const mid = (Math.min(...qs) + Math.max(...qs)) / 2
-    sorted.sort((a, b) => Math.abs(a.quality - mid) - Math.abs(b.quality - mid))
-  } else {
-    sorted.sort((a, b) => b.quality - a.quality)
-  }
-  return sorted
+  const qs = holdings.map((h) => h.quality)
+  const mid = (Math.min(...qs) + Math.max(...qs)) / 2
+  const byQuality =
+    pref === 'low'
+      ? (a: Holding, b: Holding) => a.quality - b.quality
+      : pref === 'mid'
+        ? (a: Holding, b: Holding) => Math.abs(a.quality - mid) - Math.abs(b.quality - mid)
+        : (a: Holding, b: Holding) => b.quality - a.quality
+
+  return [...holdings].sort(
+    (a, b) =>
+      byQuality(a, b) ||
+      Number(b.mine) - Number(a.mine) ||
+      a.member.localeCompare(b.member) ||
+      a.id - b.id,
+  )
 }
 
 /** Pick stacks per ingredient, in preference order, until the need is covered. */
