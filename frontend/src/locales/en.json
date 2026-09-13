@@ -801,7 +801,7 @@
     "mineOnly": "Only mine",
     "ledgerView": "Sales",
     "handover": {
-      "open": "Move or sell",
+      "open": "Move, share or sell",
       "title_one": "{{count}} stack",
       "title": "{{count}} stacks",
       "subtitle": "One thing, to all of them.",
@@ -809,7 +809,7 @@
       "sell": "Sell",
       "newLocation": "Move them to",
       "buyer": "Sold to",
-      "handleHelp": "An org mate, any StarBuddy handle, or a name StarBuddy has never heard of.",
+      "handleHelp": "StarBuddy handle, usually the in-game handle",
       "price": "Price (aUEC)",
       "priceHelp": "Zero if you are giving them away.",
       "note": "Note (optional)",
@@ -818,7 +818,14 @@
       "failed": "That did not go through. Check the handle and try again.",
       "confirmMove": "Move them",
       "confirmGive": "Give them away",
-      "confirmSell": "Record the sale"
+      "confirmSell": "Record the sale",
+      "share": "Share",
+      "visibility": "Show these to",
+      "visibilityHelp": "Org-visible stock counts towards what the org can craft and shows in the Org view. Private is yours alone.",
+      "confirmShare": "Set visibility",
+      "howMuch": "How much of each goes — all of it unless you say otherwise",
+      "all": "All",
+      "ofHeld": "of {{held}} {{unit}}"
     },
     "ledger": {
       "loadFailed": "Could not load the sales.",

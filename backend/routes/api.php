@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Doing one thing to a whole hold — materials or items: moving it, or
     // handing it to another player.
     Route::post('stock-transfers/move', [\App\Http\Controllers\StockTransferController::class, 'move']);
+    Route::post('stock-transfers/visibility', [\App\Http\Controllers\StockTransferController::class, 'visibility']);
     Route::post('stock-transfers', [\App\Http\Controllers\StockTransferController::class, 'hand']);
     Route::get('stock-transfers', [\App\Http\Controllers\StockTransferController::class, 'index']);
     Route::apiResource('item-stacks', ItemStackController::class)->only(['index', 'store', 'update', 'destroy']);

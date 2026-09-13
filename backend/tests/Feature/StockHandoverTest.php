@@ -71,7 +71,7 @@ class StockHandoverTest extends TestCase
         $this->actingAs($this->me)
             ->postJson('/api/stock-transfers/move', [
                 'stock' => 'material',
-                'stack_ids' => $stacks->pluck('id')->all(),
+                'stacks' => $stacks->map(fn ($s) => ['id' => $s->id])->all(),
                 'location_id' => $this->hangar,
             ])
             ->assertOk()
@@ -83,6 +83,54 @@ class StockHandoverTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'stock.moved']);
     }
 
+    public function test_a_whole_hold_is_shared_with_the_org_at_once(): void
+    {
+        $stacks = collect([$this->stack(visibility: 'private'), $this->stack(visibility: 'private')]);
+
+        $this->actingAs($this->me)
+            ->postJson('/api/stock-transfers/visibility', [
+                'stock' => 'material',
+                'stacks' => $stacks->map(fn ($s) => ['id' => $s->id])->all(),
+                'visibility' => 'org',
+            ])
+            ->assertOk()
+            ->assertJsonPath('changed', 2);
+
+        $stacks->each(function ($stack) {
+            $stack->refresh();
+            $this->assertSame('org', $stack->visibility);
+            // Sharing with an org means saying which one.
+            $this->assertNotNull($stack->org_id);
+        });
+
+        // And back again, which has to let the org go with it.
+        $this->actingAs($this->me)
+            ->postJson('/api/stock-transfers/visibility', [
+                'stock' => 'material',
+                'stacks' => $stacks->map(fn ($s) => ['id' => $s->id])->all(),
+                'visibility' => 'private',
+            ])
+            ->assertOk();
+
+        $this->assertSame('private', $stacks->first()->fresh()->visibility);
+        $this->assertNull($stacks->first()->fresh()->org_id);
+    }
+
+    public function test_an_org_mates_stock_cannot_be_reshared(): void
+    {
+        $theirs = $this->stack($this->mate, 'org');
+
+        $this->actingAs($this->me)
+            ->postJson('/api/stock-transfers/visibility', [
+                'stock' => 'material',
+                'stacks' => [['id' => $theirs->id]],
+                'visibility' => 'private',
+            ])
+            ->assertStatus(422);
+
+        $this->assertSame('org', $theirs->fresh()->visibility);
+    }
+
     public function test_giving_a_hold_to_an_org_mate_moves_it_to_them(): void
     {
         $stack = $this->stack();
@@ -90,7 +138,7 @@ class StockHandoverTest extends TestCase
         $this->actingAs($this->me)
             ->postJson('/api/stock-transfers', [
                 'stock' => 'material',
-                'stack_ids' => [$stack->id],
+                'stacks' => [['id' => $stack->id]],
                 'to_handle' => 'dk-ulrich',
                 // Zero is how a gift is recorded: the stock still left, and
                 // for a price, which happened to be nothing.
@@ -116,7 +164,7 @@ class StockHandoverTest extends TestCase
         $this->actingAs($this->me)
             ->postJson('/api/stock-transfers', [
                 'stock' => 'material',
-                'stack_ids' => [$stack->id],
+                'stacks' => [['id' => $stack->id]],
                 'to_handle' => 'SomeGuyFromChat',
                 'price' => 450000,
                 'note' => 'Met at Everus',
@@ -136,6 +184,68 @@ class StockHandoverTest extends TestCase
         $this->assertSame(783, $sale->lines[0]['quality']);
     }
 
+    public function test_part_of_a_load_can_be_flown_on_and_the_rest_left(): void
+    {
+        $stack = $this->stack();
+
+        $this->actingAs($this->me)
+            ->postJson('/api/stock-transfers/move', [
+                'stock' => 'material',
+                'stacks' => [['id' => $stack->id, 'quantity' => 500]],
+                'location_id' => $this->hangar,
+            ])
+            ->assertOk();
+
+        // The original keeps its id — a craft or an order may point at it —
+        // and the part that flew on is a stack of its own.
+        $this->assertSame(1500, $stack->fresh()->quantity);
+        $this->assertSame($this->levski, $stack->fresh()->location_id);
+
+        $moved = ResourceStack::where('location_id', $this->hangar)->sole();
+        $this->assertSame(500, $moved->quantity);
+        $this->assertSame(783, $moved->quality);
+        $this->assertSame($this->me->id, $moved->user_id);
+    }
+
+    public function test_half_a_load_can_be_sold_and_the_rest_kept(): void
+    {
+        $stack = $this->stack();
+
+        $this->actingAs($this->me)
+            ->postJson('/api/stock-transfers', [
+                'stock' => 'material',
+                'stacks' => [['id' => $stack->id, 'quantity' => 800]],
+                'to_handle' => 'DK-Ulrich',
+                'price' => 90000,
+            ])
+            ->assertOk()
+            // The ledger records what went, not what was held.
+            ->assertJsonPath('lines.0.quantity', 800);
+
+        $this->assertSame(1200, $stack->fresh()->quantity, 'the rest is still mine');
+
+        $theirs = ResourceStack::where('user_id', $this->mate->id)->sole();
+        $this->assertSame(800, $theirs->quantity);
+        $this->assertSame('private', $theirs->visibility);
+    }
+
+    public function test_asking_for_more_than_there_is_takes_what_there_is(): void
+    {
+        $stack = $this->stack();
+
+        $this->actingAs($this->me)
+            ->postJson('/api/stock-transfers', [
+                'stock' => 'material',
+                'stacks' => [['id' => $stack->id, 'quantity' => 999999]],
+                'to_handle' => 'SomeGuy',
+                'price' => 10,
+            ])
+            ->assertOk()
+            ->assertJsonPath('lines.0.quantity', 2000);
+
+        $this->assertNull($stack->fresh(), 'the whole stack went');
+    }
+
     public function test_an_org_mates_stock_cannot_be_handed_over(): void
     {
         $theirs = $this->stack($this->mate);
@@ -144,7 +254,7 @@ class StockHandoverTest extends TestCase
         $this->actingAs($this->me)
             ->postJson('/api/stock-transfers', [
                 'stock' => 'material',
-                'stack_ids' => [$theirs->id],
+                'stacks' => [['id' => $theirs->id]],
                 'to_handle' => 'SomeGuy',
                 'price' => 1,
             ])
@@ -159,7 +269,7 @@ class StockHandoverTest extends TestCase
         $this->actingAs($this->me)
             ->postJson('/api/stock-transfers', [
                 'stock' => 'material',
-                'stack_ids' => [$this->stack()->id],
+                'stacks' => [['id' => $this->stack()->id]],
                 'to_handle' => 'DK-Ulrich',
                 'price' => 120000,
             ])
@@ -197,7 +307,7 @@ class StockHandoverTest extends TestCase
         $this->actingAs($this->me)
             ->postJson('/api/stock-transfers', [
                 'stock' => 'item',
-                'stack_ids' => [$item->id],
+                'stacks' => [['id' => $item->id]],
                 'to_handle' => 'DK-Ulrich',
                 'price' => 90000,
             ])

@@ -501,17 +501,23 @@ function MatrixView({
   const others = (data?.members ?? []).filter((m) => m.id !== me?.id)
   const memberCol = { width: 44, minWidth: 44, maxWidth: 44, px: 0.5 } as const
   const meCol = { ...memberCol, bgcolor: 'action.hover' } as const
+  // A column of types or grades is as wide as its words; the blueprint name
+  // takes whatever is left. 1% and 100% is how a table is told which is which.
+  const tightCol = { width: '1%', whiteSpace: 'nowrap' } as const
+  // Handles written up the page at a slant, so a dozen fit across a screen
+  // and still read as words.
+  const handleSlant = { display: 'inline-block', writingMode: 'vertical-rl', transform: 'rotate(225deg)' } as const
 
   return (
     <TableContainer sx={{ overflowX: 'auto' }}>
       <Table size="small" stickyHeader aria-label={t('blueprints.matrix.tableAria')}>
         <TableHead>
           <TableRow>
-            <SortHeader label={t('blueprints.colBlueprint')} field="name" sort={sort} dir={dir} onSort={onSort} sx={{ minWidth: 240 }} />
-            <SortHeader label={t('blueprints.colType')} field="type" sort={sort} dir={dir} onSort={onSort} />
-            <SortHeader label={t('blueprints.colGrade')} field="grade" sort={sort} dir={dir} onSort={onSort} />
+            <SortHeader label={t('blueprints.colBlueprint')} field="name" sort={sort} dir={dir} onSort={onSort} sx={{ minWidth: 240, width: '100%' }} />
+            <SortHeader label={t('blueprints.colType')} field="type" sort={sort} dir={dir} onSort={onSort} sx={tightCol} />
+            <SortHeader label={t('blueprints.colGrade')} field="grade" sort={sort} dir={dir} onSort={onSort} sx={tightCol} />
             <TableCell align="center" sx={{ ...meCol, verticalAlign: 'bottom' }}>
-              <Typography variant="caption" component="span" sx={{ display: 'inline-block', writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontWeight: 700, color: 'primary.main' }}>
+              <Typography variant="caption" component="span" sx={{ ...handleSlant, fontWeight: 700, color: 'primary.main' }}>
                 {t('blueprints.matrix.you')}
               </Typography>
             </TableCell>
@@ -521,7 +527,7 @@ function MatrixView({
                   <Typography
                     variant="caption"
                     component="span"
-                    sx={{ display: 'inline-block', writingMode: 'vertical-rl', transform: 'rotate(180deg)', maxHeight: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}
+                    sx={{ ...handleSlant, maxHeight: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}
                   >
                     {m.handle}
                   </Typography>
@@ -533,11 +539,11 @@ function MatrixView({
         <TableBody>
           {rows.map((row) => (
             <TableRow key={row.id} hover>
-              <TableCell sx={{ fontWeight: row.owned_by_me ? 600 : 400, cursor: 'pointer' }} onClick={() => onInfo(row.id)}>
+              <TableCell sx={{ width: '100%', fontWeight: row.owned_by_me ? 600 : 400, cursor: 'pointer' }} onClick={() => onInfo(row.id)}>
                 {row.name}
               </TableCell>
-              <TableCell sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>{typeText(row)}</TableCell>
-              <TableCell sx={{ whiteSpace: 'nowrap' }}>{row.grade ? t('craft.grade', { grade: gradeLabel(row.grade) }) : t('common.none')}</TableCell>
+              <TableCell sx={{ ...tightCol, color: 'text.secondary' }}>{typeText(row)}</TableCell>
+              <TableCell sx={tightCol}>{row.grade ? t('craft.grade', { grade: gradeLabel(row.grade) }) : t('common.none')}</TableCell>
               <TableCell align="center" sx={meCol} padding="checkbox">
                 <Checkbox
                   size="small"

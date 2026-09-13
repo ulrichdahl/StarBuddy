@@ -294,7 +294,9 @@ export function ItemsPage() {
         </Paper>
       )}
       {/* One row from tablet up: the fields give up width to each other
-          rather than pushing the button onto a line of its own. */}
+          rather than pushing the button onto a line of its own. Hidden on the
+          sales view, which none of them narrow. */}
+      {view !== 'ledger' && (
       <Paper
         sx={{
           p: 1.5,
@@ -332,11 +334,13 @@ export function ItemsPage() {
             <MenuItem value="org">{t('items.entry.orgVisible')}</MenuItem>
           </TextField>
         )}
-        <FormControlLabel
-          sx={{ mr: 0 }}
-          control={<Switch size="small" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />}
-          label={<Typography variant="body2">{t('stock.mineOnly')}</Typography>}
-        />
+        {view === 'stacks' && (
+          <FormControlLabel
+            sx={{ mr: 0 }}
+            control={<Switch size="small" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} />}
+            label={<Typography variant="body2">{t('stock.mineOnly')}</Typography>}
+          />
+        )}
         <Button
           variant="contained"
           startIcon={<PlaylistAddIcon />}
@@ -346,6 +350,7 @@ export function ItemsPage() {
           {t('items.bulk.add')}
         </Button>
       </Paper>
+      )}
       {view === 'ledger' ? (
         <StockLedger stock="item" />
       ) : view === 'org' ? (
@@ -353,7 +358,7 @@ export function ItemsPage() {
           {org.isLoading && <LinearProgress />}
           {org.isError && <Alert severity="error">{t('items.loadFailed')}</Alert>}
           <OrgMatrixTable<OrgSortField>
-            columns={[{ label: t('items.columns.item'), field: 'name', sx: { minWidth: 240 } }]}
+            columns={[{ label: t('items.columns.item'), field: 'name', wide: true, sx: { minWidth: 240 } }]}
             rows={org.rows.map((row) => ({
               key: row.key,
               cells: [
@@ -514,7 +519,10 @@ export function ItemsPage() {
           id: s.id,
           name: s.item_name ?? s.item_class,
           quality: s.quality,
-          amount: s.quantity.toLocaleString(i18n.language),
+          held: s.quantity,
+          unit: t('materials.units.pcs'),
+          factor: 1,
+          step: 1,
         }))}
         onClose={() => setHandover(false)}
         onDone={() => setPicked(new Map())}

@@ -27,47 +27,101 @@ use Illuminate\Support\Str;
  */
 class StockTransferController extends Controller
 {
-    /** The stacks named by the request that actually belong to the caller. */
+    /**
+     * The stacks named by the request that actually belong to the caller, each
+     * with how much of it is being acted on.
+     *
+     * A hold is not always handed over whole — half a load sold, the rest kept
+     * — so every stack carries a `take`. Omitted means all of it, and asking
+     * for more than there is means all of it too: the stack is the truth about
+     * how much exists.
+     *
+     * @return array{0: string, 1: Collection<int, array{stack: Model, take: int}>}
+     */
     private function stacks(Request $request): array
     {
         $data = $request->validate([
             'stock' => ['required', 'in:material,item'],
-            'stack_ids' => ['required', 'array', 'min:1', 'max:500'],
-            'stack_ids.*' => ['integer'],
+            'stacks' => ['required', 'array', 'min:1', 'max:500'],
+            'stacks.*.id' => ['required', 'integer'],
+            'stacks.*.quantity' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $stacks = $data['stock'] === 'item'
-            ? ItemStack::with('location')->whereIn('id', $data['stack_ids'])
+        $wanted = collect($data['stacks'])->keyBy('id');
+
+        $rows = $data['stock'] === 'item'
+            ? ItemStack::with('location')->whereIn('id', $wanted->keys())
                 ->where('user_id', $request->user()->id)->get()
-            : ResourceStack::with(['resourceType', 'location'])->whereIn('id', $data['stack_ids'])
+            : ResourceStack::with(['resourceType', 'location'])->whereIn('id', $wanted->keys())
                 ->where('user_id', $request->user()->id)->get();
 
-        abort_if($stacks->isEmpty(), 422, 'None of those stacks are yours.');
+        abort_if($rows->isEmpty(), 422, 'None of those stacks are yours.');
 
-        return [$data['stock'], $stacks];
+        $picked = $rows->map(fn (Model $stack) => [
+            'stack' => $stack,
+            'take' => min((int) ($wanted[$stack->id]['quantity'] ?? $stack->quantity), (int) $stack->quantity),
+        ])->filter(fn (array $row) => $row['take'] > 0)->values();
+
+        abort_if($picked->isEmpty(), 422, 'Nothing to take from those stacks.');
+
+        return [$data['stock'], $picked];
     }
 
-    /** What the stacks were, for a record that must outlive them. */
-    private function snapshot(string $stock, Collection $stacks): array
+    /**
+     * What went, for a record that must outlive the stacks — the amount taken
+     * rather than the amount held, since half a load may have stayed behind.
+     */
+    private function snapshot(string $stock, Collection $picked): array
     {
-        return $stacks->map(fn (Model $s) => $stock === 'item'
-            ? [
-                'item_class' => $s->item_class,
-                'name' => $s->item_name ?? $s->item_class,
-                'quality' => $s->quality,
-                'quantity' => $s->quantity,
-                'unit' => 'pieces',
-                'location' => $s->location?->name,
-            ]
-            : [
-                'resource_type_id' => $s->resource_type_id,
-                'name' => $s->resourceType?->name,
-                'category' => $s->resourceType?->category,
-                'unit' => $s->resourceType?->unit,
-                'quality' => $s->quality,
-                'quantity' => $s->quantity,
-                'location' => $s->location?->name,
-            ])->values()->all();
+        return $picked->map(function (array $row) use ($stock) {
+            $s = $row['stack'];
+
+            return $stock === 'item'
+                ? [
+                    'item_class' => $s->item_class,
+                    'name' => $s->item_name ?? $s->item_class,
+                    'quality' => $s->quality,
+                    'quantity' => $row['take'],
+                    'unit' => 'pieces',
+                    'location' => $s->location?->name,
+                ]
+                : [
+                    'resource_type_id' => $s->resource_type_id,
+                    'name' => $s->resourceType?->name,
+                    'category' => $s->resourceType?->category,
+                    'unit' => $s->resourceType?->unit,
+                    'quality' => $s->quality,
+                    'quantity' => $row['take'],
+                    'location' => $s->location?->name,
+                ];
+        })->values()->all();
+    }
+
+    /**
+     * Take part of a stack off it, as a stack of its own.
+     *
+     * The remainder keeps the original row — its id is what a craft, an order
+     * or an audit entry points at — and the part that left becomes a new row
+     * the caller can then place, hand over or drop.
+     */
+    private function split(Model $stack, int $take, array $changes): Model
+    {
+        $stack->decrement('quantity', $take);
+
+        $copy = $stack->replicate();
+        $copy->quantity = $take;
+        // A split is a new holding, not the same one: whatever the original
+        // came from, this part is being moved or sold by hand. Only one of
+        // these columns exists on either table, so clear what is there.
+        foreach (['refinery_order_id', 'craft_id'] as $origin) {
+            if (array_key_exists($origin, $copy->getAttributes())) {
+                $copy->{$origin} = null;
+            }
+        }
+        $copy->forceFill($changes);
+        $copy->save();
+
+        return $copy;
     }
 
     /**
@@ -78,26 +132,73 @@ class StockTransferController extends Controller
      */
     public function move(Request $request)
     {
-        [$stock, $stacks] = $this->stacks($request);
+        [$stock, $picked] = $this->stacks($request);
         $data = $request->validate(['location_id' => ['required', 'exists:locations,id']]);
 
-        DB::transaction(function () use ($stock, $stacks, $data, $request) {
-            $this->query($stock)->whereIn('id', $stacks->pluck('id'))
-                ->update($this->touched($stock, ['location_id' => $data['location_id']], $request->user()->id));
+        DB::transaction(function () use ($stock, $picked, $data, $request) {
+            $me = $request->user();
+            foreach ($picked as $row) {
+                $changes = $this->touched($stock, ['location_id' => $data['location_id']], $me->id);
+                if ($row['take'] >= (int) $row['stack']->quantity) {
+                    $row['stack']->forceFill($changes)->save();
+
+                    continue;
+                }
+                // Part of a load flown on: the rest stays where it was.
+                $this->split($row['stack'], $row['take'], $changes);
+            }
 
             AuditLog::create([
-                'user_id' => $request->user()->id,
-                'org_id' => $request->user()->orgs()->value('orgs.id'),
+                'user_id' => $me->id,
+                'org_id' => $me->orgs()->value('orgs.id'),
                 'action' => 'stock.moved',
                 'details' => [
                     'stock' => $stock,
                     'location_id' => $data['location_id'],
-                    'lines' => $this->snapshot($stock, $stacks),
+                    'lines' => $this->snapshot($stock, $picked),
                 ],
             ]);
         });
 
-        return ['moved' => $stacks->count()];
+        return ['moved' => $picked->count()];
+    }
+
+    /**
+     * Share a hold with the org, or take it back.
+     *
+     * Visibility is per stack, and a player who has just hauled a load home
+     * has the same answer for all of it — so it is worth setting once rather
+     * than twenty times.
+     */
+    public function visibility(Request $request)
+    {
+        [$stock, $picked] = $this->stacks($request);
+        $data = $request->validate(['visibility' => ['required', 'in:private,org']]);
+
+        DB::transaction(function () use ($stock, $picked, $data, $request) {
+            $me = $request->user();
+            // Whole stacks, whatever amounts were asked for: half a stack
+            // shared and half not is two rows of the same thing, which is a
+            // worse answer than the question deserves.
+            $this->query($stock)->whereIn('id', $picked->pluck('stack.id'))->update($this->touched($stock, [
+                'visibility' => $data['visibility'],
+                // Sharing with an org you are in means saying which one.
+                'org_id' => $data['visibility'] === 'org' ? $me->orgs()->value('orgs.id') : null,
+            ], $me->id));
+
+            AuditLog::create([
+                'user_id' => $me->id,
+                'org_id' => $me->orgs()->value('orgs.id'),
+                'action' => 'stock.visibility',
+                'details' => [
+                    'stock' => $stock,
+                    'visibility' => $data['visibility'],
+                    'lines' => $this->snapshot($stock, $picked),
+                ],
+            ]);
+        });
+
+        return ['changed' => $picked->count()];
     }
 
     /**
@@ -108,7 +209,7 @@ class StockTransferController extends Controller
      */
     public function hand(Request $request)
     {
-        [$stock, $stacks] = $this->stacks($request);
+        [$stock, $picked] = $this->stacks($request);
         $data = $request->validate([
             'to_handle' => ['required', 'string', 'max:120'],
             'price' => ['required', 'numeric', 'min:0', 'max:99999999999'],
@@ -119,7 +220,7 @@ class StockTransferController extends Controller
         $recipient = $this->findPlayer($data['to_handle']);
         abort_if($recipient?->id === $me->id, 422, 'That is you.');
 
-        $transfer = DB::transaction(function () use ($stock, $stacks, $data, $me, $recipient) {
+        $transfer = DB::transaction(function () use ($stock, $picked, $data, $me, $recipient) {
             $transfer = StockTransfer::create([
                 'user_id' => $me->id,
                 'org_id' => $me->orgs()->value('orgs.id'),
@@ -130,25 +231,34 @@ class StockTransferController extends Controller
                 // it was spelled on the day.
                 'to_handle' => $recipient?->handle ?? $recipient?->name ?? trim($data['to_handle']),
                 'price' => $data['price'],
-                'location_id' => $stacks->first()->location_id,
-                'lines' => $this->snapshot($stock, $stacks),
+                'location_id' => $picked->first()['stack']->location_id,
+                'lines' => $this->snapshot($stock, $picked),
                 'note' => $data['note'] ?? null,
             ]);
 
-            $ids = $stacks->pluck('id');
-            if ($recipient === null) {
-                // Nobody to hand them to: the stock left the 'verse as far as
-                // StarBuddy is concerned.
-                $this->query($stock)->whereIn('id', $ids)->delete();
-            } else {
-                // They keep where they are and what they are worth; what
-                // changes is whose they are. Visibility drops to private:
-                // sharing is the new owner's to decide, not the old one's.
-                $this->query($stock)->whereIn('id', $ids)->update($this->touched($stock, [
-                    'user_id' => $recipient->id,
-                    'org_id' => $recipient->orgs()->value('orgs.id'),
-                    'visibility' => 'private',
-                ], $recipient->id));
+            // They keep where they are and what they are worth; what changes
+            // is whose they are. Visibility drops to private: sharing is the
+            // new owner's to decide, not the old one's.
+            $handed = $recipient === null ? null : $this->touched($stock, [
+                'user_id' => $recipient->id,
+                'org_id' => $recipient->orgs()->value('orgs.id'),
+                'visibility' => 'private',
+            ], $recipient->id);
+
+            foreach ($picked as $row) {
+                $whole = $row['take'] >= (int) $row['stack']->quantity;
+
+                if ($handed === null) {
+                    // Nobody to hand it to: that much stock left the 'verse as
+                    // far as StarBuddy is concerned.
+                    $whole ? $row['stack']->delete() : $row['stack']->decrement('quantity', $row['take']);
+
+                    continue;
+                }
+
+                $whole
+                    ? $row['stack']->forceFill($handed)->save()
+                    : $this->split($row['stack'], $row['take'], $handed);
             }
 
             return $transfer;
