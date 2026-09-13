@@ -791,5 +791,51 @@
       "discard": "Discard",
       "readerLines": "{{count}} lines the reader found"
     }
+  },
+  "stock": {
+    "selected_one": "{{count}} stack selected",
+    "selected": "{{count}} stacks selected",
+    "clear": "Clear",
+    "pickAria": "Select {{name}}",
+    "pickAllAria": "Select every stack of mine on this page",
+    "mineOnly": "Only mine",
+    "ledgerView": "Sales",
+    "handover": {
+      "open": "Move or sell",
+      "title_one": "{{count}} stack",
+      "title": "{{count}} stacks",
+      "subtitle": "One thing, to all of them.",
+      "move": "Move",
+      "sell": "Sell",
+      "newLocation": "Move them to",
+      "buyer": "Sold to",
+      "handleHelp": "An org mate, any StarBuddy handle, or a name StarBuddy has never heard of.",
+      "price": "Price (aUEC)",
+      "priceHelp": "Zero if you are giving them away.",
+      "note": "Note (optional)",
+      "handoverHelp": "If the handle belongs to a StarBuddy player the stacks move to them, private, where they already are. If it does not, they simply leave your inventory and the handover is recorded here.",
+      "contents": "What goes",
+      "failed": "That did not go through. Check the handle and try again.",
+      "confirmMove": "Move them",
+      "confirmGive": "Give them away",
+      "confirmSell": "Record the sale"
+    },
+    "ledger": {
+      "loadFailed": "Could not load the sales.",
+      "tableAria": "Stock sold and given away",
+      "when": "Date",
+      "who": "Player",
+      "what": "Contents",
+      "price": "Price",
+      "gift": "Given",
+      "amount": "{{amount}} aUEC",
+      "stranger": "not on StarBuddy",
+      "total": "Taken for stock, all told: {{amount}} aUEC",
+      "empty": "Nothing has been sold yet. Pick some stacks in the list and use Move or sell.",
+      "direction": {
+        "out": "You sold this",
+        "in": "This was sold to you"
+      }
+    }
   }
 }

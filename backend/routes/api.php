@@ -35,6 +35,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Locations are the shared catalogue only — players pick from it, nobody adds to it.
     Route::apiResource('locations', LocationController::class)->only(['index']);
     Route::apiResource('resource-stacks', ResourceStackController::class)->only(['index', 'store', 'update', 'destroy']);
+    // Doing one thing to a whole hold — materials or items: moving it, or
+    // handing it to another player.
+    Route::post('stock-transfers/move', [\App\Http\Controllers\StockTransferController::class, 'move']);
+    Route::post('stock-transfers', [\App\Http\Controllers\StockTransferController::class, 'hand']);
+    Route::get('stock-transfers', [\App\Http\Controllers\StockTransferController::class, 'index']);
     Route::apiResource('item-stacks', ItemStackController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::get('items', [ItemController::class, 'index']);
     // Org view: org-visible stacks grouped per item / material+quality, with per-member holdings.
@@ -73,6 +78,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('orgs', [\App\Http\Controllers\OrgController::class, 'index']);
     Route::post('orgs/{org}/join', [\App\Http\Controllers\OrgController::class, 'join']);
     Route::delete('orgs/{org}/leave', [\App\Http\Controllers\OrgController::class, 'leave']);
+    // Who is in my orgs, for picking a player to hand something to.
+    Route::get('org/mates', [\App\Http\Controllers\OrgController::class, 'mates']);
     Route::get('orgs/{org}/members', [\App\Http\Controllers\OrgController::class, 'members']);
     Route::post('orgs/{org}/members/{user}/accept', [\App\Http\Controllers\OrgController::class, 'accept']);
     Route::delete('orgs/{org}/members/{user}', [\App\Http\Controllers\OrgController::class, 'kick']);

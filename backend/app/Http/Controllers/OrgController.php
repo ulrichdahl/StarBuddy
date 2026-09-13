@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\Org;
 use App\Models\User;
+use App\Support\OrgMembers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -67,6 +68,20 @@ class OrgController extends Controller
     }
 
     /** Manager view: every membership including pending requests. */
+    /**
+     * Org mates by handle, for anywhere a player is picked.
+     *
+     * Unlike `members`, which is a manager's roster with roles and standing,
+     * this is the list any member may see: who they might hand something to.
+     */
+    public function mates(Request $request)
+    {
+        return OrgMembers::of($request->user())
+            ->reject(fn ($u) => $u->id === $request->user()->id)
+            ->map(fn ($u) => ['id' => $u->id, 'handle' => $u->handle ?? $u->name])
+            ->values();
+    }
+
     public function members(Request $request, Org $org)
     {
         $this->authorizeManager($request->user(), $org);

@@ -19,7 +19,10 @@ class ResourceStackController extends Controller
             ->when($request->query('quality_max'), fn ($q, $v) => $q->where('resource_stacks.quality', '<=', (int) $v))
             ->when($request->query('location_id'), fn ($q, $v) => $q->where('resource_stacks.location_id', (int) $v))
             ->when($request->query('system'), fn ($q, $s) => $q->whereHas('location', fn ($l) => $l->where('system', $s)))
-            ->when($request->query('visibility'), fn ($q, $v) => $q->where('resource_stacks.visibility', $v));
+            ->when($request->query('visibility'), fn ($q, $v) => $q->where('resource_stacks.visibility', $v))
+            // Mine only: an org's pooled stock is what the list is for most of
+            // the time, but not when the question is what *I* am carrying.
+            ->when($request->boolean('mine'), fn ($q) => $q->where('resource_stacks.user_id', $request->user()->id));
 
         $dir = $request->query('dir') === 'asc' ? 'asc' : 'desc';
         match ($request->query('sort')) {
@@ -93,6 +96,7 @@ class ResourceStackController extends Controller
         // A stack consumed down to zero disappears from the ledger.
         if ($resourceStack->quantity === 0) {
             $resourceStack->delete();
+
             return response()->noContent();
         }
 

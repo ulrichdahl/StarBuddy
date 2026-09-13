@@ -289,6 +289,39 @@ export interface PoolProgress {
   owned_percent: number | null
 }
 
+/** Which ledger a handover came out of. */
+export type StockKind = 'material' | 'item'
+
+/** One line as it read when a hold changed hands. */
+export interface TransferLine {
+  name: string | null
+  quality: number | null
+  quantity: number
+  unit: string | null
+  location: string | null
+  /** Materials only. */
+  resource_type_id?: number | null
+  category?: string | null
+  /** Items only. */
+  item_class?: string | null
+}
+
+/** GET /api/stock-transfers: a hold handed over, either direction. */
+export interface StockTransfer {
+  id: number
+  stock: StockKind
+  /** 'out' when the viewer handed it over, 'in' when they received it. */
+  direction: 'out' | 'in'
+  counterparty: string | null
+  known_player: boolean
+  /** aUEC. Zero is a real price, and how a gift is recorded. */
+  price: number
+  location: Location | null
+  lines: TransferLine[]
+  note: string | null
+  created_at: string | null
+}
+
 /** GET /api/blueprints/{id}: what a blueprint is, for the info dialog. */
 export interface BlueprintInfo {
   blueprint: {
