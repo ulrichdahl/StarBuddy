@@ -12,6 +12,7 @@
 use crate::scan::ScanRegion;
 use base64::Engine;
 use serde::{Deserialize, Serialize};
+use crate::lock::LockExt;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
@@ -72,7 +73,7 @@ fn grab_frame(app: &AppHandle) -> Result<Frame, String> {
 /// selector falls back to being a transparent sheet over the live screen.
 #[tauri::command]
 pub fn region_frame(app: AppHandle) -> Option<Frame> {
-    app.state::<SelectorState>().frame.lock().unwrap().clone()
+    app.state::<SelectorState>().frame.lock_or_recover().clone()
 }
 
 /// What a selection is being framed for. One purpose, one stored area.
@@ -126,7 +127,7 @@ fn open_selector(app: &AppHandle, purpose: &str) -> Result<(), String> {
     // by guesswork, and every read afterwards is of the wrong rectangle with
     // nothing to say why. Refusing says what to do instead.
     let frame = grab_frame(app).inspect_err(|e| log::warn!("region selector: no backdrop ({e})"))?;
-    *app.state::<SelectorState>().frame.lock().unwrap() = Some(frame);
+    *app.state::<SelectorState>().frame.lock_or_recover() = Some(frame);
 
     let url = WebviewUrl::App(format!("index.html?window=region&purpose={purpose}").into());
     // EXPERIMENT E2: see `webview2_args`.

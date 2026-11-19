@@ -11,6 +11,7 @@
 
 use crate::scan::{self, Captured, OcrLine, ScanRegion};
 use serde::{Deserialize, Serialize};
+use crate::lock::LockExt;
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager};
 
@@ -144,7 +145,7 @@ pub struct Phase {
 fn status(app: &AppHandle, phase: &str, detail: impl Into<String>) {
     let now = Phase { phase: phase.to_string(), detail: detail.into() };
     if let Some(state) = app.try_state::<RefineryState>() {
-        *state.phase.lock().unwrap() = now.clone();
+        *state.phase.lock_or_recover() = now.clone();
     }
     crate::overlay::emit_to_overlay(app, REFINERY, "refinery-status", now);
 }
@@ -161,8 +162,8 @@ pub fn trigger(app: &AppHandle) {
     }
     // Pressing the key again while a read is running is someone asking whether
     // it is working, not asking for another read. Say where it has got to.
-    if *app.state::<RefineryState>().busy.lock().unwrap() {
-        let now = app.state::<RefineryState>().phase.lock().unwrap().clone();
+    if *app.state::<RefineryState>().busy.lock_or_recover() {
+        let now = app.state::<RefineryState>().phase.lock_or_recover().clone();
         crate::overlay::emit_to_overlay(app, REFINERY, "refinery-status", now);
         return;
     }
@@ -194,7 +195,7 @@ pub async fn read_with(app: AppHandle, merge_with_last: bool) -> Result<Refinery
     }
     {
         let state = app.state::<RefineryState>();
-        let mut busy = state.busy.lock().unwrap();
+        let mut busy = state.busy.lock_or_recover();
         if *busy {
             return Err("a read is already running".into());
         }
@@ -202,17 +203,17 @@ pub async fn read_with(app: AppHandle, merge_with_last: bool) -> Result<Refinery
     }
     let mut result = read_inner(&app).await;
     if let Ok(fresh) = result {
-        let previous = app.state::<RefineryState>().last.lock().unwrap().clone();
+        let previous = app.state::<RefineryState>().last.lock_or_recover().clone();
         result = Ok(match previous {
             Some(previous) if merge_with_last => merge(&previous, fresh),
             _ => RefineryTerminal { captures: 1, ..fresh },
         });
     }
-    *app.state::<RefineryState>().busy.lock().unwrap() = false;
+    *app.state::<RefineryState>().busy.lock_or_recover() = false;
 
     match &result {
         Ok(order) => {
-            *app.state::<RefineryState>().last.lock().unwrap() = Some(order.clone());
+            *app.state::<RefineryState>().last.lock_or_recover() = Some(order.clone());
             crate::overlay::emit_to_overlay(&app, REFINERY, "refinery-order", order.clone());
             let materials: usize = order.orders.iter().map(|o| o.materials.len()).sum();
             let captures = if order.captures > 1 { format!(", {} captures", order.captures) } else { String::new() };
@@ -1729,18 +1730,18 @@ pub async fn refinery_read(app: AppHandle, fresh: Option<bool>) -> Result<Refine
 /// Forget what has been read, so the next capture starts a new order.
 #[tauri::command]
 pub fn refinery_clear(app: AppHandle) {
-    *app.state::<RefineryState>().last.lock().unwrap() = None;
+    *app.state::<RefineryState>().last.lock_or_recover() = None;
 }
 
 /// Where a read has got to, for a window that has only just opened.
 #[tauri::command]
 pub fn refinery_status(app: AppHandle) -> Phase {
-    app.state::<RefineryState>().phase.lock().unwrap().clone()
+    app.state::<RefineryState>().phase.lock_or_recover().clone()
 }
 
 #[tauri::command]
 pub fn refinery_last(app: AppHandle) -> Option<RefineryTerminal> {
-    app.state::<RefineryState>().last.lock().unwrap().clone()
+    app.state::<RefineryState>().last.lock_or_recover().clone()
 }
 
 /// Send one checked work order to the server.

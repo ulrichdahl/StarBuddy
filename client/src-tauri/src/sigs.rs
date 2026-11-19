@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
+use crate::lock::LockExt;
 use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{AppHandle, Manager};
@@ -123,7 +124,7 @@ pub fn bundled() -> SigTable {
 
 /// The current table: in memory, else the cached server copy, else bundled.
 pub fn table(app: &AppHandle) -> SigTable {
-    let mut guard = TABLE.lock().unwrap();
+    let mut guard = TABLE.lock_or_recover();
     if let Some(t) = guard.as_ref() {
         return t.clone();
     }
@@ -211,11 +212,11 @@ pub async fn refresh(app: AppHandle) -> Result<usize, String> {
             let _ = fs::create_dir_all(dir);
         }
         if let Ok(bytes) = serde_json::to_vec_pretty(&t) {
-            let _ = fs::write(&p, bytes);
+            let _ = crate::fs_atomic::write(&p, &bytes);
         }
     }
     let n = t.ores.len();
-    *TABLE.lock().unwrap() = Some(t);
+    *TABLE.lock_or_recover() = Some(t);
     Ok(n)
 }
 

@@ -21,6 +21,7 @@ use crate::scan::{Captured, OcrLine, ScanRegion};
 use ocrs::OcrEngine;
 use serde::Serialize;
 use std::collections::VecDeque;
+use crate::lock::LockExt;
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use tauri::AppHandle;
@@ -531,7 +532,7 @@ impl Service {
     fn work_loop(&self) {
         loop {
             let work = {
-                let mut state = self.state.lock().unwrap();
+                let mut state = self.state.lock_or_recover();
                 loop {
                     if let Some(work) = state.queue.pop_front() {
                         if let Work::Continuous { id, .. } = &work {
@@ -564,7 +565,7 @@ impl Service {
                         Err(e) => work(Err(e.clone())),
                     };
                     let spent = started.elapsed();
-                    let mut state = self.state.lock().unwrap();
+                    let mut state = self.state.lock_or_recover();
                     match state.once.iter_mut().find(|(k, _)| *k == kind) {
                         Some((_, stats)) => stats.add_read(spent, &outcome),
                         None => {
@@ -583,7 +584,7 @@ impl Service {
     /// failing.
     fn finished(&self, id: u64, runner: &Arc<dyn Runner>, spent: Duration, outcome: Result<bool, String>) {
         let news = {
-            let mut state = self.state.lock().unwrap();
+            let mut state = self.state.lock_or_recover();
             let Some(sub) = state.sub(id) else { return };
             sub.slot.finished(Instant::now(), outcome.is_ok());
             sub.total.add_read(spent, &outcome);
@@ -595,7 +596,7 @@ impl Service {
     }
 
     fn schedule_loop(&self) {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.state.lock_or_recover();
         loop {
             if state.subs.is_empty() {
                 state = self.schedule.wait(state).unwrap();
@@ -603,7 +604,7 @@ impl Service {
             }
             drop(state);
             let wait = self.pass();
-            state = self.state.lock().unwrap();
+            state = self.state.lock_or_recover();
             state = self.schedule.wait_timeout(state, wait).unwrap().0;
         }
     }
@@ -621,7 +622,7 @@ impl Service {
         // Decided under the lock, cut outside it: a crop is quick, but the
         // workers should never wait on one to report a finished read.
         let due: Vec<(u64, Arc<dyn Runner>, ScanRegion)> = {
-            let state = self.state.lock().unwrap();
+            let state = self.state.lock_or_recover();
             state
                 .subs
                 .iter()
@@ -636,7 +637,7 @@ impl Service {
         let mut said = Vec::new();
         for (id, runner, region) in due {
             let Some(frame) = frame.as_ref() else {
-                let mut state = self.state.lock().unwrap();
+                let mut state = self.state.lock_or_recover();
                 let Some(sub) = state.sub(id) else { continue };
                 sub.slot.next_due = now + RETRY_AFTER;
                 if now.duration_since(sub.since) >= NO_FRAME_GRACE {
@@ -650,7 +651,7 @@ impl Service {
                 continue;
             };
             let cut = runner.cut(frame, region);
-            let mut state = self.state.lock().unwrap();
+            let mut state = self.state.lock_or_recover();
             let Some(sub) = state.sub(id) else { continue };
             let cut = match cut {
                 Ok(cut) => cut,
@@ -695,7 +696,7 @@ impl Service {
         }
         self.summarise(now);
 
-        let state = self.state.lock().unwrap();
+        let state = self.state.lock_or_recover();
         let next = state.subs.iter().filter(|s| !s.slot.running).map(|s| s.slot.next_due).min();
         next.map(|at| at.saturating_duration_since(Instant::now())).unwrap_or(Duration::from_millis(250)).clamp(
             // Never faster than the stream sends: a new frame is what a pass
@@ -710,7 +711,7 @@ impl Service {
     /// looks exactly like one working on a screen with nothing to find, and
     /// after an hour nobody can say which it was.
     fn summarise(&self, now: Instant) {
-        let mut state = self.state.lock().unwrap();
+        let mut state = self.state.lock_or_recover();
         for sub in state.subs.iter_mut().filter(|s| now.duration_since(s.last_summary) >= Duration::from_secs(60)) {
             let w = &sub.window;
             log::info!(
@@ -732,7 +733,7 @@ impl Service {
     /// The stream is gone: every continuous subscription ends with it.
     fn end_all(&self, why: &str) {
         let ended: Vec<(Handle, Arc<dyn Runner>)> = {
-            let mut state = self.state.lock().unwrap();
+            let mut state = self.state.lock_or_recover();
             state.queue.retain(|w| matches!(w, Work::Once { .. }));
             state.subs.drain(..).map(|sub| (Handle(sub.info.id), sub.runner)).collect()
         };
@@ -794,7 +795,7 @@ fn tell(app: &AppHandle, runner: &Arc<dyn Runner>, news: News) {
 pub fn subscribe<A: Analyzer>(app: &AppHandle, owner: &str, analyzer: A, region: ScanRegion, rate_hz: f32) -> Handle {
     let service = service(app);
     let now = Instant::now();
-    let mut state = service.state.lock().unwrap();
+    let mut state = service.state.lock_or_recover();
     state.next_id += 1;
     let id = state.next_id;
     let info = Subscription {
@@ -826,7 +827,7 @@ pub fn subscribe<A: Analyzer>(app: &AppHandle, owner: &str, analyzer: A, region:
 /// and its result is sent.
 pub fn unsubscribe(app: &AppHandle, handle: Handle) {
     let service = service(app);
-    let mut state = service.state.lock().unwrap();
+    let mut state = service.state.lock_or_recover();
     if let Some(at) = state.subs.iter().position(|s| s.info.id == handle.0) {
         let sub = state.subs.remove(at);
         log::info!(
@@ -843,7 +844,7 @@ pub fn unsubscribe(app: &AppHandle, handle: Handle) {
 /// Point a continuous subscription at a different area.
 pub fn retarget(app: &AppHandle, handle: Handle, region: ScanRegion) {
     let service = service(app);
-    let mut state = service.state.lock().unwrap();
+    let mut state = service.state.lock_or_recover();
     if let Some(sub) = state.sub(handle.0) {
         sub.info.region = region;
         sub.slot.forget();
@@ -875,7 +876,7 @@ pub async fn run_once<A: Analyzer>(app: &AppHandle, analyzer: A, region: ScanReg
         found
     });
     {
-        let mut state = service.state.lock().unwrap();
+        let mut state = service.state.lock_or_recover();
         state.queue.push_back(Work::Once { kind, work });
     }
     service.work.notify_one();
@@ -894,7 +895,7 @@ pub fn report() -> Vec<String> {
         "analysis: {threads} OCR threads, {WORKERS} workers, engines {}",
         if loaded { "loaded" } else { "not loaded yet" }
     )];
-    let state = service.state.lock().unwrap();
+    let state = service.state.lock_or_recover();
     for sub in &state.subs {
         let s = &sub.total;
         lines.push(format!(

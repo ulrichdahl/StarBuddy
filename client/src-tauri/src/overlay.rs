@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use crate::lock::LockExt;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use tauri::{
@@ -172,10 +173,7 @@ struct Presence {
 
 impl OverlayState {
     pub fn load(app: &AppHandle) -> Self {
-        let prefs: OverlayPrefs = prefs_path(app)
-            .and_then(|p| fs::read(p).ok())
-            .and_then(|b| serde_json::from_slice(&b).ok())
-            .unwrap_or_default();
+        let prefs: OverlayPrefs = prefs_path(app).and_then(|p| crate::fs_atomic::read_json(&p)).unwrap_or_default();
         Self {
             prefs: Mutex::new(prefs.migrate()),
             registered: Mutex::new(Vec::new()),
@@ -188,11 +186,11 @@ impl OverlayState {
 }
 
 fn quiet(app: &AppHandle, name: &str, ms: u64) {
-    app.state::<OverlayState>().quiet_until.lock().unwrap().insert(name.to_string(), Instant::now() + Duration::from_millis(ms));
+    app.state::<OverlayState>().quiet_until.lock_or_recover().insert(name.to_string(), Instant::now() + Duration::from_millis(ms));
 }
 
 fn is_quiet(app: &AppHandle, name: &str) -> bool {
-    app.state::<OverlayState>().quiet_until.lock().unwrap().get(name).is_some_and(|t| Instant::now() < *t)
+    app.state::<OverlayState>().quiet_until.lock_or_recover().get(name).is_some_and(|t| Instant::now() < *t)
 }
 
 fn prefs_path(app: &AppHandle) -> Option<PathBuf> {
@@ -204,16 +202,19 @@ fn prefs_path(app: &AppHandle) -> Option<PathBuf> {
 fn save(app: &AppHandle, force: bool) {
     let state = app.state::<OverlayState>();
     {
-        let mut last = state.last_saved.lock().unwrap();
+        let mut last = state.last_saved.lock_or_recover();
         if !force && last.elapsed() < Duration::from_millis(400) {
             return;
         }
         *last = Instant::now();
     }
     if let Some(path) = prefs_path(app) {
-        let prefs = state.prefs.lock().unwrap().clone();
-        if let Ok(json) = serde_json::to_vec_pretty(&prefs) {
-            let _ = fs::write(path, json);
+        // Held across the write, so two saves land in the order they were made.
+        let prefs = state.prefs.lock_or_recover();
+        if let Ok(json) = serde_json::to_vec_pretty(&*prefs) {
+            if let Err(e) = crate::fs_atomic::write(&path, &json) {
+                log::warn!("{} could not be written: {e}", path.display());
+            }
         }
     }
 }
@@ -227,12 +228,12 @@ fn name_of(label: &str) -> Option<&str> {
 }
 
 fn window_prefs(app: &AppHandle, name: &str) -> WindowPrefs {
-    app.state::<OverlayState>().prefs.lock().unwrap().windows.get(name).cloned().unwrap_or_default()
+    app.state::<OverlayState>().prefs.lock_or_recover().windows.get(name).cloned().unwrap_or_default()
 }
 
 fn update_prefs(app: &AppHandle, name: &str, f: impl FnOnce(&mut WindowPrefs)) -> WindowPrefs {
     let state = app.state::<OverlayState>();
-    let mut prefs = state.prefs.lock().unwrap();
+    let mut prefs = state.prefs.lock_or_recover();
     let w = prefs.windows.entry(name.to_string()).or_default();
     f(w);
     w.clone()
@@ -309,7 +310,7 @@ fn create(app: &AppHandle, name: &str) -> Result<(), String> {
     // by an earlier window needs replaying into it.
     let instance = {
         let state = app.state::<OverlayState>();
-        let mut presence = state.presence.lock().unwrap();
+        let mut presence = state.presence.lock_or_recover();
         let p = presence.entry(name.to_string()).or_default();
         p.missed.clear();
         p.instance += 1;
@@ -399,7 +400,7 @@ fn on_shown(app: &AppHandle, name: &str, win: &WebviewWindow) {
     loop {
         let missed = {
             let state = app.state::<OverlayState>();
-            let mut presence = state.presence.lock().unwrap();
+            let mut presence = state.presence.lock_or_recover();
             let p = presence.entry(name.to_string()).or_default();
             if p.missed.is_empty() {
                 p.shown = true;
@@ -419,7 +420,7 @@ fn on_shown(app: &AppHandle, name: &str, win: &WebviewWindow) {
 fn on_hidden(app: &AppHandle, name: &str, win: &WebviewWindow) {
     let generation = {
         let state = app.state::<OverlayState>();
-        let mut presence = state.presence.lock().unwrap();
+        let mut presence = state.presence.lock_or_recover();
         let p = presence.entry(name.to_string()).or_default();
         p.shown = false;
         p.generation += 1;
@@ -450,8 +451,7 @@ fn destroy_when_idle(app: &AppHandle, name: &str, generation: u64) {
             let idle = app2
                 .state::<OverlayState>()
                 .presence
-                .lock()
-                .unwrap()
+                .lock_or_recover()
                 .get(&name)
                 .is_some_and(|p| !p.shown && p.generation == generation);
             if !idle {
@@ -478,20 +478,20 @@ fn destroy_when_idle(app: &AppHandle, name: &str, generation: u64) {
 
 /// Whether `instance` is still the live build of this overlay's window.
 fn is_instance(app: &AppHandle, name: &str, instance: u64) -> bool {
-    app.state::<OverlayState>().presence.lock().unwrap().get(name).is_some_and(|p| p.instance == instance)
+    app.state::<OverlayState>().presence.lock_or_recover().get(name).is_some_and(|p| p.instance == instance)
 }
 
 /// The window is gone: drop what was kept for it, and stand down any timer.
 fn forget(app: &AppHandle, name: &str) {
     let was_shown = {
         let state = app.state::<OverlayState>();
-        let mut presence = state.presence.lock().unwrap();
+        let mut presence = state.presence.lock_or_recover();
         let p = presence.entry(name.to_string()).or_default();
         p.missed.clear();
         p.generation += 1;
         std::mem::replace(&mut p.shown, false)
     };
-    app.state::<OverlayState>().quiet_until.lock().unwrap().remove(name);
+    app.state::<OverlayState>().quiet_until.lock_or_recover().remove(name);
     // Only an outside close gets here while shown; say so, as a hide would.
     if was_shown {
         let _ = app.emit("overlay-visibility", (name.to_string(), false));
@@ -513,7 +513,7 @@ pub fn emit_to_overlay<S: Serialize + Clone>(app: &AppHandle, name: &str, event:
         return;
     }
     if let Some(state) = app.try_state::<OverlayState>() {
-        let mut presence = state.presence.lock().unwrap();
+        let mut presence = state.presence.lock_or_recover();
         let p = presence.entry(name.to_string()).or_default();
         if !p.shown {
             if let Ok(value) = serde_json::to_value(&payload) {
@@ -751,7 +751,7 @@ fn on_wayland() -> bool {
 
 #[tauri::command]
 pub fn overlay_hotkey(app: AppHandle) -> HotkeyInfo {
-    let hotkeys = app.state::<OverlayState>().prefs.lock().unwrap().all_hotkeys().into_iter().collect();
+    let hotkeys = app.state::<OverlayState>().prefs.lock_or_recover().all_hotkeys().into_iter().collect();
     let exe = std::env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|_| "starbuddy".into());
     HotkeyInfo {
         hotkeys,
@@ -762,8 +762,8 @@ pub fn overlay_hotkey(app: AppHandle) -> HotkeyInfo {
         triggers: crate::shortcuts::triggers(),
         toggle_command: format!("\"{exe}\" {TOGGLE_FLAG}"),
         action_command: format!("\"{exe}\" {ACTION_FLAG} "),
-        failed: app.state::<OverlayState>().failures.lock().unwrap().clone(),
-        live: app.state::<OverlayState>().registered.lock().unwrap().iter().map(|(_, a)| a.clone()).collect(),
+        failed: app.state::<OverlayState>().failures.lock_or_recover().clone(),
+        live: app.state::<OverlayState>().registered.lock_or_recover().iter().map(|(_, a)| a.clone()).collect(),
         windows: cfg!(windows),
     }
 }
@@ -782,7 +782,7 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
     // that out from a key that stopped responding.
     let clash = {
         let state = app.state::<OverlayState>();
-        let prefs = state.prefs.lock().unwrap();
+        let prefs = state.prefs.lock_or_recover();
         prefs
             .all_hotkeys()
             .into_iter()
@@ -793,7 +793,7 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
         return Err(format!("{hotkey} is already the {other} shortcut."));
     }
 
-    let previous = app.state::<OverlayState>().prefs.lock().unwrap().hotkeys.insert(action.clone(), hotkey.clone());
+    let previous = app.state::<OverlayState>().prefs.lock_or_recover().hotkeys.insert(action.clone(), hotkey.clone());
     // Where the desktop delivers the hotkeys there is nothing to grab and
     // nothing to fail: it is handed the new list and decides for itself, so
     // this is only ever a request. It may bind something else, and says so.
@@ -807,12 +807,12 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
     // owns — and that must not make every later rebind fail with it.
     let mine = register_hotkeys(&app)
         .err()
-        .and_then(|_| app.state::<OverlayState>().failures.lock().unwrap().get(&action).cloned());
+        .and_then(|_| app.state::<OverlayState>().failures.lock_or_recover().get(&action).cloned());
     if let Some(e) = mine {
         // Roll back so a shortcut another app owns never sticks.
         {
             let state = app.state::<OverlayState>();
-            let mut prefs = state.prefs.lock().unwrap();
+            let mut prefs = state.prefs.lock_or_recover();
             match previous {
                 Some(old) => prefs.hotkeys.insert(action, old),
                 None => prefs.hotkeys.remove(&action),
@@ -827,7 +827,7 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
 
 /// Every action and the shortcut it is set to.
 pub fn wanted_hotkeys(app: &AppHandle) -> Vec<(String, String)> {
-    app.state::<OverlayState>().prefs.lock().unwrap().all_hotkeys()
+    app.state::<OverlayState>().prefs.lock_or_recover().all_hotkeys()
 }
 
 /// What an action does, in words.
@@ -853,8 +853,8 @@ pub fn drop_x11_hotkeys(app: &AppHandle) {
     if let Err(e) = app.global_shortcut().unregister_all() {
         log::warn!("could not release the X11 hotkeys: {e}");
     }
-    app.state::<OverlayState>().registered.lock().unwrap().clear();
-    app.state::<OverlayState>().failures.lock().unwrap().clear();
+    app.state::<OverlayState>().registered.lock_or_recover().clear();
+    app.state::<OverlayState>().failures.lock_or_recover().clear();
 }
 
 /// (Re)register every action's shortcut. Errors are returned so the
@@ -867,7 +867,7 @@ pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
         return Ok(());
     }
     let state = app.state::<OverlayState>();
-    let wanted = state.prefs.lock().unwrap().all_hotkeys();
+    let wanted = state.prefs.lock_or_recover().all_hotkeys();
     let gs = app.global_shortcut();
     gs.unregister_all().map_err(|e| e.to_string())?;
     let mut registered = Vec::new();
@@ -887,13 +887,13 @@ pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
             }
         }
     }
-    crate::winkeys::set_bindings(&state.prefs.lock().unwrap().all_hotkeys());
+    crate::winkeys::set_bindings(&state.prefs.lock_or_recover().all_hotkeys());
     log::info!("hotkeys wanted: {}; registered {}, refused {}", names.join(" "), registered.len(), failures.len());
     for (action, why) in &failures {
         log::warn!("hotkey {action} refused: {why}");
     }
-    *state.registered.lock().unwrap() = registered;
-    *state.failures.lock().unwrap() = failures;
+    *state.registered.lock_or_recover() = registered;
+    *state.failures.lock_or_recover() = failures;
     match first_err {
         Some(e) => Err(e),
         None => Ok(()),
@@ -908,8 +908,7 @@ pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
     let action = app
         .state::<OverlayState>()
         .registered
-        .lock()
-        .unwrap()
+        .lock_or_recover()
         .iter()
         .find(|(s, _)| s == shortcut)
         .map(|(_, a)| a.clone());
@@ -940,7 +939,7 @@ pub fn run_action(app: &AppHandle, action: &str) {
     // the keyboard watcher — and on a machine where both work, both arrive.
     // One press is one action.
     {
-        let mut last = last_heard().lock().unwrap();
+        let mut last = last_heard().lock_or_recover();
         if let Some((was, when)) = last.as_ref() {
             if was == action && when.elapsed() < Duration::from_millis(300) {
                 return;

@@ -16,6 +16,7 @@ use rten_imageproc::{BoundingRect, RotatedRect};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use crate::lock::LockExt;
 use std::sync::Mutex;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager};
@@ -718,7 +719,7 @@ fn labelled(lines: &[OcrLine], labels: &[&str]) -> Option<f64> {
 pub async fn scan(app: AppHandle) -> Result<ScanResult, String> {
     {
         let state = app.state::<ScanState>();
-        let mut busy = state.busy.lock().unwrap();
+        let mut busy = state.busy.lock_or_recover();
         if *busy {
             return Err("a scan is already running".into());
         }
@@ -729,10 +730,10 @@ pub async fn scan(app: AppHandle) -> Result<ScanResult, String> {
         r.matches = r.signature.map(|v| crate::sigs::lookup(&app, v)).unwrap_or_default();
         r
     });
-    *app.state::<ScanState>().busy.lock().unwrap() = false;
+    *app.state::<ScanState>().busy.lock_or_recover() = false;
     match &result {
         Ok(r) => {
-            *app.state::<ScanState>().last.lock().unwrap() = Some(r.clone());
+            *app.state::<ScanState>().last.lock_or_recover() = Some(r.clone());
             crate::overlay::emit_to_overlay(&app, SCAN, "scan-result", r.clone());
             status(&app, "done", format!("{} lines in {} ms", r.lines.len(), r.elapsed_ms), None);
         }
@@ -800,7 +801,7 @@ pub(crate) fn live_running(app: &AppHandle) -> bool {
 
 /// The scan area was framed again: a running live scan follows it.
 pub(crate) fn region_changed(app: &AppHandle) {
-    if let Some(handle) = *app.state::<ScanState>().live.lock().unwrap() {
+    if let Some(handle) = *app.state::<ScanState>().live.lock_or_recover() {
         crate::analysis::retarget(app, handle, current_region(app));
     }
 }
@@ -812,7 +813,7 @@ pub fn live_toggle(app: &AppHandle) -> bool {
         return false;
     }
     let state = app.state::<ScanState>();
-    let mut live = state.live.lock().unwrap();
+    let mut live = state.live.lock_or_recover();
     if let Some(handle) = live.take() {
         crate::analysis::unsubscribe(app, handle);
         let _ = app.emit("scan-live-state", false);
@@ -898,7 +899,7 @@ impl crate::analysis::Analyzer for LiveBadge {
         log::info!("live scan: {why}");
         status(app, "error", "Screen reading was switched off.", None);
         let state = app.state::<ScanState>();
-        let mut live = state.live.lock().unwrap();
+        let mut live = state.live.lock_or_recover();
         if *live == Some(handle) {
             *live = None;
             let _ = app.emit("scan-live-state", false);
@@ -939,7 +940,7 @@ pub async fn scan_now(app: AppHandle) -> Result<ScanResult, String> {
 
 #[tauri::command]
 pub fn scan_last(app: AppHandle) -> Option<ScanResult> {
-    app.state::<ScanState>().last.lock().unwrap().clone()
+    app.state::<ScanState>().last.lock_or_recover().clone()
 }
 
 #[cfg(test)]

@@ -8,11 +8,16 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, LazyLock, Mutex};
 use tauri::{Emitter, Manager};
 
+use lock::{LockExt, RwLockExt};
+
 mod analysis;
 mod capture;
 mod changes;
+mod fs_atomic;
 mod http;
 mod kde_rule;
+mod lock;
+mod outbox;
 mod reading;
 #[cfg(windows)]
 mod wgc;
@@ -44,7 +49,7 @@ static REFINERY_RE: LazyLock<Regex> = LazyLock::new(|| {
     .unwrap()
 });
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct LogEvent {
     pub kind: String, // "blueprint" | "refinery_completed"
     pub timestamp: String,
@@ -263,40 +268,24 @@ fn prefs_cache(app: &tauri::AppHandle) -> tauri::State<'_, PrefsCache> {
     if let Some(cache) = app.try_state::<PrefsCache>() {
         return cache;
     }
-    let loaded = client_prefs_path(app)
-        .ok()
-        .and_then(|p| fs::read(p).ok())
-        .and_then(|b| serde_json::from_slice(&b).ok())
-        .unwrap_or_default();
+    let loaded = client_prefs_path(app).ok().and_then(|p| fs_atomic::read_json(&p)).unwrap_or_default();
     // Two first callers at once both load the same file, and the second
     // `manage` is refused, which is harmless.
     app.manage(PrefsCache(std::sync::RwLock::new(loaded)));
     app.state::<PrefsCache>()
 }
 
-/// Write a file so that it is either the old one or the new one, never half of
-/// each: the new bytes go to a file beside it, which then takes its name.
-fn write_atomically(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
-    let mut temp = path.as_os_str().to_owned();
-    temp.push(".tmp");
-    let temp = PathBuf::from(temp);
-    fs::write(&temp, bytes)?;
-    fs::rename(&temp, path).inspect_err(|_| {
-        let _ = fs::remove_file(&temp);
-    })
-}
-
 pub(crate) fn save_client_prefs(app: &tauri::AppHandle, prefs: &ClientPrefs) -> Result<(), String> {
     let cache = prefs_cache(app);
     // Held across the write, so two saves land in the order they were made.
-    let mut kept = cache.0.write().map_err(|_| "the preferences are in a bad state")?;
+    let mut kept = cache.0.write_or_recover();
     *kept = prefs.clone();
     let bytes = serde_json::to_vec_pretty(prefs).map_err(|e| e.to_string())?;
-    write_atomically(&client_prefs_path(app)?, &bytes).map_err(|e| e.to_string())
+    fs_atomic::write(&client_prefs_path(app)?, &bytes).map_err(|e| e.to_string())
 }
 
 pub(crate) fn load_client_prefs(app: &tauri::AppHandle) -> ClientPrefs {
-    prefs_cache(app).0.read().map(|p| p.clone()).unwrap_or_default()
+    prefs_cache(app).0.read_or_recover().clone()
 }
 
 /// A LIVE folder has Game.log (once the game has run) or Bin64; accept the
@@ -505,8 +494,7 @@ fn settings_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
 }
 
 pub(crate) fn load_settings(app: &tauri::AppHandle) -> Option<StoredSettings> {
-    let bytes = fs::read(settings_path(app).ok()?).ok()?;
-    serde_json::from_slice(&bytes).ok()
+    fs_atomic::read_json(&settings_path(app).ok()?)
 }
 
 fn view(settings: Option<&StoredSettings>) -> ConnectionView {
@@ -618,9 +606,9 @@ async fn pair_device(
         token: pair.token,
         user_name: pair.user.name,
     };
-    fs::write(
-        settings_path(&app)?,
-        serde_json::to_vec_pretty(&settings).map_err(|e| e.to_string())?,
+    fs_atomic::write(
+        &settings_path(&app)?,
+        &serde_json::to_vec_pretty(&settings).map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
     rsi_status::refresh_now(&app);
@@ -628,10 +616,18 @@ async fn pair_device(
     Ok(view(Some(&settings)))
 }
 
+/// A post the server did not take: what to tell the player, and the HTTP
+/// status it answered with (`None` when no answer arrived), which decides
+/// whether the watcher's outbox tries again.
+pub(crate) struct PostError {
+    pub message: String,
+    pub status: Option<u16>,
+}
+
 async fn post_events(
     settings: &StoredSettings,
     events: &[LogEvent],
-) -> Result<SyncSummary, String> {
+) -> Result<SyncSummary, PostError> {
     let payload: Vec<_> = events
         .iter()
         .map(|e| {
@@ -654,13 +650,14 @@ async fn post_events(
         .timeout(std::time::Duration::from_secs(120))
         .send()
         .await
-        .map_err(|e| format!("Could not reach server: {e}"))?;
+        .map_err(|e| PostError { message: format!("Could not reach server: {e}"), status: None })?;
 
+    let status = resp.status().as_u16();
     if !resp.status().is_success() {
-        return Err(error_body(resp).await);
+        return Err(PostError { message: error_body(resp).await, status: Some(status) });
     }
 
-    resp.json().await.map_err(|e| e.to_string())
+    resp.json().await.map_err(|e| PostError { message: e.to_string(), status: Some(status) })
 }
 
 #[derive(Serialize, Deserialize)]
@@ -674,7 +671,7 @@ pub struct SyncSummary {
 #[tauri::command]
 async fn sync_events(app: tauri::AppHandle, events: Vec<LogEvent>) -> Result<SyncSummary, String> {
     let settings = load_settings(&app).ok_or("Not paired with a server yet.")?;
-    post_events(&settings, &events).await
+    post_events(&settings, &events).await.map_err(|e| e.message)
 }
 
 /// RSI service status as mirrored by the paired server (GET /api/status),
@@ -705,12 +702,12 @@ struct WatcherStatus {
 
 #[tauri::command]
 fn watcher_status(state: tauri::State<WatcherState>) -> bool {
-    state.0.lock().unwrap().as_ref().is_some_and(|f| !f.load(Ordering::Relaxed))
+    state.0.lock_or_recover().as_ref().is_some_and(|f| !f.load(Ordering::Relaxed))
 }
 
 #[tauri::command]
 fn stop_watcher(state: tauri::State<WatcherState>) {
-    if let Some(flag) = state.0.lock().unwrap().take() {
+    if let Some(flag) = state.0.lock_or_recover().take() {
         flag.store(true, Ordering::Relaxed);
     }
 }
@@ -726,7 +723,7 @@ fn start_watcher(
         return Err(format!("No Game.log in {live_dir} — is the game installed there?"));
     }
 
-    let mut guard = state.0.lock().unwrap();
+    let mut guard = state.0.lock_or_recover();
     if let Some(flag) = guard.take() {
         flag.store(true, Ordering::Relaxed);
     }
@@ -739,6 +736,10 @@ fn start_watcher(
     tauri::async_runtime::spawn(async move {
         let mut offset = fs::metadata(&log_path).map(|m| m.len()).unwrap_or(0);
         let mut carry = String::new();
+        // Events the server did not take wait in the outbox; these say when
+        // to try it again.
+        let mut retry_at: Option<std::time::Instant> = None;
+        let mut retry_delay: Option<std::time::Duration> = None;
 
         let _ = app.emit("watcher-status", WatcherStatus {
             running: true,
@@ -747,6 +748,24 @@ fn start_watcher(
 
         while !stop.load(Ordering::Relaxed) {
             tokio_sleep().await;
+
+            let waiting = app.try_state::<outbox::OutboxState>().is_some_and(|s| s.pending() > 0);
+            if waiting && retry_at.is_none_or(|at| std::time::Instant::now() >= at) {
+                if let Some(settings) = outbox::paired(&app) {
+                    match outbox::send(&app, &settings).await {
+                        outbox::Sent::Failed => {
+                            let delay = outbox::next_delay(retry_delay);
+                            retry_delay = Some(delay);
+                            retry_at = Some(std::time::Instant::now() + delay);
+                        }
+                        outbox::Sent::Done => {
+                            retry_delay = None;
+                            retry_at = None;
+                        }
+                        outbox::Sent::Nothing => {}
+                    }
+                }
+            }
 
             let Ok(meta) = fs::metadata(&log_path) else { continue };
             let size = meta.len();
@@ -790,10 +809,28 @@ fn start_watcher(
             if let Some(settings) = load_settings(&app) {
                 match post_events(&settings, &events).await {
                     Ok(summary) => {
-                        let _ = app.emit("watcher-sync", &summary);
+                        outbox::emit_synced(&app, &summary);
+                        // The server is back: what waits goes on the next pass.
+                        retry_delay = None;
+                        retry_at = None;
                     }
-                    Err(message) => {
-                        let _ = app.emit("watcher-sync-error", &message);
+                    Err(e) => {
+                        let _ = app.emit("watcher-sync-error", &e.message);
+                        match outbox::disposition(e.status) {
+                            outbox::Disposition::Retry => {
+                                if let Some(state) = app.try_state::<outbox::OutboxState>() {
+                                    state.keep(&events);
+                                }
+                                if retry_at.is_none() {
+                                    let delay = outbox::next_delay(None);
+                                    retry_delay = Some(delay);
+                                    retry_at = Some(std::time::Instant::now() + delay);
+                                }
+                            }
+                            outbox::Disposition::Drop => {
+                                log::warn!("the server refused {} new event(s), dropping them: {}", events.len(), e.message);
+                            }
+                        }
                     }
                 }
             }
@@ -948,6 +985,7 @@ fn system_report(app: tauri::AppHandle) -> String {
     }
     lines.extend(analysis::report());
 
+    let waiting = app.try_state::<outbox::OutboxState>().map(|s| s.pending()).unwrap_or(0);
     let hotkeys = overlay::overlay_hotkey(app);
     lines.push(format!(
         "hotkeys: {} registered, {} refused{}",
@@ -962,6 +1000,7 @@ fn system_report(app: tauri::AppHandle) -> String {
         Some((action, ago)) => format!("last key heard: {action}, {}s ago", ago.as_secs()),
         None => "last key heard: none this session".into(),
     });
+    lines.push(format!("events waiting for the server: {waiting}"));
     lines.join("\n")
 }
 
@@ -1081,33 +1120,6 @@ mod tests {
             }
         }
         root
-    }
-
-    #[test]
-    fn preferences_are_replaced_whole_and_leave_nothing_behind() {
-        let dir = std::env::temp_dir().join(format!("starbuddy-prefs-{}", std::process::id()));
-        let _ = fs::remove_dir_all(&dir);
-        fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("client.json");
-
-        write_atomically(&path, b"{\"live_dir\":\"first\"}").unwrap();
-        assert_eq!(fs::read(&path).unwrap(), b"{\"live_dir\":\"first\"}");
-        // A shorter file over a longer one: nothing of the old one survives.
-        write_atomically(&path, b"{}").unwrap();
-        assert_eq!(fs::read(&path).unwrap(), b"{}");
-        // The new bytes were written beside the file, in the same folder — a
-        // rename across file systems is a copy — and the temporary is gone.
-        let names: Vec<String> =
-            fs::read_dir(&dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
-        assert_eq!(names, vec!["client.json".to_string()]);
-
-        // A folder where the file should be cannot be replaced, and the
-        // temporary does not stay behind as litter.
-        let blocked = dir.join("blocked");
-        fs::create_dir_all(blocked.join("inside")).unwrap();
-        assert!(write_atomically(&blocked, b"{}").is_err());
-        assert!(!dir.join("blocked.tmp").exists());
-        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -1354,6 +1366,8 @@ pub fn run() {
             log::info!("OCR threads: {}", std::env::var("RTEN_NUM_THREADS").unwrap_or_default());
             migrate_old_config_dir(&handle);
             app.manage(overlay::OverlayState::load(&handle));
+            app.manage(outbox::OutboxState::load(&handle));
+            outbox::send_at_start(&handle);
             app.manage(scan::ScanState::default());
             app.manage(refinery::RefineryState::default());
             app.manage(region::SelectorState::default());

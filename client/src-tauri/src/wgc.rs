@@ -8,6 +8,7 @@
 //! It is switched on by the player like the portal is, and for the same
 //! reason: a stream is a running thing, and the system shows it as one.
 
+use crate::lock::LockExt;
 use std::sync::{Mutex, OnceLock};
 use windows_capture::capture::{Context, GraphicsCaptureApiHandler};
 use windows_capture::frame::Frame;
@@ -37,12 +38,12 @@ fn switches() -> &'static Mutex<Option<(bool, bool)>> {
 
 /// Whether the window being read is wearing Windows' yellow capture border.
 pub fn border_drawn() -> bool {
-    matches!(*switches().lock().unwrap(), Some((_, false)))
+    matches!(*switches().lock_or_recover(), Some((_, false)))
 }
 
 /// What the switches said, for a report: (asked, answered) per switch.
 pub fn switch_state() -> Option<(bool, bool)> {
-    *switches().lock().unwrap()
+    *switches().lock_or_recover()
 }
 
 /// What Windows answered when asked for borderless capture, in words.
@@ -53,7 +54,7 @@ fn borderless_answer() -> &'static Mutex<Option<String>> {
 
 /// The same answer, for a report.
 pub fn borderless() -> Option<String> {
-    borderless_answer().lock().unwrap().clone()
+    borderless_answer().lock_or_recover().clone()
 }
 
 /// Which Windows this is, from the kernel rather than from the compatibility
@@ -215,12 +216,12 @@ pub fn start(title: &str) -> Result<(), String> {
         "windows capture on {:?}: cursor switch {cursor_switch}, border switch {border_switch}, interval switch {interval_switch}",
         version()
     );
-    *switches().lock().unwrap() = Some((cursor_switch, border_switch));
+    *switches().lock_or_recover() = Some((cursor_switch, border_switch));
     let cursor =
         if cursor_switch { CursorCaptureSettings::WithoutCursor } else { CursorCaptureSettings::Default };
     let borderless = if border_switch { ask_for_borderless() } else { "no switch to ask about".into() };
     log::info!("borderless capture: {borderless}");
-    *borderless_answer().lock().unwrap() = Some(borderless);
+    *borderless_answer().lock_or_recover() = Some(borderless);
     let border = if border_switch { DrawBorderSettings::WithoutBorder } else { DrawBorderSettings::Default };
     // Ten frames a second at most. Nothing reads faster than that, and where
     // the switch is missing the frames that come anyway are dropped unread.

@@ -34,6 +34,7 @@ pub fn resume(_win: &tauri::WebviewWindow) {}
 #[cfg(windows)]
 mod imp {
     use std::collections::HashMap;
+    use crate::lock::LockExt;
     use std::sync::{Mutex, OnceLock};
     use std::time::Duration;
 
@@ -75,7 +76,7 @@ mod imp {
 
     /// Start a new spell; returns its number and the phase the last one ended in.
     fn begin(label: &str, phase: Phase) -> (u64, Phase) {
-        let mut spells = spells().lock().unwrap();
+        let mut spells = spells().lock_or_recover();
         let spell = spells.entry(label.to_string()).or_insert(Spell { number: 0, phase: Phase::Awake });
         spell.number += 1;
         (spell.number, std::mem::replace(&mut spell.phase, phase))
@@ -83,12 +84,12 @@ mod imp {
 
     /// The phase of spell `number`, while it is still the current one.
     fn current(label: &str, number: u64) -> Option<Phase> {
-        spells().lock().unwrap().get(label).filter(|s| s.number == number).map(|s| s.phase)
+        spells().lock_or_recover().get(label).filter(|s| s.number == number).map(|s| s.phase)
     }
 
     /// Move spell `number` on to `phase`. False if a later spell has begun.
     fn advance(label: &str, number: u64, phase: Phase) -> bool {
-        match spells().lock().unwrap().get_mut(label) {
+        match spells().lock_or_recover().get_mut(label) {
             Some(spell) if spell.number == number => {
                 spell.phase = phase;
                 true
@@ -99,7 +100,7 @@ mod imp {
 
     /// The window is gone: drop spell `number`, which stops its watch.
     fn forget(label: &str, number: u64) {
-        let mut spells = spells().lock().unwrap();
+        let mut spells = spells().lock_or_recover();
         if spells.get(label).is_some_and(|s| s.number == number) {
             spells.remove(label);
         }

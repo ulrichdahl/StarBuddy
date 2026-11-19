@@ -270,6 +270,7 @@ pub fn full_rgb(app: &tauri::AppHandle) -> Result<Captured, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lock::LockExt;
 
     /// A 3×2 frame whose pixels are numbered, laid out as `layout` with
     /// `pad` bytes after each row, and the RGB it should convert to.
@@ -353,15 +354,15 @@ mod tests {
         assert_eq!(third.seq, seq + 2);
         assert_eq!(third.bytes.as_ptr(), newest);
         // The buffer the reader let go of waits as the spare.
-        assert!(feed.spare.lock().unwrap().as_ref().is_some_and(|b| b.as_ptr() == buffer));
+        assert!(feed.spare.lock_or_recover().as_ref().is_some_and(|b| b.as_ptr() == buffer));
 
         // Too few bytes for what the frame claims to be is not a frame.
         feed.push(&frame.bytes[..10], 3, 2, stride, Layout::Bgrx, "test");
         assert_eq!(feed.latest().unwrap().seq, seq + 2);
         drop(third);
         feed.stopped(None);
-        assert!(feed.latest().is_none() && !feed.store.lock().unwrap().live);
-        assert!(feed.spare.lock().unwrap().is_none(), "a stopped feed keeps no buffer");
+        assert!(feed.latest().is_none() && !feed.store.lock_or_recover().live);
+        assert!(feed.spare.lock_or_recover().is_none(), "a stopped feed keeps no buffer");
     }
 
     #[test]
