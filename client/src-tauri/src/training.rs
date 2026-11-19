@@ -96,14 +96,13 @@ pub async fn upload(
         form = form.text("reader", reader);
     }
 
-    let resp = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(60))
-        .build()
-        .map_err(|e| e.to_string())?
+    // A screenshot upload outlasts the shared client's 30 s on a slow line.
+    let resp = crate::http::client()
         .post(format!("{}/api/training/captures", settings.server_url))
         .bearer_auth(&settings.token)
         .header("Accept", "application/json")
         .multipart(form)
+        .timeout(std::time::Duration::from_secs(60))
         .send()
         .await
         .map_err(|e| format!("Could not reach server: {e}"))?;

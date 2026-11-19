@@ -12,7 +12,7 @@
 use crate::scan::{self, Captured, OcrLine, ScanRegion};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 
 /// Window name of the refinery window.
 pub const REFINERY: &str = "refinery";
@@ -146,7 +146,7 @@ fn status(app: &AppHandle, phase: &str, detail: impl Into<String>) {
     if let Some(state) = app.try_state::<RefineryState>() {
         *state.phase.lock().unwrap() = now.clone();
     }
-    let _ = app.emit("refinery-status", now);
+    crate::overlay::emit_to_overlay(app, REFINERY, "refinery-status", now);
 }
 
 /// The region the player framed, or the whole frame when they have not.
@@ -163,7 +163,7 @@ pub fn trigger(app: &AppHandle) {
     // it is working, not asking for another read. Say where it has got to.
     if *app.state::<RefineryState>().busy.lock().unwrap() {
         let now = app.state::<RefineryState>().phase.lock().unwrap().clone();
-        let _ = app.emit("refinery-status", now);
+        crate::overlay::emit_to_overlay(app, REFINERY, "refinery-status", now);
         return;
     }
     // Said before the read is even spawned, so the window that is opening at
@@ -217,7 +217,7 @@ pub async fn read_with(app: AppHandle, merge_with_last: bool) -> Result<Refinery
     match &result {
         Ok(order) => {
             *app.state::<RefineryState>().last.lock().unwrap() = Some(order.clone());
-            let _ = app.emit("refinery-order", order.clone());
+            crate::overlay::emit_to_overlay(&app, REFINERY, "refinery-order", order.clone());
             let materials: usize = order.orders.iter().map(|o| o.materials.len()).sum();
             let captures = if order.captures > 1 { format!(", {} captures", order.captures) } else { String::new() };
             status(
@@ -1796,14 +1796,12 @@ pub async fn refinery_save(
         "source": "ocr",
     });
 
-    let resp = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(15))
-        .build()
-        .map_err(|e| e.to_string())?
+    let resp = crate::http::client()
         .post(format!("{}/api/refinery-orders", settings.server_url))
         .bearer_auth(&settings.token)
         .header("Accept", "application/json")
         .json(&body)
+        .timeout(std::time::Duration::from_secs(15))
         .send()
         .await
         .map_err(|e| format!("Could not reach server: {e}"))?;

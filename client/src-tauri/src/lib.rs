@@ -9,6 +9,7 @@ use std::sync::{Arc, LazyLock, Mutex};
 use tauri::{Emitter, Manager};
 
 mod changes;
+mod http;
 mod kde_rule;
 mod reading;
 #[cfg(windows)]
@@ -20,9 +21,13 @@ mod shortcuts;
 mod winkeys;
 mod refinery;
 mod region;
+mod rsi_status;
 pub mod scan;
 pub mod sigs;
 mod training;
+mod webkit_tuning;
+mod webview2_args;
+mod webview_power;
 
 // Notification lines are duplicated in the log (queued + displayed); events
 // are deduplicated on (timestamp, detail). Names can contain quotes
@@ -490,6 +495,7 @@ fn get_connection(app: tauri::AppHandle) -> ConnectionView {
 fn unpair(app: tauri::AppHandle) -> Result<ConnectionView, String> {
     let path = settings_path(&app)?;
     let _ = fs::remove_file(path);
+    rsi_status::refresh_now(&app);
     Ok(view(None))
 }
 
@@ -546,7 +552,7 @@ async fn pair_device(
         .map(|h| h.to_string_lossy().into_owned())
         .unwrap_or_else(|_| "desktop".into());
 
-    let resp = reqwest::Client::new()
+    let resp = http::client()
         .post(format!("{base}/api/devices/pair"))
         .json(&serde_json::json!({ "code": code.trim(), "device_name": device_name }))
         .header("Accept", "application/json")
@@ -579,6 +585,7 @@ async fn pair_device(
         serde_json::to_vec_pretty(&settings).map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
+    rsi_status::refresh_now(&app);
 
     Ok(view(Some(&settings)))
 }
@@ -599,11 +606,14 @@ async fn post_events(
         })
         .collect();
 
-    let resp = reqwest::Client::new()
+    let resp = http::client()
         .post(format!("{}/api/ingest/events", settings.server_url))
         .bearer_auth(&settings.token)
         .header("Accept", "application/json")
         .json(&serde_json::json!({ "events": payload }))
+        // A backlog sync sends every event the scan found in one request, and
+        // the server works through them before it answers.
+        .timeout(std::time::Duration::from_secs(120))
         .send()
         .await
         .map_err(|e| format!("Could not reach server: {e}"))?;
@@ -629,26 +639,15 @@ async fn sync_events(app: tauri::AppHandle, events: Vec<LogEvent>) -> Result<Syn
     post_events(&settings, &events).await
 }
 
-/// RSI service status as mirrored by the paired server (GET /api/status).
-/// Passed through untyped: the UI owns the shape, and the server may add
-/// fields without a client release.
+/// RSI service status as mirrored by the paired server (GET /api/status),
+/// on demand. The background loop in rsi_status fetches it anyway; this is a
+/// manual refresh, and its answer reaches every window like the loop's does.
 #[tauri::command]
 async fn fetch_status(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
-    let settings = load_settings(&app).ok_or("Not paired with a server yet.")?;
-    let resp = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
-        .map_err(|e| e.to_string())?
-        .get(format!("{}/api/status", settings.server_url))
-        .bearer_auth(&settings.token)
-        .header("Accept", "application/json")
-        .send()
-        .await
-        .map_err(|e| format!("Could not reach server: {e}"))?;
-    if !resp.status().is_success() {
-        return Err(error_body(resp).await);
-    }
-    resp.json().await.map_err(|e| e.to_string())
+    let settings = load_settings(&app)
+        .filter(|s| !s.token.is_empty())
+        .ok_or("Not paired with a server yet.")?;
+    rsi_status::fetch_and_publish(&app, &settings).await
 }
 
 // ── Live log watcher ────────────────────────────────────────────────────────
@@ -962,11 +961,12 @@ struct GhRelease {
     body: Option<String>,
 }
 
-async fn fetch_release(client: &reqwest::Client, url: &str, ua: &str) -> Result<GhRelease, String> {
-    let resp = client
+async fn fetch_release(url: &str) -> Result<GhRelease, String> {
+    // GitHub refuses requests without a User-Agent; the shared client sends one.
+    let resp = http::client()
         .get(url)
-        .header("User-Agent", ua)
         .header("Accept", "application/vnd.github+json")
+        .timeout(std::time::Duration::from_secs(10))
         .send()
         .await
         .map_err(|e| format!("Could not reach GitHub: {e}"))?;
@@ -984,20 +984,15 @@ async fn check_for_update() -> Result<UpdateCheck, String> {
     let current = env!("CARGO_PKG_VERSION");
     let build = option_env!("STARBUDDY_BUILD").map(str::to_string);
     let current_v = parse_semver(current).ok_or_else(|| format!("Unparseable own version: {current}"))?;
-    let ua = format!("StarBuddy/{current}");
-    let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(10))
-        .build()
-        .map_err(|e| e.to_string())?;
 
-    let release = fetch_release(&client, RELEASES_API_URL, &ua).await?;
+    let release = fetch_release(RELEASES_API_URL).await?;
     let latest_v = parse_semver(&release.tag_name)
         .ok_or_else(|| format!("Unparseable release tag: {}", release.tag_name))?;
 
     let (mut latest_dev, mut dev_url, mut dev_update_available, mut dev_notes) = (None, None, false, None);
     if let Some(own) = &build {
         // A failing dev lookup must not hide a live update: log and move on.
-        match fetch_release(&client, DEV_RELEASE_API_URL, &ua).await {
+        match fetch_release(DEV_RELEASE_API_URL).await {
             Ok(dev) => {
                 let stamp = dev.body.as_deref().and_then(dev_stamp_in);
                 dev_update_available = stamp.as_deref().is_some_and(|s| s > own.as_str());
@@ -1132,7 +1127,6 @@ mod tests {
     }
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
 /// A Command for a *host* program (spectacle, dbus-send, …) from inside an
 /// AppImage: the runtime exports LD_LIBRARY_PATH, QT_PLUGIN_PATH, GTK_PATH,
 /// PYTHONHOME and friends pointing into the mount, which breaks any other
@@ -1178,12 +1172,19 @@ fn migrate_old_config_dir(app: &tauri::AppHandle) {
     }
 }
 
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // The AppImage bundles Ubuntu-22.04-era WebKitGTK, whose DMABUF renderer
     // aborts with EGL_BAD_PARAMETER against newer Mesa/driver stacks (white
-    // window). Disable it unless the user has set the variable themselves.
+    // window). Disable it there unless the user has set the variable
+    // themselves — and only there: on a current system WebKitGTK (2.54 here)
+    // DMABUF is the only GPU path left, so switching it off drops every
+    // webview to software rendering. The overlays' repaint workaround
+    // (`will-change` on `.ov`) only holds with GPU compositing; without it a
+    // hover repainted just the hovered button and the rest of the panel
+    // vanished until clicked.
     #[cfg(target_os = "linux")]
-    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+    if std::env::var_os("APPDIR").is_some() && std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
         std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
     }
     // Wayland gives clients no say over window position or stacking, which
@@ -1195,6 +1196,12 @@ pub fn run() {
     if std::env::var_os("WAYLAND_DISPLAY").is_some() && std::env::var_os("GDK_BACKEND").is_none() {
         std::env::set_var("GDK_BACKEND", "x11");
     }
+
+    // EXPERIMENT E2: one WebView2 renderer for every window (Windows only),
+    // off unless STARBUDDY_WEBVIEW2_SHARED_RENDERER is 1 or site. See
+    // `webview2_args`.
+    let mut context = tauri::generate_context!();
+    webview2_args::apply_to_config(context.config_mut());
 
     tauri::Builder::default()
         // Must be first: a second launch hands its args to this instance.
@@ -1232,6 +1239,7 @@ pub fn run() {
                 .build(),
         )
         .manage(WatcherState::default())
+        .manage(rsi_status::RsiStatusState::default())
         .setup(|app| {
             let handle = app.handle().clone();
             log::info!(
@@ -1244,6 +1252,7 @@ pub fn run() {
             if cfg!(windows) {
                 log::info!("running as administrator: {}", winkeys::elevated());
             }
+            webview2_args::log_effective();
             migrate_old_config_dir(&handle);
             app.manage(overlay::OverlayState::load(&handle));
             app.manage(scan::ScanState::default());
@@ -1260,6 +1269,7 @@ pub fn run() {
             // table accepts every shortcut there and then delivers none of
             // them while the game is in front.
             winkeys::watch(&handle);
+            rsi_status::start(&handle);
             overlay::show_if_open(&handle, overlay::STATUS);
             overlay::show_if_open(&handle, scan::SCAN);
             let args: Vec<String> = std::env::args().collect();
@@ -1293,6 +1303,7 @@ pub fn run() {
             unpair,
             sync_events,
             fetch_status,
+            rsi_status::rsi_status_latest,
             overlay::overlay_toggle,
             overlay::overlay_show,
             overlay::overlay_prefs,
@@ -1333,7 +1344,7 @@ pub fn run() {
             sigs::scan_lookup,
             sigs::scan_signatures_refresh
         ])
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("error while building tauri application")
         .run(|app, event| {
             if let tauri::RunEvent::Exit = event {

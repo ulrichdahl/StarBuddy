@@ -129,7 +129,8 @@ fn open_selector(app: &AppHandle, purpose: &str) -> Result<(), String> {
     *app.state::<SelectorState>().frame.lock().unwrap() = Some(frame);
 
     let url = WebviewUrl::App(format!("index.html?window=region&purpose={purpose}").into());
-    let win = WebviewWindowBuilder::new(app, SELECTOR, url)
+    // EXPERIMENT E2: see `webview2_args`.
+    let win = crate::webview2_args::apply(WebviewWindowBuilder::new(app, SELECTOR, url))
         .initialization_script(format!(
             "window.__STARBUDDY_WINDOW__ = 'region'; window.__STARBUDDY_PURPOSE__ = {};",
             serde_json::json!(purpose)
@@ -146,6 +147,7 @@ fn open_selector(app: &AppHandle, purpose: &str) -> Result<(), String> {
         .focused(true)
         .build()
         .map_err(|e| e.to_string())?;
+    crate::webkit_tuning::tune_overlay(&win);
 
     // KDE would otherwise keep the fullscreen game stacked above us.
     crate::kde_rule::ensure(app);

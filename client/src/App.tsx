@@ -7,6 +7,8 @@ import { isPermissionGranted, requestPermission, sendNotification } from "@tauri
 import { useTranslation } from "react-i18next";
 import { HotkeyCapture } from "./HotkeyCapture";
 import { LOCALE_NAMES, SUPPORTED_LOCALES, setLocale, type Locale } from "./i18n";
+import { BodyText, asSeverity, countdown, localTime, onRsiStatus, type RsiStatus, type StatusIncident } from "./status";
+import { usePageVisible } from "./visibility";
 import "./App.css";
 
 /** A game channel folder found on this machine. */
@@ -130,33 +132,8 @@ interface KdeRuleInfo {
 
 // ── RSI service status (server mirrors status.robertsspaceindustries.com) ──
 
-interface StatusIncident {
-  slug: string;
-  title: string;
-  severity: string;
-  resolved: boolean;
-  informational: boolean;
-  affected: string[];
-  body_text: string;
-  shutdown_at: string | null;
-  permalink: string | null;
-  updated_at: string | null;
-  version: string | null;
-}
-
-interface RsiStatus {
-  summary: string;
-  status_url: string;
-  active: StatusIncident[];
-  recent: StatusIncident[];
-}
-
-const STATUS_POLL_MS = 60_000;
 const STATUS_SEEN_KEY = "starbuddy.status.seen";
 
-type Severity = "down" | "disrupted" | "maintenance" | "notice";
-const asSeverity = (s: string): Severity =>
-  s === "down" || s === "disrupted" || s === "maintenance" ? s : "notice";
 const versionKey = (i: StatusIncident) => `${i.slug}@${i.version ?? ""}`;
 
 function readSeen(): Set<string> {
@@ -174,43 +151,6 @@ function writeSeen(seen: Set<string>) {
   } catch {
     // storage unavailable — we may notify again after a restart, which is fine
   }
-}
-
-/** Local clock time with a short zone label ("16:45 CEST"). */
-function localTime(iso: string, language: string) {
-  return new Date(iso).toLocaleTimeString(language, { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
-}
-
-function countdown(ms: number) {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const sec = total % 60;
-  const mm = String(m).padStart(2, "0");
-  const ss = String(sec).padStart(2, "0");
-  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
-}
-
-/** **bold** markers → <strong>, blank lines → paragraphs. */
-function BodyText({ text }: { text: string }) {
-  return (
-    <>
-      {text
-        .split(/\n{2,}/)
-        .filter((p) => p.trim() !== "")
-        .map((p, i) => (
-          <p key={i} className="status-body">
-            {p.split(/(\*\*[^*]+\*\*)/g).map((part, j) =>
-              part.startsWith("**") && part.endsWith("**") ? (
-                <strong key={j}>{part.slice(2, -2)}</strong>
-              ) : (
-                <span key={j}>{part}</span>
-              ),
-            )}
-          </p>
-        ))}
-    </>
-  );
 }
 
 function App() {
@@ -333,20 +273,21 @@ function App() {
     };
   }, []);
 
-  // Poll the paired server for RSI maintenance/outage notices. A version
-  // we have never seen fires a native notification — that is the "stow
-  // your gear" alarm while the game has the screen.
-  useEffect(() => {
-    if (!connection?.paired) {
-      setStatus(null);
-      return;
-    }
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const data = await invoke<RsiStatus>("fetch_status");
-        if (cancelled) return;
+  // RSI maintenance/outage notices, fetched by the client for every window.
+  // A version we have never seen fires a native notification — that is the
+  // "stow your gear" alarm while the game has the screen.
+  useEffect(
+    () =>
+      onRsiStatus(async ({ paired, status: data }) => {
+        if (!paired) {
+          setStatus(null);
+          return;
+        }
+        // No good answer yet (still loading, or offline): keep what is shown.
+        if (!data) return;
         setStatus(data);
+        // Marked seen before the first await, so an update arriving meanwhile
+        // cannot notify about the same incident twice.
         const fresh = data.active.filter((i) => !seenRef.current.has(versionKey(i)));
         if (fresh.length === 0) return;
         fresh.forEach((i) => seenRef.current.add(versionKey(i)));
@@ -357,40 +298,40 @@ function App() {
           fresh.forEach((i) => next.delete(i.slug));
           return next;
         });
-        let granted = await isPermissionGranted();
-        if (!granted) granted = (await requestPermission()) === "granted";
-        if (!granted) return;
-        for (const incident of fresh) {
-          const severity = t(`status.severity.${asSeverity(incident.severity)}`);
-          const shutdown = incident.shutdown_at
-            ? t("status.shutdownAt", { time: localTime(incident.shutdown_at, i18n.language) })
-            : "";
-          sendNotification({
-            title: t("status.notificationTitle", { severity }),
-            body: [incident.title, shutdown, t("status.stow")].filter(Boolean).join("\n"),
-          });
+        try {
+          let granted = await isPermissionGranted();
+          if (!granted) granted = (await requestPermission()) === "granted";
+          if (!granted) return;
+          for (const incident of fresh) {
+            const severity = t(`status.severity.${asSeverity(incident.severity)}`);
+            const shutdown = incident.shutdown_at
+              ? t("status.shutdownAt", { time: localTime(incident.shutdown_at, i18n.language) })
+              : "";
+            sendNotification({
+              title: t("status.notificationTitle", { severity }),
+              body: [incident.title, shutdown, t("status.stow")].filter(Boolean).join("\n"),
+            });
+          }
+        } catch {
+          // No notifications on this desktop: the banner still shows.
         }
-      } catch {
-        // Offline or server down: keep showing the last known state.
-      }
-    };
-    void poll();
-    const id = setInterval(() => void poll(), STATUS_POLL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [connection?.paired, t, i18n.language]);
+      }),
+    [t, i18n.language],
+  );
 
   const activeIncidents = status?.active ?? [];
   const ticking = activeIncidents.some(
     (i) => i.shutdown_at && new Date(i.shutdown_at).getTime() > Date.now(),
   );
+  const visible = usePageVisible();
+  // Minimised or hidden to the tray, nobody reads the countdown; one tick on
+  // coming back puts it right at once.
   useEffect(() => {
-    if (!ticking) return;
+    if (!ticking || !visible) return;
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [ticking]);
+  }, [ticking, visible]);
 
   const toggleSet = (set: Set<string>, key: string) => {
     const next = new Set(set);
@@ -704,13 +645,15 @@ function App() {
             </div>
             <h2 className="status-title">{incident.title}</h2>
             {timing && (
-              <p className={`status-countdown mono${urgent ? " big" : ""}`}>
+              // The banner is an alert, announced once when it appears; the
+              // countdown under it changes every second and must not be.
+              <p className={`status-countdown mono${urgent ? " big" : ""}`} aria-live="off">
                 {timing}
                 {urgent && shutdownTime && <span className="hint"> ({shutdownTime})</span>}
               </p>
             )}
             {urgent && <p className="status-stow">{t("status.stow")}</p>}
-            {details && <BodyText text={incident.body_text} />}
+            {details && <BodyText text={incident.body_text} className="status-body" />}
             <div className="row status-actions">
               <button onClick={() => setStatusDetails((prev) => toggleSet(prev, incident.slug))}>
                 {details ? t("status.hideDetails") : t("status.showDetails")}

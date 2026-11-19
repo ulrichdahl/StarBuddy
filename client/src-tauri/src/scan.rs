@@ -126,7 +126,8 @@ fn status(app: &AppHandle, phase: &str, detail: impl Into<String>, progress: Opt
     } else {
         log::debug!("scan: {phase} {detail}");
     }
-    let _ = app.emit("scan-status", ScanStatus { phase: phase.into(), detail, progress });
+    // Only the scan window listens; a hidden one gets the latest when shown.
+    crate::overlay::emit_to_overlay(app, SCAN, "scan-status", ScanStatus { phase: phase.into(), detail, progress });
 }
 
 fn models_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -809,7 +810,7 @@ pub async fn scan(app: AppHandle) -> Result<ScanResult, String> {
     match &result {
         Ok(r) => {
             *app.state::<ScanState>().last.lock().unwrap() = Some(r.clone());
-            let _ = app.emit("scan-result", r.clone());
+            crate::overlay::emit_to_overlay(&app, SCAN, "scan-result", r.clone());
             status(&app, "done", format!("{} lines in {} ms", r.lines.len(), r.elapsed_ms), None);
         }
         Err(e) => status(&app, "error", e.clone(), None),
@@ -1016,7 +1017,9 @@ fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
             (reads, found, failed, spent) = (0, 0, 0, Duration::ZERO);
             last_report = Instant::now();
         }
-        let _ = app.emit("scan-live", &reading);
+        // Two and a half a second, for the scan window alone: while it is
+        // hidden they are not sent at all, and it is given the latest on show.
+        crate::overlay::emit_to_overlay(&app, SCAN, "scan-live", &reading);
         // Taking the newest frame off the stream costs nothing, so the pause
         // is only here to keep the loop near one reading per second.
         std::thread::sleep(Duration::from_millis(400));

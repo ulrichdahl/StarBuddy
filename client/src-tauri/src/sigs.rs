@@ -191,7 +191,7 @@ pub fn lookup(app: &AppHandle, value: f64) -> Vec<SigMatch> {
 /// Fetch the server's table (needs a paired device) and cache it.
 pub async fn refresh(app: AppHandle) -> Result<usize, String> {
     let settings = crate::load_settings(&app).filter(|s| !s.token.is_empty()).ok_or("not paired")?;
-    let resp = reqwest::Client::new()
+    let resp = crate::http::client()
         .get(format!("{}/api/scan/signatures", settings.server_url.trim_end_matches('/')))
         .bearer_auth(&settings.token)
         .header("Accept", "application/json")
