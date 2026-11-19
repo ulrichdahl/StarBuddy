@@ -8,7 +8,6 @@
 //! It is switched on by the player like the portal is, and for the same
 //! reason: a stream is a running thing, and the system shows it as one.
 
-use crate::scan::Captured;
 use std::sync::{Mutex, OnceLock};
 use windows_capture::capture::{Context, GraphicsCaptureApiHandler};
 use windows_capture::frame::Frame;
@@ -87,26 +86,25 @@ impl GraphicsCaptureApiHandler for Reader {
     }
 
     fn on_frame_arrived(&mut self, frame: &mut Frame, _: InternalCaptureControl) -> Result<(), Self::Error> {
-        let buffer = frame.buffer().map_err(|e| e.to_string())?;
-        let (width, height) = (buffer.width(), buffer.height());
-        // Rows come out padded to the texture's pitch; this is where they are
-        // packed, into scratch we own for the length of the copy.
-        let mut scratch = Vec::new();
-        let pixels = buffer.as_nopadding_buffer(&mut scratch);
-        // Asked for as Rgba8, so red comes first and the fourth byte is the
-        // alpha the reader has no use for.
-        let mut rgb = Vec::with_capacity(width as usize * height as usize * 3);
-        for pixel in pixels.chunks_exact(4) {
-            rgb.extend_from_slice(&[pixel[0], pixel[1], pixel[2]]);
+        // Asked before the texture is copied off the GPU, which is the costly
+        // part: where Windows cannot be told to send fewer frames it sends one
+        // per refresh, and nearly all of them are let go here.
+        if !crate::capture::wants_frame() {
+            return Ok(());
         }
-        crate::reading::set_frame(Captured {
-            rgb,
+        let mut buffer = frame.buffer().map_err(|e| e.to_string())?;
+        let (width, height, pitch) = (buffer.width(), buffer.height(), buffer.row_pitch());
+        // Rows come padded to the texture's pitch and are kept that way; only
+        // what a reader crops is ever packed. Asked for as Rgba8, so red comes
+        // first and the fourth byte is the alpha the reader has no use for.
+        crate::capture::push(
+            buffer.as_raw_buffer(),
             width,
             height,
-            source: "window (Windows capture)".into(),
-            full_height: height,
-            origin: (0, 0),
-        });
+            pitch as usize,
+            crate::capture::Layout::Rgbx,
+            "window (Windows capture)",
+        );
         Ok(())
     }
 
@@ -212,8 +210,9 @@ pub fn start(title: &str) -> Result<(), String> {
     // switch is missing the border is the system's and cannot be removed.
     let cursor_switch = GraphicsCaptureApi::is_cursor_settings_supported().unwrap_or(false);
     let border_switch = GraphicsCaptureApi::is_border_settings_supported().unwrap_or(false);
+    let interval_switch = GraphicsCaptureApi::is_minimum_update_interval_supported().unwrap_or(false);
     log::info!(
-        "windows capture on {:?}: cursor switch {cursor_switch}, border switch {border_switch}",
+        "windows capture on {:?}: cursor switch {cursor_switch}, border switch {border_switch}, interval switch {interval_switch}",
         version()
     );
     *switches().lock().unwrap() = Some((cursor_switch, border_switch));
@@ -223,13 +222,20 @@ pub fn start(title: &str) -> Result<(), String> {
     log::info!("borderless capture: {borderless}");
     *borderless_answer().lock().unwrap() = Some(borderless);
     let border = if border_switch { DrawBorderSettings::WithoutBorder } else { DrawBorderSettings::Default };
+    // Ten frames a second at most. Nothing reads faster than that, and where
+    // the switch is missing the frames that come anyway are dropped unread.
+    let interval = if interval_switch {
+        MinimumUpdateIntervalSettings::Custom(std::time::Duration::from_millis(100))
+    } else {
+        MinimumUpdateIntervalSettings::Default
+    };
 
     let settings = Settings::new(
         window,
         cursor,
         border,
         SecondaryWindowSettings::Default,
-        MinimumUpdateIntervalSettings::Default,
+        interval,
         DirtyRegionSettings::Default,
         ColorFormat::Rgba8,
         (),

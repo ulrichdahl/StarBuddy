@@ -13,10 +13,9 @@
 //! hands back a token that restores the same choice next time without asking
 //! again.
 //!
-//! What is kept here is only ever the newest frame. A reader takes a copy when
-//! it wants one; nothing is queued, because a capture is a question about now.
+//! Only the newest frame is kept, raw, in [`crate::capture`]; nothing is
+//! queued, because a capture is a question about now.
 
-use crate::scan::Captured;
 use std::sync::{Mutex, OnceLock};
 
 /// Ask the portal for a window, and keep its stream running.
@@ -137,25 +136,26 @@ fn run_stream(node: u32, fd: std::os::fd::OwnedFd, stop: pipewire::channel::Rece
             log::info!("screen reading: stream is {}×{} {:?}", size.width, size.height, info.format());
         })
         .process(move |stream, ()| {
+            // Dequeued whatever happens: a buffer left in the queue is one the
+            // compositor cannot fill again. Dropping it hands it back.
             let Some(mut buffer) = stream.dequeue_buffer() else { return };
             let (width, height, format) = agreed.get();
-            if width == 0 || height == 0 {
+            if width == 0 || height == 0 || !crate::capture::wants_frame() {
                 return;
             }
+            let Some(layout) = layout_of(format) else { return };
             let datas = buffer.datas_mut();
             let Some(data) = datas.first_mut() else { return };
             let stride = data.chunk().stride().max(0) as usize;
             let Some(pixels) = data.data() else { return };
-            if let Some(cap) = to_capture(pixels, stride, width, height, format) {
-                crate::reading::set_frame(cap);
-            }
+            crate::capture::push(pixels, width, height, stride, layout, "window (portal)");
         })
         .register()
         .map_err(|e| e.to_string())?;
 
     // The formats worth being offered, in the order they are preferred. All of
     // them are eight bits a channel with the channels in some order, which is
-    // all the reader needs — it converts to RGB either way.
+    // all the reader needs — it converts what it reads to RGB either way.
     let format = pipewire::spa::pod::object!(
         pipewire::spa::utils::SpaTypes::ObjectParamFormat,
         pipewire::spa::param::ParamType::EnumFormat,
@@ -188,9 +188,11 @@ fn run_stream(node: u32, fd: std::os::fd::OwnedFd, stop: pipewire::channel::Rece
             Choice,
             Range,
             Fraction,
+            // Ten a second at most. Nothing reads faster than that, and every
+            // frame sent is a frame copied.
             pipewire::spa::utils::Fraction { num: 10, denom: 1 },
             pipewire::spa::utils::Fraction { num: 0, denom: 1 },
-            pipewire::spa::utils::Fraction { num: 30, denom: 1 }
+            pipewire::spa::utils::Fraction { num: 10, denom: 1 }
         ),
     );
 
@@ -222,35 +224,17 @@ fn run_stream(node: u32, fd: std::os::fd::OwnedFd, stop: pipewire::channel::Rece
     Ok(())
 }
 
-/// One frame's pixels as the reader wants them: three bytes a pixel, red first.
-fn to_capture(
-    pixels: &[u8],
-    stride: usize,
-    width: u32,
-    height: u32,
-    format: pipewire::spa::param::video::VideoFormat,
-) -> Option<Captured> {
+/// Where the colours sit in a pixel of the agreed format.
+fn layout_of(format: pipewire::spa::param::video::VideoFormat) -> Option<crate::capture::Layout> {
+    use crate::capture::Layout;
     use pipewire::spa::param::video::VideoFormat as F;
-    // Where red, green and blue sit in each four-byte pixel.
-    let (r, g, b) = match format {
-        F::BGRx | F::BGRA => (2, 1, 0),
-        F::RGBx | F::RGBA => (0, 1, 2),
-        F::xBGR | F::ABGR => (3, 2, 1),
-        F::xRGB | F::ARGB => (1, 2, 3),
-        _ => return None,
-    };
-    let stride = if stride == 0 { width as usize * 4 } else { stride };
-    if pixels.len() < stride * height as usize {
-        return None;
+    match format {
+        F::BGRx | F::BGRA => Some(Layout::Bgrx),
+        F::RGBx | F::RGBA => Some(Layout::Rgbx),
+        F::xBGR | F::ABGR => Some(Layout::Xbgr),
+        F::xRGB | F::ARGB => Some(Layout::Xrgb),
+        _ => None,
     }
-    let mut rgb = Vec::with_capacity(width as usize * height as usize * 3);
-    for row in 0..height as usize {
-        let line = &pixels[row * stride..row * stride + width as usize * 4];
-        for pixel in line.chunks_exact(4) {
-            rgb.extend_from_slice(&[pixel[r], pixel[g], pixel[b]]);
-        }
-    }
-    Some(Captured { rgb, width, height, source: "window (portal)".into(), full_height: height, origin: (0, 0) })
 }
 
 /// The running stream, if screen reading is on.

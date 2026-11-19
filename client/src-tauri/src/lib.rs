@@ -8,6 +8,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, LazyLock, Mutex};
 use tauri::{Emitter, Manager};
 
+mod analysis;
+mod capture;
 mod changes;
 mod http;
 mod kde_rule;
@@ -249,16 +251,52 @@ fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     Ok(dir.join("client.json"))
 }
 
-pub(crate) fn save_client_prefs(app: &tauri::AppHandle, prefs: &ClientPrefs) -> Result<(), String> {
-    fs::write(client_prefs_path(app)?, serde_json::to_vec_pretty(prefs).map_err(|e| e.to_string())?).map_err(|e| e.to_string())
-}
+/// The client's preferences, read from disk once and kept.
+///
+/// Things that run all the time ask for them all the time — the live scan
+/// asked for its area on every pass — and each ask used to be a file read and
+/// a parse. The file is the copy that outlives the process; this is the one
+/// everything reads.
+pub(crate) struct PrefsCache(std::sync::RwLock<ClientPrefs>);
 
-pub(crate) fn load_client_prefs(app: &tauri::AppHandle) -> ClientPrefs {
-    client_prefs_path(app)
+fn prefs_cache(app: &tauri::AppHandle) -> tauri::State<'_, PrefsCache> {
+    if let Some(cache) = app.try_state::<PrefsCache>() {
+        return cache;
+    }
+    let loaded = client_prefs_path(app)
         .ok()
         .and_then(|p| fs::read(p).ok())
         .and_then(|b| serde_json::from_slice(&b).ok())
-        .unwrap_or_default()
+        .unwrap_or_default();
+    // Two first callers at once both load the same file, and the second
+    // `manage` is refused, which is harmless.
+    app.manage(PrefsCache(std::sync::RwLock::new(loaded)));
+    app.state::<PrefsCache>()
+}
+
+/// Write a file so that it is either the old one or the new one, never half of
+/// each: the new bytes go to a file beside it, which then takes its name.
+fn write_atomically(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    let mut temp = path.as_os_str().to_owned();
+    temp.push(".tmp");
+    let temp = PathBuf::from(temp);
+    fs::write(&temp, bytes)?;
+    fs::rename(&temp, path).inspect_err(|_| {
+        let _ = fs::remove_file(&temp);
+    })
+}
+
+pub(crate) fn save_client_prefs(app: &tauri::AppHandle, prefs: &ClientPrefs) -> Result<(), String> {
+    let cache = prefs_cache(app);
+    // Held across the write, so two saves land in the order they were made.
+    let mut kept = cache.0.write().map_err(|_| "the preferences are in a bad state")?;
+    *kept = prefs.clone();
+    let bytes = serde_json::to_vec_pretty(prefs).map_err(|e| e.to_string())?;
+    write_atomically(&client_prefs_path(app)?, &bytes).map_err(|e| e.to_string())
+}
+
+pub(crate) fn load_client_prefs(app: &tauri::AppHandle) -> ClientPrefs {
+    prefs_cache(app).0.read().map(|p| p.clone()).unwrap_or_default()
 }
 
 /// A LIVE folder has Game.log (once the game has run) or Bin64; accept the
@@ -905,9 +943,10 @@ fn system_report(app: tauri::AppHandle) -> String {
         reading.source,
         reading.error.map(|e| format!(", error {e}")).unwrap_or_default()
     ));
-    if let Some(frame) = reading::frame() {
-        lines.push(format!("last frame: {}×{} from {}", frame.width, frame.height, frame.source));
+    if let Some(frame) = capture::latest() {
+        lines.push(format!("last frame: {}×{} from {}, number {}", frame.width, frame.height, frame.source, frame.seq));
     }
+    lines.extend(analysis::report());
 
     let hotkeys = overlay::overlay_hotkey(app);
     lines.push(format!(
@@ -1045,6 +1084,33 @@ mod tests {
     }
 
     #[test]
+    fn preferences_are_replaced_whole_and_leave_nothing_behind() {
+        let dir = std::env::temp_dir().join(format!("starbuddy-prefs-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("client.json");
+
+        write_atomically(&path, b"{\"live_dir\":\"first\"}").unwrap();
+        assert_eq!(fs::read(&path).unwrap(), b"{\"live_dir\":\"first\"}");
+        // A shorter file over a longer one: nothing of the old one survives.
+        write_atomically(&path, b"{}").unwrap();
+        assert_eq!(fs::read(&path).unwrap(), b"{}");
+        // The new bytes were written beside the file, in the same folder — a
+        // rename across file systems is a copy — and the temporary is gone.
+        let names: Vec<String> =
+            fs::read_dir(&dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+        assert_eq!(names, vec!["client.json".to_string()]);
+
+        // A folder where the file should be cannot be replaced, and the
+        // temporary does not stay behind as litter.
+        let blocked = dir.join("blocked");
+        fs::create_dir_all(blocked.join("inside")).unwrap();
+        assert!(write_atomically(&blocked, b"{}").is_err());
+        assert!(!dir.join("blocked.tmp").exists());
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn the_install_folder_means_whichever_channel_was_played_last() {
         // A hotfix installed by renaming, then reverted: both folders exist and
         // only the clock says which one the player is in.
@@ -1172,6 +1238,29 @@ fn migrate_old_config_dir(app: &tauri::AppHandle) {
     }
 }
 
+/// Make glibc hand large freed buffers straight back to the system.
+///
+/// Every OCR read allocates tensors of several megabytes and frees them again.
+/// glibc starts out returning anything that large to the system on free, but
+/// raises that bar each time it does, until such buffers come out of its
+/// per-thread arenas instead — and an arena keeps what it is given. Measured
+/// on the live scan with refinery reads beside it, the process grew by fifty
+/// to a hundred megabytes a read and kept it; with the bar fixed it stays
+/// where the loaded models put it, for reads a few percent slower. Fixing the
+/// bar is what stops it moving. A player who sets it has the last word.
+#[cfg(all(target_os = "linux", target_env = "gnu"))]
+fn give_freed_buffers_back() {
+    /// `M_MMAP_THRESHOLD` in glibc's malloc.h.
+    const M_MMAP_THRESHOLD: i32 = -3;
+    extern "C" {
+        fn mallopt(param: i32, value: i32) -> i32;
+    }
+    if std::env::var_os("MALLOC_MMAP_THRESHOLD_").is_none() {
+        // Only an integer parameter; nothing is allocated or freed here.
+        unsafe { mallopt(M_MMAP_THRESHOLD, 256 * 1024) };
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // The AppImage bundles Ubuntu-22.04-era WebKitGTK, whose DMABUF renderer
@@ -1195,6 +1284,15 @@ pub fn run() {
     #[cfg(target_os = "linux")]
     if std::env::var_os("WAYLAND_DISPLAY").is_some() && std::env::var_os("GDK_BACKEND").is_none() {
         std::env::set_var("GDK_BACKEND", "x11");
+    }
+
+    #[cfg(all(target_os = "linux", target_env = "gnu"))]
+    give_freed_buffers_back();
+    // Before anything touches rten, whose thread pool reads this once: the
+    // reader shares the machine with the game, so it gets half the cores and
+    // never more than four. A player who sets it has the last word.
+    if std::env::var_os("RTEN_NUM_THREADS").is_none() {
+        std::env::set_var("RTEN_NUM_THREADS", analysis::ocr_threads().to_string());
     }
 
     // EXPERIMENT E2: one WebView2 renderer for every window (Windows only),
@@ -1253,6 +1351,7 @@ pub fn run() {
                 log::info!("running as administrator: {}", winkeys::elevated());
             }
             webview2_args::log_effective();
+            log::info!("OCR threads: {}", std::env::var("RTEN_NUM_THREADS").unwrap_or_default());
             migrate_old_config_dir(&handle);
             app.manage(overlay::OverlayState::load(&handle));
             app.manage(scan::ScanState::default());

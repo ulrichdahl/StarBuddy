@@ -10,13 +10,16 @@ use tauri::{AppHandle, Emitter};
 /// PNG, because the panels are flat-shaded UI: JPEG's ringing around thin HUD
 /// glyphs is exactly the detail the model is being trained to find.
 fn encode_png(cap: &crate::scan::Captured) -> Result<Vec<u8>, String> {
-    let buffer = image::RgbImage::from_raw(cap.width, cap.height, cap.rgb.clone())
-        .ok_or("capture did not fit its own dimensions")?;
-    let mut out = std::io::Cursor::new(Vec::new());
-    buffer
-        .write_to(&mut out, image::ImageFormat::Png)
+    use image::ImageEncoder;
+    if cap.rgb.len() != cap.width as usize * cap.height as usize * 3 {
+        return Err("capture did not fit its own dimensions".into());
+    }
+    // Straight from the capture's bytes, without a copy of them to wrap.
+    let mut out = Vec::new();
+    image::codecs::png::PngEncoder::new(&mut out)
+        .write_image(&cap.rgb, cap.width, cap.height, image::ExtendedColorType::Rgb8)
         .map_err(|e| format!("could not encode the capture: {e}"))?;
-    Ok(out.into_inner())
+    Ok(out)
 }
 
 fn status(app: &AppHandle, phase: &str, detail: impl Into<String>) {
@@ -50,7 +53,7 @@ pub async fn send(app: AppHandle) -> Result<String, String> {
 
     let for_capture = app.clone();
     let png = tauri::async_runtime::spawn_blocking(move || {
-        let cap = crate::scan::capture_game(&for_capture)?;
+        let cap = crate::capture::full_rgb(&for_capture)?;
         let bytes = encode_png(&cap)?;
         Ok::<_, String>((bytes, cap.width, cap.height))
     })

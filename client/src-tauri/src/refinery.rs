@@ -186,15 +186,11 @@ pub async fn read(app: AppHandle) -> Result<RefineryTerminal, String> {
 
 /// `merge_with_last` false starts a fresh order, discarding earlier captures.
 pub async fn read_with(app: AppHandle, merge_with_last: bool) -> Result<RefineryTerminal, String> {
-    // Both readers drive every core they can get, and the live loop grabs a
-    // frame every second or so. Run them together on the machine that is also
-    // running the game and a read that takes two seconds takes minutes — so
-    // this says which one to stop rather than appearing to hang.
+    // The live scan may be running beside this. It used to have to be stopped
+    // first, when both readers drove every core they could get; now they take
+    // turns in the analysis pool, on a fixed share of the machine.
     if !crate::reading::state(&app).on {
         return Err("Screen reading is off. Switch it on in StarBuddy and choose the game's window.".into());
-    }
-    if crate::scan::live_running(&app) {
-        return Err("The live scan is running and needs the whole machine. Stop it, then read the panel.".into());
     }
     {
         let state = app.state::<RefineryState>();
@@ -233,37 +229,53 @@ pub async fn read_with(app: AppHandle, merge_with_last: bool) -> Result<Refinery
 
 async fn read_inner(app: &AppHandle) -> Result<RefineryTerminal, String> {
     status(app, "downloading", "checking OCR models");
-    let (det, rec) = scan::ensure_models(app).await?;
+    scan::ensure_models(app).await?;
     let region = current_region(app);
-    let app2 = app.clone();
+    status(app, "capturing", "grabbing the panel");
+    crate::analysis::run_once(app, Panel, region.unwrap_or(ScanRegion::WHOLE))
+        .await?
+        .ok_or_else(|| "nothing was read".to_string())
+}
 
-    tauri::async_runtime::spawn_blocking(move || {
-        let started = std::time::Instant::now();
-        status(&app2, "capturing", "grabbing the panel");
-        let captured = scan::capture_game(&app2)?;
-        // Kept only when the read is of a framed part of it: that is the case
-        // where the terminal's title may be outside what was read.
-        let full = region.is_some().then(|| captured.clone());
-        let cap = match region {
-            Some(r) => scan::crop_region(captured, r)?,
-            None => captured,
-        };
+/// The refinery terminal's analyzer: the framed panel read in bands, parsed
+/// into work orders.
+struct Panel;
 
-        status(&app2, "ocr", "reading the panel");
-        let app3 = app2.clone();
-        let lines = scan::with_engine(&app2, &det, &rec, |engine| {
-            read_bands_with(engine, &cap, &|band, of| status(&app3, "ocr", format!("{band}/{of}")))
-        })?;
+impl crate::analysis::Analyzer for Panel {
+    type Output = RefineryTerminal;
 
-        let mut order = parse(&lines);
+    fn kind(&self) -> crate::analysis::AnalyzerKind {
+        crate::analysis::AnalyzerKind::RefineryPanel
+    }
+
+    fn event(&self) -> &'static str {
+        "refinery-order"
+    }
+
+    fn cut(&self, frame: &crate::capture::Frame, region: ScanRegion) -> Result<crate::analysis::Cut, String> {
+        let mut cut = crate::analysis::Cut::new(frame.crop_rgb(region)?);
         // The station's name is printed across the top of the terminal, and a
         // framed area is usually one panel of it — so the name is off the crop
         // and the order lands with nowhere to file it. The top of the window
-        // is a strip: cheap to read, and the only place the name can be.
+        // is a strip: cheap to read, and the only place the name can be. Cut
+        // now, from the same frame, and read only if the panel lacks it.
+        if region != ScanRegion::WHOLE {
+            cut.extra = Some(frame.rows_rgb(0, frame.height / 6)?);
+        }
+        Ok(cut)
+    }
+
+    fn read(&self, cut: crate::analysis::Cut, cx: &crate::analysis::Ctx) -> Result<Option<RefineryTerminal>, String> {
+        let app = cx.app;
+        let cap = &cut.crop;
+        let text = cx.ocr.engine(crate::analysis::Charset::Text);
+        status(app, "ocr", "reading the panel");
+        let lines = read_bands_with(text, cap, &|band, of| status(app, "ocr", format!("{band}/{of}")))?;
+
+        let mut order = parse(&lines);
         if order.station.is_none() {
-            if let Some(whole) = full.as_ref() {
-                let strip = crop_rows(whole, 0, whole.height / 6);
-                match scan::with_engine(&app2, &det, &rec, |engine| scan::run_ocr(engine, &strip)) {
+            if let Some(strip) = cut.extra.as_ref() {
+                match cx.ocr.lines(strip, crate::analysis::Charset::Text) {
                     Ok(lines) => order.station = station_in(&lines.iter().collect::<Vec<_>>()),
                     Err(e) => log::debug!("station strip unread: {e}"),
                 }
@@ -272,13 +284,13 @@ async fn read_inner(app: &AppHandle) -> Result<RefineryTerminal, String> {
                 }
             }
         }
-        snap_qualities(&app2, &mut order);
+        snap_qualities(app, &mut order);
         order.lines = lines;
         order.captured_at = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_millis() as i64)
             .unwrap_or(0);
-        order.elapsed_ms = started.elapsed().as_millis() as u64;
+        order.elapsed_ms = cut.taken.elapsed().as_millis() as u64;
         log::info!(
             "refinery read: {}×{} in {} ms, {} lines, {} order(s)",
             cap.width,
@@ -287,11 +299,9 @@ async fn read_inner(app: &AppHandle) -> Result<RefineryTerminal, String> {
             order.lines.len(),
             order.orders.len(),
         );
-        send_for_training(&app2, &cap, &order);
-        Ok(order)
-    })
-    .await
-    .map_err(|e| e.to_string())?
+        send_for_training(app, cap, &order);
+        Ok(Some(order))
+    }
 }
 
 /// Correct quality readings against the ladders the game publishes.

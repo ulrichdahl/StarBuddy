@@ -16,9 +16,8 @@ use rten_imageproc::{BoundingRect, RotatedRect};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::sync::Mutex;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager};
 
 /// Window name of the scan overlay.
@@ -98,6 +97,11 @@ impl Default for ScanRegion {
     }
 }
 
+impl ScanRegion {
+    /// The whole frame, for a reader the player has not framed an area for.
+    pub const WHOLE: ScanRegion = ScanRegion { x: 0.0, y: 0.0, w: 1.0, h: 1.0 };
+}
+
 #[derive(Serialize, Clone, Debug)]
 pub struct LiveReading {
     pub at: u64,
@@ -110,13 +114,10 @@ pub struct LiveReading {
 
 #[derive(Default)]
 pub struct ScanState {
-    engine: Mutex<Option<OcrEngine>>,
-    /// The same models, told they may only produce digits — see [`Reader`].
-    digits: Mutex<Option<OcrEngine>>,
     last: Mutex<Option<ScanResult>>,
     busy: Mutex<bool>,
-    /// Stop flag of the running live loop, if any.
-    live: Mutex<Option<Arc<AtomicBool>>>,
+    /// The live scan's subscription, while it runs.
+    live: Mutex<Option<crate::analysis::Handle>>,
 }
 
 fn status(app: &AppHandle, phase: &str, detail: impl Into<String>, progress: Option<f64>) {
@@ -130,7 +131,7 @@ fn status(app: &AppHandle, phase: &str, detail: impl Into<String>, progress: Opt
     crate::overlay::emit_to_overlay(app, SCAN, "scan-status", ScanStatus { phase: phase.into(), detail, progress });
 }
 
-fn models_dir(app: &AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn models_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("ocr");
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir)
@@ -183,24 +184,6 @@ pub struct Captured {
     pub origin: (u32, u32),
 }
 
-/// The frame a purpose is framed against: the game's window, always.
-///
-/// Every area a player frames is fractions of this, so there is one frame and
-/// no other. It used to be whichever of several capture routes answered, and
-/// they did not agree with each other — a region drawn against one of them
-/// landed somewhere else entirely when another answered the next time.
-pub(crate) fn capture_for(app: &AppHandle, _purpose: &crate::region::Purpose) -> Result<Captured, String> {
-    capture_game(app)
-}
-
-/// The game's window, from the stream the player switched on.
-pub(crate) fn capture_game(app: &AppHandle) -> Result<Captured, String> {
-    if !crate::reading::state(app).on {
-        return Err("Screen reading is off. Switch it on in StarBuddy and choose the game's window.".into());
-    }
-    crate::reading::game_frame()
-}
-
 /// Region fractions → pixel rect inside a frame of the given size.
 pub(crate) fn region_px(r: ScanRegion, width: u32, height: u32) -> (i32, i32, i32, i32) {
     let x = (r.x.clamp(0.0, 0.95) * width as f32) as i32;
@@ -208,28 +191,6 @@ pub(crate) fn region_px(r: ScanRegion, width: u32, height: u32) -> (i32, i32, i3
     let w = ((r.w.clamp(0.02, 1.0) * width as f32) as i32).min(width as i32 - x);
     let h = ((r.h.clamp(0.02, 1.0) * height as f32) as i32).min(height as i32 - y);
     (x, y, w.max(8), h.max(8))
-}
-
-/// The signature region of the game frame (the live loop's capture).
-///
-/// One frame, cut down. There is no separate route for a region: the stream
-/// gives the window, and every area a player framed is fractions of it.
-fn capture_region(app: &AppHandle, region: ScanRegion) -> Result<Captured, String> {
-    crop_region(capture_game(app)?, region)
-}
-
-pub(crate) fn crop_region(full: Captured, region: ScanRegion) -> Result<Captured, String> {
-    let (x, y, w, h) = region_px(region, full.width, full.height);
-    let img = image::RgbImage::from_raw(full.width, full.height, full.rgb).ok_or("bad frame")?;
-    let crop = image::imageops::crop_imm(&img, x as u32, y as u32, w as u32, h as u32).to_image();
-    Ok(Captured {
-        rgb: crop.into_raw(),
-        width: w as u32,
-        height: h as u32,
-        source: full.source,
-        full_height: full.height,
-        origin: (x as u32, y as u32),
-    })
 }
 
 /// One number, whichever way the panel and the reader between them spelled it.
@@ -258,49 +219,6 @@ fn parse_number(text: &str) -> Result<f64, std::num::ParseFloatError> {
         return text.replace(['.', ','], "").parse();
     }
     text.replace(',', "").parse()
-}
-
-/// Read with the engine the app already has, loading it once if it has none.
-///
-/// The two models are twelve megabytes of weights, and parsing them again for
-/// every press of the hotkey is time spent before a single pixel is looked at.
-/// The live loop has always kept its engine; a refinery read built a fresh one
-/// each time.
-///
-/// The lock is held for the read itself, so a scan and a refinery read take
-/// turns rather than both driving every core at once — which on a machine
-/// that is also running the game is the difference between a read and a wait.
-pub(crate) fn with_engine<T>(
-    app: &AppHandle,
-    det: &PathBuf,
-    rec: &PathBuf,
-    read: impl FnOnce(&OcrEngine) -> Result<T, String>,
-) -> Result<T, String> {
-    let state = app.state::<ScanState>();
-    let mut engine = state.engine.lock().map_err(|_| "the OCR engine is in a bad state")?;
-    if engine.is_none() {
-        *engine = Some(load_engine(det, rec)?);
-    }
-    read(engine.as_ref().expect("just loaded"))
-}
-
-/// Both readers, loaded the first time a scan asks for them.
-pub(crate) fn with_reader<T>(
-    app: &AppHandle,
-    det: &PathBuf,
-    rec: &PathBuf,
-    read: impl FnOnce(Reader) -> Result<T, String>,
-) -> Result<T, String> {
-    let state = app.state::<ScanState>();
-    let mut engine = state.engine.lock().map_err(|_| "the OCR engine is in a bad state")?;
-    if engine.is_none() {
-        *engine = Some(load_engine(det, rec)?);
-    }
-    let mut digits = state.digits.lock().map_err(|_| "the OCR engine is in a bad state")?;
-    if digits.is_none() {
-        *digits = Some(load_digit_engine(det, rec)?);
-    }
-    read(Reader { text: engine.as_ref().expect("just loaded"), digits: digits.as_ref().expect("just loaded") })
 }
 
 pub(crate) fn load_engine(det: &PathBuf, rec: &PathBuf) -> Result<OcrEngine, String> {
@@ -600,7 +518,6 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
 
 /// Crop a strip to the right of the icon and upscale it for the OCR.
 fn crop_upscaled(cap: &Captured, x: i32, y: i32, w: i32, h: i32, scale: u32) -> Option<image::RgbImage> {
-    let img = image::RgbImage::from_raw(cap.width, cap.height, cap.rgb.clone())?;
     let x0 = x.max(0) as u32;
     let y0 = y.max(0) as u32;
     let cw = (w as u32).min(cap.width.saturating_sub(x0));
@@ -608,11 +525,17 @@ fn crop_upscaled(cap: &Captured, x: i32, y: i32, w: i32, h: i32, scale: u32) -> 
     if cw < 4 || ch < 4 {
         return None;
     }
-    let crop = image::imageops::crop_imm(&img, x0, y0, cw, ch).to_image();
+    // Only the strip is copied, not the whole capture it is cut from.
+    let mut strip = Vec::with_capacity(cw as usize * ch as usize * 3);
+    for row in y0..y0 + ch {
+        let start = (row as usize * cap.width as usize + x0 as usize) * 3;
+        strip.extend_from_slice(cap.rgb.get(start..start + cw as usize * 3)?);
+    }
+    let crop = image::RgbImage::from_raw(cw, ch, strip)?;
     Some(image::imageops::resize(&crop, cw * scale, ch * scale, image::imageops::FilterType::CatmullRom))
 }
 
-fn ocr_text(engine: &OcrEngine, img: &image::RgbImage) -> Result<String, String> {
+pub(crate) fn ocr_text(engine: &OcrEngine, img: &image::RgbImage) -> Result<String, String> {
     let source = ImageSource::from_bytes(img.as_raw(), img.dimensions()).map_err(|e| e.to_string())?;
     let input = engine.prepare_input(source).map_err(|e| e.to_string())?;
     let words = engine.detect_words(&input).map_err(|e| e.to_string())?;
@@ -819,58 +742,70 @@ pub async fn scan(app: AppHandle) -> Result<ScanResult, String> {
 }
 
 async fn scan_inner(app: &AppHandle) -> Result<ScanResult, String> {
-    let (det, rec) = ensure_models(app).await?;
-    let app2 = app.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        let started = Instant::now();
-        // The same area the live loop watches, and for the same reasons: the
-        // badge is printed in one place — a little above the middle of the
-        // window — and reading the whole window instead means every lit thing
-        // in the HUD gets weighed as a possible badge, on a picture some
-        // twenty times larger than the one that holds the answer.
-        let region = current_region(&app2);
-        status(&app2, "capturing", "capturing the signature area", None);
-        let cap = capture_region(&app2, region)?;
-        status(&app2, "ocr", format!("reading {}×{}", cap.width, cap.height), None);
-        with_reader(&app2, &det, &rec, |reader| analyze(&reader, &cap, started))
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    ensure_models(app).await?;
+    // The same area the live scan watches, and for the same reasons: the
+    // badge is printed in one place — a little above the middle of the
+    // window — and reading the whole window instead means every lit thing
+    // in the HUD gets weighed as a possible badge, on a picture some
+    // twenty times larger than the one that holds the answer.
+    let region = current_region(app);
+    status(app, "capturing", "capturing the signature area", None);
+    crate::analysis::run_once(app, Readout, region).await?.ok_or_else(|| "nothing was read".to_string())
 }
 
-/// Hotkey path: make sure the scan window is up, then toggle the live loop.
+/// "Scan now": the whole signature area read once, lines and all.
+struct Readout;
+
+impl crate::analysis::Analyzer for Readout {
+    type Output = ScanResult;
+
+    fn kind(&self) -> crate::analysis::AnalyzerKind {
+        crate::analysis::AnalyzerKind::ScanReadout
+    }
+
+    fn event(&self) -> &'static str {
+        "scan-result"
+    }
+
+    fn read(&self, cut: crate::analysis::Cut, cx: &crate::analysis::Ctx) -> Result<Option<ScanResult>, String> {
+        let cap = &cut.crop;
+        status(cx.app, "ocr", format!("reading {}×{}", cap.width, cap.height), None);
+        analyze(&cx.ocr.reader(), cap, cut.taken).map(Some)
+    }
+}
+
+/// Hotkey path: make sure the scan window is up, then toggle the live scan.
 pub fn trigger(app: &AppHandle) {
     let _ = crate::overlay::show(app, SCAN);
     let running = live_toggle(app);
     log::info!("live scan {}", if running { "started" } else { "stopped" });
 }
 
-// ── Live loop: region capture, change detection, badge read ────────────────
+// ── Live scan: the badge, read whenever the area changes ───────────────────
 
-/// Mean absolute difference of two equally sized frames (sampled).
-fn frame_diff(a: &[u8], b: &[u8]) -> f32 {
-    if a.len() != b.len() || a.is_empty() {
-        return 255.0;
-    }
-    let mut sum = 0u64;
-    let mut n = 0u64;
-    for i in (0..a.len()).step_by(24) {
-        sum += (a[i] as i16 - b[i] as i16).unsigned_abs() as u64;
-        n += 1;
-    }
-    sum as f32 / n.max(1) as f32
-}
+/// How often the live scan looks at its area, at most. A read is followed by
+/// half a second's pause before the next look, which keeps it near one
+/// reading a second while the area changes and close to nothing while it
+/// does not.
+const LIVE_RATE_HZ: f32 = 2.0;
 
 pub fn current_region(app: &AppHandle) -> ScanRegion {
     crate::load_client_prefs(app).scan_region.unwrap_or_default()
 }
 
-/// Whether the live signature loop is running.
+/// Whether the live signature scan is running.
 pub(crate) fn live_running(app: &AppHandle) -> bool {
     app.state::<ScanState>().live.lock().map(|live| live.is_some()).unwrap_or(false)
 }
 
-/// Start or stop the live loop; returns whether it is running afterwards.
+/// The scan area was framed again: a running live scan follows it.
+pub(crate) fn region_changed(app: &AppHandle) {
+    if let Some(handle) = *app.state::<ScanState>().live.lock().unwrap() {
+        crate::analysis::retarget(app, handle, current_region(app));
+    }
+}
+
+/// Start or stop the live scan; returns whether it is running afterwards.
 pub fn live_toggle(app: &AppHandle) -> bool {
     if !crate::reading::state(app).on {
         status(app, "error", "Screen reading is off. Switch it on in StarBuddy and choose the game's window.", None);
@@ -878,160 +813,98 @@ pub fn live_toggle(app: &AppHandle) -> bool {
     }
     let state = app.state::<ScanState>();
     let mut live = state.live.lock().unwrap();
-    if let Some(stop) = live.take() {
-        stop.store(true, Ordering::Relaxed);
+    if let Some(handle) = live.take() {
+        crate::analysis::unsubscribe(app, handle);
         let _ = app.emit("scan-live-state", false);
+        log::info!("live scan loop ended");
         return false;
     }
-    let stop = Arc::new(AtomicBool::new(false));
-    *live = Some(stop.clone());
+    *live = Some(crate::analysis::subscribe(app, SCAN, LiveBadge, current_region(app), LIVE_RATE_HZ));
     drop(live);
     let _ = app.emit("scan-live-state", true);
     crate::sigs::refresh_in_background(app);
-    let app2 = app.clone();
-    std::thread::Builder::new()
-        .name("scan-live".into())
-        .spawn(move || live_loop(app2, stop))
-        .expect("spawn live scan thread");
     true
 }
 
-fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
-    let mut prev: Option<Vec<u8>> = None;
-    let mut last_error = String::new();
-    let mut idle_since = Instant::now();
-    // A session's own account of itself, at Info so it is there in a release
-    // build. A loop that quietly stops finding anything looks exactly like one
-    // that is working on a screen with nothing to find, and after an hour
-    // nobody can say which it was.
-    let (mut reads, mut found, mut failed, mut spent) = (0u64, 0u64, 0u64, Duration::ZERO);
-    let mut last_report = Instant::now();
-    while !stop.load(Ordering::Relaxed) {
-        // Reading can be switched off mid-flight, and without frames this loop
-        // is nothing but a warning every two seconds. End with the stream.
-        if !crate::reading::state(&app).on {
-            log::info!("live scan: screen reading went off");
-            status(&app, "error", "Screen reading was switched off.", None);
-            break;
-        }
-        let region = current_region(&app);
-        let cap = match capture_region(&app, region) {
-            Ok(c) => c,
-            Err(e) => {
-                failed += 1;
-                // Compared without the size the message carries: the active
-                // window is a different size each time it is the wrong one, so
-                // the same fault would otherwise announce itself every couple
-                // of seconds for as long as the session lasts.
-                let kind = e.split(" (tried").next().unwrap_or(&e).to_string();
-                if kind != last_error {
-                    log::warn!("live scan capture: {e}");
-                    status(&app, "error", format!("live: {e}"), None);
-                    last_error = kind;
-                }
-                std::thread::sleep(Duration::from_millis(2000));
-                continue;
-            }
-        };
-        if !last_error.is_empty() {
-            // Recovered: clear the error the window is showing, or its
-            // red accent would outlive the hiccup.
-            status(&app, "idle", "", None);
-            last_error.clear();
-        }
+/// The live scan's analyzer: the badge's number, or the area's lone number
+/// when the icon beside it was not recognised.
+struct LiveBadge;
 
-        // Skip OCR while the region is static (badge already read, or no HUD).
-        let changed = prev.as_ref().map(|p| frame_diff(p, &cap.rgb) > 4.0).unwrap_or(true);
-        prev = Some(cap.rgb.clone());
-        if !changed && idle_since.elapsed() < Duration::from_secs(3) {
-            std::thread::sleep(Duration::from_millis(250));
-            continue;
-        }
-        idle_since = Instant::now();
+impl crate::analysis::Analyzer for LiveBadge {
+    type Output = LiveReading;
 
+    fn kind(&self) -> crate::analysis::AnalyzerKind {
+        crate::analysis::AnalyzerKind::ScanBadge
+    }
+
+    fn event(&self) -> &'static str {
+        "scan-live"
+    }
+
+    fn read(&self, cut: crate::analysis::Cut, cx: &crate::analysis::Ctx) -> Result<Option<LiveReading>, String> {
         let started = Instant::now();
-        let reading = {
-            let state = app.state::<ScanState>();
-            let mut engine = state.engine.lock().unwrap();
-            if engine.is_none() {
-                let dir = match models_dir(&app) {
-                    Ok(d) => d,
-                    Err(e) => {
-                        status(&app, "error", e, None);
-                        break;
-                    }
-                };
-                match engine_from_dir(&dir) {
-                    Ok(e) => *engine = Some(e),
-                    Err(e) => {
-                        status(&app, "error", format!("OCR models not ready ({e}) — press Scan now once to download them"), None);
-                        break;
-                    }
-                }
-            }
-            let engine = engine.as_ref().unwrap();
-            // The badge's own number is read by the digits reader, which is
-            // loaded beside the first one and kept for as long as it is.
-            let mut digits = state.digits.lock().unwrap();
-            if digits.is_none() {
-                match models_dir(&app).and_then(|dir| digit_engine_from_dir(&dir)) {
-                    Ok(e) => *digits = Some(e),
-                    Err(e) => log::warn!("digits-only reader unavailable, reading badges as text: {e}"),
-                }
-            }
-            let reader = Reader { text: engine, digits: digits.as_ref().unwrap_or(engine) };
-            let badges = find_badges(&reader, &cap);
-            // Only when the icon was not found: a read of the area costs a
-            // few hundred milliseconds, against two for the pixel scan, and
-            // there is nothing to gain by it when the badge is already in hand.
-            let without_icon = badges
-                .is_empty()
-                .then(|| run_ocr(reader.text, &cap).ok().and_then(|lines| signature_in_text(&lines, &cap)))
-                .flatten();
-            let signature = badges.first().map(|b| b.value).or(without_icon);
-            LiveReading {
-                at: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
-                signature,
-                // Named from whichever reading was had: a signature with no
-                // icon behind it is still a signature, and a window that
-                // printed the number and then said nothing about the mineral
-                // would be the same silence in a new place.
-                matches: signature.map(|value| crate::sigs::lookup(&app, value)).unwrap_or_default(),
-                badges,
-                region_px: region_px(region, cap.width, cap.full_height),
-                elapsed_ms: started.elapsed().as_millis(),
-            }
-        };
-        reads += 1;
-        spent += started.elapsed();
-        if reading.signature.is_some() {
-            found += 1;
-            log::debug!("live scan: signature {:?} in {} ms", reading.signature, reading.elapsed_ms);
-        }
-        if last_report.elapsed() >= Duration::from_secs(60) {
-            log::info!(
-                "live scan: {reads} reads, {found} with a signature, {failed} captures failed, {} ms each on average, newest frame {} ms old",
-                spent.as_millis() as u64 / reads.max(1),
-                crate::reading::frame_age().map(|a| a.as_millis() as u64).unwrap_or(0),
-            );
-            (reads, found, failed, spent) = (0, 0, 0, Duration::ZERO);
-            last_report = Instant::now();
-        }
-        // Two and a half a second, for the scan window alone: while it is
-        // hidden they are not sent at all, and it is given the latest on show.
-        crate::overlay::emit_to_overlay(&app, SCAN, "scan-live", &reading);
-        // Taking the newest frame off the stream costs nothing, so the pause
-        // is only here to keep the loop near one reading per second.
-        std::thread::sleep(Duration::from_millis(400));
+        let cap = &cut.crop;
+        let reader = cx.ocr.reader();
+        let badges = find_badges(&reader, cap);
+        // Only when the icon was not found: a read of the area costs a
+        // few hundred milliseconds, against two for the pixel scan, and
+        // there is nothing to gain by it when the badge is already in hand.
+        let without_icon = badges
+            .is_empty()
+            .then(|| {
+                let lines = cx.ocr.lines(cap, crate::analysis::Charset::Text).ok()?;
+                signature_in_text(&lines, cap)
+            })
+            .flatten();
+        // A reading without a signature is not sent: the window keeps the last
+        // one that had one, because a badge that drifted out of the area for a
+        // moment must not blank it.
+        let Some(signature) = badges.first().map(|b| b.value).or(without_icon) else { return Ok(None) };
+        log::debug!("live scan: signature {signature} in {} ms", started.elapsed().as_millis());
+        Ok(Some(LiveReading {
+            at: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
+            signature: Some(signature),
+            // Named from whichever reading was had: a signature with no
+            // icon behind it is still a signature, and a window that
+            // printed the number and then said nothing about the mineral
+            // would be the same silence in a new place.
+            matches: crate::sigs::lookup(cx.app, signature),
+            badges,
+            region_px: (cap.origin.0 as i32, cap.origin.1 as i32, cap.width as i32, cap.height as i32),
+            elapsed_ms: started.elapsed().as_millis(),
+        }))
     }
-    // Loop ended on its own (error) — reflect that in the state.
-    let state = app.state::<ScanState>();
-    let mut live = state.live.lock().unwrap();
-    if live.as_ref().is_some_and(|s| Arc::ptr_eq(s, &stop)) {
-        *live = None;
-        let _ = app.emit("scan-live-state", false);
+
+    /// News is a different signature, or a different answer about it — the
+    /// table can arrive after the first reading did.
+    fn differs(&self, before: &LiveReading, now: &LiveReading) -> bool {
+        before.signature != now.signature
+            || before.matches.len() != now.matches.len()
+            || before.matches.iter().zip(&now.matches).any(|(a, b)| a.name != b.name || a.kind != b.kind || a.count != b.count)
     }
-    log::info!("live scan loop ended");
+
+    fn failed(&self, app: &AppHandle, error: &str) {
+        log::warn!("live scan: {error}");
+        status(app, "error", format!("live: {error}"), None);
+    }
+
+    fn recovered(&self, app: &AppHandle) {
+        // Clear the error the window is showing, or its red accent would
+        // outlive the hiccup.
+        status(app, "idle", "", None);
+    }
+
+    fn ended(&self, app: &AppHandle, handle: crate::analysis::Handle, why: &str) {
+        log::info!("live scan: {why}");
+        status(app, "error", "Screen reading was switched off.", None);
+        let state = app.state::<ScanState>();
+        let mut live = state.live.lock().unwrap();
+        if *live == Some(handle) {
+            *live = None;
+            let _ = app.emit("scan-live-state", false);
+        }
+        log::info!("live scan loop ended");
+    }
 }
 
 #[tauri::command]
@@ -1041,7 +914,7 @@ pub fn scan_live_toggle(app: AppHandle) -> bool {
 
 #[tauri::command]
 pub fn scan_live_running(app: AppHandle) -> bool {
-    app.state::<ScanState>().live.lock().unwrap().is_some()
+    live_running(&app)
 }
 
 #[tauri::command]
@@ -1055,6 +928,7 @@ pub fn scan_region_set(app: AppHandle, region: ScanRegion) -> Result<ScanRegion,
     prefs.scan_region = Some(region);
     crate::save_client_prefs(&app, &prefs)?;
     log::info!("scan region set to {region:?}");
+    region_changed(&app);
     Ok(region)
 }
 
@@ -1184,11 +1058,12 @@ mod tests {
                 .collect();
 
             let img = image::open(root.join(file)).unwrap().into_rgb8();
-            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.clone(), full_height: img.height(), origin: (0, 0) };
             // Every one of these is the game's own window — a 49-inch
             // ultrawide is one screen — so all of them are framed the way the
-            // client frames what it reads.
-            let framed = crop_region(cap, ScanRegion::default()).unwrap();
+            // client frames what it reads, from a frame laid out the way the
+            // stream sends one.
+            let frame = crate::capture::Frame::from_rgb(img.as_raw(), img.width(), img.height());
+            let framed = frame.crop_rgb(ScanRegion::default()).unwrap();
             let started = Instant::now();
             let found: Vec<f64> = find_badges(&reader, &framed).iter().map(|b| b.value).collect();
 
@@ -1238,7 +1113,8 @@ mod tests {
             // And again through the crop the client actually reads, which is
             // the one place a badge has to survive: whole-frame reads are a
             // debugging convenience, the framed area is the product.
-            let framed = crop_region(cap, ScanRegion::default()).unwrap();
+            let frame = crate::capture::Frame::from_rgb(&cap.rgb, cap.width, cap.height);
+            let framed = frame.crop_rgb(ScanRegion::default()).unwrap();
             let result = analyze(&engine, &framed, Instant::now()).unwrap();
             println!("{file}: framed {}×{} -> {:?}", framed.width, framed.height, result.signature);
             assert_eq!(result.signature, Some(want), "{file}, framed area");

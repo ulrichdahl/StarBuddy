@@ -45,13 +45,13 @@ pub struct Frame {
 /// picture cannot move while it is being framed, and it is the frame the
 /// capture itself produces, so a rectangle drawn on it means exactly what it
 /// looks like even when the capture is a game window rather than the monitor.
-fn grab_frame(app: &AppHandle, purpose: &Purpose) -> Result<Frame, String> {
+fn grab_frame(app: &AppHandle) -> Result<Frame, String> {
     // The stream's newest frame. It is the same picture the reader works from,
     // which is the whole property an area depends on: its fractions mean
     // nothing except against the frame they were measured on.
-    let cap = crate::scan::capture_for(app, purpose)?;
-    let buffer = image::RgbImage::from_raw(cap.width, cap.height, cap.rgb.clone())
-        .ok_or("capture did not fit its own dimensions")?;
+    let cap = crate::capture::full_rgb(app)?;
+    let (width, height, source) = (cap.width, cap.height, cap.source);
+    let buffer = image::RgbImage::from_raw(width, height, cap.rgb).ok_or("capture did not fit its own dimensions")?;
     let mut out = std::io::Cursor::new(Vec::new());
     // JPEG, not PNG: this is a photograph of a screen that travels as text in
     // a data URI, and a lossless copy of it is several times the size for no
@@ -62,9 +62,9 @@ fn grab_frame(app: &AppHandle, purpose: &Purpose) -> Result<Frame, String> {
 
     Ok(Frame {
         image: format!("data:image/jpeg;base64,{}", base64::engine::general_purpose::STANDARD.encode(out.into_inner())),
-        width: cap.width,
-        height: cap.height,
-        source: cap.source,
+        width,
+        height,
+        source,
     })
 }
 
@@ -125,7 +125,7 @@ fn open_selector(app: &AppHandle, purpose: &str) -> Result<(), String> {
     // compositor paints black: the panel cannot be seen, the area gets drawn
     // by guesswork, and every read afterwards is of the wrong rectangle with
     // nothing to say why. Refusing says what to do instead.
-    let frame = grab_frame(app, &Purpose::parse(purpose)?).inspect_err(|e| log::warn!("region selector: no backdrop ({e})"))?;
+    let frame = grab_frame(app).inspect_err(|e| log::warn!("region selector: no backdrop ({e})"))?;
     *app.state::<SelectorState>().frame.lock().unwrap() = Some(frame);
 
     let url = WebviewUrl::App(format!("index.html?window=region&purpose={purpose}").into());
@@ -181,6 +181,9 @@ pub fn region_selected(
         Purpose::Scan => prefs.scan_region = Some(area),
     }
     crate::save_client_prefs(&app, &prefs)?;
+    if purpose == Purpose::Scan {
+        crate::scan::region_changed(&app);
+    }
     let _ = app.emit("region-updated", serde_json::json!({ "purpose": purpose, "area": area }));
     Ok(Some(area))
 }
@@ -200,7 +203,11 @@ pub fn region_clear(app: AppHandle, purpose: String) -> Result<(), String> {
         Purpose::Refinery => prefs.refinery_region = None,
         Purpose::Scan => prefs.scan_region = None,
     }
-    crate::save_client_prefs(&app, &prefs)
+    crate::save_client_prefs(&app, &prefs)?;
+    if purpose == Purpose::Scan {
+        crate::scan::region_changed(&app);
+    }
+    Ok(())
 }
 
 fn current(app: &AppHandle, purpose: &Purpose) -> Option<ScanRegion> {
