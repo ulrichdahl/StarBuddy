@@ -81,7 +81,7 @@ export function StatusOverlay() {
         title={allOk ? t("overlay.status.allOk") : t("overlay.status.someIssues")}
         firstBox={
           <div className="ov-box acc">
-            <span className="mono big">{allOk ? "OK" : "!"}</span>
+            <span className="mono big">{allOk ? t("overlay.status.okBadge") : "!"}</span>
             <span>{allOk ? t("overlay.status.allOkBody") : t("overlay.status.someIssuesBody")}</span>
           </div>
         }

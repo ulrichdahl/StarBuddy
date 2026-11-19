@@ -50,6 +50,10 @@ export function onRsiStatus(handler: (update: RsiStatusUpdate) => void): () => v
   const unlisten = listen<RsiStatusUpdate>("rsi-status", (e) => {
     heard = true;
     if (!cancelled) handler(e.payload);
+  }).catch((): (() => void) => {
+    // No live updates to follow (the event permission is missing): the cached
+    // answer below still arrives, and there is no section here to report to.
+    return () => {};
   });
   invoke<RsiStatusUpdate>("rsi_status_latest")
     .then((update) => {

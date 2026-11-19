@@ -26,6 +26,10 @@ export function usePageVisible(): boolean {
     if (!name) return;
     const un = listen<[string, boolean]>("overlay-visibility", (e) => {
       if (e.payload[0] === name) setShown(e.payload[1]);
+    }).catch((): (() => void) => {
+      // Not hearing it leaves `document.hidden` as the only signal, which is
+      // what this falls back to anyway.
+      return () => {};
     });
     return () => void un.then((f) => f());
   }, []);
