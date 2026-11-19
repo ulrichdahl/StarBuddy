@@ -387,7 +387,7 @@ fn pin_score_mask(mask: &[bool], w: usize, h: usize) -> f32 {
         return 0.0;
     }
     let mut diff = 0.0f32;
-    for j in 0..th {
+    for (j, row) in PIN_TEMPLATE.iter().enumerate() {
         let y0 = j * h / th;
         let y1 = ((j + 1) * h / th).max(y0 + 1).min(h);
         for i in 0..tw {
@@ -402,7 +402,7 @@ fn pin_score_mask(mask: &[bool], w: usize, h: usize) -> f32 {
                 }
             }
             let cell = on as f32 / n.max(1) as f32;
-            let want = if PIN_TEMPLATE[j].as_bytes()[i] == b'#' { 1.0 } else { 0.0 };
+            let want = if row.as_bytes()[i] == b'#' { 1.0 } else { 0.0 };
             diff += (cell - want).abs();
         }
     }
@@ -484,7 +484,7 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
             // good enough to read is the caller's to decide, which is also
             // what lets a corpus say how close the near misses were.
             blobs.push(Blob { x, y, w, h, shape });
-            if shape < PIN_MIN_SCORE && shape >= PIN_MIN_SCORE - 0.1 {
+            if (PIN_MIN_SCORE - 0.1..PIN_MIN_SCORE).contains(&shape) {
                 // In the game window's own coordinates, which is what a
                 // player can point at: inside the framed area the same badge
                 // is at a different pair of numbers on every screen.

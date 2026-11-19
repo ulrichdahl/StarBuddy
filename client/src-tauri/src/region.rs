@@ -14,7 +14,7 @@ use base64::Engine;
 use serde::{Deserialize, Serialize};
 use crate::lock::LockExt;
 use std::sync::Mutex;
-use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
 /// Window label of the full-screen selector.
 const SELECTOR: &str = "region-selector";
@@ -185,7 +185,6 @@ pub fn region_selected(
     if purpose == Purpose::Scan {
         crate::scan::region_changed(&app);
     }
-    let _ = app.emit("region-updated", serde_json::json!({ "purpose": purpose, "area": area }));
     Ok(Some(area))
 }
 
