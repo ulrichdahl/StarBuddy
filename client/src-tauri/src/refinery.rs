@@ -300,7 +300,7 @@ impl crate::analysis::Analyzer for Panel {
             order.lines.len(),
             order.orders.len(),
         );
-        send_for_training(app, cap, &order);
+        send_for_training(app, cut.crop, &order);
         Ok(Some(order))
     }
 }
@@ -333,14 +333,21 @@ fn snap_qualities(app: &AppHandle, terminal: &mut RefineryTerminal) {
     }
 }
 
-/// Send the crop the reader worked from to the training queue.
+/// Send the crop the reader worked from to the training queue, when the
+/// player has opted in.
 ///
 /// The point is the reads that go wrong: the frame plus what the parser made of
 /// it says whether the capture was unreadable or the parse was at fault, which
 /// is not a distinction anyone can make from the window alone. The server drops
 /// a frame it has already been sent, so pressing the hotkey twice costs nothing.
-fn send_for_training(app: &AppHandle, cap: &Captured, order: &RefineryTerminal) {
-    let Ok(png) = crate::training::png_of(cap) else { return };
+///
+/// Off unless the player switched it on: every F8 read would otherwise send a
+/// picture of their screen without asking. The PNG encode and the upload run on
+/// their own task, so the read is handed back without waiting for either.
+fn send_for_training(app: &AppHandle, cap: Captured, order: &RefineryTerminal) {
+    if !crate::load_client_prefs(app).share_reads_for_training {
+        return;
+    }
     let materials: usize = order.orders.iter().map(|o| o.materials.len()).sum();
     let missing = if order.missing.is_empty() {
         "nothing missing".to_string()
@@ -365,11 +372,22 @@ fn send_for_training(app: &AppHandle, cap: &Captured, order: &RefineryTerminal) 
     // not make out or a frame it read and the parser threw away. Working that
     // out from the image alone means running the reader again and hoping it
     // does the same thing twice.
-    let reader = serde_json::to_string(order).ok();
+    let order = order.clone();
 
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
-        if let Err(e) = crate::training::upload(&app, png, Some("refinery_order"), Some(note), reader).await {
+        let encoded = tauri::async_runtime::spawn_blocking(move || {
+            let png = crate::training::png_of(&cap)?;
+            Ok::<_, String>((png, serde_json::to_string(&order).ok()))
+        })
+        .await
+        .map_err(|e| e.to_string())
+        .and_then(|r| r);
+        let sent = match encoded {
+            Ok((png, reader)) => crate::training::upload(&app, png, Some("refinery_order"), Some(note), reader).await,
+            Err(e) => Err(e),
+        };
+        if let Err(e) = sent {
             // Never the player's problem: the read itself succeeded.
             log::debug!("refinery capture not sent for training: {e}");
         }

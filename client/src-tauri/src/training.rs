@@ -126,3 +126,16 @@ pub fn png_of(cap: &crate::scan::Captured) -> Result<Vec<u8>, String> {
 pub async fn training_capture(app: AppHandle) -> Result<String, String> {
     send(app).await
 }
+
+/// Whether F8 refinery reads are shared for training (off by default).
+#[tauri::command]
+pub fn training_sharing_get(app: AppHandle) -> bool {
+    crate::load_client_prefs(&app).share_reads_for_training
+}
+
+#[tauri::command]
+pub fn training_sharing_set(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut prefs = crate::load_client_prefs(&app);
+    prefs.share_reads_for_training = enabled;
+    crate::save_client_prefs(&app, &prefs)
+}

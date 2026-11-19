@@ -248,6 +248,10 @@ pub(crate) struct ClientPrefs {
     /// on Wayland the portal's token for the window, on Windows the window's
     /// own name. Absent means screen reading has never been switched on.
     pub(crate) screen_source: Option<String>,
+    /// Whether each F8 refinery read is sent to the paired server to improve
+    /// the reader. Off unless the player switches it on; the F9 training
+    /// capture is its own explicit action and does not look at this.
+    pub(crate) share_reads_for_training: bool,
 }
 
 fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -1441,6 +1445,8 @@ pub fn run() {
             region::region_clear,
             region::region_frame,
             training::training_capture,
+            training::training_sharing_get,
+            training::training_sharing_set,
             start_watcher,
             stop_watcher,
             watcher_status,

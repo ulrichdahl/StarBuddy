@@ -198,6 +198,8 @@ function App() {
   // hotkey map so every action it knows about gets a row, including ones
   // added after this page was written.
   const [captureStatus, setCaptureStatus] = useState<{ phase: string; detail: string } | null>(null);
+  /** Whether F8 refinery reads go to the server for training; off by default. */
+  const [shareTraining, setShareTraining] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanLive, setScanLive] = useState(false);
   const [logDir, setLogDir] = useState<string | null>(null);
@@ -230,6 +232,9 @@ function App() {
     invoke<string>("log_dir").then(setLogDir).catch(() => {});
     invoke<boolean>("scan_live_running").then(setScanLive).catch(() => {});
     invoke<KdeRuleInfo>("overlay_kde_rule").then(setKdeRule).catch(() => {});
+    invoke<boolean>("training_sharing_get")
+      .then(setShareTraining)
+      .catch((e) => setOverlayError(String(e)));
     invoke<Reading>("screen_reading").then(setReading).catch(() => {});
     invoke<HotkeyInfo>("overlay_hotkey")
       .then((h) => {
@@ -409,6 +414,16 @@ function App() {
       setOverlayError(String(e));
     } finally {
       setReadingBusy(false);
+    }
+  };
+
+  const toggleShareTraining = async (enabled: boolean) => {
+    setOverlayError(null);
+    try {
+      await invoke("training_sharing_set", { enabled });
+      setShareTraining(enabled);
+    } catch (e) {
+      setOverlayError(String(e));
     }
   };
 
@@ -809,6 +824,17 @@ function App() {
             and offers no way to turn it off; Windows 11 does, and it is. */}
         {reading?.on && reading.capture_border && <p className="hint">{t("overlay.readingBorder")}</p>}
         {reading?.on && reading.border_refused && <p className="hint">{t("overlay.readingBorderRefused")}</p>}
+        <div className="row">
+          <label>
+            <input
+              type="checkbox"
+              checked={shareTraining}
+              onChange={(e) => void toggleShareTraining(e.target.checked)}
+            />{" "}
+            {t("reading.shareTraining")}
+          </label>
+        </div>
+        <p className="hint">{t("reading.shareTrainingHint")}</p>
         <div className="row">
           <button onClick={toggleStatusWindow}>
             {statusOpen ? t("overlay.hideStatus") : t("overlay.showStatus")}

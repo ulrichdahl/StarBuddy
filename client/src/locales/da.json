@@ -345,5 +345,9 @@
     "inVersion": "Nyheder i v{{version}}",
     "summaryHint": "På vej i næste live-udgivelse:",
     "commitsHint": "Alle ændringer i dette dev-build:"
+  },
+  "reading": {
+    "shareTraining": "Del F8-raffinaderiaflæsninger for at forbedre aflæsningen",
+    "shareTrainingHint": "Sender det fangede panel og det aflæste til din StarBuddy-server. Slået fra som standard. F9 sender altid, når du trykker på den."
   }
 }

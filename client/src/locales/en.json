@@ -345,5 +345,9 @@
     "inVersion": "What’s new in v{{version}}",
     "summaryHint": "Coming in the next live release:",
     "commitsHint": "Every change in this dev build:"
+  },
+  "reading": {
+    "shareTraining": "Share F8 refinery reads to improve reading",
+    "shareTrainingHint": "Sends the captured panel and what was read to your StarBuddy server. Off by default. F9 always sends when you press it."
   }
 }
