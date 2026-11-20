@@ -12,6 +12,7 @@ import { ServerPanel } from "./main-window/ServerPanel";
 import { UpdateBanner } from "./main-window/UpdateBanner";
 import { useWatcher, WatcherPanel } from "./main-window/WatcherPanel";
 import { Home } from "./main-window/Home";
+import { Refinery } from "./main-window/Refinery";
 import { ComingSoon, COMING_SOON, Shell, useSection } from "./main-window/Shell";
 import type { ConnectionView, ScanResult, UpdateCheck } from "./main-window/types";
 import "./theme.css";
@@ -59,7 +60,9 @@ function App() {
         <Home watcher={watcher} canStart={canStart} onSection={setSection} />
       </>
     );
-  } else if (section === "refinery" || section === "tools") {
+  } else if (section === "refinery") {
+    body = <Refinery onSection={setSection} />;
+  } else if (section === "tools") {
     body = <ComingSoon section={section} />;
   } else {
     body = (

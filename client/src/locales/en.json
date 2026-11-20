@@ -412,5 +412,24 @@
       "scan": "Scan",
       "refinery": "Refinery order"
     }
+  },
+  "refinery": {
+    "lead": "Orders read from the refinery kiosk. Check and save them in the refinery window over the game.",
+    "openWindow": "Refinery window",
+    "read": "Read from screen",
+    "readingOffTitle": "Screen reading is off",
+    "readingOffText": "Turn it on once and choose the game's window. Then open an order at the refinery kiosk and press F8.",
+    "toSettings": "Settings",
+    "lastRead": "Last read · {{station}} · {{time}}",
+    "nothingYet": "No read yet",
+    "col": {
+      "order": "Order",
+      "materials": "Refining",
+      "method": "Method",
+      "yield": "Yield",
+      "time": "Time left",
+      "status": "Status"
+    },
+    "historySoon": "Earlier orders and their timers come here once the website keeps them."
   }
 }

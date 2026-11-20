@@ -412,5 +412,24 @@
       "scan": "Scanning",
       "refinery": "Raffinaderiordre"
     }
+  },
+  "refinery": {
+    "lead": "Ordrer aflæst ved raffinaderikiosken. Tjek og gem dem i raffinaderivinduet over spillet.",
+    "openWindow": "Raffinaderivindue",
+    "read": "Aflæs fra skærmen",
+    "readingOffTitle": "Skærmaflæsning er slået fra",
+    "readingOffText": "Slå den til én gang og vælg spillets vindue. Åbn så en ordre ved raffinaderikiosken og tryk F8.",
+    "toSettings": "Indstillinger",
+    "lastRead": "Senest aflæst · {{station}} · {{time}}",
+    "nothingYet": "Intet aflæst endnu",
+    "col": {
+      "order": "Ordre",
+      "materials": "Raffinerer",
+      "method": "Metode",
+      "yield": "Udbytte",
+      "time": "Tid tilbage",
+      "status": "Status"
+    },
+    "historySoon": "Tidligere ordrer og deres timere kommer her, når hjemmesiden gemmer dem."
   }
 }

@@ -330,3 +330,30 @@ body {
 }
 .sb-check { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; }
 .sb-check input { accent-color: var(--cyan); width: 17px; height: 17px; margin: 0; }
+
+/* ── Pages: a lead line with the section's actions, then its cards ─────── */
+.sb-page { display: flex; flex-direction: column; gap: 14px; }
+.sb-page-hd { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sb-page-hd .sb-card-sub { flex: 1 1 260px; max-width: 620px; }
+.sb .sb-ghost { background: transparent; }
+.sb .sb-ghost:hover:not(:disabled) { background: rgba(60, 201, 240, 0.1); }
+.sb-kbd {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 5px;
+  margin-left: 6px;
+  border: 1px solid rgba(60, 201, 240, 0.45);
+  color: var(--text);
+  letter-spacing: 0;
+}
+.sb-card-row { flex-direction: row; align-items: center; gap: 16px; }
+.sb-card-row > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.sb-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.sb-table th { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line2); }
+.sb-table td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line2); }
+.sb-table tr:last-child td { border-bottom: 0; }
+.sb-table .num { text-align: right; }
+.sb-muted { color: var(--muted); }
+.sb-state { display: inline-flex; align-items: center; gap: 7px; }
+.sb-dot.cyan { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
