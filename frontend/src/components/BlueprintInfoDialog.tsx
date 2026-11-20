@@ -491,6 +491,16 @@ export function BlueprintInfoDialog({ blueprintId, onClose, onToggleOwned }: Pro
   const others = (data?.owners ?? []).filter((o) => !o.mine)
   const orgSize = (mates?.length ?? 0) + 1
 
+  const stats = bp?.item_meta?.stats ? (
+    <ProductStats
+      stats={bp.item_meta.stats}
+      mass={bp.item_meta.mass}
+      factors={null}
+      ranges={data?.stat_ranges ?? {}}
+      groups={data?.requirement_groups ?? []}
+    />
+  ) : null
+
   const close = () => {
     setTrail([])
     onClose()
@@ -544,11 +554,13 @@ export function BlueprintInfoDialog({ blueprintId, onClose, onToggleOwned }: Pro
           </Box>
 
           <Box sx={{ px: 2.75, py: 2.5, display: 'flex', flexDirection: 'column', gap: 2.25, overflowY: 'auto' }}>
-            <Box sx={{ display: 'flex', gap: 2.5, flexWrap: 'wrap', alignItems: 'stretch' }}>
-              <Box sx={{ flex: '1 1 380px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {(() => {
+              const description = (
                 <Typography sx={{ m: 0, fontSize: 14, lineHeight: 1.6, color: '#c9d4db' }}>
                   {bp.description || t('craft.noDescription')}
                 </Typography>
+              )
+              const holders = (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.25 }}>
                     <Box component="span" sx={smallLabel}>
@@ -579,40 +591,50 @@ export function BlueprintInfoDialog({ blueprintId, onClose, onToggleOwned }: Pro
                     )}
                   </Box>
                 </Box>
-              </Box>
-              {bp.image_url ? (
+              )
+              // Beside stats the picture heads its column; otherwise it sits to the right.
+              const pictureBox = stats ? { width: '100%', height: 180 } : { flex: '0 1 280px', height: 170 }
+              const picture = bp.image_url ? (
                 <Tooltip title={t('craft.clickToZoom')}>
                   <ButtonBase
                     onClick={() => setImageZoom(true)}
-                    sx={{ flex: '0 1 280px', height: 170, border: `1px solid ${hud.line}`, bgcolor: hud.well, cursor: 'zoom-in' }}
+                    sx={{ ...pictureBox, border: `1px solid ${hud.line}`, bgcolor: hud.well, cursor: 'zoom-in' }}
                   >
                     <Box component="img" src={bp.image_url} alt={bp.name} sx={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </ButtonBase>
                 </Tooltip>
               ) : (
                 <Box
-                  sx={{ flex: '0 1 280px', height: 170, border: '1px dashed #2f3d48', bgcolor: hud.well, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: fonts.mono, fontSize: 12, color: hud.textFaint }}
+                  sx={{ ...pictureBox, border: '1px dashed #2f3d48', bgcolor: hud.well, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: fonts.mono, fontSize: 12, color: hud.textFaint }}
                 >
                   {t('blueprints.info.imagePlaceholder')}
                 </Box>
-              )}
-            </Box>
+              )
+              // A blueprint with stats keeps them on the left, where they are
+              // read beside the picture; without, the description takes the room.
+              return stats ? (
+                <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                  <Box sx={{ flex: '0 1 61%', minWidth: 300 }}>{stats}</Box>
+                  <Box sx={{ flex: '1 1 300px', minWidth: 240, display: 'flex', flexDirection: 'column', gap: 2}}>
+                    {picture}
+                    {description}
+                    {holders}
+                  </Box>
+                </Box>
+              ) : (
+                <Box sx={{ display: 'flex', gap: 2.5, flexWrap: 'wrap', alignItems: 'stretch' }}>
+                  <Box sx={{ flex: '1 1 380px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {description}
+                    {holders}
+                  </Box>
+                  {picture}
+                </Box>
+              )
+            })()}
 
             <WhereItDrops key={showing} pools={data.missions} orgName={org?.name ?? null} onOpenBlueprint={(id) => setTrail([...trail, id])} />
 
             <NeededToCraft blueprintId={showing} info={data} />
-
-            {bp.item_meta?.stats && (
-              <Section id="bp-stats" title={t('blueprints.info.stats')}>
-                <ProductStats
-                  stats={bp.item_meta.stats}
-                  mass={bp.item_meta.mass}
-                  factors={null}
-                  ranges={data.stat_ranges}
-                  groups={data.requirement_groups ?? []}
-                />
-              </Section>
-            )}
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, flexWrap: 'wrap', px: 2.75, py: 1.75, borderTop: `1px solid ${hud.lineSoft}`, bgcolor: hud.well }}>
