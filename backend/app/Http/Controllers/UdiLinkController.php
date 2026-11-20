@@ -82,17 +82,25 @@ class UdiLinkController extends Controller
 
     /**
      * DELETE /api/me/udi-link: unlink. Deletes the settings stored under the
-     * token at UDI (best effort) and forgets it; installed files stay.
+     * token at UDI, the only place they are deleted (the UDI page's "forget"
+     * is local to that browser), then forgets the token; installed files
+     * stay. When UDI cannot be reached the token is kept and 502 says try
+     * again, so the settings are never left behind under a lost token.
      */
     public function destroy(Request $request)
     {
         $user = $request->user();
         if ($user->udi_link_token) {
             try {
-                Http::withToken($user->udi_link_token)->timeout(5)
+                $res = Http::withToken($user->udi_link_token)->acceptJson()->timeout(5)
                     ->delete(config('starbuddy.udi_url').'/api/starbuddy/profile');
+                // 404: UDI never knew the token; nothing to delete there.
+                $gone = $res->successful() || $res->status() === 404;
             } catch (\Throwable) {
-                // UDI forgets an unused token after 12 months anyway.
+                $gone = false;
+            }
+            if (! $gone) {
+                return response()->json(['message' => 'UDI could not be reached. Try again later.', 'code' => 'udi_unreachable'], 502);
             }
             $user->forceFill(['udi_link_token' => null, 'udi_linked_at' => null])->save();
         }

@@ -1070,6 +1070,7 @@
     "open": "Åbn UDI StarLabels-opsætning",
     "unlink": "Fjern forbindelse",
     "unlinkConfirm": "Fjern forbindelsen til UDI? Dine indstillinger dér slettes. Filer der allerede er installeret bliver liggende.",
-    "openError": "Kunne ikke åbne opsætningen. Prøv igen."
+    "openError": "Kunne ikke åbne opsætningen. Prøv igen.",
+    "unlinkError": "UDI kunne ikke nås, så forbindelsen er bevaret. Prøv igen senere."
   }
 }

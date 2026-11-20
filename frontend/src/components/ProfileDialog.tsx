@@ -385,6 +385,7 @@ function UdiSection() {
         </Typography>
       )}
       {open.isError && <Alert severity="error">{t('udi.openError')}</Alert>}
+      {unlink.isError && <Alert severity="error">{t('udi.unlinkError')}</Alert>}
       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
         <Button variant="outlined" color="primary" startIcon={<OpenInNewIcon />} onClick={() => open.mutate()} disabled={open.isPending}>
           {t('udi.open')}

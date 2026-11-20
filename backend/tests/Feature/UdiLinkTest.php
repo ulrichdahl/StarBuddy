@@ -44,6 +44,20 @@ class UdiLinkTest extends TestCase
         $this->assertNull($me->fresh()->udi_link_token);
     }
 
+    public function test_unlink_keeps_the_token_when_udi_cannot_delete(): void
+    {
+        config(['starbuddy.udi_url' => 'https://udi.test']);
+        Http::fake(['udi.test/*' => Http::sequence()->push(['message' => 'down'], 503)->push('', 204)]);
+        $me = User::factory()->create(['discord_id' => '1']);
+        $this->actingAs($me)->getJson('/api/me/udi-link')->assertOk();
+
+        $this->deleteJson('/api/me/udi-link')->assertStatus(502)->assertJsonPath('code', 'udi_unreachable');
+        $this->assertNotNull($me->fresh()->udi_link_token);
+
+        $this->deleteJson('/api/me/udi-link')->assertNoContent();
+        $this->assertNull($me->fresh()->udi_link_token);
+    }
+
     public function test_a_clients_own_token_is_adopted_when_the_account_has_none(): void
     {
         $me = User::factory()->create(['discord_id' => '1']);

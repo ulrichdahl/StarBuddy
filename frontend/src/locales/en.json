@@ -1073,6 +1073,7 @@
     "open": "Open UDI StarLabels setup",
     "unlink": "Unlink",
     "unlinkConfirm": "Unlink from UDI? Your settings stored there are deleted. Files already installed stay.",
-    "openError": "Could not open the setup. Try again."
+    "openError": "Could not open the setup. Try again.",
+    "unlinkError": "UDI could not be reached, so the link is kept. Try again later."
   }
 }
