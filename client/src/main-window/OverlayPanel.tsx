@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { HotkeyCapture } from "../HotkeyCapture";
 import { listenFailed } from "../listen";
 import { KdeRuleRow } from "./KdeRuleRow";
-import { ScreenReadingPanel } from "./ScreenReadingPanel";
+import { ScreenReadingPanel, ShareTrainingRow } from "./ScreenReadingPanel";
 import type { HotkeyInfo, Reading } from "./types";
 import type { MainMode, MainState } from "./mainMode";
 
@@ -222,6 +222,7 @@ export function OverlayPanel({
         <ScreenReadingPanel reading={reading} onReading={setReading} onError={setOverlayError} />
         <AreaRow purpose="refinery" enabled={Boolean(reading?.on)} onError={setOverlayError} />
         {!reading?.on && <p className="hint">{t("settings.areaNeedsReading")}</p>}
+        <ShareTrainingRow onError={setOverlayError} />
         {errors}
       </section>
     );
