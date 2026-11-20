@@ -10,7 +10,14 @@ interface ToolLink {
 }
 
 /** Pages of the paired StarBuddy website, by path; the name and blurb are translated. */
-const ORG_PAGES: { key: string; path: string }[] = [];
+const ORG_PAGES: { key: string; path: string }[] = [
+  { key: "dashboard", path: "/" },
+  { key: "resources", path: "/resources" },
+  { key: "items", path: "/items" },
+  { key: "blueprints", path: "/blueprints" },
+  { key: "craft", path: "/craft" },
+  { key: "refinery", path: "/refinery" },
+];
 
 /** Community sites players use alongside the game. Names are their own. */
 const COMMUNITY: { key: string; name: string; url: string }[] = [

@@ -449,7 +449,32 @@
       "cstone": "Hvor en genstand kan købes",
       "sctrade": "Planlægning af handelsruter"
     },
-    "page": {}
+    "page": {
+      "dashboard": {
+        "name": "Dashboard",
+        "blurb": "Hvordan orgerne klarer sig denne måned"
+      },
+      "resources": {
+        "name": "Materialer",
+        "blurb": "Hvem har hvad, hvor og i hvilken kvalitet"
+      },
+      "items": {
+        "name": "Genstande",
+        "blurb": "Genstande på tværs af orgen"
+      },
+      "blueprints": {
+        "name": "Blueprintbibliotek",
+        "blurb": "Alle blueprints orgen har"
+      },
+      "craft": {
+        "name": "Fremstil",
+        "blurb": "Hvad orgen kan fremstille"
+      },
+      "refinery": {
+        "name": "Raffinaderiordrer",
+        "blurb": "Ordrer gemt fra dine aflæsninger"
+      }
+    }
   },
   "settings": {
     "tab": {

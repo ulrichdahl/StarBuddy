@@ -449,7 +449,32 @@
       "cstone": "Where to buy an item",
       "sctrade": "Trade route planner"
     },
-    "page": {}
+    "page": {
+      "dashboard": {
+        "name": "Dashboard",
+        "blurb": "How the orgs compare this month"
+      },
+      "resources": {
+        "name": "Materials",
+        "blurb": "Who holds what, where, at which quality"
+      },
+      "items": {
+        "name": "Items",
+        "blurb": "Items held across the org"
+      },
+      "blueprints": {
+        "name": "Blueprint library",
+        "blurb": "Every blueprint the org holds"
+      },
+      "craft": {
+        "name": "Craft",
+        "blurb": "What the org can craft"
+      },
+      "refinery": {
+        "name": "Refinery orders",
+        "blurb": "Orders saved from your reads"
+      }
+    }
   },
   "settings": {
     "tab": {
