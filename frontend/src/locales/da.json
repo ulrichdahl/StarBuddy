@@ -32,7 +32,8 @@
     "groupOperations": "Drift",
     "groupSystem": "System",
     "account": "Kontomenu",
-    "searchShortcut": "Tryk / for at søge"
+    "searchShortcut": "Tryk / for at søge",
+    "gathering": "Indsamling"
   },
   "login": {
     "tagline": "Materiale- og blueprint-styring for din org i Star Citizen. Log ind med den Discord-konto, der er knyttet til din org.",
@@ -974,5 +975,40 @@
     "noOrg": "Ingen org endnu",
     "lastSync": "Sidste synk",
     "neverSynced": "Aldrig synkroniseret"
+  },
+  "gathering": {
+    "title": "Indsamling",
+    "subtitle": "Hvad dine fastgjorte fremstillingsmål kræver, holdt op mod hvad du har i den rette kvalitet",
+    "postDiscord": "Send indkøbslisten til Discord",
+    "posted": "Indkøbslisten er sendt til Discord.",
+    "postError": "Kunne ikke sende indkøbslisten.",
+    "targets": "Fremstillingsmål",
+    "unpin": "Fjern {{name}}",
+    "fewer": "Én færre {{name}}",
+    "more": "Én mere {{name}}",
+    "quantity": "×{{count}}",
+    "needs_one": "Mangler {{count}} materiale",
+    "needs_other": "Mangler {{count}} materialer",
+    "ready": "Klar til at fremstille",
+    "pinBlueprint": "Fastgør en blueprint",
+    "pinHelp": "Åbn en blueprint og vælg “Fastgør som fremstillingsmål”.",
+    "list": "Indkøbsliste",
+    "stillToGather": "{{count}} af {{total}} mangler stadig",
+    "allGathered": "Alt er samlet",
+    "countScope": "Tæl lager fra",
+    "onlyMine": "Kun mit",
+    "includeOrg": "Medregn orgens lager",
+    "colMaterial": "Materiale",
+    "colNeeded": "Behov",
+    "colQuality": "Kvalitet",
+    "colYouHave": "Du har (godkendt)",
+    "colOrgHas": "Orgen har",
+    "colStillToGet": "Mangler",
+    "colFor": "Til",
+    "done": "Færdig",
+    "belowQuality": "{{amount}} under kvalitet",
+    "note": "Lager i lavere kvalitet tæller ikke, så du ved hvad der er værd at mine.",
+    "empty": "Intet fastgjort endnu. Fastgør en blueprint som fremstillingsmål, så dukker materialerne op her.",
+    "loadError": "Kunne ikke hente indkøbslisten."
   }
 }

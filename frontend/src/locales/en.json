@@ -32,7 +32,8 @@
     "groupOperations": "Operations",
     "groupSystem": "System",
     "account": "Account menu",
-    "searchShortcut": "Press / to search"
+    "searchShortcut": "Press / to search",
+    "gathering": "Gathering"
   },
   "login": {
     "tagline": "Org materials and blueprint tracking for Star Citizen. Sign in with the Discord account linked to your org.",
@@ -974,5 +975,40 @@
     "noOrg": "No org yet",
     "lastSync": "Last sync",
     "neverSynced": "Never synced"
+  },
+  "gathering": {
+    "title": "Gathering",
+    "subtitle": "What your pinned craft targets need, against what you hold at the right quality",
+    "postDiscord": "Post shopping list to Discord",
+    "posted": "Shopping list posted to Discord.",
+    "postError": "Could not post the shopping list.",
+    "targets": "Craft targets",
+    "unpin": "Unpin {{name}}",
+    "fewer": "One fewer {{name}}",
+    "more": "One more {{name}}",
+    "quantity": "×{{count}}",
+    "needs_one": "Needs {{count}} material",
+    "needs_other": "Needs {{count}} materials",
+    "ready": "Ready to craft",
+    "pinBlueprint": "Pin a blueprint",
+    "pinHelp": "Open a blueprint and choose “Pin as craft target”.",
+    "list": "Shopping list",
+    "stillToGather": "{{count}} of {{total}} still to gather",
+    "allGathered": "Everything gathered",
+    "countScope": "Count stock from",
+    "onlyMine": "Count only mine",
+    "includeOrg": "Include org stock",
+    "colMaterial": "Material",
+    "colNeeded": "Needed",
+    "colQuality": "Quality",
+    "colYouHave": "You have (qualifying)",
+    "colOrgHas": "Org has",
+    "colStillToGet": "Still to get",
+    "colFor": "For",
+    "done": "Done",
+    "belowQuality": "{{amount}} below quality",
+    "note": "Lower-quality stock you hold does not count, so you know what is worth mining.",
+    "empty": "Nothing pinned yet. Pin a blueprint as a craft target and its materials show up here.",
+    "loadError": "Could not load the shopping list."
   }
 }

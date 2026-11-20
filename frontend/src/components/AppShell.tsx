@@ -15,6 +15,7 @@ import MenuIcon from '@mui/icons-material/Menu'
 import SearchIcon from '@mui/icons-material/Search'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined'
+import ChecklistOutlinedIcon from '@mui/icons-material/ChecklistOutlined'
 import SpaceDashboardOutlinedIcon from '@mui/icons-material/SpaceDashboardOutlined'
 import DiamondOutlinedIcon from '@mui/icons-material/DiamondOutlined'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
@@ -54,6 +55,7 @@ const NAV_GROUPS: { key: string; items: NavItem[] }[] = [
     items: [
       { key: 'dashboard', to: '/', icon: <SpaceDashboardOutlinedIcon /> },
       { key: 'craft', to: '/craft', icon: <BuildOutlinedIcon /> },
+      { key: 'gathering', to: '/gathering', icon: <ChecklistOutlinedIcon /> },
       { key: 'materials', to: '/resources', icon: <DiamondOutlinedIcon /> },
       { key: 'items', to: '/items', icon: <Inventory2OutlinedIcon /> },
       { key: 'blueprints', to: '/blueprints', icon: <SchemaOutlinedIcon /> },

@@ -9,6 +9,7 @@ import type { Me } from './lib/types'
 import { AppShell } from './components/AppShell'
 import { LoginPage } from './pages/LoginPage'
 import { CraftPage } from './pages/CraftPage'
+import { GatheringPage } from './pages/GatheringPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ResourcesPage } from './pages/ResourcesPage'
 import { ItemsPage } from './pages/ItemsPage'
@@ -57,6 +58,7 @@ export default function App() {
       <Route element={<AppShell me={me} />}>
         <Route index element={<DashboardPage me={me} />} />
         <Route path="/craft" element={<CraftPage />} />
+        <Route path="/gathering" element={<GatheringPage />} />
         <Route path="/resources" element={<ResourcesPage />} />
         <Route path="/items" element={<ItemsPage />} />
         <Route path="/blueprints" element={<BlueprintsPage />} />
