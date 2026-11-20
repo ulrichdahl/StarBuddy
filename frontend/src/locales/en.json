@@ -525,7 +525,8 @@
       "pinHelp": "Sends its materials to Gathering in the desktop client",
       "owned": "Owned",
       "imagePlaceholder": "No render yet",
-      "stats": "Stats"
+      "stats": "Stats",
+      "pinnedCount": "Pinned as craft target · {{count}}"
     },
     "colOwned": "Owned",
     "markAllShownOwned": "Mark all shown as owned ({{count}})",

@@ -525,7 +525,8 @@
       "pinHelp": "Sender materialerne til Indsamling i desktopklienten",
       "owned": "Ejet",
       "imagePlaceholder": "Intet billede endnu",
-      "stats": "Egenskaber"
+      "stats": "Egenskaber",
+      "pinnedCount": "Fastgjort som fremstillingsmål · {{count}}"
     },
     "colOwned": "Ejet",
     "markAllShownOwned": "Markér alle viste som ejet ({{count}})",

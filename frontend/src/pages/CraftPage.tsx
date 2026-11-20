@@ -26,6 +26,8 @@ import { OwnersCell } from '../components/OwnersCell'
 import { ListPager } from '../components/ListPager'
 import { CraftDetailDialog } from '../components/CraftDetailDialog'
 import { COMPLETE_GREEN } from '../lib/rarity'
+import { usePinnedBlueprints } from '../lib/craftTargets'
+import { PinMark } from '../components/PinMark'
 
 interface CraftResult {
   id: number
@@ -70,6 +72,7 @@ function missingLabel(m: CraftResult['missing'][number], t: TFunction, locale: s
 }
 
 export function CraftPage() {
+  const pinned = usePinnedBlueprints()
   const { t, i18n } = useTranslation()
   // `search` and `all` live in the URL too, so the global item search can deep-link here.
   const [searchParams, setSearchParams] = useSearchParams()
@@ -243,7 +246,10 @@ export function CraftPage() {
             <TableBody>
               {sorted.slice(page * rowsPerPage, (page + 1) * rowsPerPage).map((r) => (
                 <TableRow key={r.id} hover onClick={() => setDetailId(r.id)} sx={{ cursor: 'pointer' }}>
-                  <TableCell>{r.name}</TableCell>
+                  <TableCell>
+                    {r.name}
+                    {pinned.has(r.id) && <PinMark quantity={pinned.get(r.id)} />}
+                  </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
                       {r.type_display ?? [r.type, r.sub_type].filter(Boolean).join(' · ')}

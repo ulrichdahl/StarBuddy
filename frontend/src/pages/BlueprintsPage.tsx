@@ -37,6 +37,8 @@ import { OwnersCell } from '../components/OwnersCell'
 import { ListPager } from '../components/ListPager'
 import { BlueprintInfoDialog } from '../components/BlueprintInfoDialog'
 import { gradeLabel } from './CraftPage'
+import { usePinnedBlueprints } from '../lib/craftTargets'
+import { PinMark } from '../components/PinMark'
 
 type View = 'checklist' | 'matrix'
 type SortField = 'kiosk' | 'name' | 'type' | 'grade' | 'poolName' | 'pool' | 'owners'
@@ -285,6 +287,7 @@ function ChecklistView({
   toggle: (row: CatalogRow) => void
   onInfo: (id: number) => void
 }) {
+  const pinned = usePinnedBlueprints()
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const rows = data?.data ?? []
@@ -369,6 +372,7 @@ function ChecklistView({
                     </TableCell>
                     <TableCell sx={{ fontWeight: row.owned_by_me ? 600 : 400, cursor: 'pointer' }} onClick={() => onInfo(row.id)}>
                       {row.name}
+                      {pinned.has(row.id) && <PinMark quantity={pinned.get(row.id)} />}
                     </TableCell>
                     <TableCell sx={{ color: 'text.secondary' }}>{typeText(row)}</TableCell>
                     <TableCell>{row.grade ? t('craft.grade', { grade: gradeLabel(row.grade) }) : t('common.none')}</TableCell>
@@ -495,6 +499,7 @@ function MatrixView({
   toggle: (row: CatalogRow) => void
   onInfo: (id: number) => void
 }) {
+  const pinned = usePinnedBlueprints()
   const { t } = useTranslation()
   const { me } = useMe()
   const rows = data?.data ?? []
@@ -541,6 +546,7 @@ function MatrixView({
             <TableRow key={row.id} hover>
               <TableCell sx={{ width: '100%', fontWeight: row.owned_by_me ? 600 : 400, cursor: 'pointer' }} onClick={() => onInfo(row.id)}>
                 {row.name}
+                {pinned.has(row.id) && <PinMark quantity={pinned.get(row.id)} />}
               </TableCell>
               <TableCell sx={{ ...tightCol, color: 'text.secondary' }}>{typeText(row)}</TableCell>
               <TableCell sx={tightCol}>{row.grade ? t('craft.grade', { grade: gradeLabel(row.grade) }) : t('common.none')}</TableCell>
