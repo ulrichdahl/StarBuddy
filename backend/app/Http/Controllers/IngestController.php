@@ -20,7 +20,9 @@ class IngestController extends Controller
             // watcher. Orders are now recorded from the terminal itself, which
             // knows what is being refined rather than only that something
             // finished, so the event is accepted and ignored for older clients.
-            'events.*.kind' => ['required', 'in:blueprint,refinery_completed'],
+            // mission_completed feeds the org leaderboard; detail is the
+            // mission's name as the log gave it.
+            'events.*.kind' => ['required', 'in:blueprint,refinery_completed,mission_completed'],
             'events.*.timestamp' => ['required', 'date'],
             'events.*.detail' => ['required', 'string', 'max:255'],
             'events.*.item_class' => ['nullable', 'string', 'max:255'],
@@ -40,7 +42,7 @@ class IngestController extends Controller
             ->all();
 
         $fresh = $events->reject(fn ($e) => in_array($e['fingerprint'], $existing, true));
-        $counts = ['accepted' => 0, 'duplicates' => $events->count() - $fresh->count(), 'blueprints_added' => 0, 'refinery_completed' => 0, 'ignored' => 0, 'backfilled' => 0];
+        $counts = ['accepted' => 0, 'duplicates' => $events->count() - $fresh->count(), 'blueprints_added' => 0, 'refinery_completed' => 0, 'missions_completed' => 0, 'ignored' => 0, 'backfilled' => 0];
 
         // A re-sync after the client's name-resolution improves can carry an
         // item_class the stored row lacks — backfill instead of discarding.
@@ -97,6 +99,9 @@ class IngestController extends Controller
                     if ($owned->wasRecentlyCreated) {
                         $counts['blueprints_added']++;
                     }
+                } elseif ($e['kind'] === 'mission_completed') {
+                    // The stored event is the record; the leaderboard counts them.
+                    $counts['missions_completed']++;
                 } else {
                     // An older client still sending completions: counted so the
                     // sync reports honestly, but no order is invented from it.
