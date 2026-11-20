@@ -38,7 +38,7 @@ class CompetitionController extends Controller
         $before = OrgCompetition::standings($prevFrom, $prevTo)->keyBy('id');
 
         $user = $request->user();
-        $myOrg = $user->orgs()->orderBy('orgs.id')->first();
+        $myOrg = $user->ensureMainOrg() ? $user->mainOrg() : null;
 
         $orgs = $standings->map(fn ($row) => [
             ...$row,
@@ -80,7 +80,7 @@ class CompetitionController extends Controller
         $period = $request->validate(['period' => ['nullable', 'in:month,all']])['period'] ?? 'month';
         $now = CarbonImmutable::now();
         $from = $period === 'month' ? $now->startOfMonth() : null;
-        $myOrg = $request->user()->orgs()->orderBy('orgs.id')->first();
+        $myOrg = $request->user()->ensureMainOrg() ? $request->user()->mainOrg() : null;
 
         return [
             'period' => $period,

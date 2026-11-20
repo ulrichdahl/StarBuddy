@@ -20,6 +20,9 @@ export interface Me {
   avatar_url: string | null
   // UI language ('en' | 'da'); null until first login stores the browser's.
   locale: string | null
+  /** Where the player's points go; always set while they are in an org. */
+  main_org_id: number | null
+  /** Active orgs, the main org first. */
   orgs: Org[]
 }
 

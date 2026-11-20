@@ -190,14 +190,10 @@ class Scoring
         return null;
     }
 
-    /** The org a player's new points go to: their first active org. */
+    /** The org a player's new points go to: their main org. */
     public static function orgOf(int $userId): ?int
     {
-        return DB::table('org_members')
-            ->where('user_id', $userId)
-            ->where('status', 'active')
-            ->orderBy('org_id')
-            ->value('org_id');
+        return \App\Models\User::find($userId)?->ensureMainOrg();
     }
 
     /**

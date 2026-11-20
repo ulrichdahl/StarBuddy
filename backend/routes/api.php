@@ -19,7 +19,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('me', fn (Request $request) => $request->user()->load('orgs'));
+    // orgs: the main org first, so orgs[0] is the main org. main_org_id is
+    // repaired here too, should an org have been deleted.
+    Route::get('me', function (Request $request) {
+        $user = $request->user();
+        $main = $user->ensureMainOrg();
+        $user->load('orgs');
+        $user->setRelation('orgs', $user->orgs->sortBy(fn ($o) => [$o->id === $main ? 0 : 1, $o->id])->values());
+
+        return $user;
+    });
+    Route::put('me/main-org', [\App\Http\Controllers\OrgController::class, 'setMain']);
     Route::patch('me', [\App\Http\Controllers\ProfileController::class, 'update']);
 
     Route::get('dashboard', DashboardController::class);

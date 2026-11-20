@@ -413,7 +413,14 @@
     "stacks": "Stakke",
     "you": "Dig",
     "heldBy_one": "{{member}}: i {{count}} stak",
-    "heldBy_other": "{{member}}: i {{count}} stakke"
+    "heldBy_other": "{{member}}: i {{count}} stakke",
+    "main": "Hoved-org",
+    "mainHelp": "Din hoved-org får dine point og er den dashboardet viser, som i Star Citizen.",
+    "makeMain": "Gør til hoved-org",
+    "handoverTitle": "Udpeg en ny manager for {{org}}",
+    "handoverHelp": "Du er orgens sidste manager. Vælg et medlem der overtager, før du forlader den.",
+    "newManager": "Ny manager",
+    "appointAndLeave": "Udpeg og forlad"
   },
   "items": {
     "title": "Genstande",

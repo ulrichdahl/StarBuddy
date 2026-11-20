@@ -416,7 +416,14 @@
     "stacks": "Stacks",
     "you": "You",
     "heldBy_one": "{{member}}: in {{count}} stack",
-    "heldBy_other": "{{member}}: in {{count}} stacks"
+    "heldBy_other": "{{member}}: in {{count}} stacks",
+    "main": "Main org",
+    "mainHelp": "Your main org gets your points and is the one the dashboard shows, as in Star Citizen.",
+    "makeMain": "Make main",
+    "handoverTitle": "Appoint a new manager of {{org}}",
+    "handoverHelp": "You are the org's last manager. Pick a member to take over before you leave.",
+    "newManager": "New manager",
+    "appointAndLeave": "Appoint and leave"
   },
   "items": {
     "title": "Items",
