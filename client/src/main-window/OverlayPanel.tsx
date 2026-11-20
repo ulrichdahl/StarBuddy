@@ -7,6 +7,7 @@ import { listenFailed } from "../listen";
 import { KdeRuleRow } from "./KdeRuleRow";
 import { ScreenReadingPanel } from "./ScreenReadingPanel";
 import type { HotkeyInfo, Reading } from "./types";
+import type { MainMode, MainState } from "./mainMode";
 
 /** Which of the panel's three parts a Settings tab shows. */
 export type OverlayPart = "hotkeys" | "reading" | "diagnostics";
@@ -17,7 +18,18 @@ export type OverlayPart = "hotkeys" | "reading" | "diagnostics";
  * share what the client says about the hotkeys and the screen; Settings shows
  * each part under its own tab.
  */
-export function OverlayPanel({ paired, part }: { paired: boolean; part: OverlayPart }) {
+export function OverlayPanel({
+  paired,
+  part,
+  mainState,
+  onMainMode,
+}: {
+  paired: boolean;
+  part: OverlayPart;
+  /** How the main window opens over the game; Overlay & hotkeys only. */
+  mainState?: MainState | null;
+  onMainMode?: (mode: MainMode) => Promise<void>;
+}) {
   const { t } = useTranslation();
   /** Whether the client is watching the game's window, and what it says about it. */
   const [reading, setReading] = useState<Reading | null>(null);
@@ -205,6 +217,28 @@ export function OverlayPanel({ paired, part }: { paired: boolean; part: OverlayP
   }
 
   return (
+    <>
+    {mainState && onMainMode && (
+      <section className="panel">
+        <h2>{t("settings.openAs")}</h2>
+        <div className="sb-choices" role="radiogroup" aria-label={t("settings.openAs")}>
+          {(["overlay", "window"] as const).map((m) => (
+            <label key={m} className={`sb-choice${mainState.mode === m ? " on" : ""}`}>
+              <input
+                type="radio"
+                name="main-mode"
+                checked={mainState.mode === m}
+                onChange={() => void onMainMode(m).catch((e) => setOverlayError(String(e)))}
+              />
+              <span className="sb-choice-name">{t(`settings.mode.${m}`)}</span>
+              <span className="sb-choice-text">{t(`settings.modeText.${m}`)}</span>
+            </label>
+          ))}
+        </div>
+        <p className="hint">{t("settings.modeNoGame")}</p>
+        <div className="row">{hotkeyField("main", t("settings.hotkeyMain"), "Insert")}</div>
+      </section>
+    )}
     <section className="panel">
       <h2>{t("overlay.panelTitle")}</h2>
       <p className="hint">{t("overlay.panelHint")}</p>
@@ -231,7 +265,7 @@ export function OverlayPanel({ paired, part }: { paired: boolean; part: OverlayP
         <details className="update-notes">
           <summary>{t("overlay.hotkeyDesktopUnset")}</summary>
           <pre>
-            {["status", "scan", "refinery", "capture", "reading"]
+            {["main", "status", "scan", "refinery", "capture", "reading"]
               .map((action) => `${hotkey.action_command}${action}`)
               .join("\n")}
           </pre>
@@ -281,5 +315,6 @@ export function OverlayPanel({ paired, part }: { paired: boolean; part: OverlayP
       )}
       {!paired && <p className="hint">{t("overlay.pairHint")}</p>}
     </section>
+    </>
   );
 }

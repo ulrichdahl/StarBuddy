@@ -10,6 +10,7 @@ mod host;
 mod http;
 mod kde_rule;
 mod lock;
+mod main_window;
 mod outbox;
 mod pairing;
 mod prefs;
@@ -183,13 +184,22 @@ pub fn run() {
             // after the main window is closed.
             if let Some(main) = app.get_webview_window("main") {
                 let exit_handle = handle.clone();
+                let close_win = main.clone();
                 main.on_window_event(move |event| {
-                    if let tauri::WindowEvent::CloseRequested { .. } = event {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        // As the overlay, closing puts it away; the hotkey
+                        // brings it back. As a window, it quits StarBuddy.
+                        if !close_win.is_decorated().unwrap_or(true) {
+                            api.prevent_close();
+                            main_window::hide(&exit_handle);
+                            return;
+                        }
                         overlay::save_now(&exit_handle);
                         exit_handle.exit(0);
                     }
                 });
             }
+            main_window::setup(&handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -230,6 +240,9 @@ pub fn run() {
             region::region_current,
             region::region_clear,
             region::region_frame,
+            main_window::main_mode_get,
+            main_window::main_mode_set,
+            main_window::main_hide,
             tools::tool_links_get,
             tools::tool_links_set,
             training::training_capture,

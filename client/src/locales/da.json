@@ -341,7 +341,8 @@
       "scan": "scanning",
       "refinery": "raffinaderiordre",
       "capture": "træningsbillede",
-      "reading": "skærmaflæsning"
+      "reading": "skærmaflæsning",
+      "main": "StarBuddy"
     },
     "report": "Systemoplysninger",
     "reportCopy": "Kopiér",
@@ -382,7 +383,10 @@
       "org": "Din orgs medlemmer, events og opslag fra hjemmesiden.",
       "refinery": "Dine raffinaderiordrer i én liste med den resterende tid på hver.",
       "tools": "Orgens sider og fællesskabets værktøjer, et klik fra spillet."
-    }
+    },
+    "hide": "Tilbage til spillet",
+    "keyToggle": "vis / skjul",
+    "keyBack": "tilbage til spillet"
   },
   "home": {
     "servers": "Servere",
@@ -490,6 +494,17 @@
       "updates": "Opdateringer",
       "diagnostics": "Fejlsøgning"
     },
-    "reportHint": "Når noget ikke virker, fortæller denne rapport, hvad StarBuddy ved om din maskine. Sæt den ind sammen med dit spørgsmål."
+    "reportHint": "Når noget ikke virker, fortæller denne rapport, hvad StarBuddy ved om din maskine. Sæt den ind sammen med dit spørgsmål.",
+    "openAs": "Åbn StarBuddy som",
+    "mode": {
+      "overlay": "Overlay",
+      "window": "Vindue"
+    },
+    "modeText": {
+      "overlay": "Over spillet, uden ramme. Genvejstasten viser og skjuler det, og det bliver, hvor du placerer det.",
+      "window": "Et almindeligt vindue, du skifter til med Alt+Tab."
+    },
+    "modeNoGame": "Når spillet ikke kører, åbner StarBuddy altid som et vindue.",
+    "hotkeyMain": "Vis / skjul StarBuddy"
   }
 }

@@ -341,7 +341,8 @@
       "scan": "scan",
       "refinery": "refinery order",
       "capture": "training screenshot",
-      "reading": "screen reading"
+      "reading": "screen reading",
+      "main": "StarBuddy"
     },
     "report": "System info",
     "reportCopy": "Copy",
@@ -382,7 +383,10 @@
       "org": "Your org's members, events and notices, from the website.",
       "refinery": "Your refinery orders in one list, with the time left on each.",
       "tools": "The org's pages and the community's tools, one click from the game."
-    }
+    },
+    "hide": "Back to the game",
+    "keyToggle": "show / hide",
+    "keyBack": "back to game"
   },
   "home": {
     "servers": "Servers",
@@ -490,6 +494,17 @@
       "updates": "Updates",
       "diagnostics": "Diagnostics"
     },
-    "reportHint": "When something does not work, this report says what StarBuddy knows about your machine. Paste it with your question."
+    "reportHint": "When something does not work, this report says what StarBuddy knows about your machine. Paste it with your question.",
+    "openAs": "Open StarBuddy as",
+    "mode": {
+      "overlay": "Overlay",
+      "window": "Window"
+    },
+    "modeText": {
+      "overlay": "Over the game, without a frame. The hotkey shows and hides it, and it stays where you put it.",
+      "window": "A normal desktop window you switch to with Alt+Tab."
+    },
+    "modeNoGame": "While the game is not running, StarBuddy always opens as a window.",
+    "hotkeyMain": "Show / hide StarBuddy"
   }
 }

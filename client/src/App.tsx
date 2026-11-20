@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { LOCALE_NAMES, SUPPORTED_LOCALES, setLocale, type Locale } from "./i18n";
 import { ChangesPanel } from "./main-window/ChangesPanel";
@@ -15,6 +16,8 @@ import { Home } from "./main-window/Home";
 import { Refinery } from "./main-window/Refinery";
 import { Tools } from "./main-window/Tools";
 import { Settings, useSettingsTab } from "./main-window/Settings";
+import { useMainMode } from "./main-window/mainMode";
+import type { HotkeyInfo } from "./main-window/types";
 import { ComingSoon, COMING_SOON, Shell, useSection } from "./main-window/Shell";
 import type { ConnectionView, ScanResult, UpdateCheck } from "./main-window/types";
 import "./theme.css";
@@ -30,6 +33,8 @@ function App() {
   const { t, i18n } = useTranslation();
   const [section, setSection] = useSection();
   const [settingsTab, setSettingsTab] = useSettingsTab();
+  const [mainState, setMainMode] = useMainMode();
+  const [mainKey, setMainKey] = useState<string | null>(null);
   const [version, setVersion] = useState<string | null>(null);
   const [liveDir, setLiveDir] = useState<string | null>(null);
   const [customDir, setCustomDir] = useState("");
@@ -44,6 +49,11 @@ function App() {
     // Errors (offline, rate-limited, odd tag) mean "no update info", never an update.
     invoke<UpdateCheck>("check_for_update").then(setUpdate).catch(() => {});
     invoke<{ version: string }>("app_version").then((v) => setVersion(v.version)).catch(() => {});
+    const readKey = () => invoke<HotkeyInfo>("overlay_hotkey").then((h) => setMainKey(h.hotkeys.main ?? null)).catch(() => {});
+    void readKey();
+    // The footer names the key, so it follows a change made in Settings.
+    const sub = listen("hotkeys-changed", () => void readKey()).catch(() => null);
+    return () => void sub.then((un) => un?.());
   }, []);
 
   const onUpdate = (info: UpdateCheck, offered: boolean) => {
@@ -73,7 +83,7 @@ function App() {
         tab={settingsTab}
         onTab={setSettingsTab}
         panels={{
-          hotkeys: <OverlayPanel paired={paired} part="hotkeys" />,
+          hotkeys: <OverlayPanel paired={paired} part="hotkeys" mainState={mainState} onMainMode={setMainMode} />,
           game: (
             <>
               <GameFolderPanel
@@ -120,7 +130,7 @@ function App() {
   }
 
   return (
-    <Shell section={section} onSection={setSection} version={version}>
+    <Shell section={section} onSection={setSection} version={version} showingAs={mainState?.showing_as ?? "window"} mainKey={mainKey}>
       {body}
     </Shell>
   );

@@ -26,6 +26,10 @@ pub(crate) struct ClientPrefs {
     pub(crate) share_reads_for_training: bool,
     /// Links the player added to Tools, in the order they added them.
     pub(crate) tool_links: Vec<crate::tools::ToolLink>,
+    /// How the main window opens over the game, when the game is running.
+    pub(crate) main_mode: crate::main_window::MainMode,
+    /// Where the main window was left as an overlay.
+    pub(crate) main_overlay_at: Option<crate::main_window::Placement>,
 }
 
 fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {

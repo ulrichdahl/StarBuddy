@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { asSeverity, onRsiStatus, type RsiStatusUpdate } from "../status";
+import type { MainMode } from "./mainMode";
 import "./shell.css";
 
 /** Every section of the main window, in the order the rail lists them. */
@@ -129,22 +131,47 @@ export function Shell({
   section,
   onSection,
   version,
+  showingAs,
+  mainKey,
   children,
 }: {
   section: Section;
   onSection: (s: Section) => void;
   version: string | null;
+  /** The window as it is now: a desktop window, or the overlay over the game. */
+  showingAs: MainMode;
+  /** The key that shows and hides the overlay, as the player set it. */
+  mainKey: string | null;
   children: ReactNode;
 }) {
   const { t } = useTranslation();
+  const overlay = showingAs === "overlay";
+  // The overlay has no frame of its own: Esc puts it away, as the footer says.
+  useEffect(() => {
+    if (!overlay) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.defaultPrevented) void invoke("main_hide").catch(() => {});
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [overlay]);
+  // Without a frame, the title bar is what the overlay is moved by.
+  const drag = overlay ? { "data-tauri-drag-region": "" } : {};
   return (
-    <div className="sb">
-      <header className="sb-hd">
-        <span className="sb-grip" aria-hidden="true" />
-        <span className="sb-brand">StarBuddy</span>
-        <span className="sb-sect">{t(`shell.section.${section}`)}</span>
-        <span className="sb-sp" />
+    <div className={`sb${overlay ? " sb-overlay" : ""}`}>
+      <header className="sb-hd" {...drag}>
+        <span className="sb-grip" aria-hidden="true" {...drag} />
+        <span className="sb-brand" {...drag}>StarBuddy</span>
+        <span className="sb-sect" {...drag}>{t(`shell.section.${section}`)}</span>
+        <span className="sb-sp" {...drag} />
         <ServerChip />
+        {overlay && (
+          <button type="button" className="sb-hd-x" aria-label={t("shell.hide")} title={t("shell.hide")} onClick={() => void invoke("main_hide").catch(() => {})}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        )}
       </header>
       <div className="sb-mid">
         <nav className="sb-rail" aria-label={t("shell.sections")}>
@@ -169,6 +196,18 @@ export function Shell({
         </nav>
         <main className="sb-main">{children}</main>
       </div>
+      {overlay && (
+        <footer className="sb-ft">
+          {mainKey && (
+            <span>
+              <kbd className="sb-kbd">{mainKey}</kbd> {t("shell.keyToggle")}
+            </span>
+          )}
+          <span>
+            <kbd className="sb-kbd">Esc</kbd> {t("shell.keyBack")}
+          </span>
+        </footer>
+      )}
     </div>
   );
 }
