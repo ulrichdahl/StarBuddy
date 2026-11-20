@@ -125,6 +125,7 @@ function RankTile({ label, rank, count, value, gap, selected, onSelect }: TilePr
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'stretch',
+        justifyContent: 'flex-start',
         textAlign: 'left',
         gap: 1.25,
         px: 2.25,
@@ -233,10 +234,11 @@ function Trend({ value }: { value: number | null }) {
   )
 }
 
+// Pixel strings: in sx a bare 1 means 100%.
 const visuallyHidden = {
   position: 'absolute',
-  width: 1,
-  height: 1,
+  width: '1px',
+  height: '1px',
   overflow: 'hidden',
   clip: 'rect(0 0 0 0)',
   whiteSpace: 'nowrap',
@@ -401,7 +403,7 @@ function MembersBoard({ period, meId }: { period: CompetitionPeriod; meId: numbe
                 }}
               >
                 <Box component="span" role="cell" sx={{ fontFamily: fonts.display, fontWeight: 700, fontSize: 18, color: m.points > 0 ? medal(m.rank) : hud.textFaint }}>
-                  {String(m.rank).padStart(2, '0')}
+                  {m.points > 0 ? String(m.rank).padStart(2, '0') : '—'}
                 </Box>
                 <Box component="span" role="cell" sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
                   <PersonAvatar name={m.handle} src={m.avatar_url} size={28} ring={false} />
