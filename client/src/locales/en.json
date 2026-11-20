@@ -506,7 +506,6 @@
     },
     "modeNoGame": "While the game is not running, StarBuddy always opens as a window.",
     "hotkeyMain": "Show / hide StarBuddy",
-    "hotkeys": "Hotkeys",
     "show": "Show",
     "hide": "Hide",
     "start": "Start",
@@ -531,7 +530,10 @@
       "scan": "Reads the scan signature",
       "capture": "Helps improve the reader"
     },
-    "change": "Change"
+    "change": "Change",
+    "groupWindows": "Windows",
+    "groupCapture": "Screen capture",
+    "captureNeedsReading": "These read the game's window: turn screen reading on first."
   },
   "gathering": {
     "lead": "What your pinned craft targets need, against what you hold at the right quality.",

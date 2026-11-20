@@ -235,14 +235,16 @@ export function OverlayPanel({
   return (
     <>
       <section className="panel">
-        <h2>{t("settings.hotkeys")}</h2>
+        <h2>{t("settings.groupWindows")}</h2>
         {row("main")}
         {row(
           "status",
           <button onClick={toggleStatusWindow}>{statusOpen ? t("settings.hide") : t("settings.show")}</button>,
         )}
+      </section>
+      <section className="panel">
+        <h2>{t("settings.groupCapture")}</h2>
         {row("reading")}
-        {row("refinery")}
         {row(
           "scan",
           <>
@@ -254,17 +256,21 @@ export function OverlayPanel({
             </button>
           </>,
         )}
+        {row("refinery")}
         {row(
           "capture",
           <button disabled={!reading?.on} onClick={sendTrainingCapture}>
             {t("settings.sendNow")}
           </button>,
         )}
+        {!reading?.on && <p className="hint">{t("settings.captureNeedsReading")}</p>}
         {captureStatus && (
           <p className={captureStatus.phase === "error" ? "error" : "hint"}>
             {t(`overlay.capture.${captureStatus.phase}`, { detail: captureStatus.detail })}
           </p>
         )}
+      </section>
+      <section className="panel sb-notes">
         {hotkey && (
           <p className="hint">
             {t("settings.hkCount", { count: Object.keys(hotkey.hotkeys).length - Object.keys(hotkey.failed ?? {}).length })}

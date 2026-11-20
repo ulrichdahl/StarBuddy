@@ -579,3 +579,6 @@ body {
 .sb-still { color: var(--amber2); }
 .sb-row-done .sb-still { color: var(--green); }
 .sb-below { color: var(--amber); margin-left: 2px; }
+/* Notes that belong to every hotkey: a line, not a panel of their own. */
+.sb .panel.sb-notes { background: none; border: 0; clip-path: none; padding: 0 2px; }
+.sb .panel.sb-notes:not(:has(*)) { display: none; }

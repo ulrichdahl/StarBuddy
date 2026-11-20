@@ -506,7 +506,6 @@
     },
     "modeNoGame": "Når spillet ikke kører, åbner StarBuddy altid som et vindue.",
     "hotkeyMain": "Vis / skjul StarBuddy",
-    "hotkeys": "Genvejstaster",
     "show": "Vis",
     "hide": "Skjul",
     "start": "Start",
@@ -531,7 +530,10 @@
       "scan": "Aflæser scanningssignaturen",
       "capture": "Hjælper med at forbedre aflæsningen"
     },
-    "change": "Skift"
+    "change": "Skift",
+    "groupWindows": "Vinduer",
+    "groupCapture": "Skærmaflæsning",
+    "captureNeedsReading": "Disse aflæser spillets vindue: slå skærmaflæsning til først."
   },
   "gathering": {
     "lead": "Hvad dine fastgjorte fremstillingsmål kræver, holdt op mod hvad du har i den rette kvalitet.",
