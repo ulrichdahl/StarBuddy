@@ -450,5 +450,17 @@
       "sctrade": "Trade route planner"
     },
     "page": {}
+  },
+  "settings": {
+    "tab": {
+      "hotkeys": "Overlay & hotkeys",
+      "game": "Game install",
+      "reading": "Screen reading",
+      "account": "Account & server",
+      "language": "Language",
+      "updates": "Updates",
+      "diagnostics": "Diagnostics"
+    },
+    "reportHint": "When something does not work, this report says what StarBuddy knows about your machine. Paste it with your question."
   }
 }

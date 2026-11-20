@@ -450,5 +450,17 @@
       "sctrade": "Planlægning af handelsruter"
     },
     "page": {}
+  },
+  "settings": {
+    "tab": {
+      "hotkeys": "Overlay og genvejstaster",
+      "game": "Spilinstallation",
+      "reading": "Skærmaflæsning",
+      "account": "Konto og server",
+      "language": "Sprog",
+      "updates": "Opdateringer",
+      "diagnostics": "Fejlsøgning"
+    },
+    "reportHint": "Når noget ikke virker, fortæller denne rapport, hvad StarBuddy ved om din maskine. Sæt den ind sammen med dit spørgsmål."
   }
 }

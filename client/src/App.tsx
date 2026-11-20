@@ -14,6 +14,7 @@ import { useWatcher, WatcherPanel } from "./main-window/WatcherPanel";
 import { Home } from "./main-window/Home";
 import { Refinery } from "./main-window/Refinery";
 import { Tools } from "./main-window/Tools";
+import { Settings, useSettingsTab } from "./main-window/Settings";
 import { ComingSoon, COMING_SOON, Shell, useSection } from "./main-window/Shell";
 import type { ConnectionView, ScanResult, UpdateCheck } from "./main-window/types";
 import "./theme.css";
@@ -28,6 +29,7 @@ import "./App.css";
 function App() {
   const { t, i18n } = useTranslation();
   const [section, setSection] = useSection();
+  const [settingsTab, setSettingsTab] = useSettingsTab();
   const [version, setVersion] = useState<string | null>(null);
   const [liveDir, setLiveDir] = useState<string | null>(null);
   const [customDir, setCustomDir] = useState("");
@@ -67,36 +69,53 @@ function App() {
     body = <Tools connection={connection} />;
   } else {
     body = (
-      <>
-        <section className="panel">
-          <h2>{t("header.language")}</h2>
-          <select
-            className="locale-select"
-            aria-label={t("header.language")}
-            value={i18n.language}
-            onChange={(e) => setLocale(e.target.value as Locale)}
-          >
-            {SUPPORTED_LOCALES.map((code) => (
-              <option key={code} value={code}>
-                {LOCALE_NAMES[code]}
-              </option>
-            ))}
-          </select>
-        </section>
-        <ServerPanel connection={connection} onConnection={setConnection} />
-        <OverlayPanel paired={paired} />
-        <GameFolderPanel
-          liveDir={liveDir}
-          onLiveDir={setLiveDir}
-          customDir={customDir}
-          onCustomDir={setCustomDir}
-          onResult={setResult}
-        />
-        <WatcherPanel watcher={watcher} canStart={canStart} />
-        {result && <EventsTable result={result} paired={paired} />}
-        <ChangesPanel />
-        <Footer update={update} onUpdate={onUpdate} />
-      </>
+      <Settings
+        tab={settingsTab}
+        onTab={setSettingsTab}
+        panels={{
+          hotkeys: <OverlayPanel paired={paired} part="hotkeys" />,
+          game: (
+            <>
+              <GameFolderPanel
+                liveDir={liveDir}
+                onLiveDir={setLiveDir}
+                customDir={customDir}
+                onCustomDir={setCustomDir}
+                onResult={setResult}
+              />
+              <WatcherPanel watcher={watcher} canStart={canStart} />
+              {result && <EventsTable result={result} paired={paired} />}
+            </>
+          ),
+          reading: <OverlayPanel paired={paired} part="reading" />,
+          account: <ServerPanel connection={connection} onConnection={setConnection} />,
+          language: (
+            <section className="panel">
+              <h2>{t("header.language")}</h2>
+              <select
+                className="locale-select"
+                aria-label={t("header.language")}
+                value={i18n.language}
+                onChange={(e) => setLocale(e.target.value as Locale)}
+              >
+                {SUPPORTED_LOCALES.map((code) => (
+                  <option key={code} value={code}>
+                    {LOCALE_NAMES[code]}
+                  </option>
+                ))}
+              </select>
+            </section>
+          ),
+          updates: (
+            <>
+              <UpdateBanner update={update} dismissed={updateDismissed} onDismiss={() => setUpdateDismissed(true)} />
+              <ChangesPanel />
+              <Footer update={update} onUpdate={onUpdate} />
+            </>
+          ),
+          diagnostics: <OverlayPanel paired={paired} part="diagnostics" />,
+        }}
+      />
     );
   }
 

@@ -8,8 +8,16 @@ import { KdeRuleRow } from "./KdeRuleRow";
 import { ScreenReadingPanel } from "./ScreenReadingPanel";
 import type { HotkeyInfo, Reading } from "./types";
 
-/** The overlay windows, the hotkeys that drive them, and reading the screen. */
-export function OverlayPanel({ paired }: { paired: boolean }) {
+/** Which of the panel's three parts a Settings tab shows. */
+export type OverlayPart = "hotkeys" | "reading" | "diagnostics";
+
+/**
+ * The overlay windows, the hotkeys that drive them, reading the screen, and
+ * the report for when one of them does not work. One component because they
+ * share what the client says about the hotkeys and the screen; Settings shows
+ * each part under its own tab.
+ */
+export function OverlayPanel({ paired, part }: { paired: boolean; part: OverlayPart }) {
   const { t } = useTranslation();
   /** Whether the client is watching the game's window, and what it says about it. */
   const [reading, setReading] = useState<Reading | null>(null);
@@ -147,6 +155,55 @@ export function OverlayPanel({ paired }: { paired: boolean }) {
       .catch((e) => setOverlayError(String(e)));
   };
 
+  const errors = (
+    <>
+      {scanError && <p className="error">{scanError}</p>}
+      {overlayError && <p className="error">{overlayError}</p>}
+      {hotkeyError && <p className="error">{hotkeyError}</p>}
+    </>
+  );
+
+  if (part === "reading") {
+    return (
+      <section className="panel">
+        <h2>{t("settings.tab.reading")}</h2>
+        <ScreenReadingPanel reading={reading} onReading={setReading} onError={setOverlayError} hotkeyField={hotkeyField} />
+        {errors}
+      </section>
+    );
+  }
+
+  if (part === "diagnostics") {
+    return (
+      <section className="panel">
+        <h2>{t("settings.tab.diagnostics")}</h2>
+        <p className="hint">{t("settings.reportHint")}</p>
+        {/* What to send when something here does not work. The answers are
+            all things the client knows and nobody should have to dig a log
+            file out of a hidden folder for. */}
+        <div className="row">
+          <button onClick={systemReport}>{t("overlay.report")}</button>
+          {report && (
+            <button
+              onClick={() =>
+                void navigator.clipboard
+                  .writeText(report)
+                  .then(() => setReportCopied(true))
+                  .catch(() => setReportCopied(false))
+              }
+            >
+              {reportCopied ? t("overlay.reportCopied") : t("overlay.reportCopy")}
+            </button>
+          )}
+          <button onClick={() => invoke("open_log_dir").catch((e) => setOverlayError(String(e)))}>{t("update.openLog")}</button>
+        </div>
+        {report && <pre className="report">{report}</pre>}
+        <KdeRuleRow />
+        {errors}
+      </section>
+    );
+  }
+
   return (
     <section className="panel">
       <h2>{t("overlay.panelTitle")}</h2>
@@ -180,7 +237,6 @@ export function OverlayPanel({ paired }: { paired: boolean }) {
           </pre>
         </details>
       )}
-      <ScreenReadingPanel reading={reading} onReading={setReading} onError={setOverlayError} hotkeyField={hotkeyField} />
       <div className="row">
         <button onClick={toggleStatusWindow}>
           {statusOpen ? t("overlay.hideStatus") : t("overlay.showStatus")}
@@ -217,35 +273,13 @@ export function OverlayPanel({ paired }: { paired: boolean }) {
           {t(`overlay.capture.${captureStatus.phase}`, { detail: captureStatus.detail })}
         </p>
       )}
-      {/* What to send when something here does not work. The answers are
-          all things the client knows and nobody should have to dig a log
-          file out of a hidden folder for. */}
-      <div className="row">
-        <button onClick={systemReport}>{t("overlay.report")}</button>
-        {report && (
-          <button
-            onClick={() =>
-              void navigator.clipboard
-                .writeText(report)
-                .then(() => setReportCopied(true))
-                .catch(() => setReportCopied(false))
-            }
-          >
-            {reportCopied ? t("overlay.reportCopied") : t("overlay.reportCopy")}
-          </button>
-        )}
-      </div>
-      {report && <pre className="report">{report}</pre>}
-      {scanError && <p className="error">{scanError}</p>}
-      {overlayError && <p className="error">{overlayError}</p>}
-      {hotkeyError && <p className="error">{hotkeyError}</p>}
+      {errors}
       {hotkey && !hotkey.global_supported && (
         <p className="hint">
           {t("overlay.waylandHint")} <code>{hotkey.toggle_command}</code>
         </p>
       )}
       {!paired && <p className="hint">{t("overlay.pairHint")}</p>}
-      <KdeRuleRow />
     </section>
   );
 }
