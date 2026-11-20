@@ -111,7 +111,7 @@ class UdiLinkController extends Controller
     /** The setup page per language; the token goes in the fragment: <url>#starbuddy=<token>. */
     public static function setupUrls(): array
     {
-        $base = config('starbuddy.udi_url');
+        $base = config('starbuddy.udi_public_url');
 
         return [
             'da' => "{$base}/vaerktoej/star-labels",

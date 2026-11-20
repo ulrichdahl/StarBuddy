@@ -50,4 +50,7 @@ return [
     // (docs: UnitedDanes website docs/starbuddy-api.md). The server only
     // checks the link's status and unlinks; desktop clients fetch the files.
     'udi_url' => rtrim(env('STARBUDDY_UDI_URL', 'https://uniteddanes.org'), '/'),
+    // Where the player's browser opens the setup page. Differs from udi_url
+    // only in local dev, where the server reaches UDI through the Docker host.
+    'udi_public_url' => rtrim(env('STARBUDDY_UDI_PUBLIC_URL') ?: env('STARBUDDY_UDI_URL', 'https://uniteddanes.org'), '/'),
 ];

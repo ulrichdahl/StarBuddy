@@ -15,7 +15,7 @@ class UdiLinkTest extends TestCase
 
     public function test_the_token_is_made_once_kept_secret_and_unlinked(): void
     {
-        config(['starbuddy.udi_url' => 'https://udi.test']);
+        config(['starbuddy.udi_url' => 'https://udi.test', 'starbuddy.udi_public_url' => 'https://udi.example']);
         Http::fake([
             'udi.test/api/starbuddy/profile' => Http::sequence()
                 ->push(['message' => 'Unknown'], 404)
@@ -30,7 +30,7 @@ class UdiLinkTest extends TestCase
         $token = $this->getJson('/api/me/udi-link')->assertOk()->assertHeader('Cache-Control', 'no-store, private')->json('token');
         $this->assertMatchesRegularExpression('/^[A-Za-z0-9_-]{43}$/', $token);
         $this->assertSame($token, $this->getJson('/api/me/udi-link')->json('token'), 'made once');
-        $this->assertSame('https://udi.test/vaerktoej/star-labels', $this->getJson('/api/me/udi-link')->json('setup_url.da'));
+        $this->assertSame('https://udi.example/vaerktoej/star-labels', $this->getJson('/api/me/udi-link')->json('setup_url.da'));
 
         $this->assertStringNotContainsString($token, (string) DB::table('users')->value('udi_link_token'), 'stored encrypted');
         $this->assertArrayNotHasKey('udi_link_token', $this->getJson('/api/me')->json());
