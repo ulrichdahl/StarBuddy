@@ -354,6 +354,8 @@ export interface BlueprintInfo {
   stat_ranges: Record<string, { min_percent: number; max_percent: number }>
   /** The reward pools holding this blueprint, tightest draw first. */
   missions: BlueprintPool[]
+  /** Pinned as a craft target, and how many; null when not pinned. */
+  craft_target: { quantity: number } | null
 }
 
 /** One mission, and whether the game has it on the board yet. */
@@ -376,6 +378,8 @@ export interface PoolMember {
   draw_percent: number | null
   owned: boolean
   is_this_one: boolean
+  /** Org members holding it, the viewer included. */
+  holders: { id: number; handle: string | null }[]
 }
 
 /**
@@ -394,6 +398,12 @@ export interface BlueprintPool {
   contents: PoolMember[]
   draw_percent: number | null
   sources: PoolSource[]
+  /** Held by anyone in the org, or free to everyone. */
+  owned_in_pool_org: number
+  /** The viewer is farming this pool. */
+  tracked: boolean
+  /** Contractors handing the pool out. */
+  factions: string[]
 }
 
 export interface CatalogCategory {
