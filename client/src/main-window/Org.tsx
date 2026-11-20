@@ -14,6 +14,8 @@ interface Me {
 interface Mate {
   id: number;
   handle: string | null;
+  /** Discord CDN; the client's CSP allows cdn.discordapp.com images. */
+  avatar_url: string | null;
   presence: {
     running: boolean;
     environment: string | null;
@@ -128,6 +130,13 @@ export function Org({ paired }: { paired: boolean }) {
                 return (
                   <tr key={m.id} className={p?.running ? "" : "sb-row-done"}>
                     <td>
+                      {m.avatar_url ? (
+                        <img className="sb-avatar" src={m.avatar_url} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                      ) : (
+                        <span className="sb-avatar sb-avatar-none" aria-hidden="true">
+                          {(m.handle ?? "?").slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
                       {m.handle ?? "—"}
                       {you && <span className="sb-dim"> ({t("org.you")})</span>}
                       {p?.character_name && p.character_name !== m.handle && <span className="sb-dim"> · {p.character_name}</span>}
