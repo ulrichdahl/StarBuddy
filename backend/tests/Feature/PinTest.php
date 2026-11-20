@@ -58,7 +58,7 @@ class PinTest extends TestCase
 
         $this->pool = BlueprintPool::create([
             'key' => 'bp_missionreward_cfp_chain', 'record' => 'BlueprintPoolRecord.BP_MISSIONREWARD_CFP_Chain',
-            'sources' => [['kind' => 'contract', 'contractor' => 'Citizens for Prosperity', 'chance' => 1, 'missions' => []]],
+            'sources' => [['kind' => 'contract', 'contractor' => 'Citizens for Prosperity', 'chance' => 1, 'missions' => [['title' => 'Reclaim Outpost', 'unreleased' => false]]]],
         ]);
         foreach ([$this->battery, $this->rifle] as $bp) {
             BlueprintPoolEntry::create([
@@ -112,6 +112,7 @@ class PinTest extends TestCase
         $this->assertSame(2, $res[0]['in_pool']);
         $this->assertSame(0, $res[0]['owned_in_pool']);
         $this->assertSame(['Citizens for Prosperity'], $res[0]['factions']);
+        $this->assertSame('Reclaim Outpost', $res[0]['sources'][0]['missions'][0]['title']);
 
         $pool = $this->getJson("/api/blueprints/{$this->battery->id}")->json('missions.0');
         $this->assertTrue($pool['tracked']);

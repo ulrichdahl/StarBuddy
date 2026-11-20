@@ -32,6 +32,9 @@ class TrackedPoolController extends Controller
                 'pool_key' => $t->pool->key,
                 'pool_label' => $t->pool->label(),
                 'factions' => collect($t->pool->sources ?? [])->pluck('contractor')->filter()->unique()->values(),
+                // Who hands it out and the missions or event tiers that do,
+                // as GET /api/blueprints/{id} gives them per pool.
+                'sources' => $t->pool->sources ?? [],
                 'in_pool' => $entries->count(),
                 'owned_in_pool' => $entries->filter($owned)->count(),
                 'missing' => $entries->reject($owned)->map(fn ($e) => [
