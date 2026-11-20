@@ -277,7 +277,7 @@
     "footnoteAll": "Placeringerne opdateres når medlemmernes desktopklienter synkroniserer Game.log; udviklingen sammenlignes med for en uge siden. Samlet = hver kategori som andel af føreren, lagt sammen (højst {{max}} point).",
     "contribution": "Dit bidrag",
     "contribResources": "Ressourcer (SCU)",
-    "refineryQueue": "Raffineringskø",
+    "refineryQueue": "Raffineringsordrer",
     "openCount": "{{count}} åbne",
     "noOpenOrders": "Intet på raffinaderiet.",
     "openRefinery": "Åbn raffinering →",
@@ -292,7 +292,12 @@
     "hangar": "{{formatted}} stk. i fælles hangar",
     "noOrgHelp": "Bliv medlem af en org for at se hvordan den klarer sig mod de andre.",
     "findOrg": "Find en org",
-    "loadError": "Kunne ikke hente ranglisten."
+    "loadError": "Kunne ikke hente ranglisten.",
+    "trackedPools": "Fulgte puljer",
+    "noTrackedPools": "Følg en belønningspulje fra en blueprints detaljer for at se den her.",
+    "poolComplete": "Du har alle blueprints i denne pulje.",
+    "stillMissing": "Mangler stadig",
+    "unnamedBlueprint": "Unavngivet opskrift"
   },
   "profile": {
     "title": "Star Citizen-handle",

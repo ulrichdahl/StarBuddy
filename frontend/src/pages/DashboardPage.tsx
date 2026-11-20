@@ -13,6 +13,7 @@ import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined'
 import SchemaOutlinedIcon from '@mui/icons-material/SchemaOutlined'
 import TrackChangesIcon from '@mui/icons-material/TrackChanges'
 import DiamondOutlinedIcon from '@mui/icons-material/DiamondOutlined'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import { api, unwrapList } from '../lib/api'
 import { displayName } from '../lib/people'
 import { formatDuration } from '../lib/refining'
@@ -28,6 +29,7 @@ import type {
 import { useNow } from '../lib/useNow'
 import { HudBadge, HudPanel, Mono, OrgTag, PersonAvatar } from '../components/hud'
 import { OrganizationsDialog } from '../components/OrganizationsDialog'
+import { BlueprintInfoDialog } from '../components/BlueprintInfoDialog'
 import { OrgMembersDialog } from '../components/OrgMembersDialog'
 import { fonts, hud } from '../theme'
 
@@ -400,7 +402,7 @@ function Contribution({ data }: { data: NonNullable<Competition['contribution']>
   )
 }
 
-function RefineryQueue() {
+function RefineryOrders() {
   const { t } = useTranslation()
   const { n } = useFormat()
   const now = useNow(1000)
@@ -463,6 +465,108 @@ function RefineryQueue() {
       <Link component={RouterLink} to="/refinery" sx={{ fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
         {t('dashboard.openRefinery')}
       </Link>
+    </HudPanel>
+  )
+}
+
+/** One tracked reward pool, from GET /api/tracked-pools. */
+interface TrackedPool {
+  pool_key: string
+  pool_label: string
+  factions: string[]
+  in_pool: number
+  owned_in_pool: number
+  missing: { blueprint_id: number | null; name: string | null; key: string }[]
+}
+
+/**
+ * Reward pools the member is farming, as the blueprint dialog folds them:
+ * who hands it out, how much is held, and (opened) what is still missing.
+ * Fewest missing first, finished pools last.
+ */
+function TrackedPools({ onOpenBlueprint }: { onOpenBlueprint: (id: number) => void }) {
+  const { t } = useTranslation()
+  const [openKey, setOpenKey] = useState<string | null>(null)
+  const { data: pools = [] } = useQuery({
+    queryKey: ['tracked-pools'],
+    queryFn: async () => (await api.get<TrackedPool[]>('/api/tracked-pools')).data,
+  })
+  const left = (p: TrackedPool) => p.in_pool - p.owned_in_pool
+  const sorted = [...pools].sort((a, b) => Number(left(a) === 0) - Number(left(b) === 0) || left(a) - left(b))
+
+  return (
+    <HudPanel
+      title={t('dashboard.trackedPools')}
+      id="pools"
+      sx={{ bgcolor: hud.input, gap: 1 }}
+      aside={pools.length > 0 && <HudBadge>{pools.length}</HudBadge>}
+    >
+      {pools.length === 0 && (
+        <Typography variant="body2" sx={{ color: hud.textDim }}>
+          {t('dashboard.noTrackedPools')}
+        </Typography>
+      )}
+      {sorted.map((p) => {
+        const open = openKey === p.pool_key
+        const done = left(p) === 0
+        return (
+          <Box key={p.pool_key} sx={{ border: `1px solid ${open ? '#2f6f6a' : hud.lineSoft}`, bgcolor: '#0f161b' }}>
+            <ButtonBase
+              aria-expanded={open}
+              onClick={() => setOpenKey(open ? null : p.pool_key)}
+              sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%', minHeight: 44, px: 1.25, textAlign: 'left', '&:hover': { bgcolor: '#151e25' } }}
+            >
+              <ChevronRightIcon sx={{ fontSize: 16, flexShrink: 0, color: open ? hud.teal : hud.textFaint, transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 120ms' }} />
+              <Box component="span" sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <Box component="span" sx={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {p.factions[0] ?? p.pool_label}
+                </Box>
+                {p.factions[0] && (
+                  <Box component="span" sx={{ fontSize: 12, color: hud.textDim, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {p.pool_label}
+                  </Box>
+                )}
+              </Box>
+              <Box sx={{ width: 56, height: 4, bgcolor: '#1c262d', flexShrink: 0 }} aria-hidden>
+                <Box sx={{ height: '100%', width: `${p.in_pool ? (p.owned_in_pool / p.in_pool) * 100 : 0}%`, bgcolor: done ? hud.teal : '#5b7080' }} />
+              </Box>
+              <Box
+                component="span"
+                sx={{ flexShrink: 0, fontFamily: fonts.mono, fontSize: 12, px: 1, py: 0.25, border: `1px solid ${done ? '#2f6f6a' : '#34424e'}`, color: done ? hud.teal : '#c9d4db', bgcolor: done ? 'rgba(79,209,197,0.10)' : 'transparent' }}
+              >
+                {p.owned_in_pool}/{p.in_pool}
+              </Box>
+            </ButtonBase>
+            {open && (
+              <Box sx={{ px: 1.5, pb: 1.5, pt: 0.25, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                {done ? (
+                  <Box component="span" sx={{ fontSize: 12.5, color: hud.teal }}>
+                    {t('dashboard.poolComplete')}
+                  </Box>
+                ) : (
+                  <>
+                    <Box component="span" sx={{ fontSize: 12, color: hud.textDim }}>
+                      {t('dashboard.stillMissing')}
+                    </Box>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                      {p.missing.map((m) => (
+                        <ButtonBase
+                          key={m.key}
+                          disabled={m.blueprint_id === null}
+                          onClick={() => m.blueprint_id !== null && onOpenBlueprint(m.blueprint_id)}
+                          sx={{ fontSize: 12, px: 1.125, py: 0.5, border: '1px solid #2f3d48', color: hud.textMuted, '&:hover': { borderColor: '#3d5260', color: hud.text } }}
+                        >
+                          {m.name ?? t('dashboard.unnamedBlueprint')}
+                        </ButtonBase>
+                      ))}
+                    </Box>
+                  </>
+                )}
+              </Box>
+            )}
+          </Box>
+        )
+      })}
     </HudPanel>
   )
 }
@@ -575,6 +679,7 @@ export function DashboardPage({ me }: { me: Me }) {
   const { n } = useFormat()
   const [period, setPeriod] = useState<CompetitionPeriod>('month')
   const [orgsOpen, setOrgsOpen] = useState(false)
+  const [blueprintId, setBlueprintId] = useState<number | null>(null)
   const org = me.orgs[0]
 
   const competition = useQuery({
@@ -645,13 +750,15 @@ export function DashboardPage({ me }: { me: Me }) {
           {data ? <Leaderboard data={data} /> : <Skeleton variant="rectangular" height={420} sx={{ flex: '2 1 560px' }} />}
           <Box sx={{ flex: '1 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {data?.contribution && <Contribution data={data.contribution} />}
-            <RefineryQueue />
+            <RefineryOrders />
+            <TrackedPools onOpenBlueprint={setBlueprintId} />
             <Crew me={me} memberCount={myOrg?.member_count ?? summary?.member_count ?? 1} onJoin={() => setOrgsOpen(true)} />
           </Box>
         </Box>
       )}
 
       <OrganizationsDialog me={me} open={orgsOpen} onClose={() => setOrgsOpen(false)} />
+      <BlueprintInfoDialog blueprintId={blueprintId} onClose={() => setBlueprintId(null)} />
     </Box>
   )
 }

@@ -277,7 +277,7 @@
     "footnoteAll": "Ranks refresh as members' desktop clients sync Game.log; the trend compares with a week ago. Overall = each category as a share of the leader, summed (max {{max}} pts).",
     "contribution": "Your contribution",
     "contribResources": "Resources (SCU)",
-    "refineryQueue": "Refinery queue",
+    "refineryQueue": "Refinery orders",
     "openCount": "{{count}} open",
     "noOpenOrders": "Nothing at the refinery.",
     "openRefinery": "Open refinery →",
@@ -292,7 +292,12 @@
     "hangar": "{{formatted}} pcs in shared hangar",
     "noOrgHelp": "Join an org to see how it ranks against the others.",
     "findOrg": "Find an org",
-    "loadError": "Could not load the leaderboard."
+    "loadError": "Could not load the leaderboard.",
+    "trackedPools": "Tracked pools",
+    "noTrackedPools": "Track a reward pool from a blueprint's details to follow it here.",
+    "poolComplete": "Every blueprint in this pool is yours.",
+    "stillMissing": "Still missing",
+    "unnamedBlueprint": "Unnamed recipe"
   },
   "profile": {
     "title": "Star Citizen handle",
