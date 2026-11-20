@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { kindLabel, type ScanResult, type SyncSummary } from "./types";
+import { kindLabel, type LogEvent, type ScanResult, type SyncSummary } from "./types";
 
 /** What the backlog scan found, filtered, and the button that sends it. */
 export function EventsTable({ result, paired }: { result: ScanResult; paired: boolean }) {
   const { t } = useTranslation();
-  const [filter, setFilter] = useState<"all" | "blueprint" | "refinery_completed">("all");
+  const [filter, setFilter] = useState<"all" | LogEvent["kind"]>("all");
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncSummary | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -53,6 +53,12 @@ export function EventsTable({ result, paired }: { result: ScanResult; paired: bo
         >
           {t("events.filterRefinery")}
         </button>
+        <button
+          className={filter === "mission_completed" ? "active" : ""}
+          onClick={() => setFilter("mission_completed")}
+        >
+          {t("events.filterMissions")}
+        </button>
       </div>
       <table>
         <thead>
@@ -93,6 +99,7 @@ export function EventsTable({ result, paired }: { result: ScanResult; paired: bo
             duplicates: t("events.syncDuplicates", { count: syncResult.duplicates }),
             blueprints: t("events.syncBlueprintsAdded", { count: syncResult.blueprints_added }),
             refinery: t("events.syncRefineryRecorded", { count: syncResult.refinery_completed }),
+            missions: syncResult.missions_completed ? t("events.syncMissions", { count: syncResult.missions_completed }) : "",
             backfilled: syncResult.backfilled
               ? t("events.syncBackfilled", { count: syncResult.backfilled })
               : "",

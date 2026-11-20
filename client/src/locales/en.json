@@ -58,7 +58,7 @@
     "syncing_one": "Syncing {{count}} event…",
     "syncing_other": "Syncing {{count}} events…",
     "pairToSync": "Pair with a server above to sync.",
-    "syncResult": "{{accepted}} ({{duplicates}}): {{blueprints}}, {{refinery}}{{backfilled}}.",
+    "syncResult": "{{accepted}} ({{duplicates}}): {{blueprints}}, {{refinery}}{{missions}}{{backfilled}}.",
     "syncAccepted_one": "Server accepted {{count}} new event",
     "syncAccepted_other": "Server accepted {{count}} new events",
     "syncDuplicates_one": "{{count}} already known",
@@ -68,7 +68,11 @@
     "syncRefineryRecorded_one": "{{count}} refinery completion recorded",
     "syncRefineryRecorded_other": "{{count}} refinery completions recorded",
     "syncBackfilled_one": ", {{count}} blueprint identity backfilled",
-    "syncBackfilled_other": ", {{count}} blueprint identities backfilled"
+    "syncBackfilled_other": ", {{count}} blueprint identities backfilled",
+    "filterMissions": "Missions",
+    "kindMission": "Mission done",
+    "syncMissions_one": ", {{count}} mission recorded",
+    "syncMissions_other": ", {{count}} missions recorded"
   },
   "update": {
     "available": "StarBuddy v{{latest}} is available (you have v{{current}}).",

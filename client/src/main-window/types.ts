@@ -20,7 +20,7 @@ export interface ScanProgress {
 }
 
 export interface LogEvent {
-  kind: "blueprint" | "refinery_completed";
+  kind: "blueprint" | "refinery_completed" | "mission_completed";
   timestamp: string;
   detail: string;
   item_class: string | null;
@@ -45,6 +45,8 @@ export interface SyncSummary {
   duplicates: number;
   blueprints_added: number;
   refinery_completed: number;
+  /** Absent from a server that does not count missions. */
+  missions_completed?: number;
   backfilled?: number;
 }
 
@@ -122,4 +124,4 @@ export interface KdeRuleInfo {
 }
 
 export const kindLabel = (t: TFunction, kind: LogEvent["kind"]) =>
-  kind === "blueprint" ? t("events.kindBlueprint") : t("events.kindRefineryDone");
+  kind === "blueprint" ? t("events.kindBlueprint") : kind === "mission_completed" ? t("events.kindMission") : t("events.kindRefineryDone");

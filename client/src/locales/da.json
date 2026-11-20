@@ -58,7 +58,7 @@
     "syncing_one": "Synkroniserer {{count}} hændelse…",
     "syncing_other": "Synkroniserer {{count}} hændelser…",
     "pairToSync": "Par med en server ovenfor for at synkronisere.",
-    "syncResult": "{{accepted}} ({{duplicates}}): {{blueprints}}, {{refinery}}{{backfilled}}.",
+    "syncResult": "{{accepted}} ({{duplicates}}): {{blueprints}}, {{refinery}}{{missions}}{{backfilled}}.",
     "syncAccepted_one": "Serveren modtog {{count}} ny hændelse",
     "syncAccepted_other": "Serveren modtog {{count}} nye hændelser",
     "syncDuplicates_one": "{{count}} allerede kendt",
@@ -68,7 +68,11 @@
     "syncRefineryRecorded_one": "{{count}} færdig raffinering registreret",
     "syncRefineryRecorded_other": "{{count}} færdige raffineringer registreret",
     "syncBackfilled_one": ", {{count}} blueprint-identitet efterudfyldt",
-    "syncBackfilled_other": ", {{count}} blueprint-identiteter efterudfyldt"
+    "syncBackfilled_other": ", {{count}} blueprint-identiteter efterudfyldt",
+    "filterMissions": "Missioner",
+    "kindMission": "Mission fuldført",
+    "syncMissions_one": ", {{count}} mission registreret",
+    "syncMissions_other": ", {{count}} missioner registreret"
   },
   "update": {
     "available": "StarBuddy v{{latest}} er tilgængelig (du har v{{current}}).",

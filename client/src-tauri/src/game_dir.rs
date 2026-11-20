@@ -20,9 +20,19 @@ static REFINERY_RE: LazyLock<Regex> = LazyLock::new(|| {
     .unwrap()
 });
 
+/// A contract the player finished: `Contract Complete: <name>: " [n]`, written
+/// once when queued and once when shown, like every notification.
+static MISSION_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r#"^<([^>]+)>.*Added notification "Contract Complete: (.*): " \[\d+\]"#).unwrap()
+});
+/// The game's own markup in a contract's name: `<EM4>[300 Rep] [BP]*</EM4>`.
+static MARKUP_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<EM\d>.*?</EM\d>|</?EM\d>").unwrap());
+
+pub(crate) const MISSION_COMPLETED: &str = "mission_completed";
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct LogEvent {
-    pub kind: String, // "blueprint" | "refinery_completed"
+    pub kind: String, // "blueprint" | "refinery_completed" | "mission_completed"
     pub timestamp: String,
     pub detail: String, // blueprint name, or refinery station
     // Canonical item class resolved via the player's localization file
@@ -267,11 +277,18 @@ pub fn detect_game_log(app: tauri::AppHandle) -> Option<String> {
 pub(crate) fn parse_line(line: &str, localization: &HashMap<String, String>, file: &str) -> Option<LogEvent> {
     let (kind, caps) = if let Some(c) = BLUEPRINT_RE.captures(line) {
         ("blueprint", c)
+    } else if let Some(c) = REFINERY_RE.captures(line) {
+        ("refinery_completed", c)
     } else {
-        ("refinery_completed", REFINERY_RE.captures(line)?)
+        (MISSION_COMPLETED, MISSION_RE.captures(line)?)
     };
 
-    let detail = caps[2].trim().to_string();
+    let detail = if kind == MISSION_COMPLETED {
+        // The reward tags are the game's decoration, not the contract's name.
+        MARKUP_RE.replace_all(&caps[2], "").trim().chars().take(255).collect()
+    } else {
+        caps[2].trim().to_string()
+    };
     let item_class = (kind == "blueprint")
         .then(|| localization.get(&normalize_name(&detail)).cloned())
         .flatten();
@@ -387,6 +404,21 @@ pub async fn scan_backlog(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_completed_contract_is_a_mission_without_its_reward_tags() {
+        let no_names = HashMap::new();
+        let line = r#"<2026-01-29T18:23:04.557Z> [Notice] <SHUDEvent_OnNotification> Added notification "Contract Complete: Ship In Distress <EM4>[300 Rep] [BP]*</EM4>: " [59] to queue. New queue size: 2, MissionId: [97a792bb-1518-4003-a6b5-5078d0d131ff], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]"#;
+        let e = parse_line(line, &no_names, "Game.log").expect("a mission");
+        assert_eq!(e.kind, MISSION_COMPLETED);
+        assert_eq!(e.timestamp, "2026-01-29T18:23:04.557Z");
+        assert_eq!(e.detail, "Ship In Distress");
+        let line = r#"<2026-01-29T17:56:31.036Z> [Notice] <SHUDEvent_OnNotification> Added notification "Contract Complete: Alliance Aid: Small Supply of Research Resource: " [13] to queue."#;
+        assert_eq!(parse_line(line, &no_names, "Game.log").unwrap().detail, "Alliance Aid: Small Supply of Research Resource");
+        // Shared and accepted contracts are not completed ones.
+        let line = r#"<2026-01-29T17:56:31.036Z> [Notice] <SHUDEvent_OnNotification> Added notification "Contract Shared: RSI Disc. Month: UCM Order (M): " [13] to queue."#;
+        assert!(parse_line(line, &no_names, "Game.log").is_none());
+    }
 
     /// A StarCitizen folder with the named channels in it. They are written in
     /// order, so the last one named has the newest Game.log — which is the

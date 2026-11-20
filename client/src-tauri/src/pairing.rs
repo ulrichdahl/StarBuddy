@@ -161,10 +161,30 @@ pub(crate) struct PostError {
     pub status: Option<u16>,
 }
 
-pub(crate) async fn post_events(
-    settings: &StoredSettings,
-    events: &[LogEvent],
-) -> Result<SyncSummary, PostError> {
+/// Completed missions go in a request of their own, after the rest.
+///
+/// A server from before missions were counted checks every event's kind and
+/// refuses the whole request over one it does not know — and a refused request
+/// is dropped by the outbox, so a mission riding with a blueprint would have
+/// lost the blueprint too. Sent apart, an older server refuses only the
+/// missions, which it has no use for, and everything else lands as before.
+pub(crate) async fn post_events(settings: &StoredSettings, events: &[LogEvent]) -> Result<SyncSummary, PostError> {
+    let (missions, rest): (Vec<LogEvent>, Vec<LogEvent>) =
+        events.iter().cloned().partition(|e| e.kind == crate::game_dir::MISSION_COMPLETED);
+    let mut summary = if rest.is_empty() { SyncSummary::default() } else { post_batch(settings, &rest).await? };
+    if !missions.is_empty() {
+        match post_batch(settings, &missions).await {
+            Ok(more) => summary.add(&more),
+            Err(e) if crate::outbox::disposition(e.status) == crate::outbox::Disposition::Drop => {
+                log::info!("the server does not take completed missions ({}); {} not sent", e.message, missions.len());
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(summary)
+}
+
+async fn post_batch(settings: &StoredSettings, events: &[LogEvent]) -> Result<SyncSummary, PostError> {
     let payload: Vec<_> = events
         .iter()
         .map(|e| {
@@ -197,12 +217,25 @@ pub(crate) async fn post_events(
     resp.json().await.map_err(|e| PostError { message: e.to_string(), status: Some(status) })
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct SyncSummary {
     pub accepted: usize,
     pub duplicates: usize,
     pub blueprints_added: usize,
     pub refinery_completed: usize,
+    /// Absent from a server that does not count missions.
+    pub missions_completed: usize,
+}
+
+impl SyncSummary {
+    fn add(&mut self, other: &SyncSummary) {
+        self.accepted += other.accepted;
+        self.duplicates += other.duplicates;
+        self.blueprints_added += other.blueprints_added;
+        self.refinery_completed += other.refinery_completed;
+        self.missions_completed += other.missions_completed;
+    }
 }
 
 #[tauri::command]
