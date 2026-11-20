@@ -38,7 +38,7 @@ static MISSION_ID_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"MissionId: \[([0-9a-fA-F-]{36})\]").unwrap());
 /// Who is playing: written at login, `... geid 2020… - accountId … - name DK-Raven - state STATE_CURRENT`.
 static LOGIN_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"<AccountLoginCharacterStatus_Character> Character: .*?\bgeid (\d+) .*?- name (\S+) - state STATE_CURRENT").unwrap()
+    Regex::new(r"<AccountLoginCharacterStatus_Character> Character: .*?\bgeid (\d+) - accountId (\d+) .*?- name (\S+) - state STATE_CURRENT").unwrap()
 });
 /// The pilot picked a quantum destination in their own ship ("Local").
 static QT_SELECTED_RE: LazyLock<Regex> = LazyLock::new(|| {
@@ -61,6 +61,10 @@ static JURISDICTION_RE: LazyLock<Regex> =
 pub struct Character {
     pub geid: String,
     pub name: String,
+    /// The RSI account the character is on: the server scores every
+    /// character on an account that one named as the handle has used.
+    #[serde(default)]
+    pub account_id: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Default)]
@@ -130,7 +134,7 @@ impl LogParser {
             return Some(e);
         }
         if let Some(c) = LOGIN_RE.captures(line) {
-            self.character = Some(Character { geid: c[1].to_string(), name: c[2].to_string() });
+            self.character = Some(Character { geid: c[1].to_string(), account_id: c[2].to_string(), name: c[3].to_string() });
             self.selected.clear();
             return None;
         }
@@ -552,7 +556,7 @@ mod tests {
         assert!(feed(&mut p, "<2026-11-20T11:41:10.407Z> [Notice] <AccountLoginCharacterStatus_Character> Character: createdAt 1794511959284 - updatedAt 1794511959637 - geid 204821589375 - accountId 1953448 - name RavenMind - state STATE_CURRENT [Team_GameServices][Login]").is_none());
         let e = feed(&mut p, loc).expect("a location");
         assert_eq!((e.kind.as_str(), e.detail.as_str()), ("location", "RR_ARC_LEO"));
-        assert_eq!(e.character, Some(Character { geid: "204821589375".into(), name: "RavenMind".into() }));
+        assert_eq!(e.character, Some(Character { geid: "204821589375".into(), name: "RavenMind".into(), account_id: "1953448".into() }));
         assert!(feed(&mut p, "<x> [Notice] <RequestLocationInventory> Player[Someone] requested inventory for Location[RR_ARC_LEO] [x]").is_none());
 
         // Someone else's ship arriving is not the player's travel.

@@ -234,7 +234,7 @@ async fn post_batch(settings: &StoredSettings, events: &[&LogEvent], character: 
         .collect();
     let mut body = serde_json::json!({ "events": payload });
     if let Some(c) = character {
-        body["character"] = serde_json::json!({ "geid": c.geid, "name": c.name });
+        body["character"] = serde_json::json!({ "geid": c.geid, "name": c.name, "account_id": c.account_id });
     }
 
     let resp = http::client()
@@ -266,6 +266,9 @@ pub struct SyncSummary {
     pub refinery_completed: usize,
     /// Absent from a server that does not count missions.
     pub missions_completed: usize,
+    /// Travel events counted, and the points scored; absent from older servers.
+    pub travel: usize,
+    pub points: u64,
 }
 
 impl SyncSummary {
@@ -275,6 +278,8 @@ impl SyncSummary {
         self.blueprints_added += other.blueprints_added;
         self.refinery_completed += other.refinery_completed;
         self.missions_completed += other.missions_completed;
+        self.travel += other.travel;
+        self.points += other.points;
     }
 }
 
