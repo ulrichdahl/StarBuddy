@@ -27,6 +27,10 @@ return [
     // Optional Discord channel that receives refinery-completion pings
     // (only for events fresher than a few minutes, so a first-run history
     // import never floods it). Empty = notifications off.
+    // Optional Discord channel players can post their Gathering shopping
+    // list to. Empty = the "Post to Discord" button is hidden.
+    'gathering_channel_id' => env('STARBUDDY_GATHERING_CHANNEL_ID'),
+
     'refinery_channel_id' => env('STARBUDDY_REFINERY_CHANNEL_ID', env('STARMAKER_REFINERY_CHANNEL_ID')),
 
     // RSI service status (status.robertsspaceindustries.com) is polled every

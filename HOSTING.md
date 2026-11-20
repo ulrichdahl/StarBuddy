@@ -124,6 +124,10 @@ ping to that channel whenever a member's refinery work order completes (live
 events only — a first-run history import never floods it). The bot needs
 *View Channel* and *Send Messages* there.
 
+Optional: `STARBUDDY_GATHERING_CHANNEL_ID=<channel id>` lets members post their
+Gathering shopping list (what their pinned craft targets still need) to that
+channel. Same bot permissions. Empty hides the button.
+
 **Recommended:** `STARBUDDY_STATUS_CHANNEL_ID=<channel id>` turns on RSI
 service-status alerts. The backend checks
 <https://status.robertsspaceindustries.com> every minute; the moment a

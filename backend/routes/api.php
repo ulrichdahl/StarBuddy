@@ -61,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // reward pools being farmed.
     Route::get('craft-targets', [\App\Http\Controllers\CraftTargetController::class, 'index']);
     Route::post('craft-targets', [\App\Http\Controllers\CraftTargetController::class, 'store']);
+    Route::post('craft-targets/share', [\App\Http\Controllers\CraftTargetController::class, 'share'])->middleware('throttle:6,1');
     Route::delete('craft-targets/{blueprint}', [\App\Http\Controllers\CraftTargetController::class, 'destroy']);
     Route::get('tracked-pools', [\App\Http\Controllers\TrackedPoolController::class, 'index']);
     Route::post('tracked-pools', [\App\Http\Controllers\TrackedPoolController::class, 'store']);

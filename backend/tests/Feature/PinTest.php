@@ -95,6 +95,45 @@ class PinTest extends TestCase
         $this->assertNull($this->getJson("/api/blueprints/{$this->battery->id}")->json('craft_target'));
     }
 
+    public function test_only_stock_at_the_recipes_quality_counts(): void
+    {
+        $this->battery->update(['requirement_groups' => ['v' => 1, 'groups' => [
+            ['key' => 'FRAME', 'name' => 'Frame', 'material' => 'Copper', 'kind' => 'resource', 'min_quality' => 600, 'modifiers' => []],
+        ]]]);
+        $this->postJson('/api/craft-targets', ['blueprint_id' => $this->battery->id, 'quantity' => 2])->assertCreated();
+
+        $res = $this->getJson('/api/craft-targets')->assertOk()->json();
+        $copper = collect($res['gathering'])->firstWhere('name', 'Copper');
+
+        $this->assertSame(600, $copper['min_quality']);
+        $this->assertSame(0, $copper['have_mine'], 'my 400 are quality 500');
+        $this->assertSame(400, $copper['have_mine_below']);
+        $this->assertSame(600, $copper['missing']);
+        $this->assertSame([['blueprint_id' => $this->battery->id, 'name' => 'Karna Battery', 'quantity' => 2]], $copper['for_targets']);
+        $this->assertFalse($res['targets'][0]['ready']);
+        $this->assertSame(2, $res['targets'][0]['materials']);
+        $this->assertSame(['materials' => 2, 'still_to_gather' => 2, 'still_to_gather_with_org' => 2], $res['summary']);
+    }
+
+    public function test_the_shopping_list_posts_to_discord_only_when_a_channel_is_set(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        $this->postJson('/api/craft-targets', ['blueprint_id' => $this->rifle->id])->assertCreated();
+
+        config(['starbuddy.gathering_channel_id' => null]);
+        $this->assertFalse($this->getJson('/api/craft-targets')->json('discord.can_post'));
+        $this->postJson('/api/craft-targets/share')->assertStatus(409);
+
+        config(['starbuddy.gathering_channel_id' => '123']);
+        $this->assertTrue($this->getJson('/api/craft-targets')->json('discord.can_post'));
+        $this->postJson('/api/craft-targets/share', ['scope' => 'mine'])->assertStatus(202)->assertJsonPath('posted', 1);
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\NotifyDiscord::class, fn ($job) => $job->channelId === '123'
+            && str_contains($job->embed['description'], 'Copper'));
+
+        // Counting the org's 2000, the rifle's copper is covered.
+        $this->postJson('/api/craft-targets/share', ['scope' => 'org'])->assertUnprocessable();
+    }
+
     public function test_targets_are_per_player(): void
     {
         $this->postJson('/api/craft-targets', ['blueprint_id' => $this->battery->id])->assertCreated();
