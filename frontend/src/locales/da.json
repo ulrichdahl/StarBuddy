@@ -188,9 +188,10 @@
     "crafted": "Fremstillet",
     "iCraftedThis": "Jeg har fremstillet denne",
     "iCraftedThisTimes": "Jeg har fremstillet denne ×{{count}}",
-    "barPrivate": "Grøn — dine private materialer: {{pct}}%",
-    "barOrg": "Guld — hvad orgen kan levere: {{pct}}%",
-    "barMissing": "Mørk guld — mangler stadig: {{pct}}%"
+    "barPrivate": "Turkis — dine private materialer: {{pct}}%",
+    "barOrg": "Rav — hvad orgen kan levere: {{pct}}%",
+    "barMissing": "Mørk — mangler stadig: {{pct}}%",
+    "pinnedOnly": "Kun fastgjorte"
   },
   "stats": {
     "heading": "Produkt-stats",

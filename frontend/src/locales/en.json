@@ -188,9 +188,10 @@
     "crafted": "Crafted",
     "iCraftedThis": "I crafted this",
     "iCraftedThisTimes": "I crafted this ×{{count}}",
-    "barPrivate": "Green — your private materials: {{pct}}%",
-    "barOrg": "Gold — what the org can supply: {{pct}}%",
-    "barMissing": "Dark gold — still missing: {{pct}}%"
+    "barPrivate": "Teal — your private materials: {{pct}}%",
+    "barOrg": "Amber — what the org can supply: {{pct}}%",
+    "barMissing": "Dark — still missing: {{pct}}%",
+    "pinnedOnly": "Pinned only"
   },
   "stats": {
     "heading": "Product stats",
