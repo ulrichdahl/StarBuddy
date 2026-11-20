@@ -30,6 +30,8 @@ pub(crate) struct ClientPrefs {
     pub(crate) main_mode: crate::main_window::MainMode,
     /// Where the main window was left as an overlay.
     pub(crate) main_overlay_at: Option<crate::main_window::Placement>,
+    /// Where the main window was left as a window, kept across restarts.
+    pub(crate) main_window_at: Option<crate::main_window::Placement>,
 }
 
 fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {

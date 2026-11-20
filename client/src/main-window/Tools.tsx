@@ -12,8 +12,8 @@ interface ToolLink {
 /** Pages of the paired StarBuddy website, by path; the name and blurb are translated. */
 const ORG_PAGES: { key: string; path: string }[] = [
   { key: "dashboard", path: "/" },
-  { key: "resources", path: "/resources" },
-  { key: "items", path: "/items" },
+  { key: "resources", path: "/resources?view=org" },
+  { key: "items", path: "/items?view=org" },
   { key: "blueprints", path: "/blueprints" },
   { key: "craft", path: "/craft" },
   { key: "refinery", path: "/refinery" },

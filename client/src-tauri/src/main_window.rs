@@ -67,9 +67,10 @@ pub(crate) fn game_running() -> bool {
     }
 }
 
-/// The placement the overlay moved to last, kept until it is hidden.
-fn moved_to() -> &'static std::sync::Mutex<Option<Placement>> {
-    static AT: std::sync::OnceLock<std::sync::Mutex<Option<Placement>>> = std::sync::OnceLock::new();
+/// Where the window moved to last, and as which mode, kept until it is put
+/// away, loses focus or StarBuddy quits.
+fn moved_to() -> &'static std::sync::Mutex<Option<(MainMode, Placement)>> {
+    static AT: std::sync::OnceLock<std::sync::Mutex<Option<(MainMode, Placement)>>> = std::sync::OnceLock::new();
     AT.get_or_init(|| std::sync::Mutex::new(None))
 }
 
@@ -85,8 +86,15 @@ fn state(app: &AppHandle, showing_as: MainMode, game_running: bool) -> MainState
 /// its place over the game.
 fn dress(app: &AppHandle, win: &WebviewWindow, as_mode: MainMode, running: bool) {
     let overlay = as_mode == MainMode::Overlay;
+    let was_overlay = !win.is_decorated().unwrap_or(true);
     let _ = win.set_decorations(!overlay);
     let _ = win.set_always_on_top(overlay);
+    // Back from the overlay: the window's own place, not the overlay's.
+    if !overlay && was_overlay {
+        if let Some(p) = load_client_prefs(app).main_window_at.filter(|p| on_a_screen(win, p)) {
+            place(win, &p);
+        }
+    }
     if overlay {
         match load_client_prefs(app).main_overlay_at {
             Some(p) => {
@@ -122,14 +130,37 @@ fn wanted(app: &AppHandle) -> (MainMode, bool) {
     (if running { mode } else { MainMode::Window }, running)
 }
 
-/// Keep where the overlay was left.
-fn remember(app: &AppHandle) {
-    let Some(at) = moved_to().lock_or_recover().take() else { return };
+fn place(win: &WebviewWindow, p: &Placement) {
+    let _ = win.set_size(PhysicalSize::new(p.width, p.height));
+    let _ = win.set_position(PhysicalPosition::new(p.x, p.y));
+}
+
+/// The place is on a screen that is still connected: a window put back where a
+/// since-unplugged monitor was would open where nobody can see it.
+fn on_a_screen(win: &WebviewWindow, p: &Placement) -> bool {
+    win.available_monitors().is_ok_and(|monitors| {
+        monitors.iter().any(|m| {
+            let (pos, size) = (m.position(), m.size());
+            p.x >= pos.x - 40
+                && p.y >= pos.y - 40
+                && p.x < pos.x + size.width as i32 - 80
+                && p.y < pos.y + size.height as i32 - 80
+        })
+    })
+}
+
+/// Keep where the window was left, as a window or as the overlay.
+pub(crate) fn remember(app: &AppHandle) {
+    let Some((mode, at)) = moved_to().lock_or_recover().take() else { return };
     let mut prefs = load_client_prefs(app);
-    if prefs.main_overlay_at != Some(at) {
-        prefs.main_overlay_at = Some(at);
+    let slot = match mode {
+        MainMode::Overlay => &mut prefs.main_overlay_at,
+        MainMode::Window => &mut prefs.main_window_at,
+    };
+    if *slot != Some(at) {
+        *slot = Some(at);
         if let Err(e) = save_client_prefs(app, &prefs) {
-            log::warn!("could not keep the overlay's place: {e}");
+            log::warn!("could not keep the main window's place: {e}");
         }
     }
 }
@@ -138,17 +169,22 @@ fn remember(app: &AppHandle) {
 /// what it is; the overlay is for when the hotkey asks for it in game.
 pub(crate) fn setup(app: &AppHandle) {
     let Some(win) = main(app) else { return };
+    // Where the window was when StarBuddy last closed.
+    if let Some(p) = load_client_prefs(app).main_window_at.filter(|p| on_a_screen(&win, p)) {
+        place(&win, &p);
+    }
     let handle = app.clone();
     win.on_window_event(move |event| match event {
         WindowEvent::Moved(_) | WindowEvent::Resized(_) => {
             let Some(win) = main(&handle) else { return };
-            // Only the overlay's place is kept; the window's is the desktop's.
-            if win.is_decorated().unwrap_or(true) {
+            // A minimised or maximised window's place is not one to come back to.
+            if win.is_minimized().unwrap_or(false) || win.is_maximized().unwrap_or(false) || !win.is_visible().unwrap_or(true) {
                 return;
             }
-            if let (Ok(pos), Ok(size)) = (win.outer_position(), win.outer_size()) {
+            let mode = if win.is_decorated().unwrap_or(true) { MainMode::Window } else { MainMode::Overlay };
+            if let (Ok(pos), Ok(size)) = (win.outer_position(), win.inner_size()) {
                 *moved_to().lock_or_recover() =
-                    Some(Placement { x: pos.x, y: pos.y, width: size.width, height: size.height });
+                    Some((mode, Placement { x: pos.x, y: pos.y, width: size.width, height: size.height }));
             }
         }
         WindowEvent::Focused(false) => remember(&handle),

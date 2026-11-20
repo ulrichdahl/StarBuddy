@@ -195,6 +195,7 @@ pub fn run() {
                             main_window::hide(&exit_handle);
                             return;
                         }
+                        main_window::remember(&exit_handle);
                         overlay::save_now(&exit_handle);
                         exit_handle.exit(0);
                     }
