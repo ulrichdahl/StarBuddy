@@ -46,7 +46,8 @@ pub struct Badge {
     /// The number read to the right of the icon.
     pub value: f64,
     pub text: String,
-    /// How closely the icon matched the pin template (0–1).
+    /// How closely the icon matched the pin template (0–1); for a badge found
+    /// by its plate instead, how much of the plate's bottom edge was found.
     pub shape: f32,
 }
 
@@ -517,6 +518,121 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
     blobs
 }
 
+/// Badge plates: the filled box every badge's icon and number sit on, a tint
+/// of the HUD colour a little lighter than whatever is behind it.
+///
+/// Found by its outline rather than its colour, which changes with the ship
+/// and with what is behind the badge: a straight edge that turns lighter
+/// going down, long enough to be a plate and not a glyph, with an edge that
+/// turns darker again along most of its length a plate's height below. Rock
+/// outlines are lit too, but they are not straight for a plate's width.
+fn find_plates(cap: &Captured) -> Vec<Blob> {
+    let (w, h) = (cap.width as usize, cap.height as usize);
+    if w < 8 || h < 8 {
+        return Vec::new();
+    }
+    let k = cap.full_height as f32 / 1440.0;
+    let sum: Vec<i32> = cap.rgb.as_chunks::<3>().0.iter().map(|p| p[0] as i32 + p[1] as i32 + p[2] as i32).collect();
+    // Over two rows: the edge is blurred across two or three by the scaling
+    // and the stream's compression, and is too weak in any one step of it.
+    const STEP: i32 = 40;
+    let mut lighter = vec![false; w * h];
+    let mut darker = vec![false; w * h];
+    for y in 0..h - 2 {
+        for x in 0..w {
+            let d = sum[(y + 2) * w + x] - sum[y * w + x];
+            lighter[y * w + x] = d > STEP;
+            darker[y * w + x] = d < -STEP;
+        }
+    }
+    let darker_near = |x: usize, y: usize| (y.saturating_sub(1)..=(y + 1).min(h - 1)).any(|yy| darker[yy * w + x]);
+    let min_len = (55.0 * k) as usize;
+    let (min_h, max_h) = ((15.0 * k) as usize, (30.0 * k) as usize);
+    // Glyphs and debris break the edge for a few pixels at a time.
+    let gap_allowed = (5.0 * k).max(2.0) as usize;
+    let mut found: Vec<Blob> = Vec::new();
+    for y in 0..h - 2 {
+        let mut x = 0;
+        while x < w {
+            if !lighter[y * w + x] {
+                x += 1;
+                continue;
+            }
+            let start = x;
+            let mut gap = 0;
+            while x < w && (lighter[y * w + x] || gap < gap_allowed) {
+                gap = if lighter[y * w + x] { 0 } else { gap + 1 };
+                x += 1;
+            }
+            let end = x - gap;
+            if end - start < min_len {
+                continue;
+            }
+            let mut best: Option<(f32, usize)> = None;
+            for yb in y + min_h..=(y + max_h).min(h - 1) {
+                let hits = (start..end).filter(|&xx| darker_near(xx, yb)).count();
+                let cover = hits as f32 / (end - start) as f32;
+                if cover >= 0.75 && best.is_none_or(|(c, _)| cover > c) {
+                    best = Some((cover, yb));
+                }
+            }
+            if let Some((cover, yb)) = best {
+                found.push(Blob { x: start as i32, y: y as i32 + 1, w: (end - start) as i32, h: (yb - y) as i32, shape: cover });
+            }
+        }
+    }
+    // One plate shows as several rows of edge; keep the widest of each.
+    found.sort_by_key(|b| -b.w);
+    let mut plates: Vec<Blob> = Vec::new();
+    for b in found {
+        let same = plates.iter().any(|p| (b.y - p.y).abs() < (8.0 * k) as i32 && b.x < p.x + p.w && p.x < b.x + b.w);
+        if !same {
+            plates.push(b);
+        }
+    }
+    let (cx, cy) = (cap.width as i32 / 2, cap.height as i32 / 2);
+    plates.sort_by_key(|b| (b.x + b.w / 2 - cx).pow(2) + (b.y + b.h / 2 - cy).pow(2));
+    plates
+}
+
+/// How far into a plate its number starts: past the icon, at the first
+/// column of the gap between the icon and the digits.
+///
+/// The icon is about as wide as the plate is tall, but not exactly, and a
+/// sliver of it left in front of the number is read as a 1 — 17,200 became
+/// 117,200. Lit columns are those with something much brighter than the
+/// plate's own fill in them; the icon is the first run of them and the gap
+/// the run of unlit ones after it. Where that is not found, the icon's usual
+/// width stands in.
+fn icon_end(cap: &Captured, p: &Blob) -> i32 {
+    let usual = (p.h as f32 * 1.4) as i32;
+    let at = |x: i32, y: i32| {
+        let i = (y as usize * cap.width as usize + x as usize) * 3;
+        cap.rgb.get(i..i + 3).map(|c| c[0] as i32 + c[1] as i32 + c[2] as i32).unwrap_or(0)
+    };
+    // The fill, as the median of the plate's middle row.
+    let mid = p.y + p.h / 2;
+    let mut row: Vec<i32> = (p.x..p.x + p.w).map(|x| at(x, mid)).collect();
+    row.sort_unstable();
+    let fill = row[row.len() / 2];
+    // Rows clear of the plate's own edges, where the blur would light them.
+    let inner = (p.y + 3)..(p.y + p.h - 2).max(p.y + 4);
+    let lit = |x: i32| inner.clone().any(|y| at(x, y) > fill + 150);
+    let mut x = p.x + 2;
+    let stop = p.x + (p.h as f32 * 2.2) as i32;
+    while x < stop && !lit(x) {
+        x += 1;
+    }
+    while x < stop && lit(x) {
+        x += 1;
+    }
+    if x >= stop || x - p.x < p.h / 2 {
+        return usual;
+    }
+    // A step back into the gap, so the first digit is not cut at its edge.
+    x - p.x + 1
+}
+
 /// Crop a strip to the right of the icon and upscale it for the OCR.
 fn crop_upscaled(cap: &Captured, x: i32, y: i32, w: i32, h: i32, scale: u32) -> Option<image::RgbImage> {
     let x0 = x.max(0) as u32;
@@ -552,14 +668,29 @@ fn badge_number(text: &str) -> Option<f64> {
         .split_whitespace()
         .filter(|t| t.chars().any(|c| c.is_ascii_digit()))
         .max_by_key(|t| t.chars().filter(|c| c.is_ascii_digit()).count())?;
+    // Specks of the plate's edge read as dots either side, ".2.000.", or as a
+    // second comma beside the real one, "3,,400".
+    let token = token.trim_matches(['.', ',']);
+    let mut squeezed = String::with_capacity(token.len());
+    for c in token.chars() {
+        let separator = c == '.' || c == ',';
+        if !(separator && squeezed.ends_with(['.', ','])) {
+            squeezed.push(c);
+        }
+    }
+    let token = squeezed.as_str();
     if token.chars().any(|c| !c.is_ascii_digit() && c != ',' && c != '.') {
         return None;
     }
     // Groups: a leading 1–3 digits, then only exact thousands groups —
-    // "15,600" and "2,000" pass, "11.8" and "7.4" do not.
+    // "15,600" and "2,000" pass, "11.8" and "7.4" do not. A number with no
+    // separator at all is one whose comma the reader lost — "3400" for
+    // "3,400", the commonest misreading there is — and the range still
+    // stands guard over it.
     let mut groups = token.split([',', '.']);
     let first = groups.next()?;
-    if first.is_empty() || first.len() > 3 || !groups.clone().all(|g| g.len() == 3) {
+    let ungrouped = !token.contains([',', '.']);
+    if first.is_empty() || (!ungrouped && (first.len() > 3 || !groups.clone().all(|g| g.len() == 3))) {
         return None;
     }
     let digits: String = token.chars().filter(|c| c.is_ascii_digit()).collect();
@@ -584,18 +715,52 @@ const SIGNATURE_RANGE: std::ops::RangeInclusive<f64> = 500.0..=250_000.0;
 /// Find signature badges: OCR the strip right of every icon candidate.
 pub fn find_badges(reader: &Reader, cap: &Captured) -> Vec<Badge> {
     let k = cap.full_height as f32 / 1440.0;
-    let mut out = Vec::new();
+    // The plate first: it is found whatever the icon on it and whatever is
+    // drawn around it, where the pin is lost in a field of lit asteroid
+    // outlines and is not on the heat, power and cross-section badges at all.
+    let mut plated = Vec::new();
+    let mut plate_boxes = Vec::new();
+    for p in find_plates(cap).into_iter().take(MOST_STRIPS) {
+        // From just past the icon: read with it, the icon becomes a digit in
+        // front of the number.
+        let skip = icon_end(cap, &p);
+        // With room round the digits: the reader finds text badly where it
+        // touches the edge of the picture, and read flush with the plate a
+        // clean "3,400" came back as ".00 3,". It is not steady either way —
+        // the same plate reads at one margin and not at the other — so a
+        // plate that gives no number is read once more, at the other.
+        let read = |pad: i32| {
+            let crop = crop_upscaled(cap, p.x + skip, p.y - pad, p.w - skip + pad, p.h + 2 * pad, 3)?;
+            let text = ocr_text(reader.digits, &crop).ok()?;
+            badge_number(&text).map(|value| (value, text))
+        };
+        if let Some((value, text)) = read((8.0 * k) as i32).or_else(|| read((3.0 * k) as i32)) {
+            plate_boxes.push((p.x, p.y, p.w, p.h));
+            plated.push(Badge { x: p.x, y: p.y, w: p.h, h: p.h, shape: p.shape, value, text: text.trim().to_string() });
+        }
+    }
+    // A pin on a plate already read is that plate's badge, and not read again;
+    // nor is one whose strip would reach over such a plate — a speck of rock
+    // passing for a pin just left of the badge reads the badge's own number.
+    let strip = (150.0 * k) as i32;
+    let on_a_plate = |b: &Blob| {
+        plate_boxes.iter().any(|&(x, y, w, h)| b.x < x + w && b.x + b.w + strip > x && (b.y + b.h / 2 - (y + h / 2)).abs() < h)
+    };
     // Nearest the middle first, and only so many: reading a strip costs about
     // ten milliseconds, and a HUD full of lit specks would otherwise turn one
     // frame into two and a half seconds of reading.
-    for b in find_amber_icons(cap).into_iter().filter(|b| b.shape >= PIN_MIN_SCORE).take(MOST_STRIPS) {
+    let mut pinned = Vec::new();
+    for b in find_amber_icons(cap).into_iter().filter(|b| b.shape >= PIN_MIN_SCORE && !on_a_plate(b)).take(MOST_STRIPS) {
         let Some(crop) = crop_upscaled(cap, b.x + b.w - (4.0 * k) as i32, b.y - (8.0 * k) as i32, (150.0 * k) as i32, b.h + (16.0 * k) as i32, 3) else { continue };
         let Ok(text) = ocr_text(reader.digits, &crop) else { continue };
         if let Some(value) = badge_number(&text) {
-            out.push(Badge { x: b.x, y: b.y, w: b.w, h: b.h, shape: b.shape, value, text: text.trim().to_string() });
+            pinned.push(Badge { x: b.x, y: b.y, w: b.w, h: b.h, shape: b.shape, value, text: text.trim().to_string() });
         }
     }
-    within_one_number(out, (150.0 * k) as i32)
+    plated.extend(within_one_number(pinned, strip));
+    let (cx, cy) = (cap.width as i32 / 2, cap.height as i32 / 2);
+    plated.sort_by_key(|b| (b.x + b.w / 2 - cx).pow(2) + (b.y + b.h / 2 - cy).pow(2));
+    plated
 }
 
 /// One badge per number. A digit can pass for the pin — an "8" scores as well
@@ -1089,9 +1254,14 @@ mod tests {
             let started = Instant::now();
             let badges = find_badges(&reader, &framed);
             for b in &badges {
-                println!("     read {:?}", b.text);
+                println!("     read {:?} at {},{} {}x{}", b.text, b.x, b.y, b.w, b.h);
             }
-            let found: Vec<f64> = badges.iter().map(|b| b.value).collect();
+            let mut found: Vec<f64> = badges.iter().map(|b| b.value).collect();
+            // As the live scan does: the area read as text when no badge was.
+            if found.is_empty() {
+                let lines = run_ocr(reader.text, &framed).unwrap();
+                found.extend(signature_in_text(&lines, &framed));
+            }
 
             let mut hits = 0;
             for want in &wanted {
@@ -1166,6 +1336,35 @@ mod tests {
     }
 
     #[test]
+    fn plates_are_found_by_their_outline() {
+        // A dark frame with a lighter 80×19 plate, a brighter lit square on
+        // it for the icon, and lit specks about it that are no plate.
+        let (w, h) = (400u32, 120u32);
+        let mut rgb = vec![0u8; (w * h * 3) as usize];
+        let mut paint = |x0: u32, y0: u32, pw: u32, ph: u32, c: [u8; 3]| {
+            for y in y0..y0 + ph {
+                for x in x0..x0 + pw {
+                    let i = ((y * w + x) * 3) as usize;
+                    rgb[i..i + 3].copy_from_slice(&c);
+                }
+            }
+        };
+        paint(0, 0, w, h, [8, 74, 66]);
+        paint(150, 50, 80, 19, [51, 120, 112]);
+        paint(155, 53, 13, 13, [100, 255, 240]);
+        paint(40, 20, 12, 12, [100, 255, 240]);
+        paint(300, 80, 30, 2, [100, 255, 240]);
+        let cap = Captured { rgb, width: w, height: h, source: "test".into(), full_height: 1440, origin: (0, 0) };
+        let plates = find_plates(&cap);
+        assert_eq!(plates.len(), 1, "one plate");
+        let p = &plates[0];
+        assert!((p.x - 150).abs() <= 2 && (p.y - 50).abs() <= 2 && (p.w - 80).abs() <= 3 && (p.h - 19).abs() <= 2, "{},{} {}x{}", p.x, p.y, p.w, p.h);
+        // The number starts past the icon, not at the plate's edge.
+        let skip = icon_end(&cap, p);
+        assert!((18..=26).contains(&skip), "skip {skip}");
+    }
+
+    #[test]
     fn a_digit_read_as_a_pin_is_part_of_the_number() {
         let badge = |x, y, value: f64| Badge { x, y, w: 20, h: 22, shape: 0.6, value, text: value.to_string() };
         // The real pin at 100, the "8" mistaken for one at 125, nearer the
@@ -1193,6 +1392,12 @@ mod tests {
         // the front of it. No signature is a million, so the range catches it.
         assert_eq!(badge_number("715,600"), None);
         assert_eq!(badge_number("1,234,500"), None);
+        // The comma lost, or specks of the plate's edge read as dots.
+        assert_eq!(badge_number("3400"), Some(3400.0));
+        assert_eq!(badge_number(".2.000."), Some(2000.0));
+        assert_eq!(badge_number("3,,400"), Some(3400.0));
+        assert_eq!(badge_number("715600"), None);
+        assert_eq!(badge_number("16.7"), None);
         assert!(is_hud(220, 120, 30)); // amber pin
         assert!(is_hud(64, 202, 202)); // cyan pin (F7C-M HUD)
         assert!(!is_hud(200, 200, 200)); // grey
