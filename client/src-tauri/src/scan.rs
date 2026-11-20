@@ -595,7 +595,28 @@ pub fn find_badges(reader: &Reader, cap: &Captured) -> Vec<Badge> {
             out.push(Badge { x: b.x, y: b.y, w: b.w, h: b.h, shape: b.shape, value, text: text.trim().to_string() });
         }
     }
-    out
+    within_one_number(out, (150.0 * k) as i32)
+}
+
+/// One badge per number. A digit can pass for the pin — an "8" scores as well
+/// as some ships' icons do — and the strip read to the right of it is the rest
+/// of the same number: "8,570" gave a second badge reading 570, a signature as
+/// believable as the real one and, being nearer the middle, the one used. A
+/// candidate sitting inside the strip of one further left on the same row is
+/// part of that badge's number, not a badge of its own.
+fn within_one_number(mut badges: Vec<Badge>, strip: i32) -> Vec<Badge> {
+    let centre_order: Vec<(i32, i32)> = badges.iter().map(|b| (b.x, b.y)).collect();
+    badges.sort_by_key(|b| b.x);
+    let mut kept: Vec<Badge> = Vec::with_capacity(badges.len());
+    for b in badges {
+        let inside = kept.iter().any(|a| (b.y - a.y).abs() < a.h.max(b.h) && b.x > a.x && b.x < a.x + a.w + strip);
+        if !inside {
+            kept.push(b);
+        }
+    }
+    // Back to nearest-the-middle first, which is what callers take the first of.
+    kept.sort_by_key(|b| centre_order.iter().position(|&p| p == (b.x, b.y)));
+    kept
 }
 
 /// Whole analysis of one capture — shared by the app and the harness.
@@ -1066,7 +1087,11 @@ mod tests {
             let frame = crate::capture::Frame::from_rgb(img.as_raw(), img.width(), img.height());
             let framed = frame.crop_rgb(ScanRegion::default()).unwrap();
             let started = Instant::now();
-            let found: Vec<f64> = find_badges(&reader, &framed).iter().map(|b| b.value).collect();
+            let badges = find_badges(&reader, &framed);
+            for b in &badges {
+                println!("     read {:?}", b.text);
+            }
+            let found: Vec<f64> = badges.iter().map(|b| b.value).collect();
 
             let mut hits = 0;
             for want in &wanted {
@@ -1138,6 +1163,19 @@ mod tests {
         // Resampling keeps the score: the template drawn at 2× still matches.
         let big: Vec<bool> = (0..h * 2).flat_map(|y| (0..w * 2).map(move |x| PIN_TEMPLATE[y / 2].as_bytes()[x / 2] == b'#')).collect();
         assert!(pin_score_mask(&big, w * 2, h * 2) > 0.99);
+    }
+
+    #[test]
+    fn a_digit_read_as_a_pin_is_part_of_the_number() {
+        let badge = |x, y, value: f64| Badge { x, y, w: 20, h: 22, shape: 0.6, value, text: value.to_string() };
+        // The real pin at 100, the "8" mistaken for one at 125, nearer the
+        // middle so first; and an unrelated contact on another row.
+        let found = within_one_number(vec![badge(125, 50, 570.0), badge(100, 50, 8570.0), badge(300, 200, 2000.0)], 150);
+        let values: Vec<f64> = found.iter().map(|b| b.value).collect();
+        assert_eq!(values, vec![8570.0, 2000.0]);
+        // Two contacts side by side, further apart than a strip, are both kept.
+        let found = within_one_number(vec![badge(100, 50, 4612.0), badge(400, 50, 11490.0)], 150);
+        assert_eq!(found.len(), 2);
     }
 
     #[test]
