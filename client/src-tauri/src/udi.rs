@@ -137,11 +137,27 @@ fn channel_of(live_dir: &Path) -> &'static str {
     }
 }
 
-/// `<channel>/data/Localization/english/global.ini`, in the casing the folder already has.
+/// Every entry in `dir` named `name` in any casing. The game runs on Windows,
+/// where USER.cfg and user.cfg are one file; on Linux they are two, and
+/// writing a second one beside the player's leaves the game reading either.
+fn named_ci(dir: &Path, name: &str) -> Vec<PathBuf> {
+    let mut found: Vec<PathBuf> = std::fs::read_dir(dir)
+        .map(|entries| entries.flatten().filter(|e| e.file_name().to_string_lossy().eq_ignore_ascii_case(name)).map(|e| e.path()).collect())
+        .unwrap_or_default();
+    found.sort();
+    found
+}
+
+/// `dir/name` as it already exists in any casing, else as given.
+fn child_ci(dir: &Path, name: &str) -> PathBuf {
+    named_ci(dir, name).into_iter().next().unwrap_or_else(|| dir.join(name))
+}
+
+/// `<channel>/data/Localization/english/global.ini`, in the casing the folders already have.
 fn ini_path(live_dir: &Path) -> PathBuf {
-    let data = ["Data", "data"].iter().map(|d| live_dir.join(d)).find(|p| p.is_dir()).unwrap_or_else(|| live_dir.join("data"));
-    let loc = ["Localization", "localization"].iter().map(|d| data.join(d)).find(|p| p.is_dir()).unwrap_or_else(|| data.join("Localization"));
-    loc.join("english").join("global.ini")
+    let data = child_ci(live_dir, "data");
+    let loc = child_ci(&data, "Localization");
+    child_ci(&child_ci(&loc, "english"), "global.ini")
 }
 
 fn fingerprint(bytes: &[u8]) -> String {
@@ -290,18 +306,36 @@ async fn fetch_and_write(token: &str, dir: &Path, profile: &Profile, here: &mut 
             200 => {
                 let new_etag = header(&resp, "ETag");
                 let body = resp.bytes().await.map_err(|e| e.to_string())?;
-                let target = dir.join("user.cfg");
+                // The user.cfg the game reads, in whatever casing it has: the
+                // player's own if there is one, else one StarBuddy wrote.
+                let is_ours = |path: &Path| {
+                    std::fs::read(path).is_ok_and(|b| here.cfg_written.as_deref() == Some(fingerprint(&b).as_str()))
+                };
+                let variants = named_ci(&dir, "user.cfg");
+                let target = variants
+                    .iter()
+                    .find(|p| !is_ours(p))
+                    .or(variants.first())
+                    .cloned()
+                    .unwrap_or_else(|| dir.join("user.cfg"));
                 // A user.cfg StarBuddy did not write is the player's own: kept
                 // once, before StarBuddy first replaces it.
                 if let Ok(existing) = std::fs::read(&target) {
-                    let ours = here.cfg_written.as_deref() == Some(fingerprint(&existing).as_str());
                     let backup = dir.join("user.cfg.before-starbuddy");
-                    if !ours && !backup.exists() {
+                    if !is_ours(&target) && named_ci(&dir, "user.cfg.before-starbuddy").is_empty() {
                         std::fs::write(&backup, &existing).map_err(|e| format!("{}: {e}", backup.display()))?;
                         result.backed_up = true;
                     }
                 }
+                // Other casings StarBuddy wrote before go: one user.cfg, the one above.
+                let leftovers: Vec<PathBuf> = variants.iter().filter(|p| **p != target && is_ours(p)).cloned().collect();
                 crate::fs_atomic::write(&target, &body).map_err(|e| format!("{}: {e}", target.display()))?;
+                for extra in leftovers {
+                    match std::fs::remove_file(&extra) {
+                        Ok(()) => log::info!("removed {}, a second user.cfg StarBuddy had written", extra.display()),
+                        Err(e) => log::warn!("could not remove {}: {e}", extra.display()),
+                    }
+                }
                 log::info!("installed StarConfig user.cfg to {}", target.display());
                 here.cfg_etag = new_etag;
                 here.cfg_written = Some(fingerprint(&body));
@@ -455,7 +489,8 @@ mod tests {
         let keep = std::env::var("STARBUDDY_UDI_TEST_DIR").ok();
         let dir = keep.clone().map(PathBuf::from).unwrap_or_else(|| std::env::temp_dir().join(format!("sb-udi-live-{}", std::process::id()))).join("LIVE");
         std::fs::create_dir_all(dir.join("Data/Localization")).unwrap();
-        std::fs::write(dir.join("user.cfg"), "r_my_own = 1\r\n").unwrap();
+        // The player's own, in the casing Windows users often have.
+        std::fs::write(dir.join("USER.cfg"), "r_my_own = 1\r\n").unwrap();
         tauri::async_runtime::block_on(async {
             let resp = get(&token, "/api/starbuddy/profile", None).await.unwrap();
             assert_eq!(resp.status().as_u16(), 200, "no profile for the token");
@@ -466,7 +501,9 @@ mod tests {
             assert!(r.ini && r.cfg && r.backed_up);
             assert!(dir.join("Data/Localization/english/global.ini").is_file());
             assert_eq!(std::fs::read_to_string(dir.join("user.cfg.before-starbuddy")).unwrap(), "r_my_own = 1\r\n");
-            let cfg = std::fs::read_to_string(dir.join("user.cfg")).unwrap();
+            // Written into the player's USER.cfg, not beside it.
+            assert_eq!(named_ci(&dir, "user.cfg"), vec![dir.join("USER.cfg")]);
+            let cfg = std::fs::read_to_string(dir.join("USER.cfg")).unwrap();
             println!("user.cfg: {cfg:?}");
             // Nothing changed at UDI: both answer 304 and nothing is written.
             let again = fetch_and_write(&token, &dir, &profile, &mut here, false).await.unwrap();
@@ -476,5 +513,16 @@ mod tests {
         if keep.is_none() {
             let _ = std::fs::remove_dir_all(dir.parent().unwrap());
         }
+    }
+
+    #[test]
+    fn existing_files_are_found_in_any_casing() {
+        let dir = std::env::temp_dir().join(format!("sb-udi-ci-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("DATA/localization/English")).unwrap();
+        std::fs::write(dir.join("USER.cfg"), "mine").unwrap();
+        assert_eq!(child_ci(&dir, "user.cfg"), dir.join("USER.cfg"));
+        assert_eq!(ini_path(&dir), dir.join("DATA/localization/English/global.ini"));
+        assert_eq!(child_ci(&dir, "missing.txt"), dir.join("missing.txt"));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
