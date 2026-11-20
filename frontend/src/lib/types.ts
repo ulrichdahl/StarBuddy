@@ -5,6 +5,10 @@ export interface Org {
   id: number
   name: string
   tag?: string
+  /** RSI Spectrum id, when the org registered one. */
+  sid?: string | null
+  /** The caller's membership, on orgs listed under GET /api/me. */
+  pivot?: { role: OrgRole; status: OrgMembershipStatus }
 }
 
 /** Authenticated member, from GET /api/me. */

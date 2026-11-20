@@ -10,7 +10,8 @@
     "none": "—",
     "undo": "Undo",
     "clear": "Clear",
-    "back": "Back"
+    "back": "Back",
+    "done": "Done"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -27,7 +28,11 @@
     "findItem": "Find an item",
     "findItemPlaceholder": "Find an item…",
     "about": "About",
-    "training": "Scan training"
+    "training": "Scan training",
+    "groupOperations": "Operations",
+    "groupSystem": "System",
+    "account": "Account menu",
+    "searchShortcut": "Press / to search"
   },
   "login": {
     "tagline": "Org materials and blueprint tracking for Star Citizen. Sign in with the Discord account linked to your org.",
@@ -255,7 +260,19 @@
     "pairedDevices": "Paired devices",
     "lastSync": "last sync {{time}}",
     "neverUsed": "never used",
-    "revoke": "Revoke {{name}}"
+    "revoke": "Revoke {{name}}",
+    "clientHelp": "Syncs blueprints and completed missions from your Game.log, and runs the in-game overlay.",
+    "install": "Install",
+    "pair": "Pair",
+    "linux": "Linux · AppImage / deb / rpm",
+    "windows": "Windows installer",
+    "enterWithin": "Enter the code in the app's Server panel within 10 minutes.",
+    "waiting": "Single use. Enter it in the app's Server panel.",
+    "expired": "Code expired — generate a new one.",
+    "active": "Active",
+    "stale": "Stale",
+    "never": "Never used",
+    "remove": "Remove {{name}}"
   },
   "org": {
     "title": "Organizations",
@@ -844,5 +861,23 @@
         "in": "This was sold to you"
       }
     }
+  },
+  "account": {
+    "profile": "Profile & desktop client",
+    "organizations": "Organizations",
+    "signOut": "Sign out",
+    "synced": "Client synced <t>{{time}}</t> · {{device}}",
+    "stale": "Client last synced {{time}}",
+    "notPaired": "Desktop client not paired"
+  },
+  "profileDialog": {
+    "title": "Profile & desktop client",
+    "identity": "Identity",
+    "handleLabel": "Star Citizen handle",
+    "handleHelp": "Shown to org mates and used to match you in CSV imports.",
+    "avatarFromDiscord": "Avatar comes from Discord",
+    "noOrg": "No org yet",
+    "lastSync": "Last sync",
+    "neverSynced": "Never synced"
   }
 }

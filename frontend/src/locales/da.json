@@ -10,7 +10,8 @@
     "none": "—",
     "undo": "Fortryd",
     "clear": "Ryd",
-    "back": "Tilbage"
+    "back": "Tilbage",
+    "done": "Færdig"
   },
   "nav": {
     "dashboard": "Oversigt",
@@ -27,7 +28,11 @@
     "findItem": "Find en genstand",
     "findItemPlaceholder": "Find en genstand…",
     "about": "Om",
-    "training": "Scanningstræning"
+    "training": "Scanningstræning",
+    "groupOperations": "Drift",
+    "groupSystem": "System",
+    "account": "Kontomenu",
+    "searchShortcut": "Tryk / for at søge"
   },
   "login": {
     "tagline": "Materiale- og blueprint-styring for din org i Star Citizen. Log ind med den Discord-konto, der er knyttet til din org.",
@@ -255,7 +260,19 @@
     "pairedDevices": "Parrede enheder",
     "lastSync": "sidste synk {{time}}",
     "neverUsed": "aldrig brugt",
-    "revoke": "Fjern {{name}}"
+    "revoke": "Fjern {{name}}",
+    "clientHelp": "Synkroniserer blueprints og fuldførte missioner fra din Game.log og kører overlayet i spillet.",
+    "install": "Installer",
+    "pair": "Par",
+    "linux": "Linux · AppImage / deb / rpm",
+    "windows": "Windows-installer",
+    "enterWithin": "Indtast koden i appens Server-panel inden for 10 minutter.",
+    "waiting": "Engangskode. Indtast den i appens Server-panel.",
+    "expired": "Koden er udløbet — lav en ny.",
+    "active": "Aktiv",
+    "stale": "Forældet",
+    "never": "Aldrig brugt",
+    "remove": "Fjern {{name}}"
   },
   "org": {
     "title": "Organisationer",
@@ -844,5 +861,23 @@
         "in": "Dette blev solgt til dig"
       }
     }
+  },
+  "account": {
+    "profile": "Profil & desktopklient",
+    "organizations": "Organisationer",
+    "signOut": "Log ud",
+    "synced": "Klient synkroniseret <t>{{time}}</t> · {{device}}",
+    "stale": "Klient sidst synkroniseret {{time}}",
+    "notPaired": "Desktopklient ikke parret"
+  },
+  "profileDialog": {
+    "title": "Profil & desktopklient",
+    "identity": "Identitet",
+    "handleLabel": "Star Citizen-handle",
+    "handleHelp": "Vises for org-kammerater og bruges til at genkende dig i CSV-import.",
+    "avatarFromDiscord": "Avataren kommer fra Discord",
+    "noOrg": "Ingen org endnu",
+    "lastSync": "Sidste synk",
+    "neverSynced": "Aldrig synkroniseret"
   }
 }

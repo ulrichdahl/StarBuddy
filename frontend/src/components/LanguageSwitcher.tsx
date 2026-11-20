@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import IconButton from '@mui/material/IconButton'
+import Button from '@mui/material/Button'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Tooltip from '@mui/material/Tooltip'
@@ -34,9 +34,14 @@ export function LanguageSwitcher({ signedIn = false }: { signedIn?: boolean }) {
   return (
     <>
       <Tooltip title={t('common.language')}>
-        <IconButton aria-label={t('common.language')} onClick={(e) => setAnchor(e.currentTarget)} size="small">
-          <LanguageIcon fontSize="small" />
-        </IconButton>
+        <Button
+          aria-label={`${t('common.language')}: ${LOCALE_NAMES[active]}`}
+          onClick={(e) => setAnchor(e.currentTarget)}
+          startIcon={<LanguageIcon fontSize="small" />}
+          sx={{ height: 44, minWidth: 0, px: 1.25, color: 'text.primary', fontWeight: 600, letterSpacing: '0.1em' }}
+        >
+          {active.toUpperCase()}
+        </Button>
       </Tooltip>
       <Menu anchorEl={anchor} open={anchor !== null} onClose={() => setAnchor(null)}>
         {SUPPORTED_LOCALES.map((locale) => (

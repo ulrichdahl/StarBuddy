@@ -34,7 +34,7 @@ function orgStats(org: OrgSummary, t: TFunction): string {
  * membership actions: request to join, cancel a pending request, leave,
  * and (for managers/admins) open the member-moderation dialog.
  */
-export function OrgListCard({ me }: { me: Me }) {
+export function OrgListCard({ me, bare = false }: { me: Me; bare?: boolean }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [manageOrg, setManageOrg] = useState<OrgSummary | null>(null)
@@ -64,11 +64,13 @@ export function OrgListCard({ me }: { me: Me }) {
   const busy = join.isPending || leave.isPending
 
   return (
-    <Paper sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <GroupsIcon color="primary" />
-        <Typography variant="h6">{t('org.title')}</Typography>
-      </Box>
+    <Paper sx={bare ? { p: 0, border: 0, bgcolor: 'transparent' } : { p: 3 }}>
+      {!bare && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <GroupsIcon color="primary" />
+          <Typography variant="h6">{t('org.title')}</Typography>
+        </Box>
+      )}
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
         {t('org.help')}
       </Typography>

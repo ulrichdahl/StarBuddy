@@ -11,8 +11,6 @@ import { api } from '../lib/api'
 import type { DashboardStats, Me } from '../lib/types'
 import { OrgListCard } from '../components/OrgListCard'
 import { PageHeader } from '../components/PageHeader'
-import { PairDeviceCard } from '../components/PairDeviceCard'
-import { ProfileCard } from '../components/ProfileCard'
 import type { ReactNode } from 'react'
 
 interface StatCardProps {
@@ -94,17 +92,6 @@ export function DashboardPage({ me }: { me: Me }) {
           icon={<FactoryIcon fontSize="large" />}
           loading={isLoading}
         />
-      </Box>
-      <Box
-        sx={{
-          mt: 2,
-          display: 'grid',
-          gap: 2,
-          gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 560px))' },
-        }}
-      >
-        <ProfileCard me={me} />
-        <PairDeviceCard />
       </Box>
       <Box sx={{ mt: 2 }}>
         <OrgListCard me={me} />
