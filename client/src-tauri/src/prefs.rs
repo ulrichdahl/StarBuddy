@@ -32,6 +32,9 @@ pub(crate) struct ClientPrefs {
     pub(crate) main_overlay_at: Option<crate::main_window::Placement>,
     /// Where the main window was left as a window, kept across restarts.
     pub(crate) main_window_at: Option<crate::main_window::Placement>,
+    /// The player switched the Game.log watcher off. It is on otherwise,
+    /// from the start, whenever a game folder is found.
+    pub(crate) log_watch_off: bool,
 }
 
 fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {

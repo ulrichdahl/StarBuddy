@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { OverlayWindow } from "./OverlayWindow";
 import { BodyText, asSeverity, countdown, localTime, onRsiStatus, type RsiStatus } from "../status";
 import { usePageVisible } from "../visibility";
+import { useGameSession, whereabouts } from "../gameSession";
 
 /** cstate system status → dot class. */
 const dotClass = (status: string) =>
@@ -21,6 +22,8 @@ export function StatusOverlay() {
   const [paired, setPaired] = useState<boolean | null>(null);
   const [error, setError] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  // All clear, the box says where the player is rather than that nothing is wrong.
+  const place = whereabouts(useGameSession());
 
   useEffect(
     () =>
@@ -82,12 +85,12 @@ export function StatusOverlay() {
         firstBox={
           <div className="ov-box acc">
             <span className="mono big">{allOk ? t("overlay.status.okBadge") : "!"}</span>
-            <span>{allOk ? t("overlay.status.allOkBody") : t("overlay.status.someIssuesBody")}</span>
+            <span>{allOk ? (place ?? t("overlay.status.allOkBody")) : t("overlay.status.someIssuesBody")}</span>
           </div>
         }
         strip={
           <>
-            <span className="ov-muted ov-strip-item">{allOk ? t("overlay.status.allOkBody") : t("overlay.status.someIssuesBody")}</span>
+            <span className="ov-muted ov-strip-item">{allOk ? (place ?? t("overlay.status.allOkBody")) : t("overlay.status.someIssuesBody")}</span>
             {checked && <span className="ov-muted ov-strip-item mono">{checked}</span>}
           </>
         }

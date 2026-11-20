@@ -112,6 +112,16 @@ pub struct AppVersion {
 }
 
 #[tauri::command]
+pub fn debug_mode() -> bool {
+    debugging()
+}
+
+/// STARBUDDY_DEBUG=1 (or true): Settings shows what is there to find faults.
+pub(crate) fn debugging() -> bool {
+    std::env::var("STARBUDDY_DEBUG").is_ok_and(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+}
+
+#[tauri::command]
 pub fn app_version() -> AppVersion {
     AppVersion {
         version: env!("CARGO_PKG_VERSION").to_string(),

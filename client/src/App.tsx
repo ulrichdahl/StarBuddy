@@ -8,7 +8,7 @@ import { EventsTable } from "./main-window/EventsTable";
 import { Footer } from "./main-window/Footer";
 import { GameFolderPanel } from "./main-window/GameFolderPanel";
 import { IncidentBanner } from "./main-window/IncidentBanner";
-import { OverlayPanel } from "./main-window/OverlayPanel";
+import { OpenAsPanel, OverlayPanel, useDebugMode, useHeardHotkey } from "./main-window/OverlayPanel";
 import { ServerPanel } from "./main-window/ServerPanel";
 import { UpdateBanner } from "./main-window/UpdateBanner";
 import { useWatcher, WatcherPanel } from "./main-window/WatcherPanel";
@@ -44,6 +44,8 @@ function App() {
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const watcher = useWatcher(liveDir, customDir);
+  const heard = useHeardHotkey();
+  const debug = useDebugMode();
   const canStart = Boolean(liveDir || customDir);
 
   useEffect(() => {
@@ -90,7 +92,7 @@ function App() {
         tab={settingsTab}
         onTab={setSettingsTab}
         panels={{
-          hotkeys: <OverlayPanel paired={paired} part="hotkeys" mainState={mainState} onMainMode={setMainMode} />,
+          hotkeys: <OverlayPanel paired={paired} part="hotkeys" debug={debug} />,
           game: (
             <>
               <GameFolderPanel
@@ -106,22 +108,25 @@ function App() {
           ),
           reading: <OverlayPanel paired={paired} part="reading" />,
           account: <ServerPanel connection={connection} onConnection={setConnection} />,
-          language: (
-            <section className="panel">
-              <h2>{t("header.language")}</h2>
-              <select
-                className="locale-select"
-                aria-label={t("header.language")}
-                value={i18n.language}
-                onChange={(e) => setLocale(e.target.value as Locale)}
-              >
-                {SUPPORTED_LOCALES.map((code) => (
-                  <option key={code} value={code}>
-                    {LOCALE_NAMES[code]}
-                  </option>
-                ))}
-              </select>
-            </section>
+          general: (
+            <>
+              <section className="panel">
+                <h2>{t("header.language")}</h2>
+                <select
+                  className="locale-select"
+                  aria-label={t("header.language")}
+                  value={i18n.language}
+                  onChange={(e) => setLocale(e.target.value as Locale)}
+                >
+                  {SUPPORTED_LOCALES.map((code) => (
+                    <option key={code} value={code}>
+                      {LOCALE_NAMES[code]}
+                    </option>
+                  ))}
+                </select>
+              </section>
+              <OpenAsPanel mainState={mainState} onMainMode={setMainMode} />
+            </>
           ),
           updates: (
             <>
@@ -130,7 +135,7 @@ function App() {
               <Footer part="updates" update={update} onUpdate={onUpdate} />
             </>
           ),
-          diagnostics: <OverlayPanel paired={paired} part="diagnostics" />,
+          diagnostics: <OverlayPanel paired={paired} part="diagnostics" debug={debug} heard={heard} />,
         }}
       />
     );

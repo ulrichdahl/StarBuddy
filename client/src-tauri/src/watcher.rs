@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
 
 use crate::game_dir::{load_localization, parse_line, LogEvent};
+use crate::game_session::{self, SessionState};
+use crate::prefs::{load_client_prefs, save_client_prefs};
 use crate::lock::LockExt;
 use crate::outbox;
 use crate::pairing::{load_settings, post_events};
@@ -32,35 +34,82 @@ pub fn watcher_status(state: tauri::State<WatcherState>) -> bool {
 }
 
 #[tauri::command]
-pub fn stop_watcher(state: tauri::State<WatcherState>) {
+pub fn stop_watcher(app: tauri::AppHandle, state: tauri::State<WatcherState>) {
     if let Some(flag) = state.0.lock_or_recover().take() {
         flag.store(true, Ordering::Relaxed);
     }
+    // Switched off by the player: it stays off at the next start too.
+    set_off(&app, true);
 }
 
 #[tauri::command]
-pub fn start_watcher(
-    app: tauri::AppHandle,
-    state: tauri::State<WatcherState>,
-    live_dir: String,
-) -> Result<(), String> {
-    let log_path = PathBuf::from(&live_dir).join("Game.log");
+pub fn start_watcher(app: tauri::AppHandle, live_dir: String) -> Result<(), String> {
+    start(&app, &live_dir)?;
+    set_off(&app, false);
+    Ok(())
+}
+
+fn set_off(app: &tauri::AppHandle, off: bool) {
+    let mut prefs = load_client_prefs(app);
+    if prefs.log_watch_off != off {
+        prefs.log_watch_off = off;
+        if let Err(e) = save_client_prefs(app, &prefs) {
+            log::warn!("could not keep the log watcher's switch: {e}");
+        }
+    }
+}
+
+/// Whether the watcher is following a log now.
+pub(crate) fn running(app: &tauri::AppHandle) -> bool {
+    app.try_state::<WatcherState>()
+        .is_some_and(|s| s.0.lock_or_recover().as_ref().is_some_and(|f| !f.load(Ordering::Relaxed)))
+}
+
+/// Follow Game.log from the start, unless the player switched that off: a
+/// found game folder is watched without being asked.
+pub fn start_at_launch(app: &tauri::AppHandle) {
+    if load_client_prefs(app).log_watch_off {
+        log::info!("log watcher left off, as the player switched it");
+        return;
+    }
+    let Some(dir) = crate::game_dir::detect_game_log(app.clone()) else { return };
+    match start(app, &dir) {
+        Ok(()) => log::info!("watching {dir}/Game.log"),
+        Err(e) => log::info!("log watcher not started: {e}"),
+    }
+}
+
+/// Follow `live_dir`'s Game.log, in place of whatever was followed before.
+pub(crate) fn start(app: &tauri::AppHandle, live_dir: &str) -> Result<(), String> {
+    let app = app.clone();
+    let log_path = PathBuf::from(live_dir).join("Game.log");
     if !log_path.is_file() {
         return Err(format!("No Game.log in {live_dir} — is the game installed there?"));
     }
 
-    let mut guard = state.0.lock_or_recover();
-    if let Some(flag) = guard.take() {
-        flag.store(true, Ordering::Relaxed);
-    }
     let stop = Arc::new(AtomicBool::new(false));
-    *guard = Some(stop.clone());
-    drop(guard);
+    {
+        let state = app.state::<WatcherState>();
+        let mut guard = state.0.lock_or_recover();
+        if let Some(flag) = guard.replace(stop.clone()) {
+            flag.store(true, Ordering::Relaxed);
+        }
+    }
 
-    let localization = load_localization(Path::new(&live_dir));
+    // What the log has said so far: the build, where the player was. Read
+    // once, whole; from here on only what is added.
+    let live = PathBuf::from(live_dir);
+    let bytes = fs::read(&log_path).unwrap_or_default();
+    let start_offset = bytes.len() as u64;
+    if let Some(sessions) = app.try_state::<SessionState>() {
+        game_session::emit(&app, &sessions.reset(&live, &String::from_utf8_lossy(&bytes)));
+    }
+    drop(bytes);
+
+    let localization = load_localization(Path::new(live_dir));
 
     tauri::async_runtime::spawn(async move {
-        let mut offset = fs::metadata(&log_path).map(|m| m.len()).unwrap_or(0);
+        let mut offset = start_offset;
         let mut carry = String::new();
         // Events the server did not take wait in the outbox; these say when
         // to try it again.
@@ -99,6 +148,9 @@ pub fn start_watcher(
                 // Log rotated: the game restarted; read the new file fully.
                 offset = 0;
                 carry.clear();
+                if let Some(sessions) = app.try_state::<SessionState>() {
+                    game_session::emit(&app, &sessions.reset(&live, ""));
+                }
             }
             if size == offset {
                 continue;
@@ -120,6 +172,12 @@ pub fn start_watcher(
                 None => ("", chunk.as_str()),
             };
             carry = rest.to_string();
+
+            if let Some(sessions) = app.try_state::<SessionState>() {
+                if let Some(changed) = sessions.feed(complete.lines()) {
+                    game_session::emit(&app, &changed);
+                }
+            }
 
             let events: Vec<LogEvent> = complete
                 .lines()

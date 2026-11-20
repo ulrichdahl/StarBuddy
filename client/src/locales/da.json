@@ -386,7 +386,11 @@
     },
     "hide": "Tilbage til spillet",
     "keyToggle": "vis / skjul",
-    "keyBack": "tilbage til spillet"
+    "keyBack": "tilbage til spillet",
+    "location": "Sted",
+    "ship": "Skib",
+    "gameRunning": "Spillet kører",
+    "gameNotRunning": "Spillet kører ikke; dette er sidste session"
   },
   "home": {
     "servers": "Servere",
@@ -490,7 +494,7 @@
       "game": "Spilinstallation",
       "reading": "Skærmaflæsning",
       "account": "Konto og server",
-      "language": "Sprog",
+      "general": "Generelt",
       "updates": "Opdateringer",
       "diagnostics": "Fejlsøgning"
     },
@@ -506,12 +510,6 @@
     },
     "modeNoGame": "Når spillet ikke kører, åbner StarBuddy altid som et vindue.",
     "hotkeyMain": "Vis / skjul StarBuddy",
-    "show": "Vis",
-    "hide": "Skjul",
-    "start": "Start",
-    "stop": "Stop",
-    "once": "Én gang",
-    "sendNow": "Send nu",
     "hkCount_one": "{{count}} genvejstast registreret",
     "hkCount_other": "{{count}} genvejstaster registreret",
     "hk": {
@@ -533,7 +531,22 @@
     "change": "Skift",
     "groupWindows": "Vinduer",
     "groupCapture": "Skærmaflæsning",
-    "captureNeedsReading": "Disse aflæser spillets vindue: slå skærmaflæsning til først."
+    "captureNeedsReading": "Disse aflæser spillets vindue: slå skærmaflæsning til først.",
+    "area": {
+      "refinery": "Raffinaderiordre-område"
+    },
+    "areaFramed": "Indrammet: kun den del af skærmen læses",
+    "areaWhole": "Ikke indrammet: StarBuddy leder efter panelet på hele skærmen",
+    "areaFrame": "Indram område",
+    "areaReframe": "Indram igen",
+    "areaClear": "Ryd",
+    "areaNeedsReading": "Slå skærmaflæsning til for at indramme et område.",
+    "lastHotkey": "Seneste genvejstast",
+    "heard": "{{action}} kl. {{time}}: tasterne når frem til StarBuddy.",
+    "heardNone": "Ingen genvejstast er nået frem til StarBuddy, siden den startede.",
+    "reportIssue": "Meld en fejl på GitHub",
+    "knownIssues": "Kendte fejl",
+    "hkFailed": "Virker ikke: {{names}}. Et andet program har måske tasten; vælg en anden."
   },
   "gathering": {
     "lead": "Hvad dine fastgjorte fremstillingsmål kræver, holdt op mod hvad du har i den rette kvalitet.",

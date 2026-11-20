@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { asSeverity, onRsiStatus, type RsiStatusUpdate } from "../status";
+import { environmentName, useGameSession, type GameSession } from "../gameSession";
 import type { MainMode } from "./mainMode";
 import "./shell.css";
 
@@ -122,6 +123,39 @@ function ServerChip() {
   );
 }
 
+/** Where the player is and what they boarded, as the log last said. */
+function PlaceChip({ session }: { session: GameSession | null }) {
+  const { t } = useTranslation();
+  if (!session?.location && !session?.ship) return null;
+  return (
+    <span className="sb-place">
+      {session.location && (
+        <span title={session.location_code ?? undefined}>
+          <span className="sb-place-k">{t("shell.location")}</span> {session.location}
+        </span>
+      )}
+      {session.ship && (
+        <span>
+          <span className="sb-place-k">{t("shell.ship")}</span> {session.ship}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** The game's channel and build, lit while the game runs. */
+function GameChip({ session }: { session: GameSession | null }) {
+  const { t } = useTranslation();
+  if (!session?.environment && !session?.branch) return null;
+  return (
+    <span className="sb-chip" title={session.running ? t("shell.gameRunning") : t("shell.gameNotRunning")}>
+      <span className={`sb-dot ${session.running ? "cyan" : "off"}`} />
+      {session.environment && <span>{environmentName(session.environment)}</span>}
+      {session.branch && <span className="mono sb-dim">{session.branch}</span>}
+    </span>
+  );
+}
+
 /**
  * The main window's frame: a title bar, the rail of sections, the section
  * itself and a footer of keys. The look is the overlays' own (theme.css), so
@@ -145,6 +179,7 @@ export function Shell({
   children: ReactNode;
 }) {
   const { t } = useTranslation();
+  const session = useGameSession();
   const overlay = showingAs === "overlay";
   // The overlay has no frame of its own: Esc puts it away, as the footer says.
   useEffect(() => {
@@ -167,7 +202,9 @@ export function Shell({
         </span>
         <span className="sb-sect" {...drag}>{t(`shell.section.${section}`)}</span>
         <span className="sb-sp" {...drag} />
+        <PlaceChip session={session} />
         <ServerChip />
+        <GameChip session={session} />
         {overlay && (
           <button type="button" className="sb-hd-x" aria-label={t("shell.hide")} title={t("shell.hide")} onClick={() => void invoke("main_hide").catch(() => {})}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
@@ -194,7 +231,7 @@ export function Shell({
             </div>
           ))}
           <div className="sb-rail-foot">
-            <span className="sb-dim mono">{version ? `v${version}` : ""}</span>
+            <span className="sb-dim mono">{version ? `StarBuddy v${version}` : "StarBuddy"}</span>
           </div>
         </nav>
         <main className="sb-main">{children}</main>

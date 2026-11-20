@@ -259,6 +259,12 @@ pub fn set_live_dir(app: tauri::AppHandle, path: String) -> Result<String, Strin
     prefs.live_dir = Some(live_str.clone());
     save_client_prefs(&app, &prefs)?;
     log::info!("game folder set to {live_str}");
+    // A watcher on the old folder follows the new one.
+    if crate::watcher::running(&app) {
+        if let Err(e) = crate::watcher::start(&app, &live_str) {
+            log::warn!("log watcher not moved to {live_str}: {e}");
+        }
+    }
     Ok(live_str)
 }
 

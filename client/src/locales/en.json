@@ -386,7 +386,11 @@
     },
     "hide": "Back to the game",
     "keyToggle": "show / hide",
-    "keyBack": "back to game"
+    "keyBack": "back to game",
+    "location": "Location",
+    "ship": "Ship",
+    "gameRunning": "The game is running",
+    "gameNotRunning": "The game is not running; this is the last session"
   },
   "home": {
     "servers": "Servers",
@@ -490,7 +494,7 @@
       "game": "Game install",
       "reading": "Screen reading",
       "account": "Account & server",
-      "language": "Language",
+      "general": "General",
       "updates": "Updates",
       "diagnostics": "Diagnostics"
     },
@@ -506,12 +510,6 @@
     },
     "modeNoGame": "While the game is not running, StarBuddy always opens as a window.",
     "hotkeyMain": "Show / hide StarBuddy",
-    "show": "Show",
-    "hide": "Hide",
-    "start": "Start",
-    "stop": "Stop",
-    "once": "Once",
-    "sendNow": "Send now",
     "hkCount_one": "{{count}} hotkey registered",
     "hkCount_other": "{{count}} hotkeys registered",
     "hk": {
@@ -533,7 +531,22 @@
     "change": "Change",
     "groupWindows": "Windows",
     "groupCapture": "Screen capture",
-    "captureNeedsReading": "These read the game's window: turn screen reading on first."
+    "captureNeedsReading": "These read the game's window: turn screen reading on first.",
+    "area": {
+      "refinery": "Refinery order area"
+    },
+    "areaFramed": "Framed: only that part of the screen is read",
+    "areaWhole": "Not framed: StarBuddy looks for the panel on the whole screen",
+    "areaFrame": "Frame area",
+    "areaReframe": "Frame again",
+    "areaClear": "Clear",
+    "areaNeedsReading": "Turn screen reading on to frame an area.",
+    "lastHotkey": "Last hotkey",
+    "heard": "{{action}} at {{time}}: the keys reach StarBuddy.",
+    "heardNone": "No hotkey has reached StarBuddy since it started.",
+    "reportIssue": "Report a problem on GitHub",
+    "knownIssues": "Known problems",
+    "hkFailed": "Not working: {{names}}. Another program may own the key; pick a different one."
   },
   "gathering": {
     "lead": "What your pinned craft targets need, against what you hold at the right quality.",

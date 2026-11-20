@@ -486,8 +486,6 @@ body {
 .sb-hk-what { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; }
 .sb-hk-name { font-weight: 600; color: #fff; }
 .sb-hk-sub { font-size: 12.5px; color: var(--muted); }
-.sb-hk-extra { display: flex; gap: 6px; }
-.sb .sb-hk-extra button { padding: 5px 10px; }
 .sb .sb-hk .hotkey { display: flex; align-items: center; gap: 10px; margin: 0; flex-wrap: wrap; }
 .sb .sb-hk .hotkey-what kbd {
   font-family: var(--mono);
@@ -582,3 +580,27 @@ body {
 /* Notes that belong to every hotkey: a line, not a panel of their own. */
 .sb .panel.sb-notes { background: none; border: 0; clip-path: none; padding: 0 2px; }
 .sb .panel.sb-notes:not(:has(*)) { display: none; }
+
+/* Where the player is, as the log last said: before the status chip. */
+.sb-place { display: inline-flex; gap: 14px; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.sb-place > span { overflow: hidden; text-overflow: ellipsis; }
+.sb-place-k { color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; margin-right: 4px; }
+
+/* Something about the hotkeys the player has to act on. */
+.sb .sb-warn {
+  border: 1px solid rgba(224, 165, 38, 0.55);
+  background: rgba(224, 165, 38, 0.1);
+  color: var(--amber2);
+  padding: 10px 14px;
+  margin: 0 0 14px;
+}
+.sb .sb-warn p { margin: 0 0 6px; color: inherit; }
+.sb .sb-warn p:last-child { margin-bottom: 0; }
+.sb .sb-warn pre { margin: 6px 0 0; white-space: pre-wrap; color: var(--txt, inherit); }
+
+/* A setting's name and what it is, beside its control. */
+.sb .sb-set { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.sb .sb-set:first-of-type { border-top: 0; }
+.sb .sb-set-what { flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; }
+.sb .sb-set-ctl { display: flex; gap: 8px; align-items: center; }
+.sb .sb-links { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0 0; }
