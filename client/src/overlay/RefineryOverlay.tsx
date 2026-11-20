@@ -319,10 +319,12 @@ export function RefineryOverlay() {
     return [d && `${d}d`, h && `${h}h`, m && `${m}m`, s && `${s}s`].filter(Boolean).join(" ") || "0s";
   };
 
+  // Only the phases that have something to say; anything else (idle, done,
+  // or a phase this build does not know) shows nothing rather than a key.
   const phaseText =
-    status.phase === "idle" || status.phase === "done"
-      ? null
-      : t(`overlay.refinery.phase.${status.phase}`, { detail: status.detail });
+    status.phase === "downloading" || status.phase === "capturing" || status.phase === "ocr" || status.phase === "error"
+      ? t(`overlay.refinery.phase.${status.phase}`, { detail: status.detail })
+      : null;
 
   // The station belongs to the terminal rather than to any one order, but it
   // is read and corrected alongside the method, so it is shown with it: two

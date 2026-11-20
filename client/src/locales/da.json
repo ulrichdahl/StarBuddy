@@ -177,9 +177,9 @@
       "title": "Scanning",
       "idle": "Tryk på scannings-genvejstasten på et scanningsresultat.",
       "phase": {
-        "downloading": "Henter {{detail}}…",
+        "downloading": "Henter OCR-model {{detail}}…",
         "capturing": "Tager billede…",
-        "ocr": "Læser: {{detail}}…",
+        "ocr": "Læser {{detail}}…",
         "error": "Fejlede: {{detail}}"
       },
       "signature": "Signatur {{value}}",

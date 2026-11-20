@@ -139,10 +139,18 @@ pub struct RefineryState {
     phase: Mutex<Phase>,
 }
 
-#[derive(Serialize, Clone, Default)]
+#[derive(Serialize, Clone)]
 pub struct Phase {
     pub phase: String,
     pub detail: String,
+}
+
+/// Before the first read there is nothing to report, and "idle" says that in
+/// the window's own terms; an empty phase would be looked up as a message.
+impl Default for Phase {
+    fn default() -> Self {
+        Phase { phase: "idle".into(), detail: String::new() }
+    }
 }
 
 fn status(app: &AppHandle, phase: &str, detail: impl Into<String>) {
@@ -273,7 +281,7 @@ impl crate::analysis::Analyzer for Panel {
         let app = cx.app;
         let cap = &cut.crop;
         let text = cx.ocr.engine(crate::analysis::Charset::Text);
-        status(app, "ocr", "reading the panel");
+        status(app, "ocr", "");
         let lines = read_bands_with(text, cap, &|band, of| status(app, "ocr", format!("{band}/{of}")))?;
 
         let mut order = parse(&lines);

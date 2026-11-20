@@ -148,7 +148,7 @@ pub(crate) async fn ensure_models(app: &AppHandle) -> Result<(PathBuf, PathBuf),
         if path.exists() {
             continue;
         }
-        status(app, "downloading", format!("OCR model {}/2", i + 1), Some(i as f64 / 2.0));
+        status(app, "downloading", format!("{}/2", i + 1), Some(i as f64 / 2.0));
         let bytes = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(180))
             .build()
@@ -770,7 +770,7 @@ impl crate::analysis::Analyzer for Readout {
 
     fn read(&self, cut: crate::analysis::Cut, cx: &crate::analysis::Ctx) -> Result<Option<ScanResult>, String> {
         let cap = &cut.crop;
-        status(cx.app, "ocr", format!("reading {}×{}", cap.width, cap.height), None);
+        status(cx.app, "ocr", format!("{}×{}", cap.width, cap.height), None);
         analyze(&cx.ocr.reader(), cap, cut.taken).map(Some)
     }
 }

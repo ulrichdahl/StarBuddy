@@ -177,9 +177,9 @@
       "title": "Scan",
       "idle": "Press the scan hotkey on a scan result.",
       "phase": {
-        "downloading": "Downloading {{detail}}…",
+        "downloading": "Downloading OCR model {{detail}}…",
         "capturing": "Capturing…",
-        "ocr": "Reading: {{detail}}…",
+        "ocr": "Reading {{detail}}…",
         "error": "Failed: {{detail}}"
       },
       "signature": "Signature {{value}}",
