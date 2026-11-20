@@ -3,7 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 use tauri::Manager;
 
-use crate::game_dir::LogEvent;
+use crate::game_dir::{Character, LogEvent};
 use crate::{fs_atomic, http, rsi_status};
 
 // ── Server connection ──────────────────────────────────────────────────────
@@ -161,47 +161,87 @@ pub(crate) struct PostError {
     pub status: Option<u16>,
 }
 
-/// Completed missions go in a request of their own, after the rest.
+/// Completed missions go in a request of their own, after the rest, and
+/// travel in one after that.
 ///
 /// A server from before missions were counted checks every event's kind and
 /// refuses the whole request over one it does not know — and a refused request
 /// is dropped by the outbox, so a mission riding with a blueprint would have
 /// lost the blueprint too. Sent apart, an older server refuses only the
 /// missions, which it has no use for, and everything else lands as before.
+/// Travel kinds are newer still, and go the same way.
+///
+/// Each request also names the character logged in when its events happened,
+/// so a backlog spanning two characters goes as one request per character.
 pub(crate) async fn post_events(settings: &StoredSettings, events: &[LogEvent]) -> Result<SyncSummary, PostError> {
-    let (missions, rest): (Vec<LogEvent>, Vec<LogEvent>) =
-        events.iter().cloned().partition(|e| e.kind == crate::game_dir::MISSION_COMPLETED);
-    let mut summary = if rest.is_empty() { SyncSummary::default() } else { post_batch(settings, &rest).await? };
-    if !missions.is_empty() {
-        match post_batch(settings, &missions).await {
-            Ok(more) => summary.add(&more),
-            Err(e) if crate::outbox::disposition(e.status) == crate::outbox::Disposition::Drop => {
-                log::info!("the server does not take completed missions ({}); {} not sent", e.message, missions.len());
+    use crate::game_dir::{MISSION_COMPLETED, TRAVEL_KINDS};
+    let class = |e: &LogEvent| {
+        if e.kind == MISSION_COMPLETED {
+            1
+        } else if TRAVEL_KINDS.contains(&e.kind.as_str()) {
+            2
+        } else {
+            0
+        }
+    };
+    let mut summary = SyncSummary::default();
+    for wanted in 0..3 {
+        let of_class: Vec<&LogEvent> = events.iter().filter(|e| class(e) == wanted).collect();
+        let mut characters: Vec<Option<&Character>> = Vec::new();
+        for e in &of_class {
+            if !characters.contains(&e.character.as_ref()) {
+                characters.push(e.character.as_ref());
             }
-            Err(e) => return Err(e),
+        }
+        for character in characters {
+            let batch: Vec<&LogEvent> = of_class.iter().copied().filter(|e| e.character.as_ref() == character).collect();
+            match post_batch(settings, &batch, character).await {
+                Ok(more) => summary.add(&more),
+                Err(e) if wanted > 0 && crate::outbox::disposition(e.status) == crate::outbox::Disposition::Drop => {
+                    let what = if wanted == 1 { "completed missions" } else { "travel" };
+                    log::info!("the server does not take {what} ({}); {} not sent", e.message, batch.len());
+                }
+                Err(e) => return Err(e),
+            }
         }
     }
     Ok(summary)
 }
 
-async fn post_batch(settings: &StoredSettings, events: &[LogEvent]) -> Result<SyncSummary, PostError> {
+async fn post_batch(settings: &StoredSettings, events: &[&LogEvent], character: Option<&Character>) -> Result<SyncSummary, PostError> {
     let payload: Vec<_> = events
         .iter()
         .map(|e| {
-            serde_json::json!({
+            let mut event = serde_json::json!({
                 "kind": e.kind,
                 "timestamp": e.timestamp,
                 "detail": e.detail,
                 "item_class": e.item_class,
-            })
+            });
+            // Only what there is: an older server checks every field it is sent.
+            for (key, value) in [
+                ("raw", &e.raw),
+                ("mission_id", &e.mission_id),
+                ("ship_id", &e.ship_id),
+                ("raw_selected", &e.raw_selected),
+            ] {
+                if let Some(value) = value {
+                    event[key] = serde_json::json!(value);
+                }
+            }
+            event
         })
         .collect();
+    let mut body = serde_json::json!({ "events": payload });
+    if let Some(c) = character {
+        body["character"] = serde_json::json!({ "geid": c.geid, "name": c.name });
+    }
 
     let resp = http::client()
         .post(format!("{}/api/ingest/events", settings.server_url))
         .bearer_auth(&settings.token)
         .header("Accept", "application/json")
-        .json(&serde_json::json!({ "events": payload }))
+        .json(&body)
         // A backlog sync sends every event the scan found in one request, and
         // the server works through them before it answers.
         .timeout(std::time::Duration::from_secs(120))

@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
 
-use crate::game_dir::{load_localization, parse_line, LogEvent};
+use crate::game_dir::{load_localization, LogEvent, LogParser};
 use crate::game_session::{self, SessionState};
 use crate::prefs::{load_client_prefs, save_client_prefs};
 use crate::lock::LockExt;
@@ -99,14 +99,21 @@ pub(crate) fn start(app: &tauri::AppHandle, live_dir: &str) -> Result<(), String
     // What the log has said so far: the build, where the player was. Read
     // once, whole; from here on only what is added.
     let live = PathBuf::from(live_dir);
+    let localization = load_localization(Path::new(live_dir));
     let bytes = fs::read(&log_path).unwrap_or_default();
     let start_offset = bytes.len() as u64;
+    let text = String::from_utf8_lossy(&bytes);
     if let Some(sessions) = app.try_state::<SessionState>() {
-        game_session::emit(&app, &sessions.reset(&live, &String::from_utf8_lossy(&bytes)));
+        game_session::emit(&app, &sessions.reset(&live, &text));
     }
+    // What came before is the backlog scan's to send; read here only so the
+    // parser knows who is logged in and where their ship was routed.
+    let mut parser = LogParser::default();
+    for line in text.lines() {
+        parser.feed(line, &localization, "Game.log");
+    }
+    drop(text);
     drop(bytes);
-
-    let localization = load_localization(Path::new(live_dir));
 
     tauri::async_runtime::spawn(async move {
         let mut offset = start_offset;
@@ -151,6 +158,7 @@ pub(crate) fn start(app: &tauri::AppHandle, live_dir: &str) -> Result<(), String
                 if let Some(sessions) = app.try_state::<SessionState>() {
                     game_session::emit(&app, &sessions.reset(&live, ""));
                 }
+                parser = LogParser::default();
             }
             if size == offset {
                 continue;
@@ -181,7 +189,7 @@ pub(crate) fn start(app: &tauri::AppHandle, live_dir: &str) -> Result<(), String
 
             let events: Vec<LogEvent> = complete
                 .lines()
-                .filter_map(|l| parse_line(l, &localization, "Game.log"))
+                .filter_map(|l| parser.feed(l, &localization, "Game.log"))
                 .collect();
             if events.is_empty() {
                 continue;

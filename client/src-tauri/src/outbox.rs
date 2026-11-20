@@ -242,8 +242,8 @@ mod tests {
             kind: kind.into(),
             timestamp: timestamp.into(),
             detail: detail.into(),
-            item_class: None,
             file: "Game.log".into(),
+            ..Default::default()
         }
     }
 

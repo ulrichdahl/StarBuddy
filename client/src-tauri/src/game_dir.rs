@@ -30,7 +30,40 @@ static MARKUP_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<EM\d>.*?</EM\
 
 pub(crate) const MISSION_COMPLETED: &str = "mission_completed";
 
+/// The kinds that say where the player went, for the org ranking. A server
+/// from before them refuses a request carrying one, so they travel apart.
+pub(crate) const TRAVEL_KINDS: [&str; 4] = ["quantum_arrived", "vehicle_released", "location", "jurisdiction"];
+
+static MISSION_ID_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"MissionId: \[([0-9a-fA-F-]{36})\]").unwrap());
+/// Who is playing: written at login, `... geid 2020… - accountId … - name DK-Raven - state STATE_CURRENT`.
+static LOGIN_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"<AccountLoginCharacterStatus_Character> Character: .*?\bgeid (\d+) .*?- name (\S+) - state STATE_CURRENT").unwrap()
+});
+/// The pilot picked a quantum destination in their own ship ("Local").
+static QT_SELECTED_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^<([^>]+)>.*<Player Selected Quantum Target - Local>.*?\| (?:NOT AUTH \| )?\S+?\[(\d+)\]\|.*selected point (\S+) as their destination, routing locally").unwrap()
+});
+static QT_ARRIVED_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^<([^>]+)>.*<Quantum Drive Arrived - Arrived at Final Destination>.*?\| (?:NOT AUTH \| )?\S+?\[(\d+)\]\|").unwrap()
+});
+static RELEASED_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^<([^>]+)>.*CVehicleMovementBase::ClearDriver: Local client node \[(\d+)\] releasing control token for '[^']*' \[(\d+)\]").unwrap()
+});
+static LOCATION_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^<([^>]+)>.*<RequestLocationInventory> Player\[([^\]]+)\] requested inventory for Location\[([^\]]+)\]").unwrap()
+});
+static JURISDICTION_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"^<([^>]+)>.*Added notification "Entered (.+?) Jurisdiction: ""#).unwrap());
+
+/// The character logged in, as the login line names it.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Character {
+    pub geid: String,
+    pub name: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Hash, Default)]
 pub struct LogEvent {
     pub kind: String, // "blueprint" | "refinery_completed" | "mission_completed"
     pub timestamp: String,
@@ -41,6 +74,96 @@ pub struct LogEvent {
     // different names for the same blueprint, so this is the real identity.
     pub item_class: Option<String>,
     pub file: String,
+    /// The log line, untouched, so the server can count it again later.
+    #[serde(default)]
+    pub raw: Option<String>,
+    /// A contract's id, from `MissionId: [uuid]`.
+    #[serde(default)]
+    pub mission_id: Option<String>,
+    /// quantum_arrived, vehicle_released: the ship's id.
+    #[serde(default)]
+    pub ship_id: Option<String>,
+    /// quantum_arrived: the line where the destination was picked.
+    #[serde(default)]
+    pub raw_selected: Option<String>,
+    /// Who was logged in when it happened; sent once per request.
+    #[serde(default)]
+    pub character: Option<Character>,
+}
+
+impl LogEvent {
+    fn new(kind: &str, timestamp: &str, detail: String, file: &str, raw: &str) -> Self {
+        LogEvent {
+            kind: kind.to_string(),
+            timestamp: timestamp.to_string(),
+            detail,
+            item_class: None,
+            file: file.to_string(),
+            raw: Some(raw.to_string()),
+            mission_id: None,
+            ship_id: None,
+            raw_selected: None,
+            character: None,
+        }
+    }
+}
+
+/// Reads a log line by line, keeping what later lines need: who is logged
+/// in, and where each of the player's ships was told to quantum to.
+#[derive(Default)]
+pub(crate) struct LogParser {
+    character: Option<Character>,
+    /// Ship id → (destination, the selection line).
+    selected: HashMap<String, (String, String)>,
+}
+
+impl LogParser {
+    pub(crate) fn feed(&mut self, line: &str, localization: &HashMap<String, String>, file: &str) -> Option<LogEvent> {
+        let line = line.trim_end_matches(['\r', '\n']);
+        let mut event = self.event(line, localization, file)?;
+        event.character = self.character.clone();
+        Some(event)
+    }
+
+    fn event(&mut self, line: &str, localization: &HashMap<String, String>, file: &str) -> Option<LogEvent> {
+        if let Some(e) = parse_line(line, localization, file) {
+            return Some(e);
+        }
+        if let Some(c) = LOGIN_RE.captures(line) {
+            self.character = Some(Character { geid: c[1].to_string(), name: c[2].to_string() });
+            self.selected.clear();
+            return None;
+        }
+        if let Some(c) = QT_SELECTED_RE.captures(line) {
+            self.selected.insert(c[2].to_string(), (c[3].to_string(), line.to_string()));
+            return None;
+        }
+        if let Some(c) = QT_ARRIVED_RE.captures(line) {
+            // Only an arrival the player routed themselves: anyone else's
+            // ship arriving nearby is in the log too.
+            let (dest, selected) = self.selected.remove(&c[2])?;
+            let mut e = LogEvent::new("quantum_arrived", &c[1], dest, file, line);
+            e.ship_id = Some(c[2].to_string());
+            e.raw_selected = Some(selected);
+            return Some(e);
+        }
+        if let Some(c) = RELEASED_RE.captures(line) {
+            let mut e = LogEvent::new("vehicle_released", &c[1], c[3].to_string(), file, line);
+            e.ship_id = Some(c[3].to_string());
+            return Some(e);
+        }
+        if let Some(c) = LOCATION_RE.captures(line) {
+            // Only the player's own requests, and only once we know who that is.
+            if self.character.as_ref()?.name != c[2] || &c[3] == "INVALID_LOCATION_ID" {
+                return None;
+            }
+            return Some(LogEvent::new("location", &c[1], c[3].to_string(), file, line));
+        }
+        if let Some(c) = JURISDICTION_RE.captures(line) {
+            return Some(LogEvent::new("jurisdiction", &c[1], c[2].trim().to_string(), file, line));
+        }
+        None
+    }
 }
 
 #[derive(Serialize)]
@@ -72,7 +195,12 @@ fn normalize_name(s: &str) -> String {
 /// the item class shared by all players.
 pub(crate) fn load_localization(live_dir: &Path) -> HashMap<String, String> {
     let mut map = HashMap::new();
-    let Ok(langs) = fs::read_dir(live_dir.join("data/Localization")) else {
+    // The game writes `Data`; a case-sensitive file system tells the two apart.
+    let langs = ["Data", "data"]
+        .iter()
+        .filter_map(|d| fs::read_dir(live_dir.join(d).join("Localization")).ok())
+        .next();
+    let Some(langs) = langs else {
         return map;
     };
 
@@ -299,20 +427,20 @@ pub(crate) fn parse_line(line: &str, localization: &HashMap<String, String>, fil
         .then(|| localization.get(&normalize_name(&detail)).cloned())
         .flatten();
 
-    Some(LogEvent {
-        kind: kind.to_string(),
-        timestamp: caps[1].to_string(),
-        detail,
-        item_class,
-        file: file.to_string(),
-    })
+    let mut event = LogEvent::new(kind, &caps[1], detail, file, line);
+    event.item_class = item_class;
+    event.mission_id = (kind == MISSION_COMPLETED)
+        .then(|| MISSION_ID_RE.captures(line).map(|c| c[1].to_ascii_lowercase()))
+        .flatten()
+        .filter(|id| id != "00000000-0000-0000-0000-000000000000");
+    Some(event)
 }
 
 fn scan_file(
     path: &Path,
     localization: &HashMap<String, String>,
     events: &mut Vec<LogEvent>,
-    seen: &mut HashSet<(String, String)>,
+    seen: &mut HashSet<(String, String, String)>,
 ) {
     // Logs can be ISO-8859 with CRLF; read lossily rather than assuming UTF-8.
     let Ok(bytes) = fs::read(path) else { return };
@@ -322,9 +450,11 @@ fn scan_file(
         .map(|f| f.to_string_lossy().into_owned())
         .unwrap_or_default();
 
+    // One session per file: who is logged in starts over with each.
+    let mut parser = LogParser::default();
     for line in text.lines() {
-        if let Some(ev) = parse_line(line, localization, &file) {
-            if seen.insert((ev.timestamp.clone(), ev.detail.clone())) {
+        if let Some(ev) = parser.feed(line, localization, &file) {
+            if seen.insert((ev.kind.clone(), ev.timestamp.clone(), ev.detail.clone())) {
                 events.push(ev);
             }
         }
@@ -412,6 +542,43 @@ mod tests {
     use super::*;
 
     #[test]
+    fn travel_is_read_for_the_logged_in_player_only() {
+        let names = HashMap::new();
+        let mut p = LogParser::default();
+        let feed = |p: &mut LogParser, l: &str| p.feed(l, &names, "Game.log");
+        // Before the login line, a location request is nobody's.
+        let loc = "<2026-11-20T11:54:09.940Z> [Notice] <RequestLocationInventory> Player[RavenMind] requested inventory for Location[RR_ARC_LEO] [Team_CoreGameplayFeatures][Inventory]";
+        assert!(feed(&mut p, loc).is_none());
+        assert!(feed(&mut p, "<2026-11-20T11:41:10.407Z> [Notice] <AccountLoginCharacterStatus_Character> Character: createdAt 1794511959284 - updatedAt 1794511959637 - geid 204821589375 - accountId 1953448 - name RavenMind - state STATE_CURRENT [Team_GameServices][Login]").is_none());
+        let e = feed(&mut p, loc).expect("a location");
+        assert_eq!((e.kind.as_str(), e.detail.as_str()), ("location", "RR_ARC_LEO"));
+        assert_eq!(e.character, Some(Character { geid: "204821589375".into(), name: "RavenMind".into() }));
+        assert!(feed(&mut p, "<x> [Notice] <RequestLocationInventory> Player[Someone] requested inventory for Location[RR_ARC_LEO] [x]").is_none());
+
+        // Someone else's ship arriving is not the player's travel.
+        let other = "<2026-11-20T11:50:51.465Z> [Notice] <Quantum Drive Arrived - Arrived at Final Destination> [ItemNavigation][CL][2236] | NOT AUTH | MISC_Hull_A_8837998186960[8837998186960]|CSCItemNavigation::OnQuantumDriveArrived|Quantum Drive has arrived at final destination [Team_CGP4][QuantumTravel]";
+        assert!(feed(&mut p, other).is_none());
+        let sel = "<2026-11-20T11:50:34.203Z> [Notice] <Player Selected Quantum Target - Local> [ItemNavigation][CL][2236] | NOT AUTH | ANVL_Hornet_F7_Mk2_Collector_Mod_943842738497[943842738497]|CSCItemNavigation::OnPlayerSelectedQuantumTarget|Player has selected point ab_mine_stanton3_med_007 as their destination, routing locally [Team_CGP4][QuantumTravel]";
+        assert!(feed(&mut p, sel).is_none());
+        let arr = "<2026-11-20T11:50:51.465Z> [Notice] <Quantum Drive Arrived - Arrived at Final Destination> [ItemNavigation][CL][2236] | NOT AUTH | ANVL_Hornet_F7_Mk2_Collector_Mod_943842738497[943842738497]|CSCItemNavigation::OnQuantumDriveArrived|Quantum Drive has arrived at final destination [Team_CGP4][QuantumTravel]";
+        let e = feed(&mut p, arr).expect("an arrival");
+        assert_eq!((e.kind.as_str(), e.detail.as_str()), ("quantum_arrived", "ab_mine_stanton3_med_007"));
+        assert_eq!(e.ship_id.as_deref(), Some("943842738497"));
+        assert_eq!(e.raw.as_deref(), Some(arr));
+        assert_eq!(e.raw_selected.as_deref(), Some(sel));
+        // One selection, one arrival.
+        assert!(feed(&mut p, arr).is_none());
+
+        let e = feed(&mut p, "<2026-11-20T11:55:29.768Z> [Notice] <Vehicle Control Flow> CVehicleMovementBase::ClearDriver: Local client node [204821589375] releasing control token for 'ANVL_Hornet_F7_Mk2_Collector_Mod_943842738497' [943842738497] [Team_CGP4][Vehicle]").expect("a release");
+        assert_eq!((e.kind.as_str(), e.detail.as_str()), ("vehicle_released", "943842738497"));
+
+        let e = feed(&mut p, r#"<2026-11-20T11:42:26.555Z> [Notice] <SHUDEvent_OnNotification> Added notification "Entered ArcCorp Jurisdiction: " [1] to queue. New queue size: 2, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]"#).expect("a jurisdiction");
+        assert_eq!((e.kind.as_str(), e.detail.as_str()), ("jurisdiction", "ArcCorp"));
+        // The displayed copy of the notification is not a second entry.
+        assert!(feed(&mut p, r#"<2026-11-20T11:42:26.556Z>    "Entered ArcCorp Jurisdiction: " [1]"#).is_none());
+    }
+
+    #[test]
     fn a_completed_contract_is_a_mission_without_its_reward_tags() {
         let no_names = HashMap::new();
         let line = r#"<2026-01-29T18:23:04.557Z> [Notice] <SHUDEvent_OnNotification> Added notification "Contract Complete: Ship In Distress <EM4>[300 Rep] [BP]*</EM4>: " [59] to queue. New queue size: 2, MissionId: [97a792bb-1518-4003-a6b5-5078d0d131ff], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]"#;
@@ -419,6 +586,8 @@ mod tests {
         assert_eq!(e.kind, MISSION_COMPLETED);
         assert_eq!(e.timestamp, "2026-01-29T18:23:04.557Z");
         assert_eq!(e.detail, "Ship In Distress");
+        assert_eq!(e.mission_id.as_deref(), Some("97a792bb-1518-4003-a6b5-5078d0d131ff"));
+        assert_eq!(e.raw.as_deref(), Some(line));
         let line = r#"<2026-01-29T17:56:31.036Z> [Notice] <SHUDEvent_OnNotification> Added notification "Contract Complete: Alliance Aid: Small Supply of Research Resource: " [13] to queue."#;
         assert_eq!(parse_line(line, &no_names, "Game.log").unwrap().detail, "Alliance Aid: Small Supply of Research Resource");
         // Shared and accepted contracts are not completed ones.
@@ -498,6 +667,13 @@ mod tests {
         for e in blueprints.iter().take(5) {
             println!("  {} -> {:?}", e.detail, e.item_class);
         }
+        let mut kinds: std::collections::BTreeMap<&str, usize> = Default::default();
+        for e in &result.events {
+            *kinds.entry(e.kind.as_str()).or_default() += 1;
+        }
+        println!("by kind: {kinds:?}");
+        let characters: HashSet<_> = result.events.iter().filter_map(|e| e.character.as_ref()).map(|c| c.name.as_str()).collect();
+        println!("characters: {characters:?}");
         assert!(result.files_scanned > 0);
     }
 }

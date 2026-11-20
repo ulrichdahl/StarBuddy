@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { kindLabel, type LogEvent, type ScanResult, type SyncSummary } from "./types";
+import { kindLabel, shown, type LogEvent, type ScanResult, type SyncSummary } from "./types";
 
 /** What the backlog scan found, filtered, and the button that sends it. */
 export function EventsTable({ result, paired }: { result: ScanResult; paired: boolean }) {
@@ -24,9 +24,11 @@ export function EventsTable({ result, paired }: { result: ScanResult; paired: bo
     }
   };
 
-  const events = result.events.filter((e) => filter === "all" || e.kind === filter);
-  const blueprintCount = result.events.filter((e) => e.kind === "blueprint").length;
-  const refineryCount = result.events.length - blueprintCount;
+  // Travel is sent with the rest but not listed.
+  const listed = result.events.filter(shown);
+  const events = listed.filter((e) => filter === "all" || e.kind === filter);
+  const blueprintCount = listed.filter((e) => e.kind === "blueprint").length;
+  const refineryCount = listed.filter((e) => e.kind === "refinery_completed").length;
 
   return (
     <section className="panel">

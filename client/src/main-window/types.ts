@@ -20,12 +20,17 @@ export interface ScanProgress {
 }
 
 export interface LogEvent {
-  kind: "blueprint" | "refinery_completed" | "mission_completed";
+  /** The last four are travel, sent for the org ranking and not listed. */
+  kind: "blueprint" | "refinery_completed" | "mission_completed" | "quantum_arrived" | "vehicle_released" | "location" | "jurisdiction";
   timestamp: string;
   detail: string;
   item_class: string | null;
   file: string;
 }
+
+/** The kinds the client lists; the rest are only sent. */
+export const SHOWN_KINDS: ReadonlySet<LogEvent["kind"]> = new Set(["blueprint", "refinery_completed", "mission_completed"]);
+export const shown = (e: LogEvent) => SHOWN_KINDS.has(e.kind);
 
 export interface ScanResult {
   live_dir: string;
