@@ -119,9 +119,22 @@ class OrgController extends Controller
      */
     public function mates(Request $request)
     {
-        return OrgMembers::of($request->user())
-            ->reject(fn ($u) => $u->id === $request->user()->id)
-            ->map(fn ($u) => ['id' => $u->id, 'handle' => $u->handle ?? $u->name, 'avatar_url' => $u->avatar_url])
+        $me = $request->user();
+        $mates = OrgMembers::of($me)->reject(fn ($u) => $u->id === $me->id);
+
+        // Game presence only between members of the caller's main org.
+        $mainOrg = $me->ensureMainOrg();
+        $sameOrg = $mainOrg ? DB::table('org_members')->where('org_id', $mainOrg)->where('status', 'active')->pluck('user_id')->all() : [];
+        $presence = PresenceController::of(array_values(array_intersect($mates->pluck('id')->all(), $sameOrg)));
+
+        return $mates
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'handle' => $u->handle ?? $u->name,
+                'avatar_url' => $u->avatar_url,
+                // null: not in the main org, sharing off, or never reported.
+                'presence' => $presence[$u->id] ?? null,
+            ])
             ->values();
     }
 

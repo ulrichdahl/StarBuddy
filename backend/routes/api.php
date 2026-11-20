@@ -114,6 +114,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('devices/{tokenId}', [DeviceController::class, 'destroy']);
 
     // Game.log event ingestion from paired desktop clients (idempotent)
+    Route::post('presence', [\App\Http\Controllers\PresenceController::class, 'store'])->middleware('throttle:20,1');
     Route::post('ingest/events', [IngestController::class, 'store']);
 
     // Contributed screenshots for training the panel detector. Members submit
