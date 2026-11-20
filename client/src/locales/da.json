@@ -717,5 +717,28 @@
     "unknown": "Ingen spilstatus",
     "sameShard": "På samme shard som dig",
     "presenceNote": "Spilstatus kommer fra hvert medlems StarBuddy-klient. Medlemmer kan slå det fra under Indstillinger › Generelt."
+  },
+  "udi": {
+    "title": "UnitedDanes StarLabels og StarConfig",
+    "lead": "Bedre skibs- og genstandsnavne i spillet (StarLabels) og dine spilindstillinger (StarConfig), sat op på uniteddanes.org og installeret i din spilmappe af StarBuddy.",
+    "setUp": "Sæt op på uniteddanes.org",
+    "openLabels": "Åbn StarLabels",
+    "openConfig": "Åbn StarConfig",
+    "waiting": "Venter på at du trykker “Send til StarBuddy” på siden…",
+    "fresh": "Nye indstillinger fra uniteddanes.org: {{what}}.",
+    "whatLabels": "navne (global.ini)",
+    "whatConfig": "spilindstillinger (user.cfg)",
+    "and": " og ",
+    "install": "Installér",
+    "reinstall": "Installér igen",
+    "auto": "Installér nye indstillinger og spilversioner af sig selv",
+    "installed": "Installeret til {{channel}}, spil {{version}}, {{when}}.",
+    "doneIni": "Navne installeret til spil {{version}}.",
+    "doneCfg": "Spilindstillinger installeret.",
+    "backedUp": "Din egen user.cfg er gemt som user.cfg.before-starbuddy.",
+    "iniLater": "uniteddanes.org kunne ikke lave navnene lige nu; de installerede bliver, og StarBuddy prøver igen senere.",
+    "upToDate": "Allerede opdateret.",
+    "note": "Virker næste gang spillet starter. Afkobling lader de installerede filer blive.",
+    "unlink": "Afkobl"
   }
 }

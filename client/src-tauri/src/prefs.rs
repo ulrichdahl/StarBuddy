@@ -37,6 +37,8 @@ pub(crate) struct ClientPrefs {
     pub(crate) log_watch_off: bool,
     /// The player switched off showing their game status to org mates.
     pub(crate) presence_off: bool,
+    /// The link to United Danes' StarLabels and StarConfig (udi.rs).
+    pub(crate) udi: crate::udi::UdiPrefs,
 }
 
 fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {

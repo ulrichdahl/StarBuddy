@@ -34,6 +34,7 @@ mod update;
 mod watcher;
 mod game_session;
 mod presence;
+mod udi;
 mod webkit_tuning;
 mod webview2_args;
 mod webview_power;
@@ -145,6 +146,7 @@ pub fn run() {
         )
         .manage(watcher::WatcherState::default())
         .manage(game_session::SessionState::default())
+        .manage(udi::UdiState::default())
         .manage(rsi_status::RsiStatusState::default())
         .setup(|app| {
             let handle = app.handle().clone();
@@ -213,6 +215,7 @@ pub fn run() {
             main_window::setup(&handle);
             watcher::start_at_launch(&handle);
             presence::start(&handle);
+            udi::start(&handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -269,6 +272,12 @@ pub fn run() {
             game_session::game_session,
             presence::presence_sharing_get,
             presence::presence_sharing_set,
+            udi::udi_status,
+            udi::udi_link,
+            udi::udi_profile,
+            udi::udi_install,
+            udi::udi_auto_set,
+            udi::udi_unlink,
             update::check_for_update,
             update::update_can_install,
             update::update_install,

@@ -717,5 +717,28 @@
     "unknown": "No game status",
     "sameShard": "On the same shard as you",
     "presenceNote": "Game status comes from each member's StarBuddy client. Members can switch it off under Settings › General."
+  },
+  "udi": {
+    "title": "UnitedDanes StarLabels and StarConfig",
+    "lead": "Better ship and item names in the game (StarLabels) and your game settings (StarConfig), set up on uniteddanes.org and installed into your game folder by StarBuddy.",
+    "setUp": "Set up on uniteddanes.org",
+    "openLabels": "Open StarLabels",
+    "openConfig": "Open StarConfig",
+    "waiting": "Waiting for you to press “Send to StarBuddy” on the page…",
+    "fresh": "New settings from uniteddanes.org: {{what}}.",
+    "whatLabels": "names (global.ini)",
+    "whatConfig": "game settings (user.cfg)",
+    "and": " and ",
+    "install": "Install",
+    "reinstall": "Install again",
+    "auto": "Install new settings and game versions by themselves",
+    "installed": "Installed for {{channel}}, game {{version}}, {{when}}.",
+    "doneIni": "Names installed for game {{version}}.",
+    "doneCfg": "Game settings installed.",
+    "backedUp": "Your own user.cfg was kept as user.cfg.before-starbuddy.",
+    "iniLater": "uniteddanes.org could not build the names just now; the installed ones stay, and StarBuddy tries again later.",
+    "upToDate": "Already up to date.",
+    "note": "Takes effect the next time the game starts. Unlinking leaves the installed files in place.",
+    "unlink": "Unlink"
   }
 }

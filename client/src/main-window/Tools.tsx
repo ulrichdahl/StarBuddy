@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useTranslation } from "react-i18next";
 import type { ConnectionView } from "./types";
+import { UdiCard } from "./UdiCard";
 
 interface ToolLink {
   name: string;
@@ -94,6 +95,8 @@ export function Tools({ connection }: { connection: ConnectionView | null }) {
   return (
     <div className="sb-page">
       <p className="sb-card-sub">{t("tools.lead")}</p>
+
+      <UdiCard />
 
       {server && ORG_PAGES.length > 0 && (
         <section className="sb-card">

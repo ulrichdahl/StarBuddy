@@ -23,6 +23,8 @@ tauri-plugin-single-instance = "2"
 # Installing an update in place: the AppImage and the Windows installer,
 # signed in CI with the key whose public half is in tauri.conf.json.
 tauri-plugin-updater = "2"
+# The UnitedDanes link token: 32 bytes from the system's CSPRNG.
+getrandom = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 regex = "1"
