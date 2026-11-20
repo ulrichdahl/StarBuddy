@@ -400,7 +400,8 @@
     "location": "Sted",
     "ship": "Skib",
     "gameRunning": "Spillet kører",
-    "gameNotRunning": "Spillet kører ikke; dette er sidste session"
+    "gameNotRunning": "Spillet kører ikke; dette er sidste session",
+    "quit": "Luk StarBuddy"
   },
   "home": {
     "servers": "Servere",

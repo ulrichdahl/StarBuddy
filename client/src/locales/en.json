@@ -400,7 +400,8 @@
     "location": "Location",
     "ship": "Ship",
     "gameRunning": "The game is running",
-    "gameNotRunning": "The game is not running; this is the last session"
+    "gameNotRunning": "The game is not running; this is the last session",
+    "quit": "Quit StarBuddy"
   },
   "home": {
     "servers": "Servers",

@@ -151,7 +151,8 @@ function GameChip({ session }: { session: GameSession | null }) {
     <span className="sb-chip" title={session.running ? t("shell.gameRunning") : t("shell.gameNotRunning")}>
       <span className={`sb-dot ${session.running ? "cyan" : "off"}`} />
       {session.environment && <span>{environmentName(session.environment)}</span>}
-      {session.branch && <span className="mono sb-dim">{session.branch}</span>}
+      {/* sc-alpha-4.10.0 → 4.10.0: the number is what players say. */}
+      {session.branch && <span className="mono sb-dim">{session.branch.replace(/^sc-[a-z]+-/i, "")}</span>}
     </span>
   );
 }
@@ -205,6 +206,13 @@ export function Shell({
         <PlaceChip session={session} />
         <ServerChip />
         <GameChip session={session} />
+        {overlay && (
+          <button type="button" className="sb-hd-x" aria-label={t("shell.quit")} title={t("shell.quit")} onClick={() => void invoke("app_quit").catch(() => {})}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+              <path d="M12 3v8M6.3 6.3a8 8 0 1 0 11.4 0" />
+            </svg>
+          </button>
+        )}
         {overlay && (
           <button type="button" className="sb-hd-x" aria-label={t("shell.hide")} title={t("shell.hide")} onClick={() => void invoke("main_hide").catch(() => {})}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">

@@ -245,3 +245,12 @@ pub fn main_mode_set(app: AppHandle, mode: MainMode) -> Result<MainState, String
 pub fn main_hide(app: AppHandle) {
     hide(&app);
 }
+
+/// Quit StarBuddy. As the overlay the window has no frame to close it by, and
+/// closing it only puts it away; this is the way out.
+#[tauri::command]
+pub fn app_quit(app: AppHandle) {
+    remember(&app);
+    crate::overlay::save_now(&app);
+    app.exit(0);
+}

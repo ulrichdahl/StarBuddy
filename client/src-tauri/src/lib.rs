@@ -250,6 +250,7 @@ pub fn run() {
             main_window::main_mode_get,
             main_window::main_mode_set,
             main_window::main_hide,
+            main_window::app_quit,
             tools::tool_links_get,
             tools::tool_links_set,
             training::training_capture,
