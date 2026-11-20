@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link as RouterLink } from 'react-router-dom'
@@ -10,12 +10,10 @@ import Link from '@mui/material/Link'
 import Skeleton from '@mui/material/Skeleton'
 import Typography from '@mui/material/Typography'
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined'
-import SchemaOutlinedIcon from '@mui/icons-material/SchemaOutlined'
-import TrackChangesIcon from '@mui/icons-material/TrackChanges'
-import DiamondOutlinedIcon from '@mui/icons-material/DiamondOutlined'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined'
 import { api, unwrapList } from '../lib/api'
+import { useCraftTargets } from '../lib/craftTargets'
 import { displayName } from '../lib/people'
 import { formatDuration } from '../lib/refining'
 import type {
@@ -95,106 +93,107 @@ function useGap() {
   }
 }
 
-interface TileProps {
-  label: string
-  icon: ReactNode
-  rank: number
-  value: ReactNode
-  pct: number
-  gap: string
-}
-
-function MetricTile({ label, icon, rank, value, pct, gap }: TileProps) {
-  const { t } = useTranslation()
+/** Each org's place on one metric, as a strip of slots with ours lit. */
+function PositionStrip({ count, rank }: { count: number; rank: number }) {
   return (
-    <Box sx={{ bgcolor: hud.input, border: `1px solid ${hud.line}`, px: 2.5, py: 2.25, display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box component="span" sx={{ ...labelSx, color: hud.textDim }}>
-          {icon}
-          {label}
-        </Box>
-        <Box
-          component="span"
-          aria-label={t('dashboard.rankOf', { rank })}
-          sx={{ fontFamily: fonts.display, fontWeight: 700, fontSize: 15, color: medal(rank), border: `1px solid ${medal(rank)}`, px: 1, py: '1px' }}
-        >
-          #{rank}
-        </Box>
-      </Box>
-      <Box component="span" sx={{ fontFamily: fonts.mono, fontSize: 32, fontWeight: 500, lineHeight: 1.2 }}>
-        {value}
-      </Box>
-      <Bar pct={pct} />
-      <Box component="span" sx={{ fontSize: 12.5, color: hud.textMuted }}>
-        {gap}
-      </Box>
+    <Box aria-hidden sx={{ display: 'flex', gap: count > 24 ? '1px' : '3px' }}>
+      {Array.from({ length: count }, (_, i) => (
+        <Box key={i} component="span" sx={{ flex: 1, height: 8, bgcolor: i + 1 === rank ? medal(rank) : '#26323b' }} />
+      ))}
     </Box>
   )
 }
 
-function Standings({ data, myOrg }: { data: Competition; myOrg: CompetitionOrg }) {
+interface TileProps {
+  label: string
+  rank: number
+  count: number
+  value: string
+  gap: string
+  selected: boolean
+  onSelect: () => void
+}
+
+/** Where the org places on one category; picking it ranks the leaderboard by it. */
+function RankTile({ label, rank, count, value, gap, selected, onSelect }: TileProps) {
+  const { t } = useTranslation()
+  return (
+    <ButtonBase
+      aria-pressed={selected}
+      onClick={onSelect}
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        textAlign: 'left',
+        gap: 1.25,
+        px: 2.25,
+        py: 2,
+        bgcolor: selected ? '#10201f' : hud.input,
+        border: `1px solid ${selected ? '#2f6f6a' : hud.line}`,
+        '&:hover': { borderColor: selected ? hud.teal : hud.lineStrong },
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, minHeight: 28 }}>
+        <Box component="span" sx={{ ...labelSx, fontWeight: 700, fontSize: 16, letterSpacing: '0.16em', color: hud.teal }}>
+          {label}
+        </Box>
+        {rank === 1 && count > 1 && (
+          <Box
+            component="span"
+            role="img"
+            aria-label={t('dashboard.firstPlace')}
+            sx={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(240,181,68,0.14)', border: `1px solid ${hud.gold}`, color: hud.gold }}
+          >
+            <EmojiEventsOutlinedIcon sx={{ fontSize: 18 }} />
+          </Box>
+        )}
+      </Box>
+      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
+        <Box component="span" sx={{ fontFamily: fonts.display, fontWeight: 700, fontSize: 46, lineHeight: 1, color: medal(rank) }}>
+          {t('dashboard.ordinal', { count: rank, ordinal: true })}
+        </Box>
+        <Box component="span" sx={{ fontSize: 13, color: hud.textDim }}>
+          {t('dashboard.placeOf', { count })}
+        </Box>
+      </Box>
+      <PositionStrip count={count} rank={rank} />
+      <Box component="span" sx={{ fontSize: 12.5, color: hud.textMuted, lineHeight: 1.45 }}>
+        <Mono colour={hud.text}>{value}</Mono> · {gap}
+      </Box>
+    </ButtonBase>
+  )
+}
+
+function Standings({ data, myOrg, tab, onTab }: { data: Competition; myOrg: CompetitionOrg; tab: Tab; onTab: (tab: Tab) => void }) {
   const { t } = useTranslation()
   const { n } = useFormat()
   const gap = useGap()
-  const lead = (tab: Tab) => Math.max(...data.orgs.map((o) => valueOf(o, tab)), 0)
-  const pct = (tab: Tab) => (lead(tab) > 0 ? (valueOf(myOrg, tab) / lead(tab)) * 100 : 0)
+  const tiles: { id: Tab; label: string; value: string; unit: string }[] = [
+    { id: 'overall', label: t('dashboard.tabOverall'), value: `${n(myOrg.score)} pts`, unit: ' pts' },
+    { id: 'blueprints', label: t('dashboard.tabBlueprints'), value: t('dashboard.nBlueprints', { count: myOrg.blueprints, formatted: n(myOrg.blueprints) }), unit: '' },
+    { id: 'missions', label: t('dashboard.tabMissions'), value: t('dashboard.nMissions', { count: myOrg.missions, formatted: n(myOrg.missions) }), unit: '' },
+    { id: 'resources_scu', label: t('dashboard.tabResources'), value: `${n(myOrg.resources_scu, 1)} SCU`, unit: ' SCU' },
+  ]
 
   return (
     <Box
-      component="section"
-      aria-label={t('dashboard.standings', { org: myOrg.name })}
-      sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 2 }}
+      role="group"
+      aria-label={t('dashboard.category')}
+      sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 1.5 }}
     >
-      <Box sx={{ bgcolor: '#10201f', border: '1px solid #2f6f6a', px: 2.5, py: 2.25, display: 'flex', flexDirection: 'column', gap: 1 }}>
-        <Box component="span" sx={{ ...labelSx, color: hud.teal }}>
-          <EmojiEventsOutlinedIcon />
-          {t('dashboard.overallRank')}
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.25, flexWrap: 'wrap' }}>
-          <Box component="span" sx={{ fontFamily: fonts.display, fontWeight: 700, fontSize: 52, lineHeight: 1, color: medal(myOrg.rank.overall) }}>
-            #{myOrg.rank.overall}
-          </Box>
-          <Box component="span" sx={{ color: hud.textDim, fontSize: 13 }}>
-            {t('dashboard.ofOrgs', { count: data.orgs.length, points: n(myOrg.score) })}
-          </Box>
-        </Box>
-        <Bar pct={(myOrg.score / MAX_SCORE) * 100} />
-        <Box component="span" sx={{ fontSize: 12.5, color: hud.textMuted }}>
-          {gap(data.orgs, 'overall', ' pts')}
-        </Box>
-      </Box>
-      <MetricTile
-        label={t('dashboard.blueprints')}
-        icon={<SchemaOutlinedIcon />}
-        rank={myOrg.rank.blueprints}
-        value={n(myOrg.blueprints)}
-        pct={pct('blueprints')}
-        gap={gap(data.orgs, 'blueprints')}
-      />
-      <MetricTile
-        label={t('dashboard.missions')}
-        icon={<TrackChangesIcon />}
-        rank={myOrg.rank.missions}
-        value={n(myOrg.missions)}
-        pct={pct('missions')}
-        gap={gap(data.orgs, 'missions')}
-      />
-      <MetricTile
-        label={t('dashboard.resources')}
-        icon={<DiamondOutlinedIcon />}
-        rank={myOrg.rank.resources_scu}
-        value={
-          <>
-            {n(myOrg.resources_scu, 1)}
-            <Box component="span" sx={{ fontSize: 15, color: hud.textDim }}>
-              {' '}
-              SCU
-            </Box>
-          </>
-        }
-        pct={pct('resources_scu')}
-        gap={gap(data.orgs, 'resources_scu', ' SCU')}
-      />
+      {tiles.map((tile) => (
+        <RankTile
+          key={tile.id}
+          label={tile.label}
+          rank={myOrg.rank[TABS.find((x) => x.id === tile.id)!.rankKey]}
+          count={data.orgs.length}
+          value={tile.value}
+          gap={gap(data.orgs, tile.id, tile.unit)}
+          selected={tab === tile.id}
+          onSelect={() => onTab(tile.id)}
+        />
+      ))}
     </Box>
   )
 }
@@ -237,53 +236,28 @@ const visuallyHidden = {
   whiteSpace: 'nowrap',
 } as const
 
-function Leaderboard({ data }: { data: Competition }) {
+function Leaderboard({ data, tab }: { data: Competition; tab: Tab }) {
   const { t } = useTranslation()
   const { n } = useFormat()
-  const [tab, setTab] = useState<Tab>('overall')
   const current = TABS.find((x) => x.id === tab)!
   const sorted = [...data.orgs].sort((a, b) => a.rank[current.rankKey] - b.rank[current.rankKey] || a.name.localeCompare(b.name))
   const top = Math.max(...sorted.map((o) => valueOf(o, tab)), 0)
   const unit = tab === 'overall' ? ' pts' : tab === 'resources_scu' ? ' SCU' : ''
 
   return (
-    <Box component="section" aria-labelledby="lb-title" sx={{ flex: '2 1 560px', minWidth: 0, bgcolor: hud.input, border: `1px solid ${hud.line}` }}>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', justifyContent: 'space-between', px: 2.5, py: 2, borderBottom: `1px solid ${hud.line}` }}>
+    <Box component="section" aria-labelledby="lb-title" sx={{ minWidth: 0, bgcolor: hud.input, border: `1px solid ${hud.line}` }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', justifyContent: 'space-between', px: 2.5, py: 1.75, borderBottom: `1px solid ${hud.line}` }}>
         <Typography
           id="lb-title"
           variant="h6"
           component="h2"
-          sx={{ m: 0, display: 'flex', gap: 1.25, alignItems: 'center', color: hud.text, fontSize: 17, letterSpacing: '0.18em' }}
+          sx={{ m: 0, display: 'flex', gap: 1.25, alignItems: 'center', color: hud.text, fontSize: 16, letterSpacing: '0.18em' }}
         >
           <EmojiEventsOutlinedIcon sx={{ color: hud.teal, fontSize: 19 }} />
-          {t('dashboard.leaderboard')}
+          {t('dashboard.leaderboard')} · {t(`dashboard.${current.label}`)}
         </Typography>
-        <Box role="tablist" aria-label={t('dashboard.category')} sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
-          {TABS.map((x) => {
-            const on = x.id === tab
-            return (
-              <ButtonBase
-                key={x.id}
-                role="tab"
-                aria-selected={on}
-                onClick={() => setTab(x.id)}
-                sx={{
-                  height: 36,
-                  px: 1.75,
-                  fontFamily: fonts.display,
-                  fontWeight: 600,
-                  fontSize: 14,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  bgcolor: on ? 'rgba(79,209,197,0.14)' : 'transparent',
-                  color: on ? hud.teal : hud.textMuted,
-                  border: `1px solid ${on ? hud.teal : hud.lineStrong}`,
-                }}
-              >
-                {t(`dashboard.${x.label}`)}
-              </ButtonBase>
-            )
-          })}
+        <Box component="span" sx={{ fontSize: 12.5, color: hud.textDim }}>
+          {t('dashboard.tileHint')}
         </Box>
       </Box>
       <Box sx={{ overflowX: 'auto' }}>
@@ -365,7 +339,7 @@ function Leaderboard({ data }: { data: Competition }) {
   )
 }
 
-function Contribution({ data }: { data: NonNullable<Competition['contribution']> }) {
+function Contribution({ data, orgName }: { data: NonNullable<Competition['contribution']>; orgName: string }) {
   const { t } = useTranslation()
   const { n } = useFormat()
   const rows: { label: string; key: CompetitionMetric; digits: number }[] = [
@@ -374,7 +348,7 @@ function Contribution({ data }: { data: NonNullable<Competition['contribution']>
     { label: t('dashboard.contribResources'), key: 'resources_scu', digits: 1 },
   ]
   return (
-    <HudPanel title={t('dashboard.contribution')} id="contrib" sx={{ bgcolor: hud.input, gap: 1.75 }}>
+    <HudPanel title={t('dashboard.contributionTo', { org: orgName })} id="contrib" sx={{ bgcolor: hud.input, gap: 1.75 }}>
       {rows.map(({ label, key, digits }) => {
         const { mine, org } = data[key]
         const share = org > 0 ? Math.round((mine / org) * 100) : 0
@@ -624,6 +598,92 @@ function TrackedPools({ onOpenBlueprint }: { onOpenBlueprint: (id: number) => vo
           </Box>
         )
       })}
+      <Link component={RouterLink} to="/blueprints" sx={{ fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
+        {t('dashboard.findPools')}
+      </Link>
+    </HudPanel>
+  )
+}
+
+/**
+ * The pinned craft targets and what is still to mine for them, the top of
+ * the Gathering page's shopping list against the member's own stock.
+ */
+function Gathering() {
+  const { t, i18n } = useTranslation()
+  const { data } = useCraftTargets()
+  if (!data) return null
+  const amount = (value: number, unit: 'mscu' | 'pieces') =>
+    unit === 'mscu'
+      ? `${(value / 1000).toLocaleString(i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SCU`
+      : t('dashboard.pieces', { count: value })
+  const lines = data.gathering.filter((g) => g.missing > 0).slice(0, 5)
+  const { materials, still_to_gather } = data.summary
+
+  return (
+    <HudPanel
+      title={t('dashboard.gathering')}
+      id="gather"
+      sx={{ bgcolor: hud.input, gap: 1.5 }}
+      aside={
+        materials > 0 && (
+          <HudBadge colour={still_to_gather > 0 ? hud.amber : hud.teal}>
+            {still_to_gather > 0 ? t('dashboard.toGet', { count: still_to_gather, total: materials }) : t('dashboard.allGathered')}
+          </HudBadge>
+        )
+      }
+    >
+      {data.targets.length === 0 ? (
+        <Typography variant="body2" sx={{ color: hud.textDim }}>
+          {t('dashboard.noTargets')}
+        </Typography>
+      ) : (
+        <>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+            {data.targets.map((target) => (
+              <Box
+                key={target.blueprint_id}
+                component="span"
+                sx={{ fontSize: 12, px: 1.125, py: 0.375, border: `1px solid ${target.ready ? '#2f6f6a' : '#2f3d48'}`, color: target.ready ? hud.teal : '#c9d4db' }}
+              >
+                {target.name}{' '}
+                <Box component="span" sx={{ fontFamily: fonts.mono, color: target.ready ? hud.teal : hud.textDim }}>
+                  ×{target.quantity}
+                </Box>
+                {target.ready && ` · ${t('dashboard.targetReady')}`}
+              </Box>
+            ))}
+          </Box>
+          {lines.length > 0 && (
+            <Box role="list">
+              {lines.map((g) => (
+                <Box
+                  key={`${g.name}|${g.unit}`}
+                  role="listitem"
+                  sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 72px 92px', gap: 1.25, alignItems: 'center', py: 0.875, borderTop: `1px solid ${hud.lineSoft}`, fontSize: 13 }}
+                >
+                  <Box component="span" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={g.min_quality ? t('dashboard.qualityAtLeast', { q: g.min_quality }) : undefined}>
+                    {g.name}
+                    {g.min_quality ? (
+                      <Box component="span" sx={{ color: hud.textFaint, fontFamily: fonts.mono, fontSize: 12 }}>
+                        {' '}
+                        ≥{g.min_quality}
+                      </Box>
+                    ) : null}
+                  </Box>
+                  <Bar pct={g.need > 0 ? (g.have_mine / g.need) * 100 : 0} />
+                  <Box component="span" sx={{ fontFamily: fonts.mono, fontSize: 12.5, color: hud.amber, textAlign: 'right' }}>
+                    {amount(g.missing, g.unit)}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </>
+      )}
+      <Link component={RouterLink} to="/gathering" sx={{ fontSize: 13, fontWeight: 500, textDecoration: 'none' }}>
+        {data.targets.length === 0 ? t('dashboard.pinOnBlueprints') : t('dashboard.editGathering')}
+      </Link>
     </HudPanel>
   )
 }
@@ -641,35 +701,31 @@ function Crew({ me, memberCount, onJoin }: { me: Me; memberCount: number; onJoin
   const rest = Math.max(0, memberCount - 1 - shown.length)
   const ring = { boxShadow: `0 0 0 2px ${hud.input}`, borderRadius: '50%', ml: '-6px' }
 
+  const names = [t('dashboard.you'), ...shown.map((m) => m.handle)].join(', ') + (rest > 0 ? ` +${rest}` : '')
+
   return (
-    <HudPanel
-      title={t('dashboard.crew')}
-      id="crew"
-      sx={{ bgcolor: hud.input, gap: 1.5 }}
-      aside={
-        <Box component="span" sx={{ fontSize: 12.5, color: hud.textDim }}>
-          {t('dashboard.pilots', { count: memberCount })}
-        </Box>
-      }
+    <Box
+      component="section"
+      aria-labelledby="crew-title"
+      sx={{ bgcolor: hud.input, border: `1px solid ${hud.line}`, px: 2.5, py: 1.5, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', pl: '6px' }}>
-        <Box sx={{ ...ring, boxShadow: `0 0 0 2px ${hud.input}, 0 0 0 3px ${hud.teal}` }} title={displayName(me)}>
-          <PersonAvatar name={displayName(me)} src={me.avatar_url} size={34} ring={false} />
+      <Typography variant="h6" component="h2" id="crew-title" sx={{ m: 0, fontSize: 16 }}>
+        {t('dashboard.crew')}
+      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', pl: '6px' }} aria-hidden>
+        <Box sx={{ ...ring, boxShadow: `0 0 0 2px ${hud.input}, 0 0 0 3px ${hud.teal}` }}>
+          <PersonAvatar name={displayName(me)} src={me.avatar_url} size={30} ring={false} />
         </Box>
         {shown.map((m) => (
-          <Box key={m.id} sx={ring} title={m.handle}>
-            <PersonAvatar name={m.handle} size={34} ring={false} />
+          <Box key={m.id} sx={ring}>
+            <PersonAvatar name={m.handle} size={30} ring={false} />
           </Box>
         ))}
-        {rest > 0 && (
-          <Box
-            sx={{ ...ring, width: 34, height: 34, bgcolor: '#1f2a33', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: fonts.display, fontWeight: 700, fontSize: 12, color: hud.textMuted }}
-          >
-            +{rest}
-          </Box>
-        )}
       </Box>
-      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+      <Box component="span" sx={{ fontSize: 13, color: hud.textDim, minWidth: 0 }}>
+        {names}
+      </Box>
+      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', ml: 'auto' }}>
         {canManage && (
           <Button variant="outlined" color="inherit" onClick={() => setManaging(true)} sx={ghostLink(hud.teal)}>
             {t('dashboard.manageMembers')}
@@ -680,7 +736,7 @@ function Crew({ me, memberCount, onJoin }: { me: Me; memberCount: number; onJoin
         </Button>
       </Box>
       {managing && org && <OrgMembersDialog orgId={org.id} orgName={org.name} selfId={me.id} open onClose={() => setManaging(false)} />}
-    </HudPanel>
+    </Box>
   )
 }
 
@@ -737,6 +793,7 @@ export function DashboardPage({ me }: { me: Me }) {
   const [period, setPeriod] = useState<CompetitionPeriod>('month')
   const [orgsOpen, setOrgsOpen] = useState(false)
   const [blueprintId, setBlueprintId] = useState<number | null>(null)
+  const [tab, setTab] = useState<Tab>('overall')
   const org = me.orgs[0]
 
   const competition = useQuery({
@@ -753,66 +810,77 @@ export function DashboardPage({ me }: { me: Me }) {
   const data = competition.data
   const myOrg = data?.orgs.find((o) => o.mine)
 
+  const placesTitle = myOrg ? t('dashboard.placesAmong', { org: myOrg.name, count: data!.orgs.length }) : t('dashboard.welcome', { name: displayName(me) })
+  const pageHeader = { display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 1.5, minHeight: 40, pb: 1.25, borderBottom: `1px solid ${hud.line}` } as const
+
+  if (!org) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-start' }}>
+        <Typography variant="h1" component="h2" sx={{ fontSize: { xs: '2rem', md: '2.625rem' } }}>
+          {t('dashboard.welcome', { name: displayName(me) })}
+        </Typography>
+        <Typography variant="body2" sx={{ color: hud.textDim }}>
+          {t('dashboard.noOrgHelp')}
+        </Typography>
+        <Button variant="outlined" color="primary" onClick={() => setOrgsOpen(true)}>
+          {t('dashboard.findOrg')}
+        </Button>
+        <OrganizationsDialog me={me} open={orgsOpen} onClose={() => setOrgsOpen(false)} />
+      </Box>
+    )
+  }
+
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 2 }}>
-        <Box>
-          <Typography variant="h1" component="h2" sx={{ fontSize: { xs: '2rem', md: '2.625rem' } }}>
-            {t('dashboard.welcome', { name: displayName(me) })}
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'center', mt: 1.5, flexWrap: 'wrap', color: hud.textDim, fontSize: 13 }}>
-            {org ? (
-              <>
-                <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, height: 30, pl: 0.5, pr: 1.25, border: `1px solid ${hud.lineStrong}`, bgcolor: hud.input, color: hud.text }}>
-                  <OrgTag org={org} />
-                  {org.name}
-                </Box>
-                {org.pivot && org.pivot.role !== 'member' && <HudBadge colour={hud.amber}>{t(`org.role.${org.pivot.role}`)}</HudBadge>}
-                {summary && (
-                  <span>
-                    {t('dashboard.pilots', { count: summary.member_count })}
-                    {summary.total_pieces > 0 && <> · {t('dashboard.hangar', { count: summary.total_pieces, formatted: n(summary.total_pieces) })}</>}
-                  </span>
-                )}
-              </>
-            ) : (
-              <span>{t('dashboard.noOrgHelp')}</span>
-            )}
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, alignItems: 'flex-start' }}>
+      <Box sx={{ flex: '2 1 720px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box sx={pageHeader}>
+          <Box>
+            <Typography variant="h2" component="h2" sx={{ m: 0, fontSize: 24 }}>
+              {placesTitle}
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', mt: 0.75, flexWrap: 'wrap', color: hud.textDim, fontSize: 13 }}>
+              <OrgTag org={org} size={22} />
+              {org.pivot && org.pivot.role !== 'member' && <HudBadge colour={hud.amber}>{t(`org.role.${org.pivot.role}`)}</HudBadge>}
+              {summary && (
+                <span>
+                  {t('dashboard.pilots', { count: summary.member_count })}
+                  {summary.total_pieces > 0 && <> · {t('dashboard.hangar', { count: summary.total_pieces, formatted: n(summary.total_pieces) })}</>}
+                </span>
+              )}
+            </Box>
           </Box>
+          <PeriodToggle value={period} onChange={setPeriod} />
         </Box>
-        {org && <PeriodToggle value={period} onChange={setPeriod} />}
+
+        {competition.isError && <Alert severity="error">{t('dashboard.loadError')}</Alert>}
+        {competition.isLoading && (
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 1.5 }}>
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} variant="rectangular" height={150} />
+            ))}
+          </Box>
+        )}
+
+        {data && myOrg && <Standings data={data} myOrg={myOrg} tab={tab} onTab={setTab} />}
+        {data ? <Leaderboard data={data} tab={tab} /> : <Skeleton variant="rectangular" height={420} />}
+        <Crew me={me} memberCount={myOrg?.member_count ?? summary?.member_count ?? 1} onJoin={() => setOrgsOpen(true)} />
       </Box>
 
-      {!org && (
-        <Box>
-          <Button variant="outlined" color="primary" onClick={() => setOrgsOpen(true)}>
-            {t('dashboard.findOrg')}
-          </Button>
+      <Box
+        component="aside"
+        aria-labelledby="trackers-title"
+        sx={{ flex: '1 1 340px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, pl: { md: 3 }, borderLeft: { md: `1px solid ${hud.lineSoft}` } }}
+      >
+        <Box sx={{ ...pageHeader, alignItems: 'flex-end' }}>
+          <Typography variant="h2" component="h2" id="trackers-title" sx={{ m: 0, fontSize: 24 }}>
+            {t('dashboard.yourTrackers')}
+          </Typography>
         </Box>
-      )}
-
-      {org && competition.isError && <Alert severity="error">{t('dashboard.loadError')}</Alert>}
-      {org && competition.isLoading && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 2 }}>
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} variant="rectangular" height={150} />
-          ))}
-        </Box>
-      )}
-
-      {data && myOrg && <Standings data={data} myOrg={myOrg} />}
-
-      {org && (
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'flex-start' }}>
-          {data ? <Leaderboard data={data} /> : <Skeleton variant="rectangular" height={420} sx={{ flex: '2 1 560px' }} />}
-          <Box sx={{ flex: '1 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {data?.contribution && <Contribution data={data.contribution} />}
-            <RefineryOrders />
-            <TrackedPools onOpenBlueprint={setBlueprintId} />
-            <Crew me={me} memberCount={myOrg?.member_count ?? summary?.member_count ?? 1} onJoin={() => setOrgsOpen(true)} />
-          </Box>
-        </Box>
-      )}
+        <TrackedPools onOpenBlueprint={setBlueprintId} />
+        <Gathering />
+        <RefineryOrders />
+        {data?.contribution && <Contribution data={data.contribution} orgName={myOrg?.name ?? org.name} />}
+      </Box>
 
       <OrganizationsDialog me={me} open={orgsOpen} onClose={() => setOrgsOpen(false)} />
       <BlueprintInfoDialog blueprintId={blueprintId} onClose={() => setBlueprintId(null)} />
