@@ -345,18 +345,25 @@ pub async fn udi_unlink(app: tauri::AppHandle) -> Result<(), String> {
             .bearer_auth(&token)
             .send()
             .await
-            .map_err(|e| format!("uniteddanes.org could not be reached: {e}"))?;
+            .map_err(|e| format!("Unlinking failed, uniteddanes.org could not be reached: {e}"))?;
         if !resp.status().is_success() && resp.status().as_u16() != 404 {
-            return Err(format!("uniteddanes.org answered {}", resp.status()));
+            return Err(format!("Unlinking failed (uniteddanes.org answered {}); still linked, try again later.", resp.status()));
         }
     }
+    // The website forgets the account's token only once UDI has; a 502 means
+    // UDI could not be reached from there, and the link stays until a retry.
     if let Some(settings) = crate::pairing::load_settings(&app).filter(|s| !s.token.is_empty()) {
-        let _ = crate::http::client()
+        let resp = crate::http::client()
             .delete(format!("{}/api/me/udi-link", settings.server_url.trim_end_matches('/')))
             .bearer_auth(&settings.token)
             .header("Accept", "application/json")
             .send()
-            .await;
+            .await
+            .map_err(|e| format!("Unlinking failed, the StarBuddy website could not be reached: {e}"))?;
+        let status = resp.status().as_u16();
+        if !resp.status().is_success() && status != 404 {
+            return Err(format!("Unlinking failed (the StarBuddy website answered {status}); still linked, try again later."));
+        }
     }
     let mut prefs = load_client_prefs(&app);
     prefs.udi = UdiPrefs::default();
