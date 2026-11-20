@@ -242,6 +242,19 @@ async fn install_into(app: &tauri::AppHandle, live_dir: &str, force: bool) -> Re
     let profile = udi_profile(app.clone()).await?.ok_or("Nothing has been sent from uniteddanes.org yet.")?;
     let mut prefs = load_client_prefs(app);
     let mut here = prefs.udi.installed.get(live_dir).cloned().unwrap_or_default();
+    let result = fetch_and_write(&token, &dir, &profile, &mut here, force).await?;
+    here.at = Some(chrono_now());
+    prefs.udi.revision = Some(profile.revision);
+    prefs.udi.installed.insert(live_dir.to_string(), here);
+    save_client_prefs(app, &prefs)?;
+    Ok(result)
+}
+
+/// The files of one Send, fetched and written into `dir`; `here` is what
+/// was installed there before and is brought up to date.
+async fn fetch_and_write(token: &str, dir: &Path, profile: &Profile, here: &mut Installed, force: bool) -> Result<InstallResult, String> {
+    let token = token.to_string();
+    let dir = dir.to_path_buf();
     let mut result = InstallResult::default();
 
     if profile.labels {
@@ -299,10 +312,6 @@ async fn install_into(app: &tauri::AppHandle, live_dir: &str, force: bool) -> Re
         }
     }
 
-    here.at = Some(chrono_now());
-    prefs.udi.revision = Some(profile.revision);
-    prefs.udi.installed.insert(live_dir.to_string(), here);
-    save_client_prefs(app, &prefs)?;
     Ok(result)
 }
 
@@ -427,5 +436,34 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         let bare = std::env::temp_dir().join(format!("sb-udi-bare-{}", std::process::id()));
         assert_eq!(ini_path(&bare), bare.join("data/Localization/english/global.ini"));
+    }
+
+    /// Against UDI's dev server: STARBUDDY_UDI_URL=http://localhost:8095
+    /// STARBUDDY_UDI_TEST_TOKEN=<a token with a profile> cargo test udi_live -- --ignored --nocapture
+    #[test]
+    #[ignore]
+    fn udi_live() {
+        let token = std::env::var("STARBUDDY_UDI_TEST_TOKEN").expect("STARBUDDY_UDI_TEST_TOKEN");
+        let dir = std::env::temp_dir().join(format!("sb-udi-live-{}", std::process::id())).join("LIVE");
+        std::fs::create_dir_all(dir.join("Data/Localization")).unwrap();
+        std::fs::write(dir.join("user.cfg"), "r_my_own = 1\r\n").unwrap();
+        tauri::async_runtime::block_on(async {
+            let resp = get(&token, "/api/starbuddy/profile", None).await.unwrap();
+            assert_eq!(resp.status().as_u16(), 200, "no profile for the token");
+            let profile: Profile = resp.json().await.unwrap();
+            let mut here = Installed::default();
+            let r = fetch_and_write(&token, &dir, &profile, &mut here, true).await.unwrap();
+            println!("first: ini {} cfg {} backed_up {} version {:?}", r.ini, r.cfg, r.backed_up, r.game_version);
+            assert!(r.ini && r.cfg && r.backed_up);
+            assert!(dir.join("Data/Localization/english/global.ini").is_file());
+            assert_eq!(std::fs::read_to_string(dir.join("user.cfg.before-starbuddy")).unwrap(), "r_my_own = 1\r\n");
+            let cfg = std::fs::read_to_string(dir.join("user.cfg")).unwrap();
+            println!("user.cfg: {cfg:?}");
+            // Nothing changed at UDI: both answer 304 and nothing is written.
+            let again = fetch_and_write(&token, &dir, &profile, &mut here, false).await.unwrap();
+            println!("again: ini {} cfg {}", again.ini, again.cfg);
+            assert!(!again.ini && !again.cfg && !again.backed_up);
+        });
+        let _ = std::fs::remove_dir_all(dir.parent().unwrap());
     }
 }
