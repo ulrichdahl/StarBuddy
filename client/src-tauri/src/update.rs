@@ -134,9 +134,93 @@ pub async fn check_for_update() -> Result<UpdateCheck, String> {
     })
 }
 
+// ── Installing in place ────────────────────────────────────────────────────
+// CI signs the Windows installer and the AppImage and publishes a
+// latest.json beside them: on the latest release for releases, on the
+// rolling dev release for dev builds. The deb and rpm belong to the system's
+// package manager and are updated by downloading, as before.
+
+const RELEASE_MANIFEST: &str = "https://github.com/ulrichdahl/StarBuddy/releases/latest/download/latest.json";
+const DEV_MANIFEST: &str = "https://github.com/ulrichdahl/StarBuddy/releases/download/dev/latest.json";
+
+/// "dev-20261120-1330" → 202611201330, to compare dev builds by.
+fn stamp_number(stamp: &str) -> Option<u64> {
+    let digits: String = stamp.chars().filter(|c| c.is_ascii_digit()).collect();
+    (digits.len() == 12).then(|| digits.parse().ok()).flatten()
+}
+
+/// Whether this copy can replace itself: Windows, or the AppImage.
+#[tauri::command]
+pub fn update_can_install() -> bool {
+    cfg!(windows) || (cfg!(target_os = "linux") && std::env::var_os("APPIMAGE").is_some())
+}
+
+#[derive(Serialize, Clone)]
+#[serde(tag = "phase", rename_all = "lowercase")]
+pub enum InstallProgress {
+    Downloading { done: u64, total: Option<u64> },
+    Installing,
+}
+
+/// Download the newer build, check its signature, install it and restart.
+/// Ok(false) when there was nothing newer after all.
+#[tauri::command]
+pub async fn update_install(
+    app: tauri::AppHandle,
+    on_progress: tauri::ipc::Channel<InstallProgress>,
+) -> Result<bool, String> {
+    use tauri_plugin_updater::UpdaterExt;
+    if !update_can_install() {
+        return Err("This copy of StarBuddy is installed by the system's package manager; download the update instead.".into());
+    }
+    let own_stamp = option_env!("STARBUDDY_BUILD").and_then(stamp_number);
+    let manifest = if own_stamp.is_some() { DEV_MANIFEST } else { RELEASE_MANIFEST };
+    let mut builder = app
+        .updater_builder()
+        .endpoints(vec![manifest.parse().map_err(|e| format!("{e}"))?])
+        .map_err(|e| e.to_string())?;
+    if let Some(own) = own_stamp {
+        // Dev builds share the release's version; the stamp in the
+        // manifest's version (0.1.16-dev.202611201330) says which is newer.
+        builder = builder.version_comparator(move |_, remote| {
+            remote.version.pre.as_str().strip_prefix("dev.").and_then(|s| s.parse::<u64>().ok()).is_some_and(|r| r > own)
+        });
+    }
+    let updater = builder.build().map_err(|e| e.to_string())?;
+    let Some(update) = updater.check().await.map_err(|e| e.to_string())? else {
+        return Ok(false);
+    };
+    log::info!("installing update {} over {}", update.version, update.current_version);
+    let mut done = 0u64;
+    let progress = on_progress.clone();
+    update
+        .download_and_install(
+            move |chunk, total| {
+                done += chunk as u64;
+                let _ = progress.send(InstallProgress::Downloading { done, total });
+            },
+            move || {
+                let _ = on_progress.send(InstallProgress::Installing);
+            },
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    // Windows has already handed over to the installer; elsewhere start the
+    // new copy in place of this one.
+    crate::main_window::remember(&app);
+    crate::overlay::save_now(&app);
+    app.restart();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stamp_numbers() {
+        assert_eq!(stamp_number("dev-20261120-1330"), Some(202611201330));
+        assert_eq!(stamp_number("dev-2026"), None);
+    }
 
     #[test]
     fn dev_stamps() {

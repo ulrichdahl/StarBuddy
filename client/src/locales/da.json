@@ -96,7 +96,11 @@
     "versionBuild": "v{{version}} · {{build}}",
     "openLog": "Åbn logmappe",
     "devAvailable": "Der er et nyere dev-build ({{latest}}; du har {{current}}).",
-    "notes": "Hvad er ændret"
+    "notes": "Hvad er ændret",
+    "install": "Installér og genstart",
+    "downloading": "Henter opdateringen… {{pct}} %",
+    "installing": "Installerer; StarBuddy genstarter af sig selv.",
+    "nothingNewer": "Der blev ikke fundet en nyere version at installere."
   },
   "footer": {
     "disclaimer": "Dette er en uofficiel Star Citizen-fanapplikation uden tilknytning til Cloud Imperium-koncernen. Alt indhold, der ikke er skabt af værten eller brugerne, tilhører de respektive ejere.",

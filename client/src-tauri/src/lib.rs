@@ -135,6 +135,7 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -261,6 +262,8 @@ pub fn run() {
             watcher::watcher_status,
             game_session::game_session,
             update::check_for_update,
+            update::update_can_install,
+            update::update_install,
             diagnostics::app_version,
             diagnostics::debug_mode,
             diagnostics::log_dir,

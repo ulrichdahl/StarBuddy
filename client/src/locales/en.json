@@ -96,7 +96,11 @@
     "versionBuild": "v{{version}} · {{build}}",
     "openLog": "Open log folder",
     "devAvailable": "A newer dev build is available ({{latest}}; you have {{current}}).",
-    "notes": "What changed"
+    "notes": "What changed",
+    "install": "Install and restart",
+    "downloading": "Downloading the update… {{pct}}%",
+    "installing": "Installing; StarBuddy restarts by itself.",
+    "nothingNewer": "No newer build was found to install."
   },
   "footer": {
     "disclaimer": "This is an unofficial Star Citizen fan application, not affiliated with the Cloud Imperium group of companies. All content not authored by its host or users is property of its respective owners.",
