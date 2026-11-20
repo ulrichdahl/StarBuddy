@@ -8,25 +8,20 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The org leaderboard on the dashboard: how orgs compare on blueprints
- * learned, missions completed and resources pooled, and an overall score.
+ * The org leaderboard on the dashboard, from points for Game.log activity
+ * (see Scoring): missions, refinery work orders and travel.
  *
- * Every figure counts the org's current active members only, so a pilot who
- * moves org takes their record with them. A window limits each metric to what
- * happened inside it:
+ * Points belong to the org the player was in when they earned them. An org's
+ * score is its points divided by the players who scored for it in the
+ * window, so a small org of active pilots can beat a large quiet one. Each
+ * category ranks the same way, by points per contributing pilot.
  *
- *  - blueprints: distinct blueprints members learned in the window;
- *  - missions: mission_completed events the desktop client sent;
- *  - resources: SCU of org-visible stacks created in the window. Stacks are
- *    edited in place, so "this month" is what was added, not what is held.
- *
- * The overall score is each metric as a share of that metric's leader, times
- * 1000, summed: an org leading all three scores 3000.
+ * Refinery orders recorded in the app and SCU added to the org's stock are
+ * reported beside the ranking but never count toward it: both can be typed
+ * in by hand.
  */
 class OrgCompetition
 {
-    public const METRICS = ['blueprints', 'missions', 'resources_scu'];
-
     /**
      * Standings for every org that has members, best overall first.
      *
@@ -39,40 +34,71 @@ class OrgCompetition
             ->get(['org_id', 'user_id']);
         $orgs = Org::whereIn('id', $members->pluck('org_id')->unique())->get(['id', 'name', 'sid']);
 
-        $blueprints = self::blueprintsPerOrg($from, $to);
-        $missions = self::missionsPerOrg($from, $to);
-        $resources = self::resourcesPerOrg($from, $to);
+        $points = self::window(DB::table('score_events'), 'occurred_at', $from, $to)
+            ->whereNotNull('org_id')
+            ->groupBy('org_id', 'kind')
+            ->selectRaw('org_id, kind, sum(points) as points, count(*) as events')
+            ->get()
+            ->groupBy('org_id');
+        $contributors = self::window(DB::table('score_events'), 'occurred_at', $from, $to)
+            ->whereNotNull('org_id')
+            ->where('points', '>', 0)
+            ->groupBy('org_id')
+            ->selectRaw('org_id, count(distinct user_id) as total')
+            ->pluck('total', 'org_id');
+        $orders = self::perMembers($members, self::window(DB::table('refinery_orders'), 'refinery_orders.created_at', $from, $to)
+            ->selectRaw('user_id, count(*) as total')->groupBy('user_id')->pluck('total', 'user_id'));
+        $scu = self::perMembers($members, self::window(DB::table('resource_stacks'), 'resource_stacks.created_at', $from, $to)
+            ->join('resource_types', 'resource_types.id', '=', 'resource_stacks.resource_type_id')
+            ->where('resource_types.unit', 'mscu')
+            ->where('resource_stacks.visibility', 'org')
+            ->selectRaw('resource_stacks.user_id, sum(resource_stacks.quantity) as total')
+            ->groupBy('resource_stacks.user_id')
+            ->pluck('total', 'user_id'));
 
-        $rows = $orgs->map(fn (Org $org) => [
-            'id' => $org->id,
-            'name' => $org->name,
-            'sid' => $org->sid,
-            'member_count' => $members->where('org_id', $org->id)->count(),
-            'blueprints' => (int) ($blueprints[$org->id] ?? 0),
-            'missions' => (int) ($missions[$org->id] ?? 0),
-            'resources_scu' => round(($resources[$org->id] ?? 0) / 1000, 3),
-        ]);
+        $rows = $orgs->map(function (Org $org) use ($members, $points, $contributors, $orders, $scu) {
+            $pilots = (int) ($contributors[$org->id] ?? 0);
+            $byKind = collect($points[$org->id] ?? [])->keyBy('kind');
+            $kinds = collect(Scoring::KINDS)->mapWithKeys(function ($kind) use ($byKind, $pilots) {
+                $p = (int) ($byKind[$kind]->points ?? 0);
 
-        $leaders = collect(self::METRICS)->mapWithKeys(fn ($m) => [$m => $rows->max($m) ?: 0]);
-        $rows = $rows->map(fn ($row) => [
-            ...$row,
-            'score' => (int) round(collect(self::METRICS)->sum(
-                fn ($m) => $leaders[$m] > 0 ? $row[$m] / $leaders[$m] * 1000 : 0
-            )),
-        ]);
+                return [$kind => [
+                    'points' => $p,
+                    'per_pilot' => $pilots > 0 ? (int) round($p / $pilots) : 0,
+                    'events' => (int) ($byKind[$kind]->events ?? 0),
+                ]];
+            });
+            $total = $kinds->sum('points');
+
+            return [
+                'id' => $org->id,
+                'name' => $org->name,
+                'sid' => $org->sid,
+                'member_count' => $members->where('org_id', $org->id)->count(),
+                'contributors' => $pilots,
+                'points' => $total,
+                // Points per contributing pilot: what the ranking is by.
+                'score' => $pilots > 0 ? (int) round($total / $pilots) : 0,
+                'kinds' => $kinds->all(),
+                // Side information, typed in the app: never ranked.
+                'refinery_orders' => (int) ($orders[$org->id] ?? 0),
+                'resources_scu' => round(($scu[$org->id] ?? 0) / 1000, 3),
+            ];
+        });
 
         // Ties share a rank; the next org takes the rank after them (1, 1, 3).
         $ranks = [];
-        foreach ([...self::METRICS, 'score'] as $metric) {
-            $sorted = $rows->sortByDesc($metric)->values();
+        $value = fn (array $row, string $metric) => $metric === 'overall' ? $row['score'] : $row['kinds'][$metric]['per_pilot'];
+        foreach (['overall', ...Scoring::KINDS] as $metric) {
+            $sorted = $rows->sortByDesc(fn ($row) => $value($row, $metric))->values();
             $rank = 0;
             $previous = null;
             foreach ($sorted as $i => $row) {
-                if ($row[$metric] !== $previous) {
+                if ($value($row, $metric) !== $previous) {
                     $rank = $i + 1;
-                    $previous = $row[$metric];
+                    $previous = $value($row, $metric);
                 }
-                $ranks[$row['id']][$metric === 'score' ? 'overall' : $metric] = $rank;
+                $ranks[$row['id']][$metric] = $rank;
             }
         }
 
@@ -82,84 +108,94 @@ class OrgCompetition
             ->values();
     }
 
-    /** @return array<int, int> org id => distinct blueprints learned */
-    private static function blueprintsPerOrg(?CarbonImmutable $from, CarbonImmutable $to): array
+    /**
+     * One player's points for one org in the window, per category.
+     *
+     * @return array<string, array{points: int, events: int}>
+     */
+    public static function mine(int $userId, int $orgId, ?CarbonImmutable $from, CarbonImmutable $to): array
     {
-        $learned = DB::raw('COALESCE(blueprint_owned.acquired_at, blueprint_owned.created_at)');
+        $rows = self::window(DB::table('score_events'), 'occurred_at', $from, $to)
+            ->where('user_id', $userId)
+            ->where('org_id', $orgId)
+            ->groupBy('kind')
+            ->selectRaw('kind, sum(points) as points, count(*) as events')
+            ->get()
+            ->keyBy('kind');
 
-        return self::perOrg('blueprint_owned')
-            ->when($from, fn ($q) => $q->where($learned, '>=', $from))
-            ->where($learned, '<', $to)
-            ->selectRaw('org_members.org_id, count(distinct blueprint_owned.blueprint_name) as total')
-            ->pluck('total', 'org_id')
-            ->all();
-    }
-
-    /** @return array<int, int> org id => missions completed */
-    private static function missionsPerOrg(?CarbonImmutable $from, CarbonImmutable $to): array
-    {
-        return self::perOrg('ingest_events')
-            ->where('ingest_events.event_type', 'mission_completed')
-            ->when($from, fn ($q) => $q->where('ingest_events.log_timestamp', '>=', $from))
-            ->where('ingest_events.log_timestamp', '<', $to)
-            ->selectRaw('org_members.org_id, count(*) as total')
-            ->pluck('total', 'org_id')
-            ->all();
-    }
-
-    /** @return array<int, int> org id => mSCU in org-visible stacks */
-    private static function resourcesPerOrg(?CarbonImmutable $from, CarbonImmutable $to): array
-    {
-        return self::perOrg('resource_stacks')
-            ->join('resource_types', 'resource_types.id', '=', 'resource_stacks.resource_type_id')
-            ->where('resource_types.unit', 'mscu')
-            ->where('resource_stacks.visibility', 'org')
-            ->when($from, fn ($q) => $q->where('resource_stacks.created_at', '>=', $from))
-            ->where('resource_stacks.created_at', '<', $to)
-            ->selectRaw('org_members.org_id, sum(resource_stacks.quantity) as total')
-            ->pluck('total', 'org_id')
-            ->all();
-    }
-
-    /** A per-user table joined to the orgs its user is an active member of. */
-    private static function perOrg(string $table)
-    {
-        return DB::table($table)
-            ->join('org_members', 'org_members.user_id', '=', "{$table}.user_id")
-            ->where('org_members.status', 'active')
-            ->groupBy('org_members.org_id');
+        return collect(Scoring::KINDS)->mapWithKeys(fn ($kind) => [$kind => [
+            'points' => (int) ($rows[$kind]->points ?? 0),
+            'events' => (int) ($rows[$kind]->events ?? 0),
+        ]])->all();
     }
 
     /**
-     * One member's own share of their org's figures in the same window.
+     * The org's current members by the points they earned for it in the
+     * window, best first; members who scored nothing are listed last.
      *
-     * @return array<string, float|int>
+     * @return Collection<int, array<string, mixed>>
      */
-    public static function mine(int $userId, ?CarbonImmutable $from, CarbonImmutable $to): array
+    public static function members(int $orgId, ?CarbonImmutable $from, CarbonImmutable $to): Collection
     {
-        $learned = DB::raw('COALESCE(acquired_at, created_at)');
+        $users = DB::table('users')
+            ->join('org_members', 'org_members.user_id', '=', 'users.id')
+            ->where('org_members.org_id', $orgId)
+            ->where('org_members.status', 'active')
+            ->get(['users.id', 'users.name', 'users.handle', 'users.avatar_url']);
+        $points = self::window(DB::table('score_events'), 'occurred_at', $from, $to)
+            ->where('org_id', $orgId)
+            ->whereIn('user_id', $users->pluck('id'))
+            ->groupBy('user_id', 'kind')
+            ->selectRaw('user_id, kind, sum(points) as points, count(*) as events')
+            ->get()
+            ->groupBy('user_id');
 
-        return [
-            'blueprints' => (int) DB::table('blueprint_owned')
-                ->where('user_id', $userId)
-                ->when($from, fn ($q) => $q->where($learned, '>=', $from))
-                ->where($learned, '<', $to)
-                ->distinct()
-                ->count('blueprint_name'),
-            'missions' => DB::table('ingest_events')
-                ->where('user_id', $userId)
-                ->where('event_type', 'mission_completed')
-                ->when($from, fn ($q) => $q->where('log_timestamp', '>=', $from))
-                ->where('log_timestamp', '<', $to)
-                ->count(),
-            'resources_scu' => round((int) DB::table('resource_stacks')
-                ->join('resource_types', 'resource_types.id', '=', 'resource_stacks.resource_type_id')
-                ->where('resource_stacks.user_id', $userId)
-                ->where('resource_types.unit', 'mscu')
-                ->where('resource_stacks.visibility', 'org')
-                ->when($from, fn ($q) => $q->where('resource_stacks.created_at', '>=', $from))
-                ->where('resource_stacks.created_at', '<', $to)
-                ->sum('resource_stacks.quantity') / 1000, 3),
-        ];
+        $rows = $users->map(function ($u) use ($points) {
+            $byKind = collect($points[$u->id] ?? [])->keyBy('kind');
+            $kinds = collect(Scoring::KINDS)->mapWithKeys(fn ($kind) => [$kind => [
+                'points' => (int) ($byKind[$kind]->points ?? 0),
+                'events' => (int) ($byKind[$kind]->events ?? 0),
+            ]]);
+
+            return [
+                'id' => $u->id,
+                'handle' => $u->handle ?? $u->name,
+                'avatar_url' => $u->avatar_url,
+                'points' => $kinds->sum('points'),
+                'kinds' => $kinds->all(),
+            ];
+        })->sortBy([['points', 'desc'], ['handle', 'asc']])->values();
+
+        $rank = 0;
+        $previous = null;
+
+        return $rows->map(function ($row, $i) use (&$rank, &$previous) {
+            if ($row['points'] !== $previous) {
+                $rank = $i + 1;
+                $previous = $row['points'];
+            }
+
+            return [...$row, 'rank' => $rank];
+        });
+    }
+
+    private static function window($query, string $column, ?CarbonImmutable $from, CarbonImmutable $to)
+    {
+        return $query->when($from, fn ($q) => $q->where($column, '>=', $from))->where($column, '<', $to);
+    }
+
+    /**
+     * Per-user totals summed over each org's current members.
+     *
+     * @return array<int, int|float>
+     */
+    private static function perMembers(Collection $members, Collection $perUser): array
+    {
+        $out = [];
+        foreach ($members as $m) {
+            $out[$m->org_id] = ($out[$m->org_id] ?? 0) + ($perUser[$m->user_id] ?? 0);
+        }
+
+        return $out;
     }
 }

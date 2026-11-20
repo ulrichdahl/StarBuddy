@@ -24,6 +24,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('dashboard', DashboardController::class);
     Route::get('dashboard/competition', \App\Http\Controllers\CompetitionController::class);
+    Route::get('dashboard/members', [\App\Http\Controllers\CompetitionController::class, 'members']);
     Route::get('status', \App\Http\Controllers\StatusController::class);
     Route::get('scan/signatures', [\App\Http\Controllers\ScanController::class, 'signatures']);
     Route::get('scan/signature/{value}', [\App\Http\Controllers\ScanController::class, 'lookup']);

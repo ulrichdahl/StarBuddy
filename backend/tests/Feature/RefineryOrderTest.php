@@ -385,7 +385,7 @@ class RefineryOrderTest extends TestCase
                 ]],
             ])
             ->assertOk()
-            ->assertJsonPath('ignored', 1);
+            ->assertJsonPath('refinery_completed', 1);
 
         $this->assertSame(0, RefineryOrder::count(), 'orders come from the terminal now');
     }

@@ -9,6 +9,11 @@ use Illuminate\Http\Request;
 /**
  * GET /api/dashboard/competition?period=month|all
  *
+ * Shape per org: id, name, sid, member_count, contributors, points, score
+ * (points per contributing pilot), kinds {mission|refinery|travel:
+ * {points, per_pilot, events}}, refinery_orders and resources_scu (side
+ * information, unranked), rank {overall, mission, refinery, travel}, trend.
+ *
  * The org leaderboard (see OrgCompetition) with each org's rank change and
  * the caller's own share of their org's figures. "month" is the calendar
  * month so far, compared with the whole of last month; "all" is all time,
@@ -47,10 +52,10 @@ class CompetitionController extends Controller
 
         $contribution = null;
         if ($myOrg !== null) {
-            $mine = OrgCompetition::mine($user->id, $from, $now);
+            $mine = OrgCompetition::mine($user->id, $myOrg->id, $from, $now);
             $org = $orgs->firstWhere('id', $myOrg->id);
-            $contribution = collect(OrgCompetition::METRICS)->mapWithKeys(fn ($m) => [
-                $m => ['mine' => $mine[$m], 'org' => $org[$m] ?? 0],
+            $contribution = collect(\App\Support\Scoring::KINDS)->mapWithKeys(fn ($kind) => [
+                $kind => ['mine' => $mine[$kind]['points'], 'org' => $org['kinds'][$kind]['points'] ?? 0],
             ]);
         }
 
@@ -61,6 +66,26 @@ class CompetitionController extends Controller
             'my_org_id' => $myOrg?->id,
             'orgs' => $orgs->values(),
             'contribution' => $contribution,
+        ];
+    }
+
+    /**
+     * GET /api/dashboard/members?period=month|all
+     *
+     * The caller's org's own members by the points they earned for it.
+     * Only for that org's members; other orgs see only the org totals.
+     */
+    public function members(Request $request)
+    {
+        $period = $request->validate(['period' => ['nullable', 'in:month,all']])['period'] ?? 'month';
+        $now = CarbonImmutable::now();
+        $from = $period === 'month' ? $now->startOfMonth() : null;
+        $myOrg = $request->user()->orgs()->orderBy('orgs.id')->first();
+
+        return [
+            'period' => $period,
+            'org_id' => $myOrg?->id,
+            'members' => $myOrg ? OrgCompetition::members($myOrg->id, $from, $now) : [],
         ];
     }
 }

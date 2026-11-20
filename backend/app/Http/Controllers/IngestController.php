@@ -22,11 +22,29 @@ class IngestController extends Controller
             // finished, so the event is accepted and ignored for older clients.
             // mission_completed feeds the org leaderboard; detail is the
             // mission's name as the log gave it.
-            'events.*.kind' => ['required', 'in:blueprint,refinery_completed,mission_completed'],
+            // quantum_arrived (detail = destination point, a Local selection
+            // paired with its arrival by ship id), vehicle_released (detail =
+            // ship id, from ClearDriver), location (detail = Location[...]
+            // code) and jurisdiction (detail = jurisdiction name) feed the
+            // points in App\Support\Scoring, as do missions and refinery
+            // completions.
+            'events.*.kind' => ['required', 'in:blueprint,refinery_completed,mission_completed,quantum_arrived,vehicle_released,location,jurisdiction'],
             'events.*.timestamp' => ['required', 'date'],
             'events.*.detail' => ['required', 'string', 'max:255'],
             'events.*.item_class' => ['nullable', 'string', 'max:255'],
+            // The untouched log line(s), kept so points can be recounted.
+            'events.*.raw' => ['nullable', 'string', 'max:4000'],
+            'events.*.raw_selected' => ['nullable', 'string', 'max:4000'],
+            'events.*.ship_id' => ['nullable', 'string', 'max:64'],
+            'events.*.mission_id' => ['nullable', 'string', 'max:64'],
+            // The character the log was written by, from the login line.
+            'character' => ['nullable', 'array'],
+            'character.geid' => ['nullable', 'string', 'max:32'],
+            'character.name' => ['nullable', 'string', 'max:64'],
+            'character.account_id' => ['nullable', 'string', 'max:32'],
         ]);
+        $character = array_filter($data['character'] ?? [], fn ($v) => $v !== null && $v !== '') ?: null;
+        $newAccount = \App\Support\Scoring::learnAccount($request->user()->id, $character, $request->user()->handle);
 
         $user = $request->user();
 
@@ -42,7 +60,8 @@ class IngestController extends Controller
             ->all();
 
         $fresh = $events->reject(fn ($e) => in_array($e['fingerprint'], $existing, true));
-        $counts = ['accepted' => 0, 'duplicates' => $events->count() - $fresh->count(), 'blueprints_added' => 0, 'refinery_completed' => 0, 'missions_completed' => 0, 'ignored' => 0, 'backfilled' => 0];
+        $counts = ['accepted' => 0, 'duplicates' => $events->count() - $fresh->count(), 'blueprints_added' => 0, 'refinery_completed' => 0, 'missions_completed' => 0, 'travel' => 0, 'ignored' => 0, 'backfilled' => 0, 'points' => 0];
+        $orgId = \App\Support\Scoring::orgOf($user->id);
 
         // A re-sync after the client's name-resolution improves can carry an
         // item_class the stored row lacks — backfill instead of discarding.
@@ -67,18 +86,31 @@ class IngestController extends Controller
             }
         }
 
-        DB::transaction(function () use ($fresh, $user, $byClass, &$counts) {
-            foreach ($fresh as $e) {
-                DB::table('ingest_events')->insert([
+        DB::transaction(function () use ($fresh, $user, $byClass, $character, $orgId, &$counts) {
+            foreach ($fresh->sortBy('timestamp') as $e) {
+                $payload = array_filter([
+                    'detail' => $e['detail'],
+                    'item_class' => $e['item_class'] ?? null,
+                    'raw' => $e['raw'] ?? null,
+                    'raw_selected' => $e['raw_selected'] ?? null,
+                    'ship_id' => $e['ship_id'] ?? null,
+                    'mission_id' => $e['mission_id'] ?? null,
+                    'character' => $character,
+                ], fn ($v, $k) => $v !== null || in_array($k, ['detail', 'item_class'], true), ARRAY_FILTER_USE_BOTH);
+                $id = DB::table('ingest_events')->insertGetId([
                     'user_id' => $user->id,
                     'event_type' => $e['kind'],
-                    'payload' => json_encode(['detail' => $e['detail'], 'item_class' => $e['item_class'] ?? null]),
+                    'payload' => json_encode($payload),
                     'log_timestamp' => $e['timestamp'],
                     'fingerprint' => $e['fingerprint'],
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
                 $counts['accepted']++;
+
+                $stored = DB::table('ingest_events')->find($id);
+                \App\Support\Scoring::score($stored, $orgId, $user->handle);
+                $counts['points'] += (int) DB::table('score_events')->where('ingest_event_id', $id)->value('points');
 
                 if ($e['kind'] === 'blueprint') {
                     // Identity is the item class when the client resolved one;
@@ -102,13 +134,24 @@ class IngestController extends Controller
                 } elseif ($e['kind'] === 'mission_completed') {
                     // The stored event is the record; the leaderboard counts them.
                     $counts['missions_completed']++;
-                } else {
-                    // An older client still sending completions: counted so the
-                    // sync reports honestly, but no order is invented from it.
+                } elseif ($e['kind'] === 'refinery_completed') {
+                    // Scores as a finished work order, but no order is
+                    // invented from it: the terminal records those.
+                    $counts['refinery_completed']++;
+                } elseif ($e['kind'] === 'vehicle_released') {
+                    // Only stored: it ties a ship to the player's own geid.
                     $counts['ignored']++;
+                } else {
+                    $counts['travel']++;
                 }
             }
         });
+
+        // A newly recognised game account makes the player's earlier events
+        // from its other characters count.
+        if ($newAccount) {
+            \App\Support\Scoring::recount($user->id);
+        }
 
         // Name-only rows (client couldn't resolve an item class) get the
         // full linker pass right away instead of waiting for the nightly
