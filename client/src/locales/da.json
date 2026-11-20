@@ -635,5 +635,87 @@
       "still": "Mangler",
       "for": "Til"
     }
+  },
+  "pages": {
+    "pairFirst": "Par med din orgs StarBuddy-hjemmeside under Indstillinger for at se dette.",
+    "search": "Søg",
+    "page": "Side {{page}} af {{last}}",
+    "total_one": "{{count}} i alt",
+    "total_other": "{{count}} i alt"
+  },
+  "blueprints": {
+    "category": "Kategori",
+    "allCategories": "Alle kategorier",
+    "show": {
+      "all": "Alle",
+      "mine": "Mine",
+      "missing": "Mangler"
+    },
+    "none": "Ingen blueprints passer.",
+    "col": {
+      "name": "Navn",
+      "type": "Type",
+      "grade": "Grad",
+      "held": "Har",
+      "pool": "Falder fra"
+    },
+    "default": "Standard",
+    "orgHolds_one": "{{count}} i org'en",
+    "orgHolds_other": "{{count}} i org'en",
+    "track": "Følg denne pulje",
+    "pin": "Fastgør",
+    "marked": "{{name}} markeret som din.",
+    "unmarked": "{{name}} er ikke længere markeret som din.",
+    "pinned": "{{name}} fastgjort som craft-mål.",
+    "tracked": "Følger nu {{pool}}."
+  },
+  "craft": {
+    "craftable": "Kan craftes nu",
+    "allMine": "Alle mine blueprints",
+    "working": "Regner ud hvad du kan crafte…",
+    "none": "Intet fundet.",
+    "noneCraftable": "Intet kan craftes af det du har.",
+    "col": {
+      "coverage": "Dækket",
+      "quality": "Kvalitet",
+      "missing": "Mangler stadig"
+    },
+    "craft": "Craft",
+    "done": "Craftede {{name}} (kvalitet {{quality}}).",
+    "undo": "Fortryd"
+  },
+  "items": {
+    "mine": "Mine",
+    "org": "Org",
+    "none": "Ingen genstande fundet.",
+    "col": {
+      "item": "Genstand",
+      "quantity": "Antal",
+      "quality": "Kvalitet",
+      "location": "Hvor",
+      "shared": "Delt",
+      "holders": "Ejere"
+    },
+    "withOrg": "Med org'en",
+    "private": "Privat"
+  },
+  "org": {
+    "lead": "{{org}}: {{playing}} af {{count}} spiller nu",
+    "noOrg": "Du er ikke i en org endnu. Meld dig ind på hjemmesiden.",
+    "main": "Hoved-org",
+    "none": "Ingen medlemmer at vise.",
+    "col": {
+      "member": "Medlem",
+      "status": "Status",
+      "location": "Sidste sted",
+      "ship": "Skib",
+      "build": "Version"
+    },
+    "you": "dig",
+    "playing": "Spiller",
+    "lastSeen": "Sidst set {{when}}",
+    "unknown": "Ingen spilstatus",
+    "sameShard": "På samme shard som dig",
+    "presenceNote": "Spilstatus kommer fra hvert medlems StarBuddy-klient. Medlemmer kan slå det fra under Indstillinger › Generelt."
   }
 }

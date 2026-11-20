@@ -226,8 +226,10 @@ body {
 .sb .sb-nav:hover { background: rgba(120, 160, 190, 0.08); color: var(--text); }
 .sb .sb-nav.on { background: var(--acc-soft); border-color: rgba(60, 201, 240, 0.3); color: #fff; }
 .sb input[type="text"],
+.sb input[type="search"],
 .sb input:not([type]),
 .sb select {
+  padding: 6px 10px;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid var(--line2);
   border-radius: 0;
@@ -604,3 +606,11 @@ body {
 .sb .sb-set-what { flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; }
 .sb .sb-set-ctl { display: flex; gap: 8px; align-items: center; }
 .sb .sb-links { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0 0; }
+
+/* Search, paging and the org page's same-shard mark. */
+.sb .sb-search { flex: 1 1 220px; max-width: 360px; }
+.sb .sb-pager { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.sb .sb-pager button { padding: 3px 12px; }
+.sb .sb-inline { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.sb-shard { display: inline-grid; place-items: center; color: var(--cyan); margin-left: 4px; }
+.sb-shard svg { width: 16px; height: 16px; }

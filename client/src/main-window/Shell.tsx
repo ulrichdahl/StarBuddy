@@ -11,7 +11,7 @@ export const SECTIONS = ["home", "craft", "blueprints", "gathering", "refinery",
 export type Section = (typeof SECTIONS)[number];
 
 /** Sections that exist in the rail before the website can feed them. */
-export const COMING_SOON: ReadonlySet<Section> = new Set(["craft", "blueprints", "stash", "org"]);
+export const COMING_SOON: ReadonlySet<Section> = new Set([]);
 
 /** After these the rail draws a rule: what follows is about StarBuddy itself. */
 const RULE_AFTER: Section = "org";

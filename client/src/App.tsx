@@ -15,6 +15,10 @@ import { useWatcher, WatcherPanel } from "./main-window/WatcherPanel";
 import { Home } from "./main-window/Home";
 import { Refinery } from "./main-window/Refinery";
 import { Gathering } from "./main-window/Gathering";
+import { Blueprints } from "./main-window/Blueprints";
+import { Craft } from "./main-window/Craft";
+import { Items } from "./main-window/Items";
+import { Org } from "./main-window/Org";
 import { Tools } from "./main-window/Tools";
 import { Settings, useSettingsTab } from "./main-window/Settings";
 import { useMainMode } from "./main-window/mainMode";
@@ -71,6 +75,14 @@ function App() {
   let body;
   if (section === "gathering") {
     body = <Gathering paired={paired} onSection={setSection} />;
+  } else if (section === "blueprints") {
+    body = <Blueprints paired={paired} />;
+  } else if (section === "craft") {
+    body = <Craft paired={paired} />;
+  } else if (section === "stash") {
+    body = <Items paired={paired} />;
+  } else if (section === "org") {
+    body = <Org paired={paired} />;
   } else if (COMING_SOON.has(section)) {
     body = <ComingSoon section={section} />;
   } else if (section === "home") {

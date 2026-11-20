@@ -12,6 +12,8 @@ export interface GameSession {
   location_code: string | null;
   ship: string | null;
   player: string | null;
+  /** The server joined (Join PU): two players on one can meet. */
+  shard: string | null;
 }
 
 /** The log calls LIVE "PUB"; players call it LIVE. */
