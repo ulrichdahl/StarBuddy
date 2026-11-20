@@ -1,6 +1,6 @@
 # StarBuddy backend — PHP-FPM. The same image runs the fpm pool (app),
 # queue worker, scheduler, and Reverb; compose overrides the command.
-FROM php:8.5-fpm-alpine AS base
+FROM php:8.5.12-fpm-alpine AS base
 
 # opcache is built into the 8.5 images already; install the rest.
 RUN apk add --no-cache postgresql-dev icu-dev libzip-dev \

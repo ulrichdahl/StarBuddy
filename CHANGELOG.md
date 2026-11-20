@@ -5,6 +5,24 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## 0.1.16 — 2026-10-21
+
+**Move or sell a whole hold in one go, and keep the receipt.**
+
+### New
+
+- **Pick stacks and act on them together.** Your own stacks can be picked out of the materials and items lists, and the picking survives paging, so a hold gathered across three pages moves in one go. An org mate's stock stays visible to count, not to spend.
+- **Move, sell or share what is picked.** Moving sets a new location. Selling takes a handle and a price: a handle StarBuddy knows gets the stacks, and one it does not gets only the record, because the stock left the books either way. Zero is a real price, and the way a gift is written down. Sharing hands whole stacks to the org, or takes them back.
+- **Part of a stack.** Amounts are per stack and start at everything it holds; asking for less splits it, and the part that leaves becomes a row of its own.
+- **A ledger of what changed hands**, readable from both ends — where that Iron went, and where this Iron came from — carrying what the stock was on the day.
+- **Only your own**, a switch on both lists. Filters appear only on views they narrow, and the org matrices slant member handles so the numbers keep their width.
+
+### Fixed
+
+- **A craft spends your own stock before an org mate's.** At equal quality the list used to take whatever order the server sent; now yours comes first, then the member's name, so the list no longer shuffles between openings.
+- **Blueprints say when no mission actually hands a pool out.** Contracts the game marks as not released are struck through, a pool nothing awards says so, and an earnable pool ranks above one that cannot be earned.
+- **The server runs PHP 8.5.12**, pinned so a cached image can no longer hold the backend on an older patch.
+
 ## 0.1.15 — 2026-09-12
 
 **Every blueprint now says which mission hands it out, and the site fits a screen stood on its end.**
