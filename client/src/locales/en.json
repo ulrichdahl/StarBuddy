@@ -422,23 +422,23 @@
     }
   },
   "refinery": {
-    "lead": "Orders read from the refinery kiosk. Check and save them in the refinery window over the game.",
-    "openWindow": "Refinery window",
-    "read": "Read from screen",
-    "readingOffTitle": "Screen reading is off",
-    "readingOffText": "Turn it on once and choose the game's window. Then open an order at the refinery kiosk and press F8.",
-    "toSettings": "Settings",
-    "lastRead": "Last read · {{station}} · {{time}}",
-    "nothingYet": "No read yet",
+    "lead": "Your refinery orders, read at the kiosk with the hotkey.",
+    "pairFirst": "Pair with your org's StarBuddy website in Settings to see your refinery orders.",
+    "open": "Open",
+    "all": "All",
+    "loading": "Loading…",
+    "none": "No refinery orders yet.",
+    "noneOpen": "Nothing in a refinery right now.",
+    "refining": "Refining",
+    "collectedAt": "Collected · {{place}}",
+    "collectTo": "Take it to…",
+    "collect": "Collect",
     "col": {
-      "order": "Order",
+      "station": "Refinery",
       "materials": "Refining",
-      "method": "Method",
-      "yield": "Yield",
-      "time": "Time left",
-      "status": "Status"
-    },
-    "historySoon": "Earlier orders and their timers come here once the website keeps them."
+      "status": "Status",
+      "time": "Time left"
+    }
   },
   "tools": {
     "lead": "Your org's pages and the community's tools, one click from the game. They open in your browser.",

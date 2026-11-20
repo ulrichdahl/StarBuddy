@@ -533,3 +533,11 @@ body {
 .sb .fansite p { margin: 0 0 4px; }
 .sb .fansite a img { display: block; }
 .sb-hk-ctl { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+
+/* A two- or three-way switch: Open / All. */
+.sb-seg { display: inline-flex; border: 1px solid var(--line2); }
+.sb .sb-seg button { border: 0; background: transparent; color: var(--muted); padding: 6px 14px; }
+.sb .sb-seg button.on { background: var(--acc-soft); color: var(--cyan); }
+.sb-collect { display: inline-flex; gap: 6px; align-items: center; }
+.sb .sb-collect select { padding: 5px 8px; max-width: 200px; }
+.sb .sb-table button { padding: 5px 12px; }

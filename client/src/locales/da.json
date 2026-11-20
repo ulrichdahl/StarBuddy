@@ -422,23 +422,23 @@
     }
   },
   "refinery": {
-    "lead": "Ordrer aflæst ved raffinaderikiosken. Tjek og gem dem i raffinaderivinduet over spillet.",
-    "openWindow": "Raffinaderivindue",
-    "read": "Aflæs fra skærmen",
-    "readingOffTitle": "Skærmaflæsning er slået fra",
-    "readingOffText": "Slå den til én gang og vælg spillets vindue. Åbn så en ordre ved raffinaderikiosken og tryk F8.",
-    "toSettings": "Indstillinger",
-    "lastRead": "Senest aflæst · {{station}} · {{time}}",
-    "nothingYet": "Intet aflæst endnu",
+    "lead": "Dine raffinaderiordrer, aflæst ved kiosken med genvejstasten.",
+    "pairFirst": "Par med din orgs StarBuddy-hjemmeside under Indstillinger for at se dine raffinaderiordrer.",
+    "open": "Åbne",
+    "all": "Alle",
+    "loading": "Henter…",
+    "none": "Ingen raffinaderiordrer endnu.",
+    "noneOpen": "Intet i et raffinaderi lige nu.",
+    "refining": "Raffinerer",
+    "collectedAt": "Hentet · {{place}}",
+    "collectTo": "Tag det til…",
+    "collect": "Hent",
     "col": {
-      "order": "Ordre",
+      "station": "Raffinaderi",
       "materials": "Raffinerer",
-      "method": "Metode",
-      "yield": "Udbytte",
-      "time": "Tid tilbage",
-      "status": "Status"
-    },
-    "historySoon": "Tidligere ordrer og deres timere kommer her, når hjemmesiden gemmer dem."
+      "status": "Status",
+      "time": "Tid tilbage"
+    }
   },
   "tools": {
     "lead": "Din orgs sider og fællesskabets værktøjer, et klik fra spillet. De åbner i din browser.",

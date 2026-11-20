@@ -49,6 +49,9 @@ function App() {
     // Errors (offline, rate-limited, odd tag) mean "no update info", never an update.
     invoke<UpdateCheck>("check_for_update").then(setUpdate).catch(() => {});
     invoke<{ version: string }>("app_version").then((v) => setVersion(v.version)).catch(() => {});
+    // The pairing, for every section that talks to the website, not only for
+    // the Settings panel that changes it.
+    invoke<ConnectionView>("get_connection").then(setConnection).catch(() => {});
     const readKey = () => invoke<HotkeyInfo>("overlay_hotkey").then((h) => setMainKey(h.hotkeys.main ?? null)).catch(() => {});
     void readKey();
     // The footer names the key, so it follows a change made in Settings.
@@ -75,7 +78,7 @@ function App() {
       </>
     );
   } else if (section === "refinery") {
-    body = <Refinery onSection={setSection} />;
+    body = <Refinery paired={paired} />;
   } else if (section === "tools") {
     body = <Tools connection={connection} />;
   } else {

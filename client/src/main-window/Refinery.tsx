@@ -1,139 +1,176 @@
-import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { Section } from "./Shell";
-import type { Reading } from "./types";
+import { serverApi, type Paginated } from "./api";
 
-/** The parts of a refinery read this section lists. */
+/** The fields of a website refinery order (GET /api/refinery-orders) this list shows. */
 interface Order {
-  state: "setup" | "processing" | "completed";
-  number: number | null;
-  method: string | null;
-  materials: { resource: string; refine: boolean; quality: number | null }[];
-  duration_seconds: number | null;
-  yield_total: number | null;
-  unit: string;
+  id: number;
+  station: string;
+  location: { id: number; name: string } | null;
+  materials: { resource: string; refine: boolean; yield_amount: number | null }[];
+  eta: string | null;
+  collected_at: string | null;
+  collected_location: { id: number; name: string } | null;
+  open: boolean;
 }
-interface Terminal {
-  station: string | null;
-  captured_at: number;
-  orders: Order[];
+interface Place {
+  id: number;
+  name: string;
 }
 
+const left = (eta: string | null, now: number) => (eta ? Math.round((new Date(eta).getTime() - now) / 1000) : null);
 const hm = (seconds: number) => {
   const h = Math.floor(seconds / 3600);
-  const m = Math.round((seconds % 3600) / 60);
-  return h ? `${h} h ${m} min` : `${m} min`;
+  const m = Math.floor((seconds % 3600) / 60);
+  return h > 0 ? `${h} h ${m} min` : `${m} min`;
 };
 
 /**
- * Refinery: the orders on the last terminal read, and the read itself. The
- * order is checked and saved in the refinery window over the game, where the
- * figures sit beside the panel they were read from; this lists what was read
- * and starts a read.
+ * Refinery: the website's order list, cut down to what a player checks in
+ * game — what is refining where, how long it has left, and collecting it when
+ * it is done. Orders are read at the kiosk with the hotkey; this is the list.
  */
-export function Refinery({ onSection }: { onSection: (s: Section) => void }) {
-  const { t, i18n } = useTranslation();
-  const [last, setLast] = useState<Terminal | null>(null);
-  const [reading, setReading] = useState<Reading | null>(null);
+export function Refinery({ paired }: { paired: boolean }) {
+  const { t } = useTranslation();
+  const [showAll, setShowAll] = useState(false);
+  const [orders, setOrders] = useState<Order[] | null>(null);
+  const [places, setPlaces] = useState<Place[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [collecting, setCollecting] = useState<{ id: number; place: number | null } | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
+  const load = useCallback(() => {
+    if (!paired) return;
+    serverApi<Paginated<Order>>("GET", "/api/refinery-orders", {
+      query: { open: showAll ? undefined : 1, sort: "eta", dir: "asc", per_page: 50 },
+    })
+      .then((page) => {
+        setOrders(page.data);
+        setError(null);
+      })
+      .catch((e) => setError(String(e)));
+  }, [paired, showAll]);
+
+  useEffect(load, [load]);
+  // The countdowns move; the list itself is fetched again every few minutes.
   useEffect(() => {
-    invoke<Terminal | null>("refinery_last").then((r) => r && setLast(r)).catch(() => {});
-    invoke<Reading>("screen_reading").then(setReading).catch(() => {});
-    const subs = [
-      listen<Terminal>("refinery-order", (e) => setLast(e.payload)).catch(() => null),
-      listen<Reading>("screen-reading", (e) => setReading(e.payload)).catch(() => null),
-    ];
-    return () => subs.forEach((p) => void p.then((un) => un?.()));
-  }, []);
+    const tick = window.setInterval(() => setNow(Date.now()), 30_000);
+    const refetch = window.setInterval(load, 300_000);
+    return () => {
+      window.clearInterval(tick);
+      window.clearInterval(refetch);
+    };
+  }, [load]);
 
-  // The read is shown, checked and saved in the refinery window, so that is
-  // opened first and the read lands in it.
-  const read = async () => {
-    setError(null);
+  const startCollect = (o: Order) => {
+    setCollecting({ id: o.id, place: o.location?.id ?? null });
+    if (places.length === 0) serverApi<Place[]>("GET", "/api/locations").then(setPlaces).catch((e) => setError(String(e)));
+  };
+  const collect = async () => {
+    if (!collecting?.place) return;
     try {
-      await invoke("overlay_show", { name: "refinery" });
-      await invoke("refinery_read", { fresh: true });
+      await serverApi("POST", `/api/refinery-orders/${collecting.id}/collect`, { body: { location_id: collecting.place } });
+      setCollecting(null);
+      load();
     } catch (e) {
       setError(String(e));
     }
   };
-  const openWindow = () => invoke("overlay_show", { name: "refinery" }).catch((e) => setError(String(e)));
 
-  const orders = last?.orders ?? [];
+  if (!paired) {
+    return <p className="sb-card-sub">{t("refinery.pairFirst")}</p>;
+  }
+  const refined = (o: Order) =>
+    o.materials
+      .filter((m) => m.refine && (m.yield_amount ?? 0) > 0)
+      .map((m) => m.resource)
+      .join(", ") || "—";
+
   return (
     <div className="sb-page">
       <div className="sb-page-hd">
         <p className="sb-card-sub">{t("refinery.lead")}</p>
-        <button type="button" className="sb-ghost" onClick={() => void openWindow()}>
-          {t("refinery.openWindow")}
-        </button>
-        <button type="button" disabled={!reading?.on} onClick={() => void read()}>
-          {t("refinery.read")} <kbd className="sb-kbd">F8</kbd>
-        </button>
+        <div className="sb-seg" role="group">
+          <button type="button" className={showAll ? "" : "on"} onClick={() => setShowAll(false)}>
+            {t("refinery.open")}
+          </button>
+          <button type="button" className={showAll ? "on" : ""} onClick={() => setShowAll(true)}>
+            {t("refinery.all")}
+          </button>
+        </div>
       </div>
       {error && <p className="error">{error}</p>}
-
-      {reading && !reading.on && (
-        <section className="sb-card sb-card-row">
-          <div>
-            <div className="sb-eyebrow">{t("refinery.readingOffTitle")}</div>
-            <p className="sb-card-sub">{t("refinery.readingOffText")}</p>
-          </div>
-          <button type="button" className="sb-ghost" onClick={() => onSection("settings")}>
-            {t("refinery.toSettings")}
-          </button>
-        </section>
-      )}
-
       <section className="sb-card sb-card-list">
-        <div className="sb-eyebrow">
-          {last
-            ? t("refinery.lastRead", {
-                station: last.station ?? t("home.unknownStation"),
-                time: new Date(last.captured_at).toLocaleString(i18n.language, { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" }),
-              })
-            : t("refinery.nothingYet")}
-        </div>
-        {orders.length === 0 ? (
-          <p className="sb-card-sub">{t("home.noRefinery")}</p>
+        {orders === null ? (
+          <p className="sb-card-sub">{t("refinery.loading")}</p>
+        ) : orders.length === 0 ? (
+          <p className="sb-card-sub">{showAll ? t("refinery.none") : t("refinery.noneOpen")}</p>
         ) : (
           <table className="sb-table">
             <thead>
               <tr>
-                <th>{t("refinery.col.order")}</th>
+                <th>{t("refinery.col.station")}</th>
                 <th>{t("refinery.col.materials")}</th>
-                <th>{t("refinery.col.method")}</th>
-                <th className="num">{t("refinery.col.yield")}</th>
-                <th className="num">{t("refinery.col.time")}</th>
                 <th>{t("refinery.col.status")}</th>
+                <th className="num">{t("refinery.col.time")}</th>
+                <th />
               </tr>
             </thead>
             <tbody>
-              {orders.map((o, i) => (
-                <tr key={i}>
-                  <td className="mono">{o.number ?? i + 1}</td>
-                  <td>{o.materials.filter((m) => m.refine).map((m) => m.resource).join(", ") || t("home.noMaterials")}</td>
-                  <td className="sb-muted">{o.method ?? "—"}</td>
-                  <td className="num mono">{o.yield_total !== null ? `${o.yield_total} ${o.unit}` : "—"}</td>
-                  <td className="num mono">
-                    {o.state === "completed" ? "—" : o.duration_seconds !== null ? hm(o.duration_seconds) : "—"}
-                  </td>
-                  <td>
-                    <span className={`sb-state sb-state-${o.state}`}>
-                      <span className={`sb-dot ${o.state === "completed" ? "" : o.state === "processing" ? "cyan" : "off"}`} />
-                      {o.state === "completed" ? t("home.ready") : t(`overlay.refinery.state.${o.state}`)}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {orders.map((o) => {
+                const s = left(o.eta, now);
+                const ready = o.open && s !== null && s <= 0;
+                return (
+                  <tr key={o.id}>
+                    <td>{o.location?.name ?? o.station}</td>
+                    <td>{refined(o)}</td>
+                    <td>
+                      <span className="sb-state">
+                        <span className={`sb-dot ${!o.open ? "off" : ready ? "" : "cyan"}`} />
+                        {!o.open
+                          ? t("refinery.collectedAt", { place: o.collected_location?.name ?? "—" })
+                          : ready
+                            ? t("home.ready")
+                            : t("refinery.refining")}
+                      </span>
+                    </td>
+                    <td className="num mono">{o.open && s !== null && s > 0 ? hm(s) : "—"}</td>
+                    <td className="num">
+                      {o.open &&
+                        (collecting?.id === o.id ? (
+                          <span className="sb-collect">
+                            <select
+                              aria-label={t("refinery.collectTo")}
+                              value={collecting.place ?? ""}
+                              onChange={(e) => setCollecting({ id: o.id, place: Number(e.target.value) || null })}
+                            >
+                              <option value="">{t("refinery.collectTo")}</option>
+                              {places.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                            <button type="button" disabled={!collecting.place} onClick={() => void collect()}>
+                              {t("refinery.collect")}
+                            </button>
+                            <button type="button" className="sb-ghost" onClick={() => setCollecting(null)}>
+                              ×
+                            </button>
+                          </span>
+                        ) : (
+                          <button type="button" className={ready ? "" : "sb-ghost"} onClick={() => startCollect(o)}>
+                            {t("refinery.collect")}
+                          </button>
+                        ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
       </section>
-      <p className="sb-dim">{t("refinery.historySoon")}</p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 use tauri::Manager;
 
 mod analysis;
+mod api;
 mod capture;
 mod changes;
 mod diagnostics;
@@ -240,6 +241,7 @@ pub fn run() {
             region::region_current,
             region::region_clear,
             region::region_frame,
+            api::server_api,
             main_window::main_mode_get,
             main_window::main_mode_set,
             main_window::main_hide,
