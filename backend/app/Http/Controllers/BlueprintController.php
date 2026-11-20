@@ -167,7 +167,11 @@ class BlueprintController extends Controller
                     'min_percent' => round(($ends[0] - 1) * 100, 2),
                     'max_percent' => round(($ends[1] - 1) * 100, 2),
                 ])->all(),
-            'missions' => $this->pools($blueprint, $me),
+            'missions' => $this->pools($blueprint, $me, $members),
+            // Pinned as a craft target, and how many; null when not pinned.
+            'craft_target' => ($target = \App\Models\CraftTarget::where('user_id', $me->id)->where('blueprint_id', $blueprint->id)->first())
+                ? ['quantity' => $target->quantity]
+                : null,
         ];
     }
 
@@ -233,7 +237,7 @@ class BlueprintController extends Controller
      * what else is in there — a pool whose other recipes they already hold is
      * a pool worth farming, and one they have nothing from is a long evening.
      */
-    private function pools(Blueprint $blueprint, User $me): array
+    private function pools(Blueprint $blueprint, User $me, $members): array
     {
         $entries = BlueprintPoolEntry::with('pool.entries.blueprint')
             ->where('blueprint_id', $blueprint->id)
@@ -245,9 +249,18 @@ class BlueprintController extends Controller
             ->whereIn('blueprint_id', $pooled)
             ->pluck('blueprint_id')
             ->all();
+        // Who else in the org holds each pooled recipe, for the org view of
+        // a pool: how much of it the crew has between them.
+        $handles = $members->mapWithKeys(fn ($u) => [$u->id => $u->handle ?? $u->name]);
+        $holders = BlueprintOwned::whereIn('user_id', $members->pluck('id'))
+            ->whereIn('blueprint_id', $pooled)
+            ->get(['user_id', 'blueprint_id'])
+            ->groupBy('blueprint_id')
+            ->map(fn ($rows) => $rows->pluck('user_id')->unique()->map(fn ($id) => ['id' => $id, 'handle' => $handles[$id] ?? null])->values()->all());
+        $tracked = \App\Models\TrackedPool::where('user_id', $me->id)->pluck('blueprint_pool_id')->all();
 
         return $entries
-            ->map(function (BlueprintPoolEntry $entry) use ($blueprint, $mine) {
+            ->map(function (BlueprintPoolEntry $entry) use ($blueprint, $mine, $holders, $tracked) {
                 $pool = $entry->pool;
                 $total = (float) $pool->entries->sum('weight');
                 // Every recipe in the pool, so the player can see what else
@@ -262,6 +275,8 @@ class BlueprintController extends Controller
                         'owned' => in_array($sibling->blueprint_id, $mine, true)
                             || (bool) $sibling->blueprint?->is_default,
                         'is_this_one' => $sibling->blueprint_id === $blueprint->id,
+                        // Org members holding it, the viewer included.
+                        'holders' => $holders[$sibling->blueprint_id] ?? [],
                     ])
                     // The one being looked at first, then what is still
                     // missing, because that is what the farming is for.
@@ -277,6 +292,11 @@ class BlueprintController extends Controller
                     'awardable' => (bool) $pool->awardable,
                     'in_pool' => $pool->entries->count(),
                     'owned_in_pool' => collect($contents)->where('owned', true)->count(),
+                    // Held by anyone in the org (or free to everyone).
+                    'owned_in_pool_org' => collect($contents)->filter(fn ($c) => $c['owned'] || $c['holders'] !== [])->count(),
+                    'tracked' => in_array($pool->id, $tracked, true),
+                    // Who hands the pool out, from the mission sources.
+                    'factions' => collect($pool->sources ?? [])->pluck('contractor')->filter()->unique()->values()->all(),
                     // How far through the pool the player is. This is the
                     // number that says whether the mission is still worth
                     // flying: a pool they hold nine tenths of has little left

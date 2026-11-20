@@ -56,6 +56,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('blueprints-owned', [BlueprintController::class, 'storeOwned']);
     Route::delete('blueprints-owned/{blueprintOwned}', [BlueprintController::class, 'destroyOwned']);
 
+    // What a player is working towards: blueprints pinned to craft (their
+    // materials become the desktop client's gathering list) and mission
+    // reward pools being farmed.
+    Route::get('craft-targets', [\App\Http\Controllers\CraftTargetController::class, 'index']);
+    Route::post('craft-targets', [\App\Http\Controllers\CraftTargetController::class, 'store']);
+    Route::delete('craft-targets/{blueprint}', [\App\Http\Controllers\CraftTargetController::class, 'destroy']);
+    Route::get('tracked-pools', [\App\Http\Controllers\TrackedPoolController::class, 'index']);
+    Route::post('tracked-pools', [\App\Http\Controllers\TrackedPoolController::class, 'store']);
+    Route::delete('tracked-pools/{poolKey}', [\App\Http\Controllers\TrackedPoolController::class, 'destroy'])->where('poolKey', '.*');
+
     Route::get('refinery-orders', [RefineryOrderController::class, 'index']);
     Route::post('refinery-orders', [RefineryOrderController::class, 'store']);
     Route::get('refinery-orders/{refineryOrder}', [RefineryOrderController::class, 'show']);
