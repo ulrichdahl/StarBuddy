@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
@@ -123,6 +123,7 @@ export function OverlayPanel({
       current={(hotkey?.desktop_owned ? hotkey.triggers[action] : undefined) ?? hotkey?.hotkeys[action] ?? ""}
       failed={hotkey?.failed?.[action] && t("overlay.hotkeyTaken", { detail: hotkey.failed[action] })}
       onCapture={(action, keys) => void saveHotkey(action, keys)}
+      bare
     />
   );
 
@@ -179,7 +180,7 @@ export function OverlayPanel({
     return (
       <section className="panel">
         <h2>{t("settings.tab.reading")}</h2>
-        <ScreenReadingPanel reading={reading} onReading={setReading} onError={setOverlayError} hotkeyField={hotkeyField} />
+        <ScreenReadingPanel reading={reading} onReading={setReading} onError={setOverlayError} />
         {errors}
       </section>
     );
@@ -216,105 +217,100 @@ export function OverlayPanel({
     );
   }
 
+  // One row per action: what it does, its key, and where it has one, the
+  // thing it does, to try without the game in front.
+  const row = (action: string, extra?: ReactNode) => (
+    <div className="sb-hk" key={action}>
+      <div className="sb-hk-what">
+        <span className="sb-hk-name">{t(`settings.hk.${action}`)}</span>
+        <span className="sb-hk-sub">{t(`settings.hkSub.${action}`)}</span>
+      </div>
+      <div className="sb-hk-ctl">
+        {extra && <div className="sb-hk-extra">{extra}</div>}
+        {hotkeyField(action, t(`settings.hk.${action}`), "")}
+      </div>
+    </div>
+  );
+
   return (
     <>
-    {mainState && onMainMode && (
       <section className="panel">
-        <h2>{t("settings.openAs")}</h2>
-        <div className="sb-choices" role="radiogroup" aria-label={t("settings.openAs")}>
-          {(["overlay", "window"] as const).map((m) => (
-            <label key={m} className={`sb-choice${mainState.mode === m ? " on" : ""}`}>
-              <input
-                type="radio"
-                name="main-mode"
-                checked={mainState.mode === m}
-                onChange={() => void onMainMode(m).catch((e) => setOverlayError(String(e)))}
-              />
-              <span className="sb-choice-name">{t(`settings.mode.${m}`)}</span>
-              <span className="sb-choice-text">{t(`settings.modeText.${m}`)}</span>
-            </label>
-          ))}
-        </div>
-        <p className="hint">{t("settings.modeNoGame")}</p>
-        <div className="row">{hotkeyField("main", t("settings.hotkeyMain"), "Insert")}</div>
+        <h2>{t("settings.hotkeys")}</h2>
+        {row("main")}
+        {row(
+          "status",
+          <button onClick={toggleStatusWindow}>{statusOpen ? t("settings.hide") : t("settings.show")}</button>,
+        )}
+        {row("reading")}
+        {row("refinery")}
+        {row(
+          "scan",
+          <>
+            <button disabled={!reading?.on} onClick={toggleLiveScan}>
+              {scanLive ? t("settings.stop") : t("settings.start")}
+            </button>
+            <button disabled={!reading?.on} onClick={scanNow}>
+              {t("settings.once")}
+            </button>
+          </>,
+        )}
+        {row(
+          "capture",
+          <button disabled={!reading?.on} onClick={sendTrainingCapture}>
+            {t("settings.sendNow")}
+          </button>,
+        )}
+        {captureStatus && (
+          <p className={captureStatus.phase === "error" ? "error" : "hint"}>
+            {t(`overlay.capture.${captureStatus.phase}`, { detail: captureStatus.detail })}
+          </p>
+        )}
+        {hotkey && (
+          <p className="hint">
+            {t("settings.hkCount", { count: Object.keys(hotkey.hotkeys).length - Object.keys(hotkey.failed ?? {}).length })}
+            {heardHotkey ? ` · ${t("overlay.hotkeyHeard", { action: t(`overlay.hotkeyName.${heardHotkey}`) })}` : ""}
+          </p>
+        )}
+        {/* Wayland: the compositor delivers the keys, and is where they change. */}
+        {hotkey?.desktop_owned && <p className="hint">{t("overlay.hotkeyDesktop")}</p>}
+        {hotkey?.desktop_offered && !hotkey.desktop_owned && (
+          <details className="update-notes">
+            <summary>{t("overlay.hotkeyDesktopUnset")}</summary>
+            <pre>
+              {["main", "status", "scan", "refinery", "capture", "reading"]
+                .map((action) => `${hotkey.action_command}${action}`)
+                .join("\n")}
+            </pre>
+          </details>
+        )}
+        {hotkey && !hotkey.global_supported && (
+          <p className="hint">
+            {t("overlay.waylandHint")} <code>{hotkey.toggle_command}</code>
+          </p>
+        )}
+        {!paired && <p className="hint">{t("overlay.pairHint")}</p>}
+        {errors}
       </section>
-    )}
-    <section className="panel">
-      <h2>{t("overlay.panelTitle")}</h2>
-      <p className="hint">{t("overlay.panelHint")}</p>
-      {/* On Windows a hotkey can register and still never fire, and no error
-          is raised for either reason it happens. */}
-      {/* "The hotkey does nothing" is two faults — a key that never reaches
-          the client, and one that reaches it and fails at what it asks for.
-          This line is the only thing on screen that tells them apart. */}
-      {hotkey && (
-        <p className="hint">
-          {heardHotkey
-            ? t("overlay.hotkeyHeard", { action: t(`overlay.hotkeyName.${heardHotkey}`) })
-            : t("overlay.hotkeyNoneHeard", { count: hotkey.live.length })}
-        </p>
+      {mainState && onMainMode && (
+        <section className="panel">
+          <h2>{t("settings.openAs")}</h2>
+          <div className="sb-choices" role="radiogroup" aria-label={t("settings.openAs")}>
+            {(["overlay", "window"] as const).map((m) => (
+              <label key={m} className={`sb-choice${mainState.mode === m ? " on" : ""}`}>
+                <input
+                  type="radio"
+                  name="main-mode"
+                  checked={mainState.mode === m}
+                  onChange={() => void onMainMode(m).catch((e) => setOverlayError(String(e)))}
+                />
+                <span className="sb-choice-name">{t(`settings.mode.${m}`)}</span>
+                <span className="sb-choice-text">{t(`settings.modeText.${m}`)}</span>
+              </label>
+            ))}
+          </div>
+          <p className="hint">{t("settings.modeNoGame")}</p>
+        </section>
       )}
-      {hotkey?.windows && <p className="hint">{t("overlay.hotkeyWindows")}</p>}
-      {/* Wayland: the compositor delivers the keys, so it is also the place
-          they can be changed for good. */}
-      {hotkey?.desktop_owned && <p className="hint">{t("overlay.hotkeyDesktop")}</p>}
-      {/* KDE takes the shortcuts and leaves every one of them unset, so say
-          where the keys are given out — and give the commands for a desktop
-          that will not list them at all. */}
-      {hotkey?.desktop_offered && !hotkey.desktop_owned && (
-        <details className="update-notes">
-          <summary>{t("overlay.hotkeyDesktopUnset")}</summary>
-          <pre>
-            {["main", "status", "scan", "refinery", "capture", "reading"]
-              .map((action) => `${hotkey.action_command}${action}`)
-              .join("\n")}
-          </pre>
-        </details>
-      )}
-      <div className="row">
-        <button onClick={toggleStatusWindow}>
-          {statusOpen ? t("overlay.hideStatus") : t("overlay.showStatus")}
-        </button>
-        {hotkeyField("status", t("overlay.hotkeyStatus"), "F6")}
-      </div>
-      <div className="row">
-        <button disabled={!reading?.on} onClick={toggleLiveScan}>
-          {scanLive ? t("overlay.liveScanStop") : t("overlay.liveScanStart")}
-        </button>
-        <button disabled={!reading?.on} onClick={scanNow}>
-          {t("overlay.scanNow")}
-        </button>
-        {hotkeyField("scan", t("overlay.hotkeyScan"), "F7")}
-      </div>
-      <p className="hint">{t("overlay.scanHint")}</p>
-      <div className="row">
-        <button onClick={() => invoke("overlay_show", { name: "refinery" }).catch((e) => setOverlayError(String(e)))}>
-          {t("overlay.showRefinery")}
-        </button>
-        {hotkeyField("refinery", t("overlay.hotkeyRefinery"), "F8")}
-      </div>
-      <p className="hint">{t("overlay.refineryHint")}</p>
-      <div className="row">
-        <button disabled={!reading?.on} onClick={sendTrainingCapture}>
-          {t("overlay.captureNow")}
-        </button>
-        {hotkeyField("capture", t("overlay.hotkeyCapture"), "F9")}
-      </div>
-      <p className="hint">{t("overlay.captureHint")}</p>
-      {!reading?.on && <p className="hint">{t("overlay.readingNeeded")}</p>}
-      {captureStatus && (
-        <p className={captureStatus.phase === "error" ? "error" : "hint"}>
-          {t(`overlay.capture.${captureStatus.phase}`, { detail: captureStatus.detail })}
-        </p>
-      )}
-      {errors}
-      {hotkey && !hotkey.global_supported && (
-        <p className="hint">
-          {t("overlay.waylandHint")} <code>{hotkey.toggle_command}</code>
-        </p>
-      )}
-      {!paired && <p className="hint">{t("overlay.pairHint")}</p>}
-    </section>
     </>
   );
 }

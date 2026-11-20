@@ -71,6 +71,7 @@ function App() {
         <IncidentBanner />
         <UpdateBanner update={update} dismissed={updateDismissed} onDismiss={() => setUpdateDismissed(true)} />
         <Home watcher={watcher} canStart={canStart} onSection={setSection} />
+        <Footer part="credits" update={update} onUpdate={onUpdate} />
       </>
     );
   } else if (section === "refinery") {
@@ -120,7 +121,7 @@ function App() {
             <>
               <UpdateBanner update={update} dismissed={updateDismissed} onDismiss={() => setUpdateDismissed(true)} />
               <ChangesPanel />
-              <Footer update={update} onUpdate={onUpdate} />
+              <Footer part="updates" update={update} onUpdate={onUpdate} />
             </>
           ),
           diagnostics: <OverlayPanel paired={paired} part="diagnostics" />,

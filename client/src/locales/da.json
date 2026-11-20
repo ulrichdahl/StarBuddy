@@ -505,6 +505,32 @@
       "window": "Et almindeligt vindue, du skifter til med Alt+Tab."
     },
     "modeNoGame": "Når spillet ikke kører, åbner StarBuddy altid som et vindue.",
-    "hotkeyMain": "Vis / skjul StarBuddy"
+    "hotkeyMain": "Vis / skjul StarBuddy",
+    "hotkeys": "Genvejstaster",
+    "show": "Vis",
+    "hide": "Skjul",
+    "start": "Start",
+    "stop": "Stop",
+    "once": "Én gang",
+    "sendNow": "Send nu",
+    "hkCount_one": "{{count}} genvejstast registreret",
+    "hkCount_other": "{{count}} genvejstaster registreret",
+    "hk": {
+      "main": "Åbn / luk StarBuddy",
+      "status": "Statusvindue",
+      "reading": "Skærmaflæsning til / fra",
+      "refinery": "Aflæs raffinaderiordre",
+      "scan": "Live-scanning",
+      "capture": "Skærmbillede til træning"
+    },
+    "hkSub": {
+      "main": "Den ene tast at huske",
+      "status": "Serverstatus over spillet",
+      "reading": "Lader StarBuddy aflæse spillet",
+      "refinery": "Ved raffinaderikiosken",
+      "scan": "Aflæser scanningssignaturen",
+      "capture": "Hjælper med at forbedre aflæsningen"
+    },
+    "change": "Skift"
   }
 }

@@ -505,6 +505,32 @@
       "window": "A normal desktop window you switch to with Alt+Tab."
     },
     "modeNoGame": "While the game is not running, StarBuddy always opens as a window.",
-    "hotkeyMain": "Show / hide StarBuddy"
+    "hotkeyMain": "Show / hide StarBuddy",
+    "hotkeys": "Hotkeys",
+    "show": "Show",
+    "hide": "Hide",
+    "start": "Start",
+    "stop": "Stop",
+    "once": "Once",
+    "sendNow": "Send now",
+    "hkCount_one": "{{count}} hotkey registered",
+    "hkCount_other": "{{count}} hotkeys registered",
+    "hk": {
+      "main": "Open / close StarBuddy",
+      "status": "Status window",
+      "reading": "Screen reading on / off",
+      "refinery": "Read refinery order",
+      "scan": "Live scanning",
+      "capture": "Screenshot for training"
+    },
+    "hkSub": {
+      "main": "The one key to remember",
+      "status": "Server status over the game",
+      "reading": "Lets StarBuddy read the game",
+      "refinery": "At the refinery kiosk",
+      "scan": "Reads the scan signature",
+      "capture": "Helps improve the reader"
+    },
+    "change": "Change"
   }
 }

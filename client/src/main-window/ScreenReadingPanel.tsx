@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import type { Reading } from "./types";
@@ -12,13 +12,11 @@ export function ScreenReadingPanel({
   reading,
   onReading,
   onError,
-  hotkeyField,
 }: {
   reading: Reading | null;
   onReading: (reading: Reading) => void;
   /** Where the overlay panel shows its errors; null clears it. */
   onError: (message: string | null) => void;
-  hotkeyField: (action: string, label: string, placeholder: string) => ReactNode;
 }) {
   const { t } = useTranslation();
   /** Windows only: the open windows to choose the game from. */
@@ -105,13 +103,10 @@ export function ScreenReadingPanel({
         >
           {reading?.on ? t("overlay.readingStop") : t("overlay.readingStart")}
         </button>
-        {hotkeyField("reading", t("overlay.hotkeyReading"), "F10")}
       </div>
-      <p className="hint">
-        {reading?.on
-          ? t("overlay.readingOn", { source: reading.source ?? t("overlay.readingSourceUnknown") })
-          : t("overlay.readingHint")}
-      </p>
+      {reading?.on && (
+        <p className="hint">{t("overlay.readingOn", { source: reading.source ?? t("overlay.readingSourceUnknown") })}</p>
+      )}
       {reading?.error && <p className="error">{reading.error}</p>}
       {/* Windows 10 draws a yellow border round whatever is being captured
           and offers no way to turn it off; Windows 11 does, and it is. */}
@@ -127,7 +122,6 @@ export function ScreenReadingPanel({
           {t("reading.shareTraining")}
         </label>
       </div>
-      <p className="hint">{t("reading.shareTrainingHint")}</p>
     </>
   );
 }

@@ -160,8 +160,11 @@ export function Shell({
   return (
     <div className={`sb${overlay ? " sb-overlay" : ""}`}>
       <header className="sb-hd" {...drag}>
-        <span className="sb-grip" aria-hidden="true" {...drag} />
-        <span className="sb-brand" {...drag}>StarBuddy</span>
+        {/* As the website draws it: the logo star beside STAR·BUDDY, the dot in the accent. */}
+        <img className="sb-logo" src="/logo.svg" alt="" aria-hidden="true" {...drag} />
+        <span className="sb-brand" aria-label="StarBuddy" {...drag}>
+          STAR<span className="sb-brand-dot">·</span>BUDDY
+        </span>
         <span className="sb-sect" {...drag}>{t(`shell.section.${section}`)}</span>
         <span className="sb-sp" {...drag} />
         <ServerChip />
