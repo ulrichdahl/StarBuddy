@@ -113,6 +113,9 @@ jobs:
         run: |
           APPIMAGE=$(ls *.AppImage)
           ./"$APPIMAGE" --appimage-extract >/dev/null
+          # Extracted 0700; appimagetool (since its 2026-11 builds) refuses an
+          # AppDir other users could not read, and so would their systems.
+          chmod -R a+rX squashfs-root
           rm -fv squashfs-root/usr/lib/libwayland-*.so* \
             squashfs-root/usr/lib/libpipewire-*.so* squashfs-root/usr/lib/libspa-*.so*
           wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
