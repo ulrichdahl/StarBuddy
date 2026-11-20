@@ -483,3 +483,32 @@ export interface OrgMaterialRow extends OrgRowBase {
 export interface OrgInventoryExtra {
   members: MatrixMember[]
 }
+
+export type CompetitionPeriod = 'month' | 'all'
+export type CompetitionMetric = 'blueprints' | 'missions' | 'resources_scu'
+
+/** One org's line on the leaderboard, from GET /api/dashboard/competition. */
+export interface CompetitionOrg {
+  id: number
+  name: string
+  sid: string | null
+  member_count: number
+  blueprints: number
+  missions: number
+  resources_scu: number
+  /** Each metric as a share of its leader × 1000, summed (max 3000). */
+  score: number
+  rank: Record<CompetitionMetric | 'overall', number>
+  /** Places climbed since the comparison window; null when unknown. */
+  trend: number | null
+  mine: boolean
+}
+
+export interface Competition {
+  period: CompetitionPeriod
+  from: string | null
+  to: string
+  my_org_id: number | null
+  orgs: CompetitionOrg[]
+  contribution: Record<CompetitionMetric, { mine: number; org: number }> | null
+}

@@ -11,9 +11,8 @@ import { fonts, hud } from '../theme'
  * org tag, status dots and the panel every section sits in.
  */
 
-/** Round avatar with the teal ring; falls back to initials. */
-export function HudAvatar({ me, size = 32 }: { me: Me; size?: number }) {
-  const name = displayName(me)
+/** Round avatar from a picture or initials; `ring` draws the teal ring. */
+export function PersonAvatar({ name, src, size = 32, ring = true }: { name: string; src?: string | null; size?: number; ring?: boolean }) {
   return (
     <Box
       aria-hidden
@@ -22,8 +21,8 @@ export function HudAvatar({ me, size = 32 }: { me: Me; size?: number }) {
         height: size,
         flexShrink: 0,
         borderRadius: '50%',
-        bgcolor: '#1b2a31',
-        boxShadow: `0 0 0 2px ${hud.teal}`,
+        bgcolor: ring ? '#1b2a31' : '#1f2a33',
+        boxShadow: ring ? `0 0 0 2px ${hud.teal}` : 'none',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -31,18 +30,20 @@ export function HudAvatar({ me, size = 32 }: { me: Me; size?: number }) {
         fontFamily: fonts.display,
         fontWeight: 700,
         fontSize: size * 0.38,
-        color: hud.teal,
+        color: ring ? hud.teal : hud.textMuted,
       }}
     >
-      {me.avatar_url ? (
-        <Box component="img" src={me.avatar_url} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-      ) : (
-        initials(name)
-      )}
+      {src ? <Box component="img" src={src} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials(name)}
     </Box>
   )
 }
 
+/** The signed-in member's avatar. */
+export function HudAvatar({ me, size = 32 }: { me: Me; size?: number }) {
+  return <PersonAvatar name={displayName(me)} src={me.avatar_url} size={size} />
+}
+
+/** Short org tag: its Spectrum id when it has one, else its initials. */
 export function OrgTag({ org, size = 22 }: { org: Pick<Org, 'name' | 'sid'>; size?: number }) {
   return (
     <Box

@@ -4,9 +4,6 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import AppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
 import ButtonBase from '@mui/material/ButtonBase'
-import Dialog from '@mui/material/Dialog'
-import DialogContent from '@mui/material/DialogContent'
-import DialogTitle from '@mui/material/DialogTitle'
 import Drawer from '@mui/material/Drawer'
 import IconButton from '@mui/material/IconButton'
 import InputBase from '@mui/material/InputBase'
@@ -16,7 +13,6 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import MenuIcon from '@mui/icons-material/Menu'
 import SearchIcon from '@mui/icons-material/Search'
-import CloseIcon from '@mui/icons-material/Close'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import BuildOutlinedIcon from '@mui/icons-material/BuildOutlined'
 import SpaceDashboardOutlinedIcon from '@mui/icons-material/SpaceDashboardOutlined'
@@ -34,7 +30,7 @@ import { FanSiteFooter } from './FanSiteFooter'
 import { displayName } from '../lib/people'
 import { HudAvatar } from './hud'
 import { LanguageSwitcher } from './LanguageSwitcher'
-import { OrgListCard } from './OrgListCard'
+import { OrganizationsDialog } from './OrganizationsDialog'
 import { ProfileDialog } from './ProfileDialog'
 import { StatusAlertBanner } from './StatusAlertBanner'
 import { UserMenu } from './UserMenu'
@@ -327,19 +323,7 @@ export function AppShell({ me }: AppShellProps) {
         onOpenOrganizations={() => setOrgsOpen(true)}
       />
       <ProfileDialog me={me} open={profileOpen} onClose={() => setProfileOpen(false)} />
-      <Dialog open={orgsOpen} onClose={() => setOrgsOpen(false)} fullWidth maxWidth="sm" aria-labelledby="orgs-title">
-        <DialogTitle id="orgs-title" sx={{ display: 'flex', alignItems: 'center', gap: 2, pr: 2 }}>
-          <Box component="span" sx={{ flex: 1 }}>
-            {t('org.title')}
-          </Box>
-          <IconButton aria-label={t('common.close')} onClick={() => setOrgsOpen(false)} sx={{ border: `1px solid ${hud.lineStrong}` }}>
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          <OrgListCard me={me} bare />
-        </DialogContent>
-      </Dialog>
+      <OrganizationsDialog me={me} open={orgsOpen} onClose={() => setOrgsOpen(false)} />
 
       {isDesktop ? (
         <Drawer
