@@ -24,7 +24,9 @@ html.debug-bounds::after {
 
 .ov {
   --bg0: #0a0c10;
-  --glass: rgba(10, 16, 24, 0.86);
+  /* Solid: the opacity slider is the one say in how much shows through. With
+     a see-through fill under it, 100% still let the game show behind. */
+  --glass: rgb(10, 16, 24);
   --line: rgba(120, 160, 190, 0.35);
   --line2: rgba(120, 160, 190, 0.18);
   --steel: #7fa0b8;
