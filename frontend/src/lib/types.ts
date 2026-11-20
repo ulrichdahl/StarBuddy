@@ -495,7 +495,15 @@ export interface OrgInventoryExtra {
 }
 
 export type CompetitionPeriod = 'month' | 'all'
-export type CompetitionMetric = 'blueprints' | 'missions' | 'resources_scu'
+/** The scored categories: all from Game.log activity. */
+export type CompetitionMetric = 'mission' | 'refinery' | 'travel'
+
+export interface CompetitionKind {
+  points: number
+  /** Points per contributing pilot: what the category ranks by. */
+  per_pilot: number
+  events: number
+}
 
 /** One org's line on the leaderboard, from GET /api/dashboard/competition. */
 export interface CompetitionOrg {
@@ -503,15 +511,29 @@ export interface CompetitionOrg {
   name: string
   sid: string | null
   member_count: number
-  blueprints: number
-  missions: number
-  resources_scu: number
-  /** Each metric as a share of its leader × 1000, summed (max 3000). */
+  /** Pilots who scored for the org in the period. */
+  contributors: number
+  points: number
+  /** Points per contributing pilot. */
   score: number
+  kinds: Record<CompetitionMetric, CompetitionKind>
+  /** Side information typed in the app, never ranked. */
+  refinery_orders: number
+  resources_scu: number
   rank: Record<CompetitionMetric | 'overall', number>
   /** Places climbed since the comparison window; null when unknown. */
   trend: number | null
   mine: boolean
+}
+
+/** One member of the caller's own org, from GET /api/dashboard/members. */
+export interface OrgMemberScore {
+  id: number
+  handle: string
+  avatar_url: string | null
+  points: number
+  rank: number
+  kinds: Record<CompetitionMetric, { points: number; events: number }>
 }
 
 export interface Competition {

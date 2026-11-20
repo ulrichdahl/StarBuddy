@@ -22,6 +22,7 @@ import type {
   CompetitionOrg,
   CompetitionPeriod,
   Me,
+  OrgMemberScore,
   OrgSummary,
   PoolSource,
   RefineryOrder,
@@ -34,10 +35,9 @@ import { OrgMembersDialog } from '../components/OrgMembersDialog'
 import { fonts, hud } from '../theme'
 
 type Tab = 'overall' | CompetitionMetric
-const MAX_SCORE = 3000
 
-/** The value a tab ranks by. */
-const valueOf = (org: CompetitionOrg, tab: Tab) => (tab === 'overall' ? org.score : org[tab])
+/** The value a tab ranks by: points per contributing pilot. */
+const valueOf = (org: CompetitionOrg, tab: Tab) => (tab === 'overall' ? org.score : org.kinds[tab].per_pilot)
 
 /** Gold, silver, bronze, then grey. */
 function medal(rank: number): string {
@@ -80,7 +80,7 @@ function useGap() {
     const i = sorted.findIndex((o) => o.mine)
     if (i < 0) return ''
     const me = sorted[i]
-    const fmt = (v: number) => n(v, tab === 'resources_scu' ? 1 : 0) + unit
+    const fmt = (v: number) => n(v) + unit
     if (sorted.length === 1) return t('dashboard.alone')
     if (i === 0) {
       const next = sorted[1]
@@ -169,11 +169,17 @@ function Standings({ data, myOrg, tab, onTab }: { data: Competition; myOrg: Comp
   const { t } = useTranslation()
   const { n } = useFormat()
   const gap = useGap()
-  const tiles: { id: Tab; label: string; value: string; unit: string }[] = [
-    { id: 'overall', label: t('dashboard.tabOverall'), value: `${n(myOrg.score)} pts`, unit: ' pts' },
-    { id: 'blueprints', label: t('dashboard.tabBlueprints'), value: t('dashboard.nBlueprints', { count: myOrg.blueprints, formatted: n(myOrg.blueprints) }), unit: '' },
-    { id: 'missions', label: t('dashboard.tabMissions'), value: t('dashboard.nMissions', { count: myOrg.missions, formatted: n(myOrg.missions) }), unit: '' },
-    { id: 'resources_scu', label: t('dashboard.tabResources'), value: `${n(myOrg.resources_scu, 1)} SCU`, unit: ' SCU' },
+  const kind = (id: CompetitionMetric, countKey: string) => ({
+    id,
+    label: t(TABS.find((x) => x.id === id)!.label),
+    value: t('dashboard.perPilot', { points: n(myOrg.kinds[id].per_pilot) }),
+    detail: t(countKey, { count: myOrg.kinds[id].events, formatted: n(myOrg.kinds[id].events) }),
+  })
+  const tiles: { id: Tab; label: string; value: string; detail?: string }[] = [
+    { id: 'overall', label: t('dashboard.tabOverall'), value: t('dashboard.perPilot', { points: n(myOrg.score) }) },
+    kind('mission', 'dashboard.nMissions'),
+    kind('refinery', 'dashboard.nWorkOrders'),
+    kind('travel', 'dashboard.nPlaces'),
   ]
 
   return (
@@ -186,10 +192,10 @@ function Standings({ data, myOrg, tab, onTab }: { data: Competition; myOrg: Comp
         <RankTile
           key={tile.id}
           label={tile.label}
-          rank={myOrg.rank[TABS.find((x) => x.id === tile.id)!.rankKey]}
+          rank={myOrg.rank[tile.id]}
           count={data.orgs.length}
           value={tile.value}
-          gap={gap(data.orgs, tile.id, tile.unit)}
+          gap={[tile.detail, gap(data.orgs, tile.id, ' pts')].filter(Boolean).join(' · ')}
           selected={tab === tile.id}
           onSelect={() => onTab(tile.id)}
         />
@@ -198,14 +204,14 @@ function Standings({ data, myOrg, tab, onTab }: { data: Competition; myOrg: Comp
   )
 }
 
-const TABS: { id: Tab; label: string; metric: string; rankKey: keyof CompetitionOrg['rank'] }[] = [
-  { id: 'overall', label: 'tabOverall', metric: 'metricScore', rankKey: 'overall' },
-  { id: 'blueprints', label: 'tabBlueprints', metric: 'metricBlueprints', rankKey: 'blueprints' },
-  { id: 'missions', label: 'tabMissions', metric: 'metricMissions', rankKey: 'missions' },
-  { id: 'resources_scu', label: 'tabResources', metric: 'metricResources', rankKey: 'resources_scu' },
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'overall', label: 'dashboard.tabOverall' },
+  { id: 'mission', label: 'dashboard.tabMissions' },
+  { id: 'refinery', label: 'dashboard.tabRefinery' },
+  { id: 'travel', label: 'dashboard.tabTravel' },
 ]
 
-const GRID = '56px minmax(0, 1.4fr) 84px minmax(0, 1.7fr) 72px'
+const GRID = '56px minmax(0, 1.4fr) 84px minmax(0, 1.5fr) minmax(130px, 0.8fr) 72px'
 
 function Trend({ value }: { value: number | null }) {
   const { t } = useTranslation()
@@ -240,9 +246,8 @@ function Leaderboard({ data, tab }: { data: Competition; tab: Tab }) {
   const { t } = useTranslation()
   const { n } = useFormat()
   const current = TABS.find((x) => x.id === tab)!
-  const sorted = [...data.orgs].sort((a, b) => a.rank[current.rankKey] - b.rank[current.rankKey] || a.name.localeCompare(b.name))
+  const sorted = [...data.orgs].sort((a, b) => a.rank[tab] - b.rank[tab] || a.name.localeCompare(b.name))
   const top = Math.max(...sorted.map((o) => valueOf(o, tab)), 0)
-  const unit = tab === 'overall' ? ' pts' : tab === 'resources_scu' ? ' SCU' : ''
 
   return (
     <Box component="section" aria-labelledby="lb-title" sx={{ minWidth: 0, bgcolor: hud.input, border: `1px solid ${hud.line}` }}>
@@ -254,14 +259,14 @@ function Leaderboard({ data, tab }: { data: Competition; tab: Tab }) {
           sx={{ m: 0, display: 'flex', gap: 1.25, alignItems: 'center', color: hud.text, fontSize: 16, letterSpacing: '0.18em' }}
         >
           <EmojiEventsOutlinedIcon sx={{ color: hud.teal, fontSize: 19 }} />
-          {t('dashboard.leaderboard')} · {t(`dashboard.${current.label}`)}
+          {t('dashboard.leaderboard')} · {t(current.label)}
         </Typography>
         <Box component="span" sx={{ fontSize: 12.5, color: hud.textDim }}>
           {t('dashboard.tileHint')}
         </Box>
       </Box>
       <Box sx={{ overflowX: 'auto' }}>
-        <Box role="table" aria-labelledby="lb-title" sx={{ minWidth: 620 }}>
+        <Box role="table" aria-labelledby="lb-title" sx={{ minWidth: 760 }}>
           <Box
             role="row"
             sx={{ display: 'grid', gridTemplateColumns: GRID, gap: 1.5, px: 2.5, py: 1.25, fontFamily: fonts.display, fontWeight: 600, fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', color: hud.textFaint }}
@@ -269,13 +274,16 @@ function Leaderboard({ data, tab }: { data: Competition; tab: Tab }) {
             <span role="columnheader">{t('dashboard.colRank')}</span>
             <span role="columnheader">{t('dashboard.colOrg')}</span>
             <span role="columnheader">{t('dashboard.colPilots')}</span>
-            <span role="columnheader">{t(`dashboard.${current.metric}`)}</span>
+            <span role="columnheader">{t('dashboard.colPerPilot')}</span>
+            <span role="columnheader" title={t('dashboard.colInAppHelp')}>
+              {t('dashboard.colInApp')}
+            </span>
             <Box component="span" role="columnheader" sx={{ textAlign: 'right' }}>
               {t('dashboard.colTrend')}
             </Box>
           </Box>
           {sorted.map((org) => {
-            const rank = org.rank[current.rankKey]
+            const rank = org.rank[tab]
             const value = valueOf(org, tab)
             return (
               <Box
@@ -314,15 +322,17 @@ function Leaderboard({ data, tab }: { data: Competition; tab: Tab }) {
                     )}
                   </Box>
                 </Box>
-                <Box component="span" role="cell" sx={{ color: hud.textMuted, fontSize: 13 }}>
-                  {org.member_count}
+                <Box component="span" role="cell" sx={{ color: hud.textMuted, fontSize: 13 }} title={t('dashboard.contributorsHelp')}>
+                  <Mono colour={hud.text}>{org.contributors}</Mono>/{org.member_count}
                 </Box>
                 <Box component="span" role="cell" sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                   <Bar pct={top > 0 ? (value / top) * 100 : 0} colour={org.mine ? hud.teal : '#3b4c58'} height={6} />
                   <Box component="span" sx={{ fontFamily: fonts.mono, fontSize: 13.5, minWidth: 104, textAlign: 'right' }}>
-                    {n(value, tab === 'resources_scu' ? 1 : 0)}
-                    {unit}
+                    {n(value)} pts
                   </Box>
+                </Box>
+                <Box component="span" role="cell" sx={{ color: hud.textDim, fontSize: 12.5 }}>
+                  {t('dashboard.inApp', { orders: n(org.refinery_orders), scu: n(org.resources_scu, 1) })}
                 </Box>
                 <Box component="span" role="cell" sx={{ textAlign: 'right' }}>
                   <Trend value={org.trend} />
@@ -333,7 +343,87 @@ function Leaderboard({ data, tab }: { data: Competition; tab: Tab }) {
         </Box>
       </Box>
       <Box sx={{ px: 2.5, py: 1.5, borderTop: `1px solid ${hud.line}`, fontSize: 12.5, color: hud.textDim }}>
-        {t(data.period === 'month' ? 'dashboard.footnoteMonth' : 'dashboard.footnoteAll', { max: n(MAX_SCORE) })}
+        {t(data.period === 'month' ? 'dashboard.footnoteMonth' : 'dashboard.footnoteAll')}
+      </Box>
+    </Box>
+  )
+}
+
+const MEMBER_GRID = '48px minmax(0, 1.4fr) repeat(3, 84px) minmax(0, 1.2fr)'
+
+/** The caller's own org's members by the points they earned for it. */
+function MembersBoard({ period, meId }: { period: CompetitionPeriod; meId: number }) {
+  const { t } = useTranslation()
+  const { n } = useFormat()
+  const { data } = useQuery({
+    queryKey: ['competition-members', period],
+    queryFn: async () => (await api.get<{ members: OrgMemberScore[] }>('/api/dashboard/members', { params: { period } })).data,
+    placeholderData: (previous) => previous,
+  })
+  const members = data?.members ?? []
+  const top = Math.max(...members.map((m) => m.points), 0)
+  const head = { fontFamily: fonts.display, fontWeight: 600, fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', color: hud.textFaint } as const
+
+  return (
+    <Box component="section" aria-labelledby="mb-title" sx={{ minWidth: 0, bgcolor: hud.input, border: `1px solid ${hud.line}` }}>
+      <Box sx={{ px: 2.5, py: 1.75, borderBottom: `1px solid ${hud.line}` }}>
+        <Typography id="mb-title" variant="h6" component="h2" sx={{ m: 0, fontSize: 16 }}>
+          {t('dashboard.topMembers')}
+        </Typography>
+      </Box>
+      <Box sx={{ overflowX: 'auto' }}>
+        <Box role="table" aria-labelledby="mb-title" sx={{ minWidth: 640 }}>
+          <Box role="row" sx={{ display: 'grid', gridTemplateColumns: MEMBER_GRID, gap: 1.5, px: 2.5, py: 1.25, ...head }}>
+            <span role="columnheader">{t('dashboard.colRank')}</span>
+            <span role="columnheader">{t('dashboard.colPilot')}</span>
+            <Box component="span" role="columnheader" sx={{ textAlign: 'right' }}>{t('dashboard.tabMissions')}</Box>
+            <Box component="span" role="columnheader" sx={{ textAlign: 'right' }}>{t('dashboard.tabRefinery')}</Box>
+            <Box component="span" role="columnheader" sx={{ textAlign: 'right' }}>{t('dashboard.tabTravel')}</Box>
+            <span role="columnheader">{t('dashboard.colPoints')}</span>
+          </Box>
+          {members.map((m) => {
+            const me = m.id === meId
+            return (
+              <Box
+                key={m.id}
+                role="row"
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: MEMBER_GRID,
+                  gap: 1.5,
+                  alignItems: 'center',
+                  px: 2.5,
+                  py: 1,
+                  borderTop: `1px solid ${hud.lineSoft}`,
+                  bgcolor: me ? 'rgba(79,209,197,0.07)' : 'transparent',
+                  boxShadow: me ? `inset 3px 0 0 ${hud.teal}` : 'none',
+                  color: m.points === 0 ? hud.textDim : hud.text,
+                }}
+              >
+                <Box component="span" role="cell" sx={{ fontFamily: fonts.display, fontWeight: 700, fontSize: 18, color: m.points > 0 ? medal(m.rank) : hud.textFaint }}>
+                  {String(m.rank).padStart(2, '0')}
+                </Box>
+                <Box component="span" role="cell" sx={{ display: 'flex', alignItems: 'center', gap: 1.25, minWidth: 0 }}>
+                  <PersonAvatar name={m.handle} src={m.avatar_url} size={28} ring={false} />
+                  <Box component="span" sx={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {m.handle}
+                  </Box>
+                </Box>
+                {(['mission', 'refinery', 'travel'] as const).map((k) => (
+                  <Box key={k} component="span" role="cell" sx={{ fontFamily: fonts.mono, fontSize: 13, textAlign: 'right', color: m.kinds[k].points ? hud.text : hud.textFaint }}>
+                    {n(m.kinds[k].points)}
+                  </Box>
+                ))}
+                <Box component="span" role="cell" sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                  <Bar pct={top > 0 ? (m.points / top) * 100 : 0} colour={me ? hud.teal : '#3b4c58'} height={5} />
+                  <Box component="span" sx={{ fontFamily: fonts.mono, fontSize: 13, minWidth: 64, textAlign: 'right' }}>
+                    {n(m.points)} pts
+                  </Box>
+                </Box>
+              </Box>
+            )
+          })}
+        </Box>
       </Box>
     </Box>
   )
@@ -343,9 +433,9 @@ function Contribution({ data, orgName }: { data: NonNullable<Competition['contri
   const { t } = useTranslation()
   const { n } = useFormat()
   const rows: { label: string; key: CompetitionMetric; digits: number }[] = [
-    { label: t('dashboard.blueprints'), key: 'blueprints', digits: 0 },
-    { label: t('dashboard.missions'), key: 'missions', digits: 0 },
-    { label: t('dashboard.contribResources'), key: 'resources_scu', digits: 1 },
+    { label: t('dashboard.tabMissions'), key: 'mission', digits: 0 },
+    { label: t('dashboard.tabRefinery'), key: 'refinery', digits: 0 },
+    { label: t('dashboard.tabTravel'), key: 'travel', digits: 0 },
   ]
   return (
     <HudPanel title={t('dashboard.contributionTo', { org: orgName })} id="contrib" sx={{ bgcolor: hud.input, gap: 1.75 }}>
@@ -863,6 +953,7 @@ export function DashboardPage({ me }: { me: Me }) {
 
         {data && myOrg && <Standings data={data} myOrg={myOrg} tab={tab} onTab={setTab} />}
         {data ? <Leaderboard data={data} tab={tab} /> : <Skeleton variant="rectangular" height={420} />}
+        <MembersBoard period={period} meId={me.id} />
         <Crew me={me} memberCount={myOrg?.member_count ?? summary?.member_count ?? 1} onJoin={() => setOrgsOpen(true)} />
       </Box>
 
