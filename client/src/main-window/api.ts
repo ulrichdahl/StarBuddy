@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-type Method = "GET" | "POST" | "PATCH" | "DELETE";
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 /**
  * The paired website's API, through the client (api.rs), which holds the

@@ -600,7 +600,10 @@
     "reportIssue": "Meld en fejl på GitHub",
     "knownIssues": "Kendte fejl",
     "hkFailed": "Virker ikke: {{names}}. Et andet program har måske tasten; vælg en anden.",
-    "hkCommands": "Vis kommandoerne"
+    "hkCommands": "Vis kommandoerne",
+    "presence": "Spilstatus til din org",
+    "presenceShare": "Vis mine org-kammerater om jeg spiller, hvor, i hvilket skib og på hvilken shard",
+    "presenceHint": "Kun medlemmer af din hoved-org ser det. Slået fra glemmer hjemmesiden det med det samme."
   },
   "gathering": {
     "lead": "Hvad dine fastgjorte fremstillingsmål kræver, holdt op mod hvad du har i den rette kvalitet.",

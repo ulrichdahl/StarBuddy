@@ -8,7 +8,7 @@ import { EventsTable } from "./main-window/EventsTable";
 import { Footer } from "./main-window/Footer";
 import { GameFolderPanel } from "./main-window/GameFolderPanel";
 import { IncidentBanner } from "./main-window/IncidentBanner";
-import { OpenAsPanel, OverlayPanel, useDebugMode, useHeardHotkey } from "./main-window/OverlayPanel";
+import { OpenAsPanel, OverlayPanel, PresencePanel, useDebugMode, useHeardHotkey } from "./main-window/OverlayPanel";
 import { ServerPanel } from "./main-window/ServerPanel";
 import { UpdateBanner } from "./main-window/UpdateBanner";
 import { useWatcher, WatcherPanel } from "./main-window/WatcherPanel";
@@ -111,6 +111,7 @@ function App() {
             <>
               <OpenAsPanel mainState={mainState} onMainMode={setMainMode} />
               <ServerPanel connection={connection} onConnection={setConnection} />
+              <PresencePanel />
               <section className="panel">
                 <h2>{t("header.language")}</h2>
                 <select

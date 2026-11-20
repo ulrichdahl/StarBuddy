@@ -600,7 +600,10 @@
     "reportIssue": "Report a problem on GitHub",
     "knownIssues": "Known problems",
     "hkFailed": "Not working: {{names}}. Another program may own the key; pick a different one.",
-    "hkCommands": "Show the commands"
+    "hkCommands": "Show the commands",
+    "presence": "Game status for your org",
+    "presenceShare": "Show my org mates whether I play, where, in what ship and on which shard",
+    "presenceHint": "Only members of your main org see it. Turned off, the website forgets it at once."
   },
   "gathering": {
     "lead": "What your pinned craft targets need, against what you hold at the right quality.",

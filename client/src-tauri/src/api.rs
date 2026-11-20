@@ -43,6 +43,7 @@ pub async fn server_api(
         "GET" => reqwest::Method::GET,
         "POST" => reqwest::Method::POST,
         "PATCH" => reqwest::Method::PATCH,
+        "PUT" => reqwest::Method::PUT,
         "DELETE" => reqwest::Method::DELETE,
         other => return Err(format!("method {other} is not used")),
     };

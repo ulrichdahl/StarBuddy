@@ -35,6 +35,8 @@ pub(crate) struct ClientPrefs {
     /// The player switched the Game.log watcher off. It is on otherwise,
     /// from the start, whenever a game folder is found.
     pub(crate) log_watch_off: bool,
+    /// The player switched off showing their game status to org mates.
+    pub(crate) presence_off: bool,
 }
 
 fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {

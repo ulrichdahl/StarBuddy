@@ -85,6 +85,36 @@ function AreaRow({ purpose, enabled, onError }: { purpose: "refinery" | "scan"; 
   );
 }
 
+/** Whether org mates see this player's game status (presence.rs); on unless switched off. */
+export function PresencePanel() {
+  const { t } = useTranslation();
+  const [on, setOn] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    invoke<boolean>("presence_sharing_get").then(setOn).catch((e) => setError(String(e)));
+  }, []);
+  const toggle = async (enabled: boolean) => {
+    setError(null);
+    try {
+      await invoke("presence_sharing_set", { enabled });
+      setOn(enabled);
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+  return (
+    <section className="panel">
+      <h2>{t("settings.presence")}</h2>
+      <label className="sb-check">
+        <input type="checkbox" checked={on ?? false} disabled={on === null} onChange={(e) => void toggle(e.target.checked)} />
+        {t("settings.presenceShare")}
+      </label>
+      <p className="hint">{t("settings.presenceHint")}</p>
+      {error && <p className="error">{error}</p>}
+    </section>
+  );
+}
+
 /** How the main window opens over the game: with language, under General. */
 export function OpenAsPanel({ mainState, onMainMode }: { mainState: MainState | null; onMainMode: (mode: MainMode) => Promise<void> }) {
   const { t } = useTranslation();

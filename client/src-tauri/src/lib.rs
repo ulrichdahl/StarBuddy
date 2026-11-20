@@ -33,6 +33,7 @@ mod training;
 mod update;
 mod watcher;
 mod game_session;
+mod presence;
 mod webkit_tuning;
 mod webview2_args;
 mod webview_power;
@@ -211,6 +212,7 @@ pub fn run() {
             }
             main_window::setup(&handle);
             watcher::start_at_launch(&handle);
+            presence::start(&handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -265,6 +267,8 @@ pub fn run() {
             watcher::stop_watcher,
             watcher::watcher_status,
             game_session::game_session,
+            presence::presence_sharing_get,
+            presence::presence_sharing_set,
             update::check_for_update,
             update::update_can_install,
             update::update_install,

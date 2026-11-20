@@ -19,6 +19,11 @@ static BRANCH_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^<[^>]+>\s+Bra
 static LOCATION_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"<RequestLocationInventory> Player\[([^\]]+)\] requested inventory for Location\[([^\]]+)\]").unwrap()
 });
+/// `<Join PU> address[…] port[…] shard[pub_euw1b_13165946_320] …`
+static SHARD_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"<Join PU> .*?\bshard\[([^\]]+)\]").unwrap());
+static LOGIN_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"<AccountLoginCharacterStatus_Character> Character: .*?\bgeid (\d+) - accountId (\d+) .*?- name (\S+) - state STATE_CURRENT").unwrap()
+});
 static CHANNEL_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"Added notification "You have joined channel '([^']+)'"#).unwrap());
 
@@ -40,6 +45,10 @@ pub struct GameSession {
     pub ship: Option<String>,
     /// The player's handle, from the same lines.
     pub player: Option<String>,
+    /// The server the player joined: two players on the same one can meet.
+    pub shard: Option<String>,
+    /// Who is logged in, from the login line.
+    pub character: Option<crate::game_dir::Character>,
 }
 
 /// A line the game writes as it goes down: after it, nothing is running.
@@ -61,6 +70,12 @@ impl GameSession {
             self.environment = Some(c[1].to_string());
         } else if let Some(c) = BRANCH_RE.captures(line) {
             self.branch = Some(c[1].to_string());
+        } else if let Some(c) = SHARD_RE.captures(line) {
+            self.shard = Some(c[1].to_string());
+        } else if let Some(c) = LOGIN_RE.captures(line) {
+            let character = crate::game_dir::Character { geid: c[1].to_string(), account_id: c[2].to_string(), name: c[3].to_string() };
+            self.player = Some(character.name.clone());
+            self.character = Some(character);
         } else if let Some(c) = LOCATION_RE.captures(line) {
             self.player = Some(c[1].to_string());
             let code = c[2].to_string();
@@ -267,6 +282,8 @@ mod tests {
         assert_eq!(s.location_code.as_deref(), Some("RR_ARC_LEO"));
         assert_eq!(s.player.as_deref(), Some("RavenMind"));
         assert!(s.running);
+        let s = fold(&["<2026-11-20T11:41:31.094Z> [Notice] <Join PU> address[34.62.232.110] port[64332] shard[pub_euw1b_13165946_320] locationId[562954248454145] [Team_GameServices][GIM][Matchmaking]"]);
+        assert_eq!(s.shard.as_deref(), Some("pub_euw1b_13165946_320"));
     }
 
     #[test]
