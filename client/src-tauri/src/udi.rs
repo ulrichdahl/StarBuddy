@@ -451,7 +451,9 @@ mod tests {
     #[ignore]
     fn udi_live() {
         let token = std::env::var("STARBUDDY_UDI_TEST_TOKEN").expect("STARBUDDY_UDI_TEST_TOKEN");
-        let dir = std::env::temp_dir().join(format!("sb-udi-live-{}", std::process::id())).join("LIVE");
+        // STARBUDDY_UDI_TEST_DIR keeps the installed files for a look afterwards.
+        let keep = std::env::var("STARBUDDY_UDI_TEST_DIR").ok();
+        let dir = keep.clone().map(PathBuf::from).unwrap_or_else(|| std::env::temp_dir().join(format!("sb-udi-live-{}", std::process::id()))).join("LIVE");
         std::fs::create_dir_all(dir.join("Data/Localization")).unwrap();
         std::fs::write(dir.join("user.cfg"), "r_my_own = 1\r\n").unwrap();
         tauri::async_runtime::block_on(async {
@@ -471,6 +473,8 @@ mod tests {
             println!("again: ini {} cfg {}", again.ini, again.cfg);
             assert!(!again.ini && !again.cfg && !again.backed_up);
         });
-        let _ = std::fs::remove_dir_all(dir.parent().unwrap());
+        if keep.is_none() {
+            let _ = std::fs::remove_dir_all(dir.parent().unwrap());
+        }
     }
 }
