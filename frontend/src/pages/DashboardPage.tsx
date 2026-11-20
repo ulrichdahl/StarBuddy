@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Link as RouterLink } from 'react-router-dom'
 import Alert from '@mui/material/Alert'
@@ -14,6 +14,7 @@ import SchemaOutlinedIcon from '@mui/icons-material/SchemaOutlined'
 import TrackChangesIcon from '@mui/icons-material/TrackChanges'
 import DiamondOutlinedIcon from '@mui/icons-material/DiamondOutlined'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined'
 import { api, unwrapList } from '../lib/api'
 import { displayName } from '../lib/people'
 import { formatDuration } from '../lib/refining'
@@ -24,6 +25,7 @@ import type {
   CompetitionPeriod,
   Me,
   OrgSummary,
+  PoolSource,
   RefineryOrder,
 } from '../lib/types'
 import { useNow } from '../lib/useNow'
@@ -477,6 +479,38 @@ interface TrackedPool {
   in_pool: number
   owned_in_pool: number
   missing: { blueprint_id: number | null; name: string | null; key: string }[]
+  sources: PoolSource[]
+}
+
+/** The missions (and event tiers) that reward from a pool, one per line. */
+function PoolMissions({ sources }: { sources: PoolSource[] }) {
+  const { t } = useTranslation()
+  const missions = sources.flatMap((s) => (s.kind === 'contract' ? s.missions : []))
+  const events = sources.flatMap((s) => (s.kind === 'event' ? [s] : []))
+  if (missions.length === 0 && events.length === 0) return null
+  return (
+    <>
+      <Box component="span" sx={{ fontSize: 12, color: hud.textDim }}>
+        {t('blueprints.info.missionsFromPool')}
+      </Box>
+      <Box component="ul" sx={{ m: 0, mb: 0.75, p: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 0.25, fontSize: 12.5, color: '#c9d4db' }}>
+        {missions.map((m, i) => (
+          <Box
+            component="li"
+            key={`m${i}`}
+            title={m.unreleased ? t('blueprints.info.missionUnreleased') : undefined}
+            sx={m.unreleased ? { textDecoration: 'line-through', opacity: 0.6 } : undefined}
+          >
+            {m.title ?? t('blueprints.info.missionsUnnamed')}
+            {m.unreleased && ` (${t('blueprints.info.missionUnreleasedShort')})`}
+          </Box>
+        ))}
+        {events.map((e, i) => (
+          <li key={`e${i}`}>{t('blueprints.info.eventTier', { event: e.event, points: e.min_points.toLocaleString() })}</li>
+        ))}
+      </Box>
+    </>
+  )
 }
 
 /**
@@ -490,6 +524,14 @@ function TrackedPools({ onOpenBlueprint }: { onOpenBlueprint: (id: number) => vo
   const { data: pools = [] } = useQuery({
     queryKey: ['tracked-pools'],
     queryFn: async () => (await api.get<TrackedPool[]>('/api/tracked-pools')).data,
+  })
+  const queryClient = useQueryClient()
+  const untrack = useMutation({
+    mutationFn: async (key: string) => api.delete(`/api/tracked-pools/${encodeURIComponent(key)}`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['tracked-pools'] })
+      void queryClient.invalidateQueries({ queryKey: ['blueprint-info'] })
+    },
   })
   const left = (p: TrackedPool) => p.in_pool - p.owned_in_pool
   const sorted = [...pools].sort((a, b) => Number(left(a) === 0) - Number(left(b) === 0) || left(a) - left(b))
@@ -539,6 +581,7 @@ function TrackedPools({ onOpenBlueprint }: { onOpenBlueprint: (id: number) => vo
             </ButtonBase>
             {open && (
               <Box sx={{ px: 1.5, pb: 1.5, pt: 0.25, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+                <PoolMissions sources={p.sources} />
                 {done ? (
                   <Box component="span" sx={{ fontSize: 12.5, color: hud.teal }}>
                     {t('dashboard.poolComplete')}
@@ -562,6 +605,20 @@ function TrackedPools({ onOpenBlueprint }: { onOpenBlueprint: (id: number) => vo
                     </Box>
                   </>
                 )}
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 0.5 }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<PushPinOutlinedIcon />}
+                    onClick={() => untrack.mutate(p.pool_key)}
+                    disabled={untrack.isPending}
+                    aria-label={t('blueprints.info.untrack', { pool: p.pool_label })}
+                    title={t('blueprints.info.untrack', { pool: p.pool_label })}
+                    sx={{ minHeight: 32, height: 32, fontSize: 13 }}
+                  >
+                    {t('blueprints.info.tracking')}
+                  </Button>
+                </Box>
               </Box>
             )}
           </Box>
