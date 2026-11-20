@@ -179,6 +179,7 @@ pub fn run() {
             rsi_status::start(&handle);
             overlay::show_if_open(&handle, overlay::STATUS);
             overlay::show_if_open(&handle, scan::SCAN);
+            overlay::show_if_open(&handle, refinery::REFINERY);
             let args: Vec<String> = std::env::args().collect();
             if let Some(action) = overlay::action_in(&args) {
                 overlay::run_action(&handle, &action);
