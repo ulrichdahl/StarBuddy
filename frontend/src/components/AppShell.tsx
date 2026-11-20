@@ -25,6 +25,7 @@ import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined'
 import PhotoCameraOutlinedIcon from '@mui/icons-material/PhotoCameraOutlined'
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
+import DownloadIcon from '@mui/icons-material/Download'
 import type { Me } from '../lib/types'
 import { fonts, hud } from '../theme'
 import { FanSiteFooter } from './FanSiteFooter'
@@ -263,6 +264,7 @@ export function AppShell({ me }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [profileFocus, setProfileFocus] = useState<'client' | undefined>()
   const [orgsOpen, setOrgsOpen] = useState(false)
   const navWidth = rail ? RAIL_WIDTH : DRAWER_WIDTH
 
@@ -284,6 +286,33 @@ export function AppShell({ me }: AppShellProps) {
           </Box>
           <ItemSearch />
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
+            <Tooltip title={t('nav.desktopClientHelp')}>
+              <ButtonBase
+                onClick={() => {
+                  setProfileFocus('client')
+                  setProfileOpen(true)
+                }}
+                aria-label={t('nav.desktopClient')}
+                sx={{
+                  height: 44,
+                  px: 1.25,
+                  gap: 0.75,
+                  fontFamily: fonts.display,
+                  fontWeight: 600,
+                  fontSize: 14,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: hud.textMuted,
+                  '&:hover': { color: hud.teal },
+                  '& svg': { color: hud.teal, fontSize: 20 },
+                }}
+              >
+                <DownloadIcon />
+                <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
+                  {t('nav.desktopClient')}
+                </Box>
+              </ButtonBase>
+            </Tooltip>
             <LanguageSwitcher signedIn />
             <Box aria-hidden sx={{ width: '1px', height: 28, bgcolor: hud.lineStrong, mx: 1 }} />
             <ButtonBase
@@ -321,10 +350,13 @@ export function AppShell({ me }: AppShellProps) {
         me={me}
         anchor={menuAnchor}
         onClose={() => setMenuAnchor(null)}
-        onOpenProfile={() => setProfileOpen(true)}
+        onOpenProfile={() => {
+          setProfileFocus(undefined)
+          setProfileOpen(true)
+        }}
         onOpenOrganizations={() => setOrgsOpen(true)}
       />
-      <ProfileDialog me={me} open={profileOpen} onClose={() => setProfileOpen(false)} />
+      <ProfileDialog me={me} open={profileOpen} focus={profileFocus} onClose={() => setProfileOpen(false)} />
       <OrganizationsDialog me={me} open={orgsOpen} onClose={() => setOrgsOpen(false)} />
 
       {isDesktop ? (

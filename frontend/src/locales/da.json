@@ -33,7 +33,9 @@
     "groupSystem": "System",
     "account": "Kontomenu",
     "searchShortcut": "Tryk / for at søge",
-    "gathering": "Indsamling"
+    "gathering": "Indsamling",
+    "desktopClient": "Desktopklient",
+    "desktopClientHelp": "Hent StarBuddy-desktopklienten og par den"
   },
   "login": {
     "tagline": "Materiale- og blueprint-styring for din org i Star Citizen. Log ind med den Discord-konto, der er knyttet til din org.",

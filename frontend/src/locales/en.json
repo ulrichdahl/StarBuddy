@@ -33,7 +33,9 @@
     "groupSystem": "System",
     "account": "Account menu",
     "searchShortcut": "Press / to search",
-    "gathering": "Gathering"
+    "gathering": "Gathering",
+    "desktopClient": "Desktop client",
+    "desktopClientHelp": "Download the StarBuddy desktop client and pair it"
   },
   "login": {
     "tagline": "Org materials and blueprint tracking for Star Citizen. Sign in with the Discord account linked to your org.",

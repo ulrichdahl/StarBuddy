@@ -406,14 +406,18 @@ function UdiSection() {
 }
 
 /** Profile & desktop client, opened from the avatar menu. */
-export function ProfileDialog({ me, open, onClose }: { me: Me; open: boolean; onClose: () => void }) {
+export function ProfileDialog({ me, open, focus, onClose }: { me: Me; open: boolean; focus?: 'client'; onClose: () => void }) {
   const { t } = useTranslation()
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
 
   return (
     <Dialog open={open} onClose={onClose} fullScreen={fullScreen} maxWidth={false} aria-labelledby="pm-title"
-      slotProps={{ paper: { sx: { width: 760, maxWidth: '100%', m: fullScreen ? 0 : 2 } } }}
+      slotProps={{
+        paper: { sx: { width: 760, maxWidth: '100%', m: fullScreen ? 0 : 2 } },
+        // Opened from the header's download button: bring the client section into view.
+        transition: { onEntered: () => focus === 'client' && document.getElementById('pm-client-title')?.scrollIntoView({ block: 'start', behavior: 'smooth' }) },
+      }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75, py: 2, pl: 2.75, pr: 2, borderBottom: `1px solid ${hud.lineSoft}` }}>
         <Typography id="pm-title" variant="h4" component="h2" sx={{ flex: 1, m: 0 }}>
