@@ -80,7 +80,9 @@
     "syncTravel_one": ", {{count}} travel event counted",
     "syncTravel_other": ", {{count}} travel events counted",
     "syncPoints_one": ". {{count}} point scored for the org",
-    "syncPoints_other": ". {{count}} points scored for the org"
+    "syncPoints_other": ". {{count}} points scored for the org",
+    "showLines_one": "Show the {{count}} event",
+    "showLines_other": "Show the {{count}} events"
   },
   "update": {
     "available": "StarBuddy v{{latest}} is available (you have v{{current}}).",

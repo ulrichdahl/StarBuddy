@@ -44,50 +44,6 @@ export function EventsTable({ result, paired }: { result: ScanResult; paired: bo
         ].join(t("common.separator"))}
       </h2>
       <div className="row">
-        <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>
-          {t("events.filterAll")}
-        </button>
-        <button
-          className={filter === "blueprint" ? "active" : ""}
-          onClick={() => setFilter("blueprint")}
-        >
-          {t("events.filterBlueprints")}
-        </button>
-        <button
-          className={filter === "refinery_completed" ? "active" : ""}
-          onClick={() => setFilter("refinery_completed")}
-        >
-          {t("events.filterRefinery")}
-        </button>
-        <button
-          className={filter === "mission_completed" ? "active" : ""}
-          onClick={() => setFilter("mission_completed")}
-        >
-          {t("events.filterMissions")}
-        </button>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>{t("events.colTime")}</th>
-            <th>{t("events.colEvent")}</th>
-            <th>{t("events.colDetail")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {events.map((e, i) => (
-            <tr key={i}>
-              <td className="mono">{e.timestamp.replace("T", " ").slice(0, 19)}</td>
-              <td>{kindLabel(t, e.kind)}</td>
-              <td>
-                {e.detail}
-                {e.item_class && <span className="hint mono"> · {e.item_class}</span>}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="row" style={{ marginTop: 12 }}>
         <button
           disabled={!paired || syncing || result.events.length === 0}
           onClick={sync}
@@ -115,6 +71,54 @@ export function EventsTable({ result, paired }: { result: ScanResult; paired: bo
         </p>
       )}
       {syncError && <p className="error">{syncError}</p>}
+      {/* The lines themselves are there to check, not to read: folded away. */}
+      <details className="update-notes">
+        <summary>{t("events.showLines", { count: listed.length })}</summary>
+        <div className="row">
+          <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>
+            {t("events.filterAll")}
+          </button>
+          <button
+            className={filter === "blueprint" ? "active" : ""}
+            onClick={() => setFilter("blueprint")}
+          >
+            {t("events.filterBlueprints")}
+          </button>
+          <button
+            className={filter === "refinery_completed" ? "active" : ""}
+            onClick={() => setFilter("refinery_completed")}
+          >
+            {t("events.filterRefinery")}
+          </button>
+          <button
+            className={filter === "mission_completed" ? "active" : ""}
+            onClick={() => setFilter("mission_completed")}
+          >
+            {t("events.filterMissions")}
+          </button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>{t("events.colTime")}</th>
+              <th>{t("events.colEvent")}</th>
+              <th>{t("events.colDetail")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.map((e, i) => (
+              <tr key={i}>
+                <td className="mono">{e.timestamp.replace("T", " ").slice(0, 19)}</td>
+                <td>{kindLabel(t, e.kind)}</td>
+                <td>
+                  {e.detail}
+                  {e.item_class && <span className="hint mono"> · {e.item_class}</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </details>
     </section>
   );
 }

@@ -80,7 +80,9 @@
     "syncTravel_one": ", {{count}} rejsehændelse talt med",
     "syncTravel_other": ", {{count}} rejsehændelser talt med",
     "syncPoints_one": ". {{count}} point til org'en",
-    "syncPoints_other": ". {{count}} point til org'en"
+    "syncPoints_other": ". {{count}} point til org'en",
+    "showLines_one": "Vis hændelsen",
+    "showLines_other": "Vis de {{count}} hændelser"
   },
   "update": {
     "available": "StarBuddy v{{latest}} er tilgængelig (du har v{{current}}).",
