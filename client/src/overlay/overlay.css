@@ -1,6 +1,6 @@
 /* ── Overlay windows: Launcher Glass ─────────────────────────────────────
    The window itself is transparent; the panel paints its own glass. */
-@import "../assets/fonts/fonts.css";
+@import "../theme.css";
 
 html.overlay-mode,
 html.overlay-mode body {
@@ -23,28 +23,6 @@ html.debug-bounds::after {
 }
 
 .ov {
-  --bg0: #0a0c10;
-  /* Solid: the opacity slider is the one say in how much shows through. With
-     a see-through fill under it, 100% still let the game show behind. */
-  --glass: rgb(10, 16, 24);
-  --line: rgba(120, 160, 190, 0.35);
-  --line2: rgba(120, 160, 190, 0.18);
-  --steel: #7fa0b8;
-  --cyan: #3cc9f0;
-  --amber: #e0a526;
-  --amber2: #f3c65a;
-  --red: #e0564b;
-  --green: #2fbfa4;
-  --text: #dbe6ee;
-  --muted: #8fa3b3;
-  --dim: #5f7384;
-  --disp: "Rajdhani", "Bahnschrift", "Arial Narrow", sans-serif;
-  --body: "Exo 2", "Segoe UI", system-ui, sans-serif;
-  --mono: "Share Tech Mono", ui-monospace, Consolas, monospace;
-  --acc: var(--cyan);
-  --acc-soft: rgba(60, 201, 240, 0.12);
-  --cut: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
-
   position: relative;
   width: 440px;
   color: var(--text);
