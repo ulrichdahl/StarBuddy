@@ -1,76 +1,20 @@
 import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useTranslation } from "react-i18next";
 import { OverlayWindow } from "./OverlayWindow";
-
-interface StatusIncident {
-  slug: string;
-  title: string;
-  severity: string;
-  affected: string[];
-  body_text: string;
-  shutdown_at: string | null;
-  permalink: string | null;
-  updated_at: string | null;
-}
-
-interface RsiStatus {
-  summary: string;
-  systems: { name: string; status: string }[];
-  fetched_at: string | null;
-  status_url: string;
-  active: StatusIncident[];
-}
-
-interface ConnectionView {
-  paired: boolean;
-}
-
-const POLL_MS = 30_000;
-type Severity = "down" | "disrupted" | "maintenance" | "notice";
-const asSeverity = (s: string): Severity =>
-  s === "down" || s === "disrupted" || s === "maintenance" ? s : "notice";
-
-const clock = (iso: string, lang: string) =>
-  new Date(iso).toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
-
-function countdown(ms: number) {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  const mm = String(m).padStart(2, "0");
-  const ss = String(s).padStart(2, "0");
-  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
-}
+import { BodyText, asSeverity, countdown, localTime, onRsiStatus, type RsiStatus } from "../status";
+import { usePageVisible } from "../visibility";
+import { useGameSession, whereabouts } from "../gameSession";
 
 /** cstate system status → dot class. */
 const dotClass = (status: string) =>
   status === "operational" || status === "ok" ? "" : status === "down" || status === "disrupted" ? "bad" : "warn";
 
-function Body({ text }: { text: string }) {
-  return (
-    <>
-      {text
-        .split(/\n{2,}/)
-        .filter((p) => p.trim() !== "")
-        .slice(0, 6)
-        .map((p, i) => (
-          <p key={i} className="ov-p">
-            {p.split(/(\*\*[^*]+\*\*)/g).map((part, j) =>
-              part.startsWith("**") && part.endsWith("**") ? <strong key={j}>{part.slice(2, -2)}</strong> : <span key={j}>{part}</span>,
-            )}
-          </p>
-        ))}
-    </>
-  );
-}
-
 /**
  * The RSI status window. Green "all systems operational" when nothing is
  * up, severity-coloured with a shutdown countdown during maintenance or
- * an outage; polls the paired server every 30 s.
+ * an outage. The client fetches the status for every window, so a hidden
+ * overlay does no work of its own.
  */
 export function StatusOverlay() {
   const { t, i18n } = useTranslation();
@@ -78,43 +22,38 @@ export function StatusOverlay() {
   const [paired, setPaired] = useState<boolean | null>(null);
   const [error, setError] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  // All clear, the box says where the player is rather than that nothing is wrong.
+  const place = whereabouts(useGameSession());
 
-  useEffect(() => {
-    let cancelled = false;
-    const poll = async () => {
-      try {
-        const conn = await invoke<ConnectionView>("get_connection");
-        if (cancelled) return;
-        setPaired(conn.paired);
-        if (!conn.paired) return;
-        const data = await invoke<RsiStatus>("fetch_status");
-        if (cancelled) return;
-        setStatus(data);
-        setError(false);
-      } catch {
-        if (!cancelled) setError(true);
-      }
-    };
-    void poll();
-    const id = setInterval(() => void poll(), POLL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
+  useEffect(
+    () =>
+      onRsiStatus((update) => {
+        setPaired(update.paired);
+        if (!update.paired) return;
+        // A failed fetch keeps the last good answer: show it, and only say
+        // "unreachable" when there is nothing to show.
+        if (update.status) setStatus(update.status);
+        setError(update.error !== null);
+      }),
+    [],
+  );
 
   const incident = status?.active[0] ?? null;
   const shutdownMs = incident?.shutdown_at ? new Date(incident.shutdown_at).getTime() - now : null;
   const urgent = shutdownMs !== null && shutdownMs > 0;
+  const visible = usePageVisible();
+  // No countdown ticks while the overlay is hidden; one tick on showing it
+  // again puts the clock right at once.
   useEffect(() => {
-    if (!urgent) return;
+    if (!urgent || !visible) return;
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [urgent]);
+  }, [urgent, visible]);
 
   const open = (url: string) => void openUrl(url).catch(() => {});
   const statusUrl = status?.status_url ?? "https://status.robertsspaceindustries.com";
-  const checked = status?.fetched_at ? t("overlay.status.checked", { time: clock(status.fetched_at, i18n.language) }) : null;
+  const checked = status?.fetched_at ? t("overlay.status.checked", { time: localTime(status.fetched_at, i18n.language) }) : null;
 
   // ── not paired / not yet loaded ──
   if (paired === false || (!status && (error || paired === null))) {
@@ -145,13 +84,13 @@ export function StatusOverlay() {
         title={allOk ? t("overlay.status.allOk") : t("overlay.status.someIssues")}
         firstBox={
           <div className="ov-box acc">
-            <span className="mono big">{allOk ? "OK" : "!"}</span>
-            <span>{allOk ? t("overlay.status.allOkBody") : t("overlay.status.someIssuesBody")}</span>
+            <span className="mono big">{allOk ? t("overlay.status.okBadge") : "!"}</span>
+            <span>{allOk ? (place ?? t("overlay.status.allOkBody")) : t("overlay.status.someIssuesBody")}</span>
           </div>
         }
         strip={
           <>
-            <span className="ov-muted ov-strip-item">{allOk ? t("overlay.status.allOkBody") : t("overlay.status.someIssuesBody")}</span>
+            <span className="ov-muted ov-strip-item">{allOk ? (place ?? t("overlay.status.allOkBody")) : t("overlay.status.someIssuesBody")}</span>
             {checked && <span className="ov-muted ov-strip-item mono">{checked}</span>}
           </>
         }
@@ -177,7 +116,7 @@ export function StatusOverlay() {
 
   // ── incident ──
   const severity = asSeverity(incident.severity);
-  const shutdownTime = incident.shutdown_at ? clock(incident.shutdown_at, i18n.language) : null;
+  const shutdownTime = incident.shutdown_at ? localTime(incident.shutdown_at, i18n.language) : null;
   const timing =
     shutdownMs === null
       ? null
@@ -233,13 +172,13 @@ export function StatusOverlay() {
         </div>
       )}
       {urgent && shutdownTime && <p className="ov-p">{t("status.shutdownAt", { time: shutdownTime })}</p>}
-      <Body text={incident.body_text} />
+      <BodyText text={incident.body_text} className="ov-p" limit={6} />
       <div className="ov-foot">
         <button type="button" className="lnk" onClick={() => open(incident.permalink ?? statusUrl)}>
           status.robertsspaceindustries.com
         </button>
         {incident.updated_at && (
-          <span className="push mono">{t("status.updated", { time: clock(incident.updated_at, i18n.language) })}</span>
+          <span className="push mono">{t("status.updated", { time: localTime(incident.updated_at, i18n.language) })}</span>
         )}
       </div>
     </OverlayWindow>

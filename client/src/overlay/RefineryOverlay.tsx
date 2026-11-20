@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { OverlayWindow } from "./OverlayWindow";
+import { listenFailed } from "../listen";
 
 type OrderState = "setup" | "processing" | "completed";
 
@@ -92,6 +93,12 @@ export function RefineryOverlay() {
   const [status, setStatus] = useState<RefineryStatus>({ phase: "idle", detail: "" });
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
   const [savedIndexes, setSavedIndexes] = useState<number[]>([]);
+  // The saved set as it is now, not as it was when a save was sent: a save's
+  // reply decides whether every order is filed, and an edit made while it was
+  // on the way has to count.
+  const savedRef = useRef<number[]>([]);
+  // The save on the way, and whether what it sent has been changed since.
+  const inFlight = useRef<{ index: number; changed: boolean } | null>(null);
   // What the server refused, by the path it names the field with
   // ("materials.2.quality"), so the row and the cell can be marked.
   const [rejected, setRejected] = useState<SaveRejected | null>(null);
@@ -102,21 +109,38 @@ export function RefineryOverlay() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showLines, setShowLines] = useState(false);
 
+  /** Change the saved set, in the ref the save's reply reads and on screen. */
+  const updateSaved = (next: (seen: number[]) => number[]) => {
+    savedRef.current = next(savedRef.current);
+    setSavedIndexes(savedRef.current);
+  };
+
+  /**
+   * Note an edit to one order, or to all of them (null): a save already on
+   * its way with that order sent the version before the edit.
+   */
+  const touch = (index: number | null) => {
+    const flight = inFlight.current;
+    if (flight && (index === null || index === flight.index)) flight.changed = true;
+  };
+
   useEffect(() => {
+    const failed = listenFailed((detail) => setStatus({ phase: "error", detail }));
     invoke<RefineryTerminal | null>("refinery_last").then((r) => r && setTerminal(r)).catch(() => {});
     // The hotkey opens this window and starts the read in the same breath, so
     // the first phases are sent before there is anything here to hear them.
     // Ask, or a read already running looks like nothing happening.
     invoke<RefineryStatus>("refinery_status").then(setStatus).catch(() => {});
     const subs = [
-      listen<RefineryStatus>("refinery-status", (e) => setStatus(e.payload)),
+      listen<RefineryStatus>("refinery-status", (e) => setStatus(e.payload)).catch(failed),
       listen<RefineryTerminal>("refinery-order", (e) => {
         setTerminal(e.payload);
         // A fresh read describes a different screen; earlier saves no longer
         // describe what is shown.
-        setSavedIndexes([]);
+        touch(null);
+        updateSaved(() => []);
         setSaveError(null);
-      }),
+      }).catch(failed),
     ];
     return () => subs.forEach((p) => p.then((un) => un()));
   }, []);
@@ -125,13 +149,16 @@ export function RefineryOverlay() {
 
   const read = (fresh: boolean) => {
     if (busy) return;
-    void invoke("refinery_read", { fresh }).catch(() => {});
+    // A read that cannot start (reading off, no area picked) says why, in the
+    // same place a read that fails part-way does.
+    void invoke("refinery_read", { fresh }).catch((e: unknown) => setStatus({ phase: "error", detail: String(e) }));
   };
 
   const startOver = () => {
     void invoke("refinery_clear").catch(() => {});
+    touch(null);
     setTerminal(null);
-    setSavedIndexes([]);
+    updateSaved(() => []);
     setSaveError(null);
   };
 
@@ -148,18 +175,26 @@ export function RefineryOverlay() {
     setSavingIndex(index);
     setSaveError(null);
     setRejected(null);
+    const flight = { index, changed: false };
+    inFlight.current = flight;
     invoke("refinery_save", { terminal, order: terminal.orders[index] })
       .then(() => {
-        setSavedIndexes((seen) => [...seen, index]);
+        // Edited while the save was on its way (this order, the station, or a
+        // fresh read): the server has the version before the edit, so the
+        // order is not saved as shown and the window stays up to save it.
+        if (flight.changed) return;
+        updateSaved((seen) => (seen.includes(index) ? seen : [...seen, index]));
         // The order is recorded, so the window has nothing left to say about
         // it. Leaving it up with a saved order in it invites a second save of
         // the same job, and leaves the next read to be merged into a reading
         // that is already filed. Everything after the last order is saved: the
-        // reading is dropped and the window goes away.
-        if (terminal.orders.every((_, at) => at === index || savedIndexes.includes(at))) {
+        // reading is dropped and the window goes away. Read from the ref, not
+        // from the render this save started in: an order edited since then has
+        // left the saved set, and must keep the window open.
+        if (terminal.orders.every((_, at) => savedRef.current.includes(at))) {
           void invoke("refinery_clear").catch(() => {});
           setTerminal(null);
-          setSavedIndexes([]);
+          updateSaved(() => []);
           void invoke("overlay_toggle", { name: "refinery" }).catch(() => {});
         }
       })
@@ -175,7 +210,10 @@ export function RefineryOverlay() {
           setRejected(null);
         }
       })
-      .finally(() => setSavingIndex(null));
+      .finally(() => {
+        if (inFlight.current === flight) inFlight.current = null;
+        setSavingIndex(null);
+      });
   };
 
   /** The server's complaint about one cell, if it made one. */
@@ -199,7 +237,8 @@ export function RefineryOverlay() {
       );
       return { ...current, orders };
     });
-    setSavedIndexes([]);
+    touch(null);
+    updateSaved(() => []);
   };
 
   const removeRow = (index: number, rowIndex: number) => {
@@ -211,12 +250,14 @@ export function RefineryOverlay() {
       );
       return { ...current, orders };
     });
-    setSavedIndexes([]);
+    touch(null);
+    updateSaved(() => []);
   };
 
   const patchTerminal = (change: Partial<RefineryTerminal>) => {
     setTerminal((current) => (current ? { ...current, ...change } : current));
-    setSavedIndexes([]);
+    touch(null);
+    updateSaved(() => []);
   };
 
   const patchOrder = (index: number, change: Partial<WorkOrder>) => {
@@ -225,7 +266,8 @@ export function RefineryOverlay() {
       const orders = current.orders.map((o, i) => (i === index ? { ...o, ...change } : o));
       return { ...current, orders };
     });
-    setSavedIndexes((seen) => seen.filter((i) => i !== index));
+    touch(index);
+    updateSaved((seen) => seen.filter((i) => i !== index));
   };
 
   const patchMaterial = (orderIndex: number, rowIndex: number, change: Partial<OrderMaterial>) => {
@@ -238,7 +280,8 @@ export function RefineryOverlay() {
       );
       return { ...current, orders };
     });
-    setSavedIndexes((seen) => seen.filter((i) => i !== orderIndex));
+    touch(orderIndex);
+    updateSaved((seen) => seen.filter((i) => i !== orderIndex));
   };
 
   const numberOrNull = (raw: string) => {
@@ -276,10 +319,12 @@ export function RefineryOverlay() {
     return [d && `${d}d`, h && `${h}h`, m && `${m}m`, s && `${s}s`].filter(Boolean).join(" ") || "0s";
   };
 
+  // Only the phases that have something to say; anything else (idle, done,
+  // or a phase this build does not know) shows nothing rather than a key.
   const phaseText =
-    status.phase === "idle" || status.phase === "done"
-      ? null
-      : t(`overlay.refinery.phase.${status.phase}`, { detail: status.detail });
+    status.phase === "downloading" || status.phase === "capturing" || status.phase === "ocr" || status.phase === "error"
+      ? t(`overlay.refinery.phase.${status.phase}`, { detail: status.detail })
+      : null;
 
   // The station belongs to the terminal rather than to any one order, but it
   // is read and corrected alongside the method, so it is shown with it: two

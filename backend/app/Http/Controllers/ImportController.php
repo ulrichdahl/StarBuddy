@@ -205,14 +205,14 @@ class ImportController extends Controller
         abort_if($rows === null, 410, 'Import preview expired — upload the file again.');
 
         $user = $request->user();
-        $orgId = $user->orgs()->value('orgs.id');
+        $orgId = $user->ensureMainOrg();
 
         // Importing on someone else's behalf is an officer action.
         $importsForOthers = collect($rows)
             ->filter(fn ($r) => ! $r['errors'])
             ->contains(fn ($r) => ($r['data']['user_id'] ?? $user->id) !== $user->id);
         if ($importsForOthers) {
-            $org = $user->orgs()->first();
+            $org = $user->mainOrg();
             abort_unless($org && $user->isOrgOfficer($org), 403, 'Importing for other members requires an officer role.');
         }
 

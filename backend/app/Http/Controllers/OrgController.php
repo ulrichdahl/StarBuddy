@@ -60,11 +60,54 @@ class OrgController extends Controller
         return response()->json(['status' => 'pending'], 201);
     }
 
+    /**
+     * Leave an org. The last manager of an org with other members must name
+     * one of them, successor_id, to take over as manager.
+     */
     public function leave(Request $request, Org $org)
     {
-        $org->memberships()->detach($request->user()->id);
+        $user = $request->user();
+        $data = $request->validate(['successor_id' => ['nullable', 'integer']]);
+        $membership = $user->orgs()->where('orgs.id', $org->id)->first();
+
+        if ($membership && in_array($membership->pivot->role, self::MANAGER_ROLES, true)) {
+            $others = $org->memberships()->wherePivot('status', 'active')->where('users.id', '!=', $user->id)->get();
+            $managers = $others->filter(fn ($u) => in_array($u->pivot->role, self::MANAGER_ROLES, true));
+
+            if ($others->isNotEmpty() && $managers->isEmpty()) {
+                $successor = $others->firstWhere('id', $data['successor_id'] ?? null);
+                if ($successor === null) {
+                    return response()->json([
+                        'message' => 'Appoint a new manager before you leave.',
+                        'code' => 'successor_required',
+                        'candidates' => $others->map(fn ($u) => ['id' => $u->id, 'handle' => $u->handle ?? $u->name])->values(),
+                    ], 422);
+                }
+                $org->memberships()->updateExistingPivot($successor->id, ['role' => 'manager']);
+                AuditLog::create([
+                    'user_id' => $user->id,
+                    'org_id' => $org->id,
+                    'action' => 'org.manager_appointed',
+                    'details' => ['member' => $successor->handle ?? $successor->name],
+                ]);
+            }
+        }
+
+        $org->memberships()->detach($user->id);
+        $user->ensureMainOrg();
 
         return response()->noContent();
+    }
+
+    /** Make one of the player's active orgs their main org. */
+    public function setMain(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate(['org_id' => ['required', 'integer']]);
+        abort_unless($user->orgs()->where('orgs.id', $data['org_id'])->exists(), 422, 'You can only pick an org you are a member of.');
+        $user->forceFill(['main_org_id' => $data['org_id']])->save();
+
+        return response()->json(['main_org_id' => $user->main_org_id]);
     }
 
     /** Manager view: every membership including pending requests. */
@@ -76,9 +119,22 @@ class OrgController extends Controller
      */
     public function mates(Request $request)
     {
-        return OrgMembers::of($request->user())
-            ->reject(fn ($u) => $u->id === $request->user()->id)
-            ->map(fn ($u) => ['id' => $u->id, 'handle' => $u->handle ?? $u->name])
+        $me = $request->user();
+        $mates = OrgMembers::of($me)->reject(fn ($u) => $u->id === $me->id);
+
+        // Game presence only between members of the caller's main org.
+        $mainOrg = $me->ensureMainOrg();
+        $sameOrg = $mainOrg ? DB::table('org_members')->where('org_id', $mainOrg)->where('status', 'active')->pluck('user_id')->all() : [];
+        $presence = PresenceController::of(array_values(array_intersect($mates->pluck('id')->all(), $sameOrg)));
+
+        return $mates
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'handle' => $u->handle ?? $u->name,
+                'avatar_url' => $u->avatar_url,
+                // null: not in the main org, sharing off, or never reported.
+                'presence' => $presence[$u->id] ?? null,
+            ])
             ->values();
     }
 
@@ -105,6 +161,8 @@ class OrgController extends Controller
     {
         $this->authorizeManager($request->user(), $org);
         $org->memberships()->updateExistingPivot($user->id, ['status' => 'active']);
+        // A first org becomes the main one; a later one waits to be picked.
+        $user->ensureMainOrg();
 
         AuditLog::create([
             'user_id' => $request->user()->id,
@@ -121,6 +179,7 @@ class OrgController extends Controller
         $this->authorizeManager($request->user(), $org);
         abort_if($user->id === $request->user()->id, 422, 'Use leave to remove yourself.');
         $org->memberships()->detach($user->id);
+        $user->ensureMainOrg();
 
         AuditLog::create([
             'user_id' => $request->user()->id,
@@ -131,6 +190,8 @@ class OrgController extends Controller
 
         return response()->noContent();
     }
+
+    private const MANAGER_ROLES = ['manager', 'admin'];
 
     private function authorizeManager(User $actor, Org $org): void
     {

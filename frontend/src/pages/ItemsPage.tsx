@@ -49,6 +49,7 @@ import { StockLedger } from '../components/StockLedger'
 import { LocationSelect } from '../components/LocationSelect'
 import { PlaceSelect, type Place } from '../components/PlaceSelect'
 import { OrgMatrixTable } from '../components/OrgMatrixTable'
+import { useViewParam } from '../lib/useViewParam'
 
 function EditItemStackDialog({ stack, onClose }: { stack: ItemStack; onClose: () => void }) {
   const { t } = useTranslation()
@@ -150,11 +151,12 @@ function EditItemStackDialog({ stack, onClose }: { stack: ItemStack; onClose: ()
 
 type SortField = 'updated_at' | 'item' | 'quantity' | 'quality' | 'system' | 'location' | 'visibility'
 type OrgSortField = 'name' | 'total' | 'stacks' | 'holders'
-type View = 'stacks' | 'org' | 'ledger'
+const VIEWS = ['stacks', 'org', 'ledger'] as const
+type View = (typeof VIEWS)[number]
 
 export function ItemsPage() {
   const { t, i18n } = useTranslation()
-  const [view, setView] = useState<View>('stacks')
+  const [view, setView] = useViewParam<View>(VIEWS, 'stacks')
   const [editing, setEditing] = useState<ItemStack | null>(null)
   const [search, setSearch] = useState('')
   const [place, setPlace] = useState<Place | null>(null)

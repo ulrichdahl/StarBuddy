@@ -14,6 +14,7 @@ on:
     paths:
       - "client/**"
       - ".github/workflows/desktop-dev.yml"
+      - ".github/scripts/update-manifest.mjs"
   workflow_dispatch:
 
 permissions:
@@ -41,9 +42,11 @@ jobs:
               client/src-tauri/target/release/bundle/deb/*.deb
               client/src-tauri/target/release/bundle/rpm/*.rpm
               client/src-tauri/target/release/bundle/appimage/*.AppImage
+              client/src-tauri/target/release/bundle/appimage/*.AppImage.sig
           - os: windows-latest
             bundles: |
               client/src-tauri/target/release/bundle/nsis/*.exe
+              client/src-tauri/target/release/bundle/nsis/*.exe.sig
               client/src-tauri/target/release/bundle/msi/*.msi
     runs-on: ${{ matrix.os }}
     steps:
@@ -82,6 +85,10 @@ jobs:
         env:
           # Baked into the binary (option_env!) and shown in the client footer.
           STARBUDDY_BUILD: dev-${{ needs.stamp.outputs.stamp }}
+          # Signs the installers the in-place updater takes (tauri.conf.json
+          # holds the public half). The build fails without it.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           npm ci
           npm run tauri build
@@ -110,15 +117,26 @@ jobs:
       - name: Repack AppImage without bundled host libraries
         if: runner.os == 'Linux'
         working-directory: client/src-tauri/target/release/bundle/appimage
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           APPIMAGE=$(ls *.AppImage)
           ./"$APPIMAGE" --appimage-extract >/dev/null
+          # Extracted 0700; appimagetool (since its 2026-11 builds) refuses an
+          # AppDir other users could not read, and so would their systems.
+          chmod -R a+rX squashfs-root
           rm -fv squashfs-root/usr/lib/libwayland-*.so* \
             squashfs-root/usr/lib/libpipewire-*.so* squashfs-root/usr/lib/libspa-*.so*
           wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
           ARCH=x86_64 ./appimagetool --appimage-extract-and-run squashfs-root "$APPIMAGE"
           rm -rf squashfs-root appimagetool
+          # The repack changed the file, so the build's signature no longer
+          # matches it: sign it again for the in-place updater.
+          rm -f "$APPIMAGE.sig"
+          (cd "$GITHUB_WORKSPACE/client" && npx tauri signer sign "$OLDPWD/$APPIMAGE")
+          test -s "$APPIMAGE.sig"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -151,6 +169,22 @@ jobs:
         with:
           path: bundles
           merge-multiple: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      # What dev builds' in-place updater reads: releases/download/dev/latest.json.
+      # The version carries the stamp (0.1.16-dev.202611201330); dev builds
+      # compare stamps, since they share the release's version.
+      - name: Write update manifest
+        run: |
+          VER=$(node -p "require('./client/src-tauri/tauri.conf.json').version")
+          STAMP="${{ needs.stamp.outputs.stamp }}"
+          node .github/scripts/update-manifest.mjs bundles "$VER-dev.${STAMP//-/}" \
+            "https://github.com/${{ github.repository }}/releases/download/dev" \
+            > bundles/latest.json
+          cat bundles/latest.json
 
       # The rolling release is *replaced*, not appended to: drop every
       # asset from earlier builds before uploading this one.

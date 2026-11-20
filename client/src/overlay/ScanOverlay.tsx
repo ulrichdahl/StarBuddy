@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { OverlayWindow } from "./OverlayWindow";
+import { listenFailed } from "../listen";
 
 interface OcrLine {
   text: string;
@@ -96,12 +97,13 @@ export function ScanOverlay() {
   const [reading, setReading] = useState<LiveReading | null>(null);
 
   useEffect(() => {
+    const failed = listenFailed((detail) => setStatus({ phase: "error", detail, progress: null }));
     invoke<ScanResult | null>("scan_last").then((r) => r && setResult(r)).catch(() => {});
     invoke<boolean>("scan_live_running").then(setLive).catch(() => {});
     const subs = [
-      listen<ScanStatus>("scan-status", (e) => setStatus(e.payload)),
-      listen<ScanResult>("scan-result", (e) => setResult(e.payload)),
-      listen<boolean>("scan-live-state", (e) => setLive(e.payload)),
+      listen<ScanStatus>("scan-status", (e) => setStatus(e.payload)).catch(failed),
+      listen<ScanResult>("scan-result", (e) => setResult(e.payload)).catch(failed),
+      listen<boolean>("scan-live-state", (e) => setLive(e.payload)).catch(failed),
       listen<LiveReading>("scan-live", (e) => {
         // Keep the last reading that had a signature; a frame without one
         // (badge moved out, HUD hidden) must not blank the window.
@@ -111,7 +113,7 @@ export function ScanOverlay() {
           // accent must follow the reading, not a stale failure.
           setStatus((s) => (s.phase === "error" ? { phase: "idle", detail: "", progress: null } : s));
         }
-      }),
+      }).catch(failed),
     ];
     return () => {
       subs.forEach((p) => p.then((un) => un()));
@@ -119,11 +121,14 @@ export function ScanOverlay() {
   }, []);
 
   const busy = status.phase === "downloading" || status.phase === "capturing" || status.phase === "ocr";
+  // A refusal (reading not on, no capture area) says what to do about it, so
+  // it goes where the scan's own errors go rather than being swallowed.
+  const showError = (e: unknown) => setStatus({ phase: "error", detail: String(e), progress: null });
   const scanNow = () => {
     if (busy) return;
-    void invoke("scan_now").catch(() => {});
+    void invoke("scan_now").catch(showError);
   };
-  const toggleLive = () => void invoke<boolean>("scan_live_toggle").then(setLive).catch(() => {});
+  const toggleLive = () => void invoke<boolean>("scan_live_toggle").then(setLive).catch(showError);
 
   // Idle means "nothing to say". The instruction to press the hotkey is only
   // true when nothing is watching the screen: while live runs, the box has to
@@ -146,7 +151,8 @@ export function ScanOverlay() {
       {t(hard(r) ? "overlay.scan.match.hard" : "overlay.scan.match.easy")} · {r.toFixed(2)}
     </span>
   );
-  const qband = (qs: number[]) => (qs.length > 0 ? `Q ${fmt(Math.min(...qs))}–${fmt(Math.max(...qs))}` : "—");
+  const qband = (qs: number[]) =>
+    qs.length > 0 ? t("overlay.scan.qualityBand", { from: fmt(Math.min(...qs)), to: fmt(Math.max(...qs)) }) : "—";
 
   // The reading on display: the live loop while it runs, else the last "Scan now".
   const useLive = live && reading !== null;
@@ -310,7 +316,7 @@ export function ScanOverlay() {
           {result.badges && result.badges.length > 1 && (
             <div className="ov-chips">
               {result.badges.map((b, i) => (
-                <span key={i} className="ov-chip mono" title={`${b.x},${b.y}${b.shape !== undefined ? ` · pin ${b.shape.toFixed(2)}` : ""}`}>
+                <span key={i} className="ov-chip mono" title={`${b.x},${b.y}${b.shape !== undefined ? ` · ${t("overlay.scan.pinShape", { shape: b.shape.toFixed(2) })}` : ""}`}>
                   {fmt(b.value)}
                 </span>
               ))}

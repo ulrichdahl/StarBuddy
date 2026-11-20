@@ -10,13 +10,16 @@ use tauri::{AppHandle, Emitter};
 /// PNG, because the panels are flat-shaded UI: JPEG's ringing around thin HUD
 /// glyphs is exactly the detail the model is being trained to find.
 fn encode_png(cap: &crate::scan::Captured) -> Result<Vec<u8>, String> {
-    let buffer = image::RgbImage::from_raw(cap.width, cap.height, cap.rgb.clone())
-        .ok_or("capture did not fit its own dimensions")?;
-    let mut out = std::io::Cursor::new(Vec::new());
-    buffer
-        .write_to(&mut out, image::ImageFormat::Png)
+    use image::ImageEncoder;
+    if cap.rgb.len() != cap.width as usize * cap.height as usize * 3 {
+        return Err("capture did not fit its own dimensions".into());
+    }
+    // Straight from the capture's bytes, without a copy of them to wrap.
+    let mut out = Vec::new();
+    image::codecs::png::PngEncoder::new(&mut out)
+        .write_image(&cap.rgb, cap.width, cap.height, image::ExtendedColorType::Rgb8)
         .map_err(|e| format!("could not encode the capture: {e}"))?;
-    Ok(out.into_inner())
+    Ok(out)
 }
 
 fn status(app: &AppHandle, phase: &str, detail: impl Into<String>) {
@@ -50,7 +53,7 @@ pub async fn send(app: AppHandle) -> Result<String, String> {
 
     let for_capture = app.clone();
     let png = tauri::async_runtime::spawn_blocking(move || {
-        let cap = crate::scan::capture_game(&for_capture)?;
+        let cap = crate::capture::full_rgb(&for_capture)?;
         let bytes = encode_png(&cap)?;
         Ok::<_, String>((bytes, cap.width, cap.height))
     })
@@ -96,14 +99,13 @@ pub async fn upload(
         form = form.text("reader", reader);
     }
 
-    let resp = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(60))
-        .build()
-        .map_err(|e| e.to_string())?
+    // A screenshot upload outlasts the shared client's 30 s on a slow line.
+    let resp = crate::http::client()
         .post(format!("{}/api/training/captures", settings.server_url))
         .bearer_auth(&settings.token)
         .header("Accept", "application/json")
         .multipart(form)
+        .timeout(std::time::Duration::from_secs(60))
         .send()
         .await
         .map_err(|e| format!("Could not reach server: {e}"))?;
@@ -123,4 +125,17 @@ pub fn png_of(cap: &crate::scan::Captured) -> Result<Vec<u8>, String> {
 #[tauri::command]
 pub async fn training_capture(app: AppHandle) -> Result<String, String> {
     send(app).await
+}
+
+/// Whether F8 refinery reads are shared for training (off by default).
+#[tauri::command]
+pub fn training_sharing_get(app: AppHandle) -> bool {
+    crate::load_client_prefs(&app).share_reads_for_training
+}
+
+#[tauri::command]
+pub fn training_sharing_set(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let mut prefs = crate::load_client_prefs(&app);
+    prefs.share_reads_for_training = enabled;
+    crate::save_client_prefs(&app, &prefs)
 }

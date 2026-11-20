@@ -139,6 +139,7 @@ fn action_for(key: u16, ctrl: bool, alt: bool, shift: bool, win: bool) -> Option
 #[cfg(windows)]
 mod hook {
     use super::*;
+    use crate::lock::LockExt;
     use crate::overlay::run_action;
     use std::sync::{mpsc, Mutex};
     use windows::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
@@ -190,7 +191,7 @@ mod hook {
             return;
         }
         let (sender, receiver) = mpsc::channel::<String>();
-        *heard().lock().unwrap() = Some(sender);
+        *heard().lock_or_recover() = Some(sender);
 
         // The work, off the hook's thread.
         let app = app.clone();

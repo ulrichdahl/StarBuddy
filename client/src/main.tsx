@@ -1,14 +1,12 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import "./i18n";
-import App from "./App";
-import { StatusOverlay } from "./overlay/StatusOverlay";
-import { ScanOverlay } from "./overlay/ScanOverlay";
-import { RefineryOverlay } from "./overlay/RefineryOverlay";
-import { RegionSelector } from "./overlay/RegionSelector";
+import "./base.css";
 
-// Overlay windows load the same bundle; the Rust side names the window
+// Overlay windows load the same entry; the Rust side names the window
 // through an init-script global (the query string only survives in dev).
+// Each window is its own chunk, so an overlay never parses the main window's
+// code or App.css, and the main window never parses the overlays'.
 declare global {
   interface Window {
     __STARBUDDY_WINDOW__?: string;
@@ -27,13 +25,23 @@ const overlay = window.__STARBUDDY_WINDOW__ ?? new URLSearchParams(window.locati
 // the region selector was.
 if (overlay) document.documentElement.classList.add("overlay-mode");
 
-const WINDOWS: Record<string, () => React.ReactElement> = {
-  status: () => <StatusOverlay />,
-  scan: () => <ScanOverlay />,
-  refinery: () => <RefineryOverlay />,
-  region: () => <RegionSelector />,
+const App = lazy(() => import("./App"));
+const WINDOWS: Record<string, React.LazyExoticComponent<React.ComponentType>> = {
+  status: lazy(() => import("./overlay/StatusOverlay").then((m) => ({ default: m.StatusOverlay }))),
+  scan: lazy(() => import("./overlay/ScanOverlay").then((m) => ({ default: m.ScanOverlay }))),
+  refinery: lazy(() => import("./overlay/RefineryOverlay").then((m) => ({ default: m.RefineryOverlay }))),
+  pools: lazy(() => import("./overlay/TrackerOverlays").then((m) => ({ default: m.PoolsOverlay }))),
+  gathering: lazy(() => import("./overlay/TrackerOverlays").then((m) => ({ default: m.GatheringOverlay }))),
+  orders: lazy(() => import("./overlay/TrackerOverlays").then((m) => ({ default: m.OrdersOverlay }))),
+  points: lazy(() => import("./overlay/TrackerOverlays").then((m) => ({ default: m.PointsOverlay }))),
+  region: lazy(() => import("./overlay/RegionSelector").then((m) => ({ default: m.RegionSelector }))),
 };
+const Root = (overlay && WINDOWS[overlay]) || App;
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>{(overlay && WINDOWS[overlay]?.()) ?? <App />}</React.StrictMode>,
+  <React.StrictMode>
+    <Suspense fallback={null}>
+      <Root />
+    </Suspense>
+  </React.StrictMode>,
 );

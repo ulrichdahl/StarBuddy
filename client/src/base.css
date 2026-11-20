@@ -1,0 +1,62 @@
+/* Rules every window needs: the main window and each overlay. They were the
+   top of App.css when one bundle served every window, and the overlays render
+   buttons, tables and .mono text that these rules still style.
+   Main-window-only rules stay in App.css; overlay rules in overlay/overlay.css. */
+:root {
+  color-scheme: dark;
+  --bg: #0c1117;
+  --panel: #121a23;
+  --line: #24313f;
+  --ink: #d8e2ec;
+  --muted: #8da2b5;
+  --accent: #5bc8db;
+  font-family: system-ui, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+button {
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+code,
+.mono {
+  font-family: ui-monospace, monospace;
+  font-size: 0.9em;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  color: var(--muted);
+  font-weight: 500;
+}

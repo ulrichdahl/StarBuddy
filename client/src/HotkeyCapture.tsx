@@ -77,12 +77,15 @@ export function HotkeyCapture({
   current,
   failed,
   onCapture,
+  bare = false,
 }: {
   action: string;
   label: string;
   current: string;
   failed?: string;
   onCapture: (action: string, hotkey: string) => void;
+  /** Only the key and the button: the row around it already says what it is. */
+  bare?: boolean;
 }) {
   const { t } = useTranslation();
   const [listening, setListening] = useState(false);
@@ -153,8 +156,12 @@ export function HotkeyCapture({
           the only thing on the row, showing a bare "F8" that said nothing
           about which of the four it was or that it could be changed. */}
       <span className="hotkey-what">
-        {label}
-        {" · "}
+        {!bare && (
+          <>
+            {label}
+            {" · "}
+          </>
+        )}
         {current ? (
           <kbd>{current}</kbd>
         ) : (
@@ -162,7 +169,13 @@ export function HotkeyCapture({
         )}
       </span>
       <button className={listening ? "active" : undefined} onClick={() => (listening ? stop() : setListening(true))}>
-        {listening ? t("overlay.hotkeyListening") : current ? t("overlay.hotkeyChange") : t("overlay.hotkeyUnset")}
+        {listening
+          ? t("overlay.hotkeyListening")
+          : bare
+            ? t("settings.change")
+            : current
+              ? t("overlay.hotkeyChange")
+              : t("overlay.hotkeyUnset")}
       </button>
       {listening && (
         <div className="hotkey-hold">

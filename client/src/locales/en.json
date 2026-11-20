@@ -10,7 +10,8 @@
     "hint": "Sign in to your community's StarBuddy website, generate a pairing code on the dashboard, and enter it here.",
     "pairingCodePlaceholder": "Pairing code",
     "pair": "Pair",
-    "pairing": "Pairing…"
+    "pairing": "Pairing…",
+    "urlPlaceholder": "https://starbuddy.example.org"
   },
   "scan": {
     "title": "Star Citizen installation",
@@ -57,7 +58,7 @@
     "syncing_one": "Syncing {{count}} event…",
     "syncing_other": "Syncing {{count}} events…",
     "pairToSync": "Pair with a server above to sync.",
-    "syncResult": "{{accepted}} ({{duplicates}}): {{blueprints}}, {{refinery}}{{backfilled}}.",
+    "syncResult": "{{accepted}} ({{duplicates}}): {{blueprints}}, {{refinery}}{{missions}}{{travel}}{{backfilled}}{{points}}.",
     "syncAccepted_one": "Server accepted {{count}} new event",
     "syncAccepted_other": "Server accepted {{count}} new events",
     "syncDuplicates_one": "{{count}} already known",
@@ -67,7 +68,21 @@
     "syncRefineryRecorded_one": "{{count}} refinery completion recorded",
     "syncRefineryRecorded_other": "{{count}} refinery completions recorded",
     "syncBackfilled_one": ", {{count}} blueprint identity backfilled",
-    "syncBackfilled_other": ", {{count}} blueprint identities backfilled"
+    "syncBackfilled_other": ", {{count}} blueprint identities backfilled",
+    "filterMissions": "Missions",
+    "kindMission": "Mission done",
+    "syncMissions_one": ", {{count}} mission recorded",
+    "syncMissions_other": ", {{count}} missions recorded",
+    "travel_one": "{{count}} travel event",
+    "travel_other": "{{count}} travel events",
+    "missions_one": "{{count}} mission",
+    "missions_other": "{{count}} missions",
+    "syncTravel_one": ", {{count}} travel event counted",
+    "syncTravel_other": ", {{count}} travel events counted",
+    "syncPoints_one": ". {{count}} point scored for the org",
+    "syncPoints_other": ". {{count}} points scored for the org",
+    "showLines_one": "Show the {{count}} event",
+    "showLines_other": "Show the {{count}} events"
   },
   "update": {
     "available": "StarBuddy v{{latest}} is available (you have v{{current}}).",
@@ -81,7 +96,11 @@
     "versionBuild": "v{{version}} · {{build}}",
     "openLog": "Open log folder",
     "devAvailable": "A newer dev build is available ({{latest}}; you have {{current}}).",
-    "notes": "What changed"
+    "notes": "What changed",
+    "install": "Install and restart",
+    "downloading": "Downloading the update… {{pct}}%",
+    "installing": "Installing; StarBuddy restarts by itself.",
+    "nothingNewer": "No newer build was found to install."
   },
   "footer": {
     "disclaimer": "This is an unofficial Star Citizen fan application, not affiliated with the Cloud Imperium group of companies. All content not authored by its host or users is property of its respective owners.",
@@ -89,7 +108,8 @@
     "source": "source on GitHub",
     "creditPrefix": "A",
     "creditMiddle": " community project — built by",
-    "creditWith": "with"
+    "creditWith": "with",
+    "madeByCommunity": "Star Citizen — Made by the Community"
   },
   "common": {
     "separator": " · "
@@ -162,7 +182,8 @@
         "disrupted": "Degraded",
         "down": "Down",
         "notice": "Notice"
-      }
+      },
+      "okBadge": "OK"
     },
     "hotkeyStatus": "Status window hotkey",
     "hotkeyScan": "Scan hotkey",
@@ -174,9 +195,9 @@
       "title": "Scan",
       "idle": "Press the scan hotkey on a scan result.",
       "phase": {
-        "downloading": "Downloading {{detail}}…",
+        "downloading": "Downloading OCR model {{detail}}…",
         "capturing": "Capturing…",
-        "ocr": "Reading: {{detail}}…",
+        "ocr": "Reading {{detail}}…",
         "error": "Failed: {{detail}}"
       },
       "signature": "Signature {{value}}",
@@ -219,7 +240,9 @@
         "rare": "rare",
         "epic": "epic",
         "legendary": "legendary"
-      }
+      },
+      "qualityBand": "Q {{from}}–{{to}}",
+      "pinShape": "pin {{shape}}"
     },
     "liveScanStart": "Start live scan (F7)",
     "liveScanStop": "Stop live scan (F7)",
@@ -332,12 +355,48 @@
       "scan": "scan",
       "refinery": "refinery order",
       "capture": "training screenshot",
-      "reading": "screen reading"
+      "reading": "screen reading",
+      "main": "StarBuddy"
     },
     "report": "System info",
     "reportCopy": "Copy",
     "reportCopied": "Copied",
-    "readingBorderRefused": "Windows has not let StarBuddy turn that border off on this machine. Open Settings › Privacy & security › Screenshot borders — it is at the bottom of the list — and switch on \"Screenshot border settings access\", \"Let apps turn off the screenshot border\", and \"Let desktop apps turn off the screenshot border\", where StarBuddy is listed. The border goes the next time reading is switched on."
+    "readingBorderRefused": "Windows has not let StarBuddy turn that border off on this machine. Open Settings › Privacy & security › Screenshot borders — it is at the bottom of the list — and switch on \"Screenshot border settings access\", \"Let apps turn off the screenshot border\", and \"Let desktop apps turn off the screenshot border\", where StarBuddy is listed. The border goes the next time reading is switched on.",
+    "tracker": {
+      "eyebrow": "Tracker",
+      "unreachable": "The website cannot be reached.",
+      "pools": {
+        "title": "Blueprint pools",
+        "next": "{{pool}}: {{left}} left",
+        "allDone": "Every tracked pool is complete.",
+        "none": "No pools tracked. Track one under Blueprints.",
+        "unnamed": "Unnamed mission",
+        "event": "{{event}}: {{points}} points tier"
+      },
+      "gathering": {
+        "title": "Gathering",
+        "still": "{{still}} of {{of}} materials still to gather",
+        "none": "No craft targets pinned."
+      },
+      "orders": {
+        "title": "Refinery orders",
+        "none": "No open orders.",
+        "ready_one": "{{count}} order ready to collect",
+        "ready_other": "{{count}} orders ready to collect",
+        "next": "Next ready in {{time}}",
+        "open_one": "{{count}} open order",
+        "open_other": "{{count}} open orders",
+        "readyOne": "Ready"
+      },
+      "points": {
+        "title": "Your points",
+        "rank": "{{org}}: #{{rank}} of {{count}} this month",
+        "noOrg": "Choose a main org on the website.",
+        "mission": "Missions",
+        "refinery": "Refinery",
+        "travel": "Travel"
+      }
+    }
   },
   "changes": {
     "sinceLive_one": "What’s new — {{count}} change since v{{version}}",
@@ -345,5 +404,341 @@
     "inVersion": "What’s new in v{{version}}",
     "summaryHint": "Coming in the next live release:",
     "commitsHint": "Every change in this dev build:"
+  },
+  "reading": {
+    "shareTraining": "Share F8 refinery reads to improve reading",
+    "shareTrainingHint": "Sends the captured panel and what was read to your StarBuddy server. Off by default. F9 always sends when you press it."
+  },
+  "shell": {
+    "sections": "StarBuddy sections",
+    "soon": "Soon",
+    "allSystems": "All systems operational",
+    "section": {
+      "home": "Home",
+      "craft": "Craft",
+      "blueprints": "Blueprints",
+      "gathering": "Gathering",
+      "refinery": "Refinery",
+      "stash": "My stash",
+      "org": "Org",
+      "tools": "Tools",
+      "settings": "Settings"
+    },
+    "soonText": {
+      "craft": "What you and your org can craft right now, from the blueprints and the materials you hold between you.",
+      "blueprints": "Every blueprint you and your org hold, where the missing ones drop, and what each needs.",
+      "gathering": "A shopping list for the items you want to craft: what to mine or buy, at the quality that counts.",
+      "stash": "What you hold and where, kept from your refinery orders and the game's log.",
+      "org": "Your org's members, events and notices, from the website.",
+      "refinery": "Your refinery orders in one list, with the time left on each.",
+      "tools": "The org's pages and the community's tools, one click from the game."
+    },
+    "hide": "Back to the game",
+    "keyToggle": "show / hide",
+    "keyBack": "back to game",
+    "location": "Location",
+    "ship": "Ship",
+    "gameRunning": "The game is running",
+    "gameNotRunning": "The game is not running; this is the last session",
+    "quit": "Quit StarBuddy"
+  },
+  "home": {
+    "servers": "Servers",
+    "watcher": "Log watcher",
+    "reading": "Screen reading",
+    "unknown": "Not known yet",
+    "checkedAt": "RSI status checked {{time}}",
+    "watching": "Watching",
+    "notWatching": "Not watching",
+    "synced_one": "{{count}} event sent this session",
+    "synced_other": "{{count}} events sent this session",
+    "watcherHint": "Follows Game.log and sends what it finds to your server.",
+    "readingOn": "On",
+    "readingOff": "Off",
+    "readingHint": "Needed for refinery reads and scanning.",
+    "readingStart": "Turn on",
+    "readingStop": "Turn off",
+    "refinery": "Refinery",
+    "openRefinery": "Open",
+    "noRefinery": "No order read yet. Press F8 at a refinery kiosk to read one.",
+    "readAt": "Read at {{station}} · {{time}}",
+    "unknownStation": "an unknown station",
+    "noMaterials": "Nothing set to refine",
+    "ready": "Ready",
+    "recent": "Recent from Game.log",
+    "noEventsYet": "Nothing new in the log yet this session.",
+    "noEvents": "Start the log watcher to see what the game logs.",
+    "overlays": "Over the game",
+    "overlay": {
+      "status": "Status",
+      "scan": "Scan",
+      "refinery": "Refinery order",
+      "pools": "Blueprint pools",
+      "gathering": "Gathering",
+      "orders": "Refinery orders",
+      "points": "Your points"
+    }
+  },
+  "refinery": {
+    "lead": "Your refinery orders, read at the kiosk with the hotkey.",
+    "pairFirst": "Pair with your org's StarBuddy website in Settings to see your refinery orders.",
+    "open": "Open",
+    "all": "All",
+    "loading": "Loading…",
+    "none": "No refinery orders yet.",
+    "noneOpen": "Nothing in a refinery right now.",
+    "refining": "Refining",
+    "collectedAt": "Collected · {{place}}",
+    "collectTo": "Take it to…",
+    "collect": "Collect",
+    "col": {
+      "station": "Refinery",
+      "materials": "Refining",
+      "status": "Status",
+      "time": "Time left"
+    }
+  },
+  "tools": {
+    "lead": "Your org's pages and the community's tools, one click from the game. They open in your browser.",
+    "org": "Your org",
+    "community": "Community",
+    "mine": "Your links",
+    "name": "Name",
+    "url": "Address",
+    "add": "Add link",
+    "remove": "Remove {{name}}",
+    "site": {
+      "uex": "Commodity prices and trade routes",
+      "regolith": "Mining sessions and refinery maths",
+      "erkul": "Ship loadout calculator",
+      "wiki": "Items, recipes and locations",
+      "cstone": "Where to buy an item",
+      "sctrade": "Trade route planner"
+    },
+    "page": {
+      "dashboard": {
+        "name": "Dashboard",
+        "blurb": "How the orgs compare this month"
+      },
+      "resources": {
+        "name": "Materials",
+        "blurb": "Who holds what, where, at which quality"
+      },
+      "items": {
+        "name": "Items",
+        "blurb": "Items held across the org"
+      },
+      "blueprints": {
+        "name": "Blueprint library",
+        "blurb": "Every blueprint the org holds"
+      },
+      "craft": {
+        "name": "Craft",
+        "blurb": "What the org can craft"
+      },
+      "refinery": {
+        "name": "Refinery orders",
+        "blurb": "Orders saved from your reads"
+      }
+    }
+  },
+  "settings": {
+    "tab": {
+      "general": "General",
+      "hotkeys": "Hotkeys",
+      "game": "Game install",
+      "reading": "Screen reading",
+      "updates": "Updates",
+      "diagnostics": "Diagnostics"
+    },
+    "reportHint": "When something does not work, this report says what StarBuddy knows about your machine. Paste it with your question.",
+    "openAs": "Open StarBuddy as",
+    "mode": {
+      "overlay": "Overlay",
+      "window": "Window"
+    },
+    "modeText": {
+      "overlay": "Over the game, without a frame. The hotkey shows and hides it, and it stays where you put it.",
+      "window": "A normal desktop window you switch to with Alt+Tab."
+    },
+    "modeNoGame": "While the game is not running, StarBuddy always opens as a window.",
+    "hotkeyMain": "Show / hide StarBuddy",
+    "hkCount_one": "{{count}} hotkey registered",
+    "hkCount_other": "{{count}} hotkeys registered",
+    "hk": {
+      "main": "Open / close StarBuddy",
+      "status": "Status window",
+      "reading": "Screen reading on / off",
+      "refinery": "Read refinery order",
+      "scan": "Live scanning",
+      "capture": "Screenshot for training"
+    },
+    "hkSub": {
+      "main": "The one key to remember",
+      "status": "Server status over the game",
+      "reading": "Lets StarBuddy read the game",
+      "refinery": "At the refinery kiosk",
+      "scan": "Reads the scan signature",
+      "capture": "Helps improve the reader"
+    },
+    "change": "Change",
+    "groupWindows": "Windows",
+    "groupCapture": "Screen capture",
+    "captureNeedsReading": "These read the game's window: turn screen reading on first.",
+    "area": {
+      "refinery": "Refinery order area"
+    },
+    "areaFramed": "Framed: only that part of the screen is read",
+    "areaWhole": "Not framed: StarBuddy looks for the panel on the whole screen",
+    "areaFrame": "Frame area",
+    "areaReframe": "Frame again",
+    "areaClear": "Clear",
+    "areaNeedsReading": "Turn screen reading on to frame an area.",
+    "lastHotkey": "Last hotkey",
+    "heard": "{{action}} at {{time}}: the keys reach StarBuddy.",
+    "heardNone": "No hotkey has reached StarBuddy since it started.",
+    "reportIssue": "Report a problem on GitHub",
+    "knownIssues": "Known problems",
+    "hkFailed": "Not working: {{names}}. Another program may own the key; pick a different one.",
+    "hkCommands": "Show the commands",
+    "presence": "Game status for your org",
+    "presenceShare": "Show my org mates whether I play, where, in what ship and on which shard",
+    "presenceHint": "Only members of your main org see it. Turned off, the website forgets it at once."
+  },
+  "gathering": {
+    "lead": "What your pinned craft targets need, against what you hold at the right quality.",
+    "pairFirst": "Pair with your org's StarBuddy website in Settings to see your shopping list.",
+    "post": "Post shopping list to Discord",
+    "posted_one": "Posted {{count}} material to Discord.",
+    "posted_other": "Posted {{count}} materials to Discord.",
+    "less": "One fewer",
+    "more": "One more",
+    "unpin": "Unpin {{name}}",
+    "ready": "Ready to craft",
+    "needs_one": "Needs {{count}} material",
+    "needs_other": "Needs {{count}} materials",
+    "pin": "+ Pin a blueprint",
+    "list": "Shopping list",
+    "still": "{{still}} of {{of}} still to gather",
+    "mine": "Only mine",
+    "withOrg": "Include org stock",
+    "empty": "Pin a blueprint as a craft target and its materials show up here.",
+    "done": "Done",
+    "below": "You also hold {{amount}} below the quality needed",
+    "qualityNote": "Stock below the quality a recipe needs does not count, so you know what is worth mining.",
+    "col": {
+      "material": "Material",
+      "need": "Needed",
+      "quality": "Quality",
+      "mine": "You have",
+      "org": "Org has",
+      "still": "Still to get",
+      "for": "For"
+    }
+  },
+  "pages": {
+    "pairFirst": "Pair with your org's StarBuddy website in Settings to see this.",
+    "search": "Search",
+    "page": "Page {{page}} of {{last}}",
+    "total_one": "{{count}} in all",
+    "total_other": "{{count}} in all"
+  },
+  "blueprints": {
+    "category": "Category",
+    "allCategories": "All categories",
+    "show": {
+      "all": "All",
+      "mine": "Held",
+      "missing": "Missing"
+    },
+    "none": "No blueprints match.",
+    "col": {
+      "name": "Name",
+      "type": "Type",
+      "grade": "Grade",
+      "held": "Held",
+      "pool": "Drops from"
+    },
+    "default": "Default",
+    "orgHolds_one": "{{count}} in the org",
+    "orgHolds_other": "{{count}} in the org",
+    "track": "Track this pool",
+    "pin": "Pin",
+    "marked": "{{name}} marked as held.",
+    "unmarked": "{{name}} no longer marked as held.",
+    "pinned": "{{name}} pinned as a craft target.",
+    "tracked": "Now tracking {{pool}}."
+  },
+  "craft": {
+    "craftable": "Craftable now",
+    "allMine": "All my blueprints",
+    "working": "Working out what you can craft…",
+    "none": "Nothing found.",
+    "noneCraftable": "Nothing can be crafted from what you hold.",
+    "col": {
+      "coverage": "Covered",
+      "quality": "Quality",
+      "missing": "Still missing"
+    },
+    "craft": "Craft",
+    "done": "Crafted {{name}} (quality {{quality}}).",
+    "undo": "Undo"
+  },
+  "items": {
+    "mine": "Mine",
+    "org": "Org",
+    "none": "No items found.",
+    "col": {
+      "item": "Item",
+      "quantity": "Qty",
+      "quality": "Quality",
+      "location": "Where",
+      "shared": "Shared",
+      "holders": "Holders"
+    },
+    "withOrg": "With the org",
+    "private": "Private"
+  },
+  "org": {
+    "lead": "{{org}}: {{playing}} of {{count}} playing now",
+    "noOrg": "You are not in an org yet. Join one on the website.",
+    "main": "Main org",
+    "none": "No members to show.",
+    "col": {
+      "member": "Member",
+      "status": "Status",
+      "location": "Last location",
+      "ship": "Ship",
+      "build": "Build"
+    },
+    "you": "you",
+    "playing": "Playing",
+    "lastSeen": "Last seen {{when}}",
+    "unknown": "No game status",
+    "sameShard": "On the same shard as you",
+    "presenceNote": "Game status comes from each member's StarBuddy client. Members can switch it off under Settings › General."
+  },
+  "udi": {
+    "title": "UnitedDanes StarLabels and StarConfig",
+    "lead": "Better ship and item names in the game (StarLabels) and your game settings (StarConfig), set up on uniteddanes.org and installed into your game folder by StarBuddy.",
+    "setUp": "Set up on uniteddanes.org",
+    "openLabels": "Open StarLabels",
+    "openConfig": "Open StarConfig",
+    "waiting": "Waiting for you to press “Send to StarBuddy” on the page…",
+    "fresh": "New settings from uniteddanes.org: {{what}}.",
+    "whatLabels": "names (global.ini)",
+    "whatConfig": "game settings (user.cfg)",
+    "and": " and ",
+    "install": "Install",
+    "reinstall": "Install again",
+    "auto": "Install new settings and game versions by themselves",
+    "installed": "Installed for {{channel}}, game {{version}}, {{when}}.",
+    "doneIni": "Names installed for game {{version}}.",
+    "doneCfg": "Game settings installed.",
+    "backedUp": "Your own user.cfg was kept as user.cfg.before-starbuddy.",
+    "iniLater": "uniteddanes.org could not build the names just now; the installed ones stay, and StarBuddy tries again later.",
+    "upToDate": "Already up to date.",
+    "note": "Takes effect the next time the game starts. Unlinking leaves the installed files in place.",
+    "unlink": "Unlink"
   }
 }

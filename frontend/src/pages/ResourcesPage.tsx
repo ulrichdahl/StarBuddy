@@ -53,6 +53,7 @@ import { PlaceSelect, type Place } from '../components/PlaceSelect'
 import { VisibilitySelect } from '../components/VisibilitySelect'
 import { OrgMatrixTable } from '../components/OrgMatrixTable'
 import { useMe } from '../lib/auth'
+import { useViewParam } from '../lib/useViewParam'
 
 /** Desaturated WoW ladder, shared by both rarity axes. */
 
@@ -168,11 +169,12 @@ function EditStackDialog({ stack, onClose }: { stack: ResourceStack; onClose: ()
 
 type SortField = 'resource' | 'quality' | 'quantity' | 'system' | 'location' | 'visibility' | 'updated_at'
 type OrgSortField = 'name' | 'quality' | 'total' | 'stacks' | 'holders'
-type View = 'stacks' | 'org' | 'ledger'
+const VIEWS = ['stacks', 'org', 'ledger'] as const
+type View = (typeof VIEWS)[number]
 
 export function ResourcesPage() {
   const { t, i18n } = useTranslation()
-  const [view, setView] = useState<View>('stacks')
+  const [view, setView] = useViewParam<View>(VIEWS, 'stacks')
   const [editing, setEditing] = useState<ResourceStack | null>(null)
   const [search, setSearch] = useState('')
   const [qualityMin, setQualityMin] = useState('')

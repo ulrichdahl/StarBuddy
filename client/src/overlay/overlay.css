@@ -1,6 +1,6 @@
 /* ── Overlay windows: Launcher Glass ─────────────────────────────────────
    The window itself is transparent; the panel paints its own glass. */
-@import "../assets/fonts/fonts.css";
+@import "../theme.css";
 
 html.overlay-mode,
 html.overlay-mode body {
@@ -23,26 +23,6 @@ html.debug-bounds::after {
 }
 
 .ov {
-  --bg0: #0a0c10;
-  --glass: rgba(10, 16, 24, 0.86);
-  --line: rgba(120, 160, 190, 0.35);
-  --line2: rgba(120, 160, 190, 0.18);
-  --steel: #7fa0b8;
-  --cyan: #3cc9f0;
-  --amber: #e0a526;
-  --amber2: #f3c65a;
-  --red: #e0564b;
-  --green: #2fbfa4;
-  --text: #dbe6ee;
-  --muted: #8fa3b3;
-  --dim: #5f7384;
-  --disp: "Rajdhani", "Bahnschrift", "Arial Narrow", sans-serif;
-  --body: "Exo 2", "Segoe UI", system-ui, sans-serif;
-  --mono: "Share Tech Mono", ui-monospace, Consolas, monospace;
-  --acc: var(--cyan);
-  --acc-soft: rgba(60, 201, 240, 0.12);
-  --cut: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
-
   position: relative;
   width: 440px;
   color: var(--text);
@@ -683,3 +663,26 @@ html.debug-bounds::after {
 .ov-table tr.ov-off input {
   opacity: 0.45;
 }
+
+/* ── Dashboard trackers ── */
+.ov-trk { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; min-width: 340px; }
+.ov-trk-line, .ov-trk-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 70px 88px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.ov-trk-line:not(:has(.ov-bar)) { grid-template-columns: minmax(0, 1fr) 88px; }
+.ov-trk-line > .mono:last-child, .ov-trk-head > .mono:last-child { text-align: right; }
+.ov-trk-line.ready .mono { color: var(--green, #5fd38d); }
+.ov-trk-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-trk-row { border: 1px solid rgba(120, 160, 190, 0.18); }
+.ov-trk-row.done { opacity: 0.55; }
+.ov-trk-head { width: 100%; padding: 5px 8px; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ov-trk-head:hover { background: rgba(120, 160, 190, 0.1); }
+.ov-trk-more { padding: 2px 8px 8px; font-size: 12.5px; display: flex; flex-direction: column; gap: 3px; }
+.ov-struck { text-decoration: line-through; opacity: 0.6; }
+.ov-bar { display: block; height: 4px; background: rgba(120, 160, 190, 0.2); }
+.ov-bar > span { display: block; height: 100%; background: var(--cyan, #3cc9f0); }
+.ov-chip.ov-ready { border-color: var(--cyan, #3cc9f0); color: var(--cyan, #3cc9f0); }

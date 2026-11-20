@@ -1,0 +1,27 @@
+# Opens a PR into develop when a base image the Dockerfiles name gets a newer
+# release. The PHP image is pinned to a patch version so the server runs a
+# known build; this is what keeps that pin from going stale.
+version: 2
+updates:
+  # Backend: PHP patch releases carry the security fixes, so check daily.
+  # A new minor (8.6) is a deliberate upgrade, not something to drift into.
+  - package-ecosystem: docker
+    directory: /backend
+    target-branch: develop
+    schedule:
+      interval: daily
+    ignore:
+      - dependency-name: php
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    commit-message:
+      prefix: "Backend:"
+
+  # Web (node build + caddy) and bot (node): floating major tags, so these
+  # only speak up for a new major.
+  - package-ecosystem: docker
+    directories:
+      - /docker/web
+      - /bot
+    target-branch: develop
+    schedule:
+      interval: weekly

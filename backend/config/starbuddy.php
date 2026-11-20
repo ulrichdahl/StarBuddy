@@ -27,6 +27,10 @@ return [
     // Optional Discord channel that receives refinery-completion pings
     // (only for events fresher than a few minutes, so a first-run history
     // import never floods it). Empty = notifications off.
+    // Optional Discord channel players can post their Gathering shopping
+    // list to. Empty = the "Post to Discord" button is hidden.
+    'gathering_channel_id' => env('STARBUDDY_GATHERING_CHANNEL_ID'),
+
     'refinery_channel_id' => env('STARBUDDY_REFINERY_CHANNEL_ID', env('STARMAKER_REFINERY_CHANNEL_ID')),
 
     // RSI service status (status.robertsspaceindustries.com) is polled every
@@ -41,4 +45,12 @@ return [
     // Discord role id => org name. Members holding the role are attached to
     // the org on login. Format: JSON object, e.g. {"123456789":"Stellar Forge"}
     'role_org_map' => json_decode(env('STARBUDDY_ROLE_ORG_MAP', env('STARMAKER_ROLE_ORG_MAP', '{}')), true) ?: [],
+
+    // The UDI website whose StarLabels/StarConfig tools StarBuddy links to
+    // (docs: UnitedDanes website docs/starbuddy-api.md). The server only
+    // checks the link's status and unlinks; desktop clients fetch the files.
+    'udi_url' => rtrim(env('STARBUDDY_UDI_URL', 'https://uniteddanes.org'), '/'),
+    // Where the player's browser opens the setup page. Differs from udi_url
+    // only in local dev, where the server reaches UDI through the Docker host.
+    'udi_public_url' => rtrim(env('STARBUDDY_UDI_PUBLIC_URL') ?: env('STARBUDDY_UDI_URL', 'https://uniteddanes.org'), '/'),
 ];

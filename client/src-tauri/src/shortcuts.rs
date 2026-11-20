@@ -75,6 +75,7 @@ pub fn as_trigger(accelerator: &str) -> String {
 #[cfg(target_os = "linux")]
 mod portal {
     use super::*;
+    use crate::lock::LockExt;
     use ashpd::desktop::global_shortcuts::{BindShortcutsOptions, GlobalShortcuts, NewShortcut};
     use ashpd::desktop::{CreateSessionOptions, Session};
     use futures_util::StreamExt;
@@ -92,7 +93,7 @@ mod portal {
     /// X11 session and no worse than before anywhere else.
     pub fn start(app: &AppHandle) {
         let (sender, receiver) = channel(1);
-        *rebind_channel().lock().unwrap() = Some(sender);
+        *rebind_channel().lock_or_recover() = Some(sender);
         let app = app.clone();
         tauri::async_runtime::spawn(async move { run(app, receiver).await });
     }
@@ -102,7 +103,7 @@ mod portal {
     /// A session's shortcuts are fixed once bound, so this ends the session and
     /// opens another.
     pub fn rebind() {
-        if let Some(sender) = rebind_channel().lock().unwrap().as_ref() {
+        if let Some(sender) = rebind_channel().lock_or_recover().as_ref() {
             let _ = sender.try_send(());
         }
     }
@@ -115,7 +116,7 @@ mod portal {
                     // Once, at startup: on a desktop without the interface this
                     // is the normal state of affairs, not a fault to repeat.
                     log::info!("desktop hotkeys unavailable, using the X11 grab: {e}");
-                    bound().lock().unwrap().clear();
+                    bound().lock_or_recover().clear();
                     return;
                 }
             };
@@ -196,7 +197,7 @@ mod portal {
     fn settled(app: &AppHandle, names: HashMap<String, String>) {
         let keyed = names.values().filter(|t| !t.is_empty()).count();
         log::info!("desktop holds {} hotkeys, {keyed} with a key: {names:?}", names.len());
-        *bound().lock().unwrap() = names;
+        *bound().lock_or_recover() = names;
         if keyed > 0 {
             // The desktop delivers them now, so the X server need not: with
             // both in place a key fires twice whenever StarBuddy has focus.

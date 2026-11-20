@@ -25,7 +25,9 @@ import { PageHeader } from '../components/PageHeader'
 import { OwnersCell } from '../components/OwnersCell'
 import { ListPager } from '../components/ListPager'
 import { CraftDetailDialog } from '../components/CraftDetailDialog'
-import { COMPLETE_GREEN } from '../lib/rarity'
+import { fonts, hud } from '../theme'
+import { usePinnedBlueprints } from '../lib/craftTargets'
+import { PinMark } from '../components/PinMark'
 
 interface CraftResult {
   id: number
@@ -70,6 +72,7 @@ function missingLabel(m: CraftResult['missing'][number], t: TFunction, locale: s
 }
 
 export function CraftPage() {
+  const pinned = usePinnedBlueprints()
   const { t, i18n } = useTranslation()
   // `search` and `all` live in the URL too, so the global item search can deep-link here.
   const [searchParams, setSearchParams] = useSearchParams()
@@ -77,6 +80,7 @@ export function CraftPage() {
   const [type, setType] = useState('')
   const [craftableOnly, setCraftableOnly] = useState(false)
   const [includeUnowned, setIncludeUnowned] = useState(searchParams.get('all') === '1')
+  const [pinnedOnly, setPinnedOnly] = useState(false)
 
   // A new navigation (e.g. another AppBar search while already here) re-seeds the filters.
   useEffect(() => {
@@ -132,7 +136,8 @@ export function CraftPage() {
     setPage(0)
   }
   const sorted = useMemo(() => {
-    const rows = data?.results ?? []
+    const all = data?.results ?? []
+    const rows = pinnedOnly ? all.filter((r) => pinned.has(r.id)) : all
     if (sort === 'relevance') return rows
     const collator = new Intl.Collator(i18n.language)
     const cmp = (a: CraftResult, b: CraftResult): number => {
@@ -152,7 +157,7 @@ export function CraftPage() {
       return 0
     }
     return [...rows].sort((a, b) => (dir === 'asc' ? cmp(a, b) : cmp(b, a)))
-  }, [data, sort, dir, i18n.language])
+  }, [data, sort, dir, i18n.language, pinnedOnly, pinned])
   const header = (label: string, field: SortField, align?: 'right') => (
     <TableCell align={align} sortDirection={sort === field ? dir : false}>
       <TableSortLabel active={sort === field} direction={sort === field ? dir : 'asc'} onClick={() => sortBy(field)}>
@@ -164,12 +169,12 @@ export function CraftPage() {
   // Back to the first page whenever a filter changes the result set.
   useEffect(() => {
     setPage(0)
-  }, [search, type, craftableOnly, includeUnowned])
+  }, [search, type, craftableOnly, includeUnowned, pinnedOnly])
 
   return (
     <Box>
       <PageHeader title={t('craft.title')} subtitle={t('craft.subtitle')} />
-      <Paper sx={{ p: 2, mb: 2, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
+      <Paper sx={{ p: 2, mb: 2, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', bgcolor: hud.input }}>
         <TextField
           size="small"
           label={t('craft.search')}
@@ -220,6 +225,12 @@ export function CraftPage() {
           }
           label={t('craft.includeUnowned')}
         />
+        {pinned.size > 0 && (
+          <FormControlLabel
+            control={<Switch checked={pinnedOnly} onChange={(e) => setPinnedOnly(e.target.checked)} />}
+            label={t('craft.pinnedOnly')}
+          />
+        )}
       </Paper>
       <Paper>
         {isLoading && <LinearProgress />}
@@ -243,7 +254,10 @@ export function CraftPage() {
             <TableBody>
               {sorted.slice(page * rowsPerPage, (page + 1) * rowsPerPage).map((r) => (
                 <TableRow key={r.id} hover onClick={() => setDetailId(r.id)} sx={{ cursor: 'pointer' }}>
-                  <TableCell>{r.name}</TableCell>
+                  <TableCell>
+                    {r.name}
+                    {pinned.has(r.id) && <PinMark quantity={pinned.get(r.id)} />}
+                  </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
                       {r.type_display ?? [r.type, r.sub_type].filter(Boolean).join(' · ')}
@@ -272,13 +286,12 @@ export function CraftPage() {
                           sx={{
                             flex: 1,
                             height: 6,
-                            borderRadius: 3,
                             overflow: 'hidden',
                             display: 'flex',
-                            bgcolor: 'rgba(232, 180, 90, 0.22)',
+                            bgcolor: '#1c262d',
                           }}
                         >
-                          <Box sx={{ width: `${Math.round(r.coverage_private * 100)}%`, bgcolor: COMPLETE_GREEN }} />
+                          <Box sx={{ width: `${Math.round(r.coverage_private * 100)}%`, bgcolor: hud.teal }} />
                           <Box
                             sx={{
                               width: `${Math.round((r.coverage - r.coverage_private) * 100)}%`,
@@ -292,7 +305,8 @@ export function CraftPage() {
                         sx={{
                           minWidth: 36,
                           textAlign: 'right',
-                          fontVariantNumeric: 'tabular-nums',
+                          fontFamily: fonts.mono,
+                          color: r.coverage >= 1 ? hud.teal : 'text.secondary',
                         }}
                       >
                         {Math.round(r.coverage * 100)}%
@@ -300,7 +314,7 @@ export function CraftPage() {
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography variant="caption" sx={{ color: r.missing.length > 0 ? '#f0b44c' : 'text.secondary' }}>
                       {r.missing
                         .slice(0, 3)
                         .map((m) => missingLabel(m, t, i18n.language))
@@ -309,7 +323,9 @@ export function CraftPage() {
                       {r.missing.length === 0 ? '—' : ''}
                     </Typography>
                   </TableCell>
-                  <TableCell align="right">{r.est_output_quality ?? '—'}</TableCell>
+                  <TableCell align="right" sx={{ fontFamily: fonts.mono }}>
+                    {r.est_output_quality ?? '—'}
+                  </TableCell>
                 </TableRow>
               ))}
               {!isLoading && (data?.results ?? []).length === 0 && (

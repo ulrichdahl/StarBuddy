@@ -1,6 +1,6 @@
 [package]
 name = "starbuddy-client"
-version = "0.1.16"
+version = "1.0.0"
 description = "StarBuddy desktop client — Star Citizen Game.log watcher and org ledger companion"
 authors = ["Ulrich Dahl <ulrich.dahl@gmail.com>"]
 license = "AGPL-3.0-or-later"
@@ -20,18 +20,28 @@ tauri-plugin-notification = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-single-instance = "2"
+# Installing an update in place: the AppImage and the Windows installer,
+# signed in CI with the key whose public half is in tauri.conf.json.
+tauri-plugin-updater = "2"
+# The UnitedDanes link token: 32 bytes from the system's CSPRNG.
+getrandom = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 regex = "1"
-dirs = "6"
-reqwest = { version = "0.12", default-features = false, features = ["json", "multipart", "rustls-tls"] }
+dirs = "7"
+# `rustls` is 0.13's name for what 0.12 called `rustls-tls`, and it now brings
+# aws-lc-rs rather than ring as the crypto provider. aws-lc-sys ships prebuilt
+# NASM objects, so the Windows build still needs nothing but MSVC.
+reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "rustls"] }
+# The RSI status loop sleeps and is woken; tauri already runs on tokio.
+tokio = { version = "1", features = ["time", "sync"] }
 hostname = "0.4"
-ocrs = "0.12"
-rten = "0.24"
+ocrs = "0.13"
+rten = "0.26"
 # Word boxes from the detector, so a line can be cut where a panel's column
 # ends rather than run across the gutter into the next one.
-rten-imageproc = "0.24"
-base64 = "0.22"
+rten-imageproc = "0.26"
+base64 = "0.23"
 image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 log = "0.4"
 tauri-plugin-log = "2"
@@ -48,6 +58,9 @@ windows-capture = "2"
 # Waiting for one WinRT call to answer. The trait that does the waiting lives
 # here rather than in `windows`, which does not re-export it.
 windows-future = "0.3"
+# Putting a hidden overlay's webview to sleep: the WebView2 interfaces behind
+# the controller tauri hands out. Same version as wry's, so it builds once.
+webview2-com = "0.39"
 windows = { version = "0.62", features = [
     "Graphics_Capture",
     "Security_Authorization_AppCapabilityAccess",
@@ -72,6 +85,9 @@ ashpd = { version = "0.13", default-features = false, features = ["tokio", "scre
 # Reading the portal's stream of shortcut presses.
 futures-util = { version = "0.3", default-features = false, features = ["std"] }
 pipewire = "0.10"
+# Reaching the WebKitGTK settings of an overlay's webview, to switch off what
+# it never uses. Same version and features as wry's, so it builds once.
+webkit2gtk = { version = "2.0", features = ["v2_38"] }
 
 # The OCR crates are unusable unoptimised: one refinery panel takes two and a
 # half minutes in a debug build against two seconds in a release one, which
@@ -80,3 +96,9 @@ pipewire = "0.10"
 # through.
 [profile.dev.package."*"]
 opt-level = 3
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+# No `panic = "abort"`: the analysis service's panic guard and the poisoned-lock recovery rely on unwinding.

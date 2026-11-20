@@ -11,25 +11,42 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use crate::lock::LockExt;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindowBuilder, WindowEvent};
+use tauri::{
+    AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+    WindowEvent,
+};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 /// The RSI status window — the first overlay surface.
 pub const STATUS: &str = "status";
+/// The dashboard trackers: tracked pools, gathering, refinery orders, points.
+pub const TRACKERS: [&str; 4] = ["pools", "gathering", "orders", "points"];
 /// Default per action. F6 is unbound in Star Citizen's current default
 /// keyset (F1 mobiGlas, F2 starmap, F4 camera, F11 comms, F12 chat are not).
 /// F8 reads the refinery panel, F9 sends the frame for training, F10 switches
 /// reading the screen on and off. None is bound in Star Citizen's current
 /// default keyset, like F6 and F7.
-pub const DEFAULT_HOTKEYS: [(&str, &str); 5] = [
+pub const DEFAULT_HOTKEYS: [(&str, &str); 6] = [
+    // Insert: bound to nothing in Star Citizen's default profile
+    // (Data/Libs/Config/defaultProfile.xml, 4.x), where F12 is chat.
+    ("main", "Insert"),
     ("status", "F6"),
     ("scan", "F7"),
     ("refinery", "F8"),
     ("capture", "F9"),
     ("reading", "F10"),
 ];
+/// Every overlay's window is destroyed after it has been hidden this long.
+/// A hidden webview is a whole browser process kept alive for nothing: measured
+/// on Linux, about 55 MB each, since WebKitGTK cannot suspend one. Rebuilding
+/// the window on the next hotkey is not noticeable to the player, and the delay
+/// keeps a quick hide and show instant. On Windows the webview is suspended
+/// (`webview_power`) for the time it waits. The scan window waits longer while
+/// the live scan runs: see [`destroy_when_idle`].
+const IDLE_DESTROY_AFTER: Duration = Duration::from_secs(30);
 /// Pre-F6 default; a stored copy of it is migrated to the new default.
 const LEGACY_DEFAULT_HOTKEY: &str = "Ctrl+Alt+S";
 /// CLI flag a second launch (or a desktop-environment keybinding) uses to
@@ -138,30 +155,47 @@ pub struct OverlayState {
     /// registers as an error rather than a press that never arrives, and the
     /// player can only act on that if it reaches the settings panel.
     failures: Mutex<HashMap<String, String>>,
+    /// Per window: what the visibility hooks know about it.
+    presence: Mutex<HashMap<String, Presence>>,
+}
+
+/// One overlay window as [`on_shown`] and [`on_hidden`] last left it.
+#[derive(Default)]
+struct Presence {
+    /// On screen. Overlay-only events are delivered only while this is true.
+    shown: bool,
+    /// Bumped on every show, hide and destroy, so an idle timer started at one
+    /// hide can tell that the window has been shown since and stand down.
+    generation: u64,
+    /// Bumped each time the window is built. The event handler of a destroyed
+    /// window carries its own number, so it cannot act on a rebuilt one.
+    instance: u64,
+    /// Overlay-only events sent while the window was hidden: the latest payload
+    /// of each, oldest first, replayed when it is shown again so it does not
+    /// come back showing what it last saw.
+    missed: Vec<(String, serde_json::Value)>,
 }
 
 impl OverlayState {
     pub fn load(app: &AppHandle) -> Self {
-        let prefs: OverlayPrefs = prefs_path(app)
-            .and_then(|p| fs::read(p).ok())
-            .and_then(|b| serde_json::from_slice(&b).ok())
-            .unwrap_or_default();
+        let prefs: OverlayPrefs = prefs_path(app).and_then(|p| crate::fs_atomic::read_json(&p)).unwrap_or_default();
         Self {
             prefs: Mutex::new(prefs.migrate()),
             registered: Mutex::new(Vec::new()),
             failures: Mutex::new(HashMap::new()),
             last_saved: Mutex::new(Instant::now() - Duration::from_secs(10)),
             quiet_until: Mutex::new(HashMap::new()),
+            presence: Mutex::new(HashMap::new()),
         }
     }
 }
 
 fn quiet(app: &AppHandle, name: &str, ms: u64) {
-    app.state::<OverlayState>().quiet_until.lock().unwrap().insert(name.to_string(), Instant::now() + Duration::from_millis(ms));
+    app.state::<OverlayState>().quiet_until.lock_or_recover().insert(name.to_string(), Instant::now() + Duration::from_millis(ms));
 }
 
 fn is_quiet(app: &AppHandle, name: &str) -> bool {
-    app.state::<OverlayState>().quiet_until.lock().unwrap().get(name).is_some_and(|t| Instant::now() < *t)
+    app.state::<OverlayState>().quiet_until.lock_or_recover().get(name).is_some_and(|t| Instant::now() < *t)
 }
 
 fn prefs_path(app: &AppHandle) -> Option<PathBuf> {
@@ -173,16 +207,19 @@ fn prefs_path(app: &AppHandle) -> Option<PathBuf> {
 fn save(app: &AppHandle, force: bool) {
     let state = app.state::<OverlayState>();
     {
-        let mut last = state.last_saved.lock().unwrap();
+        let mut last = state.last_saved.lock_or_recover();
         if !force && last.elapsed() < Duration::from_millis(400) {
             return;
         }
         *last = Instant::now();
     }
     if let Some(path) = prefs_path(app) {
-        let prefs = state.prefs.lock().unwrap().clone();
-        if let Ok(json) = serde_json::to_vec_pretty(&prefs) {
-            let _ = fs::write(path, json);
+        // Held across the write, so two saves land in the order they were made.
+        let prefs = state.prefs.lock_or_recover();
+        if let Ok(json) = serde_json::to_vec_pretty(&*prefs) {
+            if let Err(e) = crate::fs_atomic::write(&path, &json) {
+                log::warn!("{} could not be written: {e}", path.display());
+            }
         }
     }
 }
@@ -196,13 +233,24 @@ fn name_of(label: &str) -> Option<&str> {
 }
 
 fn window_prefs(app: &AppHandle, name: &str) -> WindowPrefs {
-    app.state::<OverlayState>().prefs.lock().unwrap().windows.get(name).cloned().unwrap_or_default()
+    app.state::<OverlayState>().prefs.lock_or_recover().windows.get(name).cloned().unwrap_or_else(|| first_place(name))
+}
+
+/// Where a window opens the first time: the trackers down the right of the
+/// default spot rather than all on top of each other and the status window.
+fn first_place(name: &str) -> WindowPrefs {
+    let mut prefs = WindowPrefs::default();
+    if let Some(i) = TRACKERS.iter().position(|t| *t == name) {
+        prefs.x = 500.0;
+        prefs.y = 40.0 + 230.0 * i as f64;
+    }
+    prefs
 }
 
 fn update_prefs(app: &AppHandle, name: &str, f: impl FnOnce(&mut WindowPrefs)) -> WindowPrefs {
     let state = app.state::<OverlayState>();
-    let mut prefs = state.prefs.lock().unwrap();
-    let w = prefs.windows.entry(name.to_string()).or_default();
+    let mut prefs = state.prefs.lock_or_recover();
+    let w = prefs.windows.entry(name.to_string()).or_insert_with(|| first_place(name));
     f(w);
     w.clone()
 }
@@ -216,19 +264,24 @@ pub fn toggle(app: &AppHandle, name: &str) -> Result<bool, String> {
         let visible = win.is_visible().map_err(|e| e.to_string())?;
         if visible {
             win.hide().map_err(|e| e.to_string())?;
+            on_hidden(app, name, &win);
         } else {
             quiet(app, name, 1000);
+            // Woken before it is shown, so the first frame on screen is the
+            // panel rather than a blank sheet; on_shown's resume is then a no-op.
+            crate::webview_power::resume(&win);
             win.show().map_err(|e| e.to_string())?;
             let _ = apply_layout(app, name);
+            on_shown(app, name, &win);
         }
         !visible
     } else {
+        // create() runs on_shown itself: show_if_open builds windows too.
         create(app, name)?;
         true
     };
     update_prefs(app, name, |w| w.open = now_visible);
     save(app, true);
-    let _ = app.emit("overlay-visibility", (name.to_string(), now_visible));
     Ok(now_visible)
 }
 
@@ -269,10 +322,21 @@ pub fn show_if_open(app: &AppHandle, name: &str) {
 fn create(app: &AppHandle, name: &str) -> Result<(), String> {
     let prefs = window_prefs(app, name);
     quiet(app, name, 1500);
+    // A new page asks for the state it shows when it mounts, so nothing missed
+    // by an earlier window needs replaying into it.
+    let instance = {
+        let state = app.state::<OverlayState>();
+        let mut presence = state.presence.lock_or_recover();
+        let p = presence.entry(name.to_string()).or_default();
+        p.missed.clear();
+        p.instance += 1;
+        p.instance
+    };
     // The name travels as a global set before any page script runs; the
     // query string is kept for `vite dev`, where it is the only channel.
     let url = WebviewUrl::App(format!("index.html?window={name}").into());
-    let win = WebviewWindowBuilder::new(app, label(name), url)
+    // EXPERIMENT E2: see `webview2_args`.
+    let win = crate::webview2_args::apply(WebviewWindowBuilder::new(app, label(name), url))
         .initialization_script(format!(
             "window.__STARBUDDY_WINDOW__ = {}; window.__STARBUDDY_DEBUG_BOUNDS__ = {};",
             serde_json::json!(name),
@@ -304,6 +368,7 @@ fn create(app: &AppHandle, name: &str) -> Result<(), String> {
         .visible(true)
         .build()
         .map_err(|e| e.to_string())?;
+    crate::webkit_tuning::tune_overlay(&win);
 
     // The size it was created at, pinned the way a fit pins one, so the window
     // is no more draggable by its edges than it was before.
@@ -317,14 +382,164 @@ fn create(app: &AppHandle, name: &str) -> Result<(), String> {
     let app2 = app.clone();
     let name2 = name.to_string();
     win.on_window_event(move |event| {
-        if let WindowEvent::Moved(pos) = event {
-            on_moved(&app2, &name2, *pos);
+        // A window destroyed and rebuilt under the same label must not have
+        // the old one's late events move or forget the new one.
+        if !is_instance(&app2, &name2, instance) {
+            return;
+        }
+        match event {
+            WindowEvent::Moved(pos) => on_moved(&app2, &name2, *pos),
+            WindowEvent::Destroyed => forget(&app2, &name2),
+            _ => {}
         }
     });
     if let Err(e) = apply_layout(app, name) {
         log::warn!("overlay {name}: initial layout skipped: {e}");
     }
+    // Built visible, so this is a show like any other.
+    on_shown(app, name, &win);
     Ok(())
+}
+
+// ── Visibility hooks ───────────────────────────────────────────────────────
+
+/// Every way an overlay comes on screen ends here: toggle, show, and the
+/// window being built. Main thread only, like the calls that show it.
+fn on_shown(app: &AppHandle, name: &str, win: &WebviewWindow) {
+    // Wake the webview on_hidden put to sleep. It has to run before the replay
+    // below, or the replayed events land in a page that is not running.
+    crate::webview_power::resume(win);
+    let _ = app.emit("overlay-visibility", (name.to_string(), true));
+    // The missed events are sent outside the lock, and the window only counts
+    // as shown once none are left. An event sent meanwhile is queued behind
+    // them instead of overtaking them, so the page ends on the newest state.
+    loop {
+        let missed = {
+            let state = app.state::<OverlayState>();
+            let mut presence = state.presence.lock_or_recover();
+            let p = presence.entry(name.to_string()).or_default();
+            if p.missed.is_empty() {
+                p.shown = true;
+                p.generation += 1;
+                break;
+            }
+            std::mem::take(&mut p.missed)
+        };
+        for (event, payload) in missed {
+            let _ = app.emit_to(win.label(), &event, payload);
+        }
+    }
+}
+
+/// Every way an overlay leaves the screen ends here: toggle and the panel's
+/// own close button. Main thread only.
+fn on_hidden(app: &AppHandle, name: &str, win: &WebviewWindow) {
+    let generation = {
+        let state = app.state::<OverlayState>();
+        let mut presence = state.presence.lock_or_recover();
+        let p = presence.entry(name.to_string()).or_default();
+        p.shown = false;
+        p.generation += 1;
+        p.generation
+    };
+    let _ = app.emit("overlay-visibility", (name.to_string(), false));
+    log::debug!("overlay {}: hidden", win.label());
+    // After the broadcast above, so this page hears that it is hidden before it
+    // sleeps. on_shown wakes it.
+    crate::webview_power::suspend(win);
+    destroy_when_idle(app, name, generation);
+}
+
+/// Destroy the window if it is still hidden, unshown since, after
+/// [`IDLE_DESTROY_AFTER`]. The wait is a timer on the async runtime, not a
+/// sleeping thread. The scan window is spared while the live scan runs: the
+/// player started it and its results go to that window. The timer is then set
+/// again for the same hide, so the first check after the scan stops closes it.
+fn destroy_when_idle(app: &AppHandle, name: &str, generation: u64) {
+    let app = app.clone();
+    let name = name.to_string();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(IDLE_DESTROY_AFTER).await;
+        let app2 = app.clone();
+        // Windows are destroyed on the main thread, where every show and hide
+        // also runs, so nothing can show it between the check and the destroy.
+        let _ = app.run_on_main_thread(move || {
+            let idle = app2
+                .state::<OverlayState>()
+                .presence
+                .lock_or_recover()
+                .get(&name)
+                .is_some_and(|p| !p.shown && p.generation == generation);
+            if !idle {
+                return;
+            }
+            let Some(win) = app2.get_webview_window(&label(&name)) else { return };
+            if win.is_visible().unwrap_or(true) {
+                return;
+            }
+            if name == crate::scan::SCAN && crate::scan::live_running(&app2) {
+                destroy_when_idle(&app2, &name, generation);
+                return;
+            }
+            log::info!("overlay {name}: hidden for {} s, closing its webview", IDLE_DESTROY_AFTER.as_secs());
+            // The next toggle or show finds no window and builds a new one;
+            // prefs keep `open` false, as the hide left it. On Linux the web
+            // process ends with it only through `webkit_tuning`'s destroy hook.
+            if let Err(e) = win.destroy() {
+                log::warn!("overlay {name}: could not destroy the idle window: {e}");
+            }
+        });
+    });
+}
+
+/// Whether `instance` is still the live build of this overlay's window.
+fn is_instance(app: &AppHandle, name: &str, instance: u64) -> bool {
+    app.state::<OverlayState>().presence.lock_or_recover().get(name).is_some_and(|p| p.instance == instance)
+}
+
+/// The window is gone: drop what was kept for it, and stand down any timer.
+fn forget(app: &AppHandle, name: &str) {
+    let was_shown = {
+        let state = app.state::<OverlayState>();
+        let mut presence = state.presence.lock_or_recover();
+        let p = presence.entry(name.to_string()).or_default();
+        p.missed.clear();
+        p.generation += 1;
+        std::mem::replace(&mut p.shown, false)
+    };
+    app.state::<OverlayState>().quiet_until.lock_or_recover().remove(name);
+    // Only an outside close gets here while shown; say so, as a hide would.
+    if was_shown {
+        let _ = app.emit("overlay-visibility", (name.to_string(), false));
+    }
+}
+
+/// Send an event meant only for one overlay's page.
+///
+/// Delivered while that window exists and is on screen. While it is hidden
+/// the latest payload of each event is kept and replayed by [`on_shown`];
+/// while it does not exist the event is dropped, since a new page asks for
+/// its state when it mounts. Use it only for events no other window listens
+/// to: Tauri hands an event aimed at one label to every page that listens
+/// to it globally, so it is the skipping while hidden that saves the work,
+/// not the label.
+pub fn emit_to_overlay<S: Serialize + Clone>(app: &AppHandle, name: &str, event: &str, payload: S) {
+    let label = label(name);
+    if app.get_webview_window(&label).is_none() {
+        return;
+    }
+    if let Some(state) = app.try_state::<OverlayState>() {
+        let mut presence = state.presence.lock_or_recover();
+        let p = presence.entry(name.to_string()).or_default();
+        if !p.shown {
+            if let Ok(value) = serde_json::to_value(&payload) {
+                p.missed.retain(|(e, _)| e != event);
+                p.missed.push((event.to_string(), value));
+            }
+            return;
+        }
+    }
+    let _ = app.emit_to(label.as_str(), event, payload);
 }
 
 /// Floating windows remember where they were dropped; edge-docked windows
@@ -510,7 +725,7 @@ pub fn overlay_close(app: AppHandle, window: tauri::WebviewWindow) -> Result<(),
     window.hide().map_err(|e| e.to_string())?;
     update_prefs(&app, &name, |w| w.open = false);
     save(&app, true);
-    let _ = app.emit("overlay-visibility", (name, false));
+    on_hidden(&app, &name, &window);
     Ok(())
 }
 
@@ -552,7 +767,7 @@ fn on_wayland() -> bool {
 
 #[tauri::command]
 pub fn overlay_hotkey(app: AppHandle) -> HotkeyInfo {
-    let hotkeys = app.state::<OverlayState>().prefs.lock().unwrap().all_hotkeys().into_iter().collect();
+    let hotkeys = app.state::<OverlayState>().prefs.lock_or_recover().all_hotkeys().into_iter().collect();
     let exe = std::env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|_| "starbuddy".into());
     HotkeyInfo {
         hotkeys,
@@ -563,8 +778,8 @@ pub fn overlay_hotkey(app: AppHandle) -> HotkeyInfo {
         triggers: crate::shortcuts::triggers(),
         toggle_command: format!("\"{exe}\" {TOGGLE_FLAG}"),
         action_command: format!("\"{exe}\" {ACTION_FLAG} "),
-        failed: app.state::<OverlayState>().failures.lock().unwrap().clone(),
-        live: app.state::<OverlayState>().registered.lock().unwrap().iter().map(|(_, a)| a.clone()).collect(),
+        failed: app.state::<OverlayState>().failures.lock_or_recover().clone(),
+        live: app.state::<OverlayState>().registered.lock_or_recover().iter().map(|(_, a)| a.clone()).collect(),
         windows: cfg!(windows),
     }
 }
@@ -583,7 +798,7 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
     // that out from a key that stopped responding.
     let clash = {
         let state = app.state::<OverlayState>();
-        let prefs = state.prefs.lock().unwrap();
+        let prefs = state.prefs.lock_or_recover();
         prefs
             .all_hotkeys()
             .into_iter()
@@ -594,7 +809,7 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
         return Err(format!("{hotkey} is already the {other} shortcut."));
     }
 
-    let previous = app.state::<OverlayState>().prefs.lock().unwrap().hotkeys.insert(action.clone(), hotkey.clone());
+    let previous = app.state::<OverlayState>().prefs.lock_or_recover().hotkeys.insert(action.clone(), hotkey.clone());
     // Where the desktop delivers the hotkeys there is nothing to grab and
     // nothing to fail: it is handed the new list and decides for itself, so
     // this is only ever a request. It may bind something else, and says so.
@@ -608,12 +823,12 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
     // owns — and that must not make every later rebind fail with it.
     let mine = register_hotkeys(&app)
         .err()
-        .and_then(|_| app.state::<OverlayState>().failures.lock().unwrap().get(&action).cloned());
+        .and_then(|_| app.state::<OverlayState>().failures.lock_or_recover().get(&action).cloned());
     if let Some(e) = mine {
         // Roll back so a shortcut another app owns never sticks.
         {
             let state = app.state::<OverlayState>();
-            let mut prefs = state.prefs.lock().unwrap();
+            let mut prefs = state.prefs.lock_or_recover();
             match previous {
                 Some(old) => prefs.hotkeys.insert(action, old),
                 None => prefs.hotkeys.remove(&action),
@@ -628,7 +843,7 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
 
 /// Every action and the shortcut it is set to.
 pub fn wanted_hotkeys(app: &AppHandle) -> Vec<(String, String)> {
-    app.state::<OverlayState>().prefs.lock().unwrap().all_hotkeys()
+    app.state::<OverlayState>().prefs.lock_or_recover().all_hotkeys()
 }
 
 /// What an action does, in words.
@@ -637,6 +852,7 @@ pub fn wanted_hotkeys(app: &AppHandle) -> Vec<(String, String)> {
 /// "refinery" on its own would tell nobody anything.
 pub fn describe_action(action: &str) -> &'static str {
     match action {
+        "main" => "Show or hide StarBuddy over the game",
         "status" => "Show or hide the server status window",
         "scan" => "Start or stop reading mining scans",
         "refinery" => "Read the refinery order on screen",
@@ -654,8 +870,8 @@ pub fn drop_x11_hotkeys(app: &AppHandle) {
     if let Err(e) = app.global_shortcut().unregister_all() {
         log::warn!("could not release the X11 hotkeys: {e}");
     }
-    app.state::<OverlayState>().registered.lock().unwrap().clear();
-    app.state::<OverlayState>().failures.lock().unwrap().clear();
+    app.state::<OverlayState>().registered.lock_or_recover().clear();
+    app.state::<OverlayState>().failures.lock_or_recover().clear();
 }
 
 /// (Re)register every action's shortcut. Errors are returned so the
@@ -668,7 +884,7 @@ pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
         return Ok(());
     }
     let state = app.state::<OverlayState>();
-    let wanted = state.prefs.lock().unwrap().all_hotkeys();
+    let wanted = state.prefs.lock_or_recover().all_hotkeys();
     let gs = app.global_shortcut();
     gs.unregister_all().map_err(|e| e.to_string())?;
     let mut registered = Vec::new();
@@ -688,13 +904,13 @@ pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
             }
         }
     }
-    crate::winkeys::set_bindings(&state.prefs.lock().unwrap().all_hotkeys());
+    crate::winkeys::set_bindings(&state.prefs.lock_or_recover().all_hotkeys());
     log::info!("hotkeys wanted: {}; registered {}, refused {}", names.join(" "), registered.len(), failures.len());
     for (action, why) in &failures {
         log::warn!("hotkey {action} refused: {why}");
     }
-    *state.registered.lock().unwrap() = registered;
-    *state.failures.lock().unwrap() = failures;
+    *state.registered.lock_or_recover() = registered;
+    *state.failures.lock_or_recover() = failures;
     match first_err {
         Some(e) => Err(e),
         None => Ok(()),
@@ -709,8 +925,7 @@ pub fn on_shortcut(app: &AppHandle, shortcut: &Shortcut, state: ShortcutState) {
     let action = app
         .state::<OverlayState>()
         .registered
-        .lock()
-        .unwrap()
+        .lock_or_recover()
         .iter()
         .find(|(s, _)| s == shortcut)
         .map(|(_, a)| a.clone());
@@ -741,7 +956,7 @@ pub fn run_action(app: &AppHandle, action: &str) {
     // the keyboard watcher — and on a machine where both work, both arrive.
     // One press is one action.
     {
-        let mut last = last_heard().lock().unwrap();
+        let mut last = last_heard().lock_or_recover();
         if let Some((was, when)) = last.as_ref() {
             if was == action && when.elapsed() < Duration::from_millis(300) {
                 return;
@@ -767,6 +982,7 @@ pub fn run_action(app: &AppHandle, action: &str) {
     // work, which is what made this look like two broken keys rather than one
     // broken thread.
     let dispatch = move || match action.as_str() {
+        "main" => crate::main_window::toggle(&app2),
         "status" => {
             if let Err(e) = toggle(&app2, STATUS) {
                 log::error!("overlay toggle failed: {e}");

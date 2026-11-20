@@ -5,6 +5,25 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## 1.0.0 — 2026-11-21
+
+**StarBuddy 1.0: the whole site in a window over the game, and an org ranking built from what you actually play.**
+
+### New
+
+- **The client does what the website does, over the game.** A new main window, as a desktop window or an overlay on Insert, with Craft, Blueprints, Gathering, Refinery, My stash and Org. You no longer need a browser. Tracker windows for blueprint pools, gathering, refinery orders and your points sit over the game like the status window. The website has a new full-width look to match.
+- **An org leaderboard from Game.log.** Contracts, finished refinery orders, new places each month and jurisdictions score points for your main org, and an org ranks by points per pilot who scored. The client follows the log on its own as soon as it finds the game.
+- **See your org in the game.** The Org page shows who is playing, where, in what ship and on which build, with a globe when they are on your shard. You can switch it off under Settings › General.
+- **Craft targets and reward pools.** Pin blueprints, and Gathering sums what to mine at the quality the recipes need and can post the list to Discord. Track reward pools to see what is still missing and which missions hand them out.
+- **Ship names and game settings from UnitedDanes.** Set up StarLabels and StarConfig on uniteddanes.org, and StarBuddy installs global.ini and user.cfg into the game folder and keeps them current after each patch. Updates to StarBuddy itself now install in place, on Windows and from the AppImage.
+
+### Fixed
+
+- **Hotkeys are easier to sort out.** They are grouped as windows and screen capture, a problem with the desktop's hotkeys shows as a warning, the main window comes back where you left it, and the overlay has a quit button.
+- **Blueprint names from the log resolve on Linux.** The game's language file was looked for in the wrong folder.
+- **The refinery window reopens at start**, like the status and scan windows.
+- **Every org mate's Discord avatar shows**, and a blueprint's detail tells where it drops and what it needs.
+
 ## 0.1.16 — 2026-10-21
 
 **Move or sell a whole hold in one go, and keep the receipt.**
