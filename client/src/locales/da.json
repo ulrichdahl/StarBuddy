@@ -431,5 +431,24 @@
       "status": "Status"
     },
     "historySoon": "Tidligere ordrer og deres timere kommer her, når hjemmesiden gemmer dem."
+  },
+  "tools": {
+    "lead": "Din orgs sider og fællesskabets værktøjer, et klik fra spillet. De åbner i din browser.",
+    "org": "Din org",
+    "community": "Fællesskabet",
+    "mine": "Dine links",
+    "name": "Navn",
+    "url": "Adresse",
+    "add": "Tilføj link",
+    "remove": "Fjern {{name}}",
+    "site": {
+      "uex": "Varepriser og handelsruter",
+      "regolith": "Minesessioner og raffinaderiberegning",
+      "erkul": "Beregner til skibsudstyr",
+      "wiki": "Genstande, opskrifter og steder",
+      "cstone": "Hvor en genstand kan købes",
+      "sctrade": "Planlægning af handelsruter"
+    },
+    "page": {}
   }
 }

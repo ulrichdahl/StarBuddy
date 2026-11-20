@@ -431,5 +431,24 @@
       "status": "Status"
     },
     "historySoon": "Earlier orders and their timers come here once the website keeps them."
+  },
+  "tools": {
+    "lead": "Your org's pages and the community's tools, one click from the game. They open in your browser.",
+    "org": "Your org",
+    "community": "Community",
+    "mine": "Your links",
+    "name": "Name",
+    "url": "Address",
+    "add": "Add link",
+    "remove": "Remove {{name}}",
+    "site": {
+      "uex": "Commodity prices and trade routes",
+      "regolith": "Mining sessions and refinery maths",
+      "erkul": "Ship loadout calculator",
+      "wiki": "Items, recipes and locations",
+      "cstone": "Where to buy an item",
+      "sctrade": "Trade route planner"
+    },
+    "page": {}
   }
 }

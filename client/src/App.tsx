@@ -13,6 +13,7 @@ import { UpdateBanner } from "./main-window/UpdateBanner";
 import { useWatcher, WatcherPanel } from "./main-window/WatcherPanel";
 import { Home } from "./main-window/Home";
 import { Refinery } from "./main-window/Refinery";
+import { Tools } from "./main-window/Tools";
 import { ComingSoon, COMING_SOON, Shell, useSection } from "./main-window/Shell";
 import type { ConnectionView, ScanResult, UpdateCheck } from "./main-window/types";
 import "./theme.css";
@@ -63,7 +64,7 @@ function App() {
   } else if (section === "refinery") {
     body = <Refinery onSection={setSection} />;
   } else if (section === "tools") {
-    body = <ComingSoon section={section} />;
+    body = <Tools connection={connection} />;
   } else {
     body = (
       <>

@@ -26,6 +26,7 @@ mod region;
 mod rsi_status;
 pub mod scan;
 pub mod sigs;
+mod tools;
 mod training;
 mod update;
 mod watcher;
@@ -229,6 +230,8 @@ pub fn run() {
             region::region_current,
             region::region_clear,
             region::region_frame,
+            tools::tool_links_get,
+            tools::tool_links_set,
             training::training_capture,
             training::training_sharing_get,
             training::training_sharing_set,

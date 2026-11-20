@@ -24,6 +24,8 @@ pub(crate) struct ClientPrefs {
     /// the reader. Off unless the player switches it on; the F9 training
     /// capture is its own explicit action and does not look at this.
     pub(crate) share_reads_for_training: bool,
+    /// Links the player added to Tools, in the order they added them.
+    pub(crate) tool_links: Vec<crate::tools::ToolLink>,
 }
 
 fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
