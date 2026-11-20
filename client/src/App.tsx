@@ -10,7 +10,8 @@ import { IncidentBanner } from "./main-window/IncidentBanner";
 import { OverlayPanel } from "./main-window/OverlayPanel";
 import { ServerPanel } from "./main-window/ServerPanel";
 import { UpdateBanner } from "./main-window/UpdateBanner";
-import { WatcherPanel } from "./main-window/WatcherPanel";
+import { useWatcher, WatcherPanel } from "./main-window/WatcherPanel";
+import { Home } from "./main-window/Home";
 import { ComingSoon, COMING_SOON, Shell, useSection } from "./main-window/Shell";
 import type { ConnectionView, ScanResult, UpdateCheck } from "./main-window/types";
 import "./theme.css";
@@ -32,6 +33,8 @@ function App() {
   const [connection, setConnection] = useState<ConnectionView | null>(null);
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
+  const watcher = useWatcher(liveDir, customDir);
+  const canStart = Boolean(liveDir || customDir);
 
   useEffect(() => {
     // Errors (offline, rate-limited, odd tag) mean "no update info", never an update.
@@ -53,8 +56,7 @@ function App() {
       <>
         <IncidentBanner />
         <UpdateBanner update={update} dismissed={updateDismissed} onDismiss={() => setUpdateDismissed(true)} />
-        <WatcherPanel liveDir={liveDir} customDir={customDir} />
-        {result && <EventsTable result={result} paired={paired} />}
+        <Home watcher={watcher} canStart={canStart} onSection={setSection} />
       </>
     );
   } else if (section === "refinery" || section === "tools") {
@@ -86,6 +88,8 @@ function App() {
           onCustomDir={setCustomDir}
           onResult={setResult}
         />
+        <WatcherPanel watcher={watcher} canStart={canStart} />
+        {result && <EventsTable result={result} paired={paired} />}
         <ChangesPanel />
         <Footer update={update} onUpdate={onUpdate} />
       </>

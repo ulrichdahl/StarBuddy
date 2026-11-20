@@ -379,5 +379,38 @@
       "refinery": "Dine raffinaderiordrer i én liste med den resterende tid på hver.",
       "tools": "Orgens sider og fællesskabets værktøjer, et klik fra spillet."
     }
+  },
+  "home": {
+    "servers": "Servere",
+    "watcher": "Logovervågning",
+    "reading": "Skærmaflæsning",
+    "unknown": "Ikke kendt endnu",
+    "checkedAt": "RSI-status tjekket {{time}}",
+    "watching": "Overvåger",
+    "notWatching": "Overvåger ikke",
+    "synced_one": "{{count}} hændelse sendt i denne session",
+    "synced_other": "{{count}} hændelser sendt i denne session",
+    "watcherHint": "Følger Game.log og sender det, den finder, til din server.",
+    "readingOn": "Til",
+    "readingOff": "Fra",
+    "readingHint": "Kræves til raffinaderiaflæsning og scanning.",
+    "readingStart": "Slå til",
+    "readingStop": "Slå fra",
+    "refinery": "Raffinaderi",
+    "openRefinery": "Åbn",
+    "noRefinery": "Ingen ordre aflæst endnu. Tryk F8 ved en raffinaderikiosk for at aflæse en.",
+    "readAt": "Aflæst ved {{station}} · {{time}}",
+    "unknownStation": "en ukendt station",
+    "noMaterials": "Intet valgt til raffinering",
+    "ready": "Klar",
+    "recent": "Seneste fra Game.log",
+    "noEventsYet": "Intet nyt i loggen endnu i denne session.",
+    "noEvents": "Start logovervågningen for at se, hvad spillet logger.",
+    "overlays": "Over spillet",
+    "overlay": {
+      "status": "Status",
+      "scan": "Scanning",
+      "refinery": "Raffinaderiordre"
+    }
   }
 }

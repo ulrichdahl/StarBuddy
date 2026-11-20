@@ -379,5 +379,38 @@
       "refinery": "Your refinery orders in one list, with the time left on each.",
       "tools": "The org's pages and the community's tools, one click from the game."
     }
+  },
+  "home": {
+    "servers": "Servers",
+    "watcher": "Log watcher",
+    "reading": "Screen reading",
+    "unknown": "Not known yet",
+    "checkedAt": "RSI status checked {{time}}",
+    "watching": "Watching",
+    "notWatching": "Not watching",
+    "synced_one": "{{count}} event sent this session",
+    "synced_other": "{{count}} events sent this session",
+    "watcherHint": "Follows Game.log and sends what it finds to your server.",
+    "readingOn": "On",
+    "readingOff": "Off",
+    "readingHint": "Needed for refinery reads and scanning.",
+    "readingStart": "Turn on",
+    "readingStop": "Turn off",
+    "refinery": "Refinery",
+    "openRefinery": "Open",
+    "noRefinery": "No order read yet. Press F8 at a refinery kiosk to read one.",
+    "readAt": "Read at {{station}} · {{time}}",
+    "unknownStation": "an unknown station",
+    "noMaterials": "Nothing set to refine",
+    "ready": "Ready",
+    "recent": "Recent from Game.log",
+    "noEventsYet": "Nothing new in the log yet this session.",
+    "noEvents": "Start the log watcher to see what the game logs.",
+    "overlays": "Over the game",
+    "overlay": {
+      "status": "Status",
+      "scan": "Scan",
+      "refinery": "Refinery order"
+    }
   }
 }
