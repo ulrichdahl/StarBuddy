@@ -19,7 +19,7 @@ interface LastRead {
 }
 
 /** The overlay windows the player can pin over the game, with their hotkey actions. */
-const OVERLAYS = ["status", "scan", "refinery"] as const;
+const OVERLAYS = ["status", "scan", "refinery", "pools", "gathering", "orders", "points"] as const;
 type Overlay = (typeof OVERLAYS)[number];
 
 const hm = (seconds: number) => {
@@ -187,7 +187,15 @@ function EventsCard({ watcher }: { watcher: Watcher }) {
 /** The overlay windows, each switched on or off over the game from here. */
 function OverlaysCard() {
   const { t } = useTranslation();
-  const [open, setOpen] = useState<Record<Overlay, boolean>>({ status: false, scan: false, refinery: false });
+  const [open, setOpen] = useState<Record<Overlay, boolean>>({
+    status: false,
+    scan: false,
+    refinery: false,
+    pools: false,
+    gathering: false,
+    orders: false,
+    points: false,
+  });
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     for (const name of OVERLAYS) {

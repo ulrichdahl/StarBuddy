@@ -22,6 +22,8 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 /// The RSI status window — the first overlay surface.
 pub const STATUS: &str = "status";
+/// The dashboard trackers: tracked pools, gathering, refinery orders, points.
+pub const TRACKERS: [&str; 4] = ["pools", "gathering", "orders", "points"];
 /// Default per action. F6 is unbound in Star Citizen's current default
 /// keyset (F1 mobiGlas, F2 starmap, F4 camera, F11 comms, F12 chat are not).
 /// F8 reads the refinery panel, F9 sends the frame for training, F10 switches
@@ -231,13 +233,24 @@ fn name_of(label: &str) -> Option<&str> {
 }
 
 fn window_prefs(app: &AppHandle, name: &str) -> WindowPrefs {
-    app.state::<OverlayState>().prefs.lock_or_recover().windows.get(name).cloned().unwrap_or_default()
+    app.state::<OverlayState>().prefs.lock_or_recover().windows.get(name).cloned().unwrap_or_else(|| first_place(name))
+}
+
+/// Where a window opens the first time: the trackers down the right of the
+/// default spot rather than all on top of each other and the status window.
+fn first_place(name: &str) -> WindowPrefs {
+    let mut prefs = WindowPrefs::default();
+    if let Some(i) = TRACKERS.iter().position(|t| *t == name) {
+        prefs.x = 500.0;
+        prefs.y = 40.0 + 230.0 * i as f64;
+    }
+    prefs
 }
 
 fn update_prefs(app: &AppHandle, name: &str, f: impl FnOnce(&mut WindowPrefs)) -> WindowPrefs {
     let state = app.state::<OverlayState>();
     let mut prefs = state.prefs.lock_or_recover();
-    let w = prefs.windows.entry(name.to_string()).or_default();
+    let w = prefs.windows.entry(name.to_string()).or_insert_with(|| first_place(name));
     f(w);
     w.clone()
 }

@@ -361,7 +361,42 @@
     "report": "Systemoplysninger",
     "reportCopy": "Kopiér",
     "reportCopied": "Kopieret",
-    "readingBorderRefused": "Windows har ikke ladet StarBuddy slå den kant fra på denne maskine. Åbn Indstillinger › Beskyttelse af personlige oplysninger og sikkerhed › Skærmbilledkanter — den ligger nederst på listen — og slå \"Adgang til indstillinger for skærmbilledkanter\", \"Lad apps slå skærmbilledkanten fra\" og \"Lad computerprogrammer slå skærmbilledkanten fra\" til, hvor StarBuddy står. Kanten forsvinder, næste gang aflæsning slås til."
+    "readingBorderRefused": "Windows har ikke ladet StarBuddy slå den kant fra på denne maskine. Åbn Indstillinger › Beskyttelse af personlige oplysninger og sikkerhed › Skærmbilledkanter — den ligger nederst på listen — og slå \"Adgang til indstillinger for skærmbilledkanter\", \"Lad apps slå skærmbilledkanten fra\" og \"Lad computerprogrammer slå skærmbilledkanten fra\" til, hvor StarBuddy står. Kanten forsvinder, næste gang aflæsning slås til.",
+    "tracker": {
+      "eyebrow": "Tracker",
+      "unreachable": "Hjemmesiden kan ikke nås.",
+      "pools": {
+        "title": "Blueprint-puljer",
+        "next": "{{pool}}: {{left}} tilbage",
+        "allDone": "Alle fulgte puljer er komplette.",
+        "none": "Ingen puljer fulgt. Følg en under Blueprints.",
+        "unnamed": "Unavngiven mission",
+        "event": "{{event}}: trin på {{points}} point"
+      },
+      "gathering": {
+        "title": "Indsamling",
+        "still": "{{still}} af {{of}} materialer mangler",
+        "none": "Ingen craft-mål fastgjort."
+      },
+      "orders": {
+        "title": "Raffinaderiordrer",
+        "none": "Ingen åbne ordrer.",
+        "ready_one": "{{count}} ordre klar til afhentning",
+        "ready_other": "{{count}} ordrer klar til afhentning",
+        "next": "Næste klar om {{time}}",
+        "open_one": "{{count}} åben ordre",
+        "open_other": "{{count}} åbne ordrer",
+        "readyOne": "Klar"
+      },
+      "points": {
+        "title": "Dine point",
+        "rank": "{{org}}: nr. {{rank}} af {{count}} denne måned",
+        "noOrg": "Vælg en hoved-org på hjemmesiden.",
+        "mission": "Missioner",
+        "refinery": "Raffinaderi",
+        "travel": "Rejser"
+      }
+    }
   },
   "changes": {
     "sinceLive_one": "Nyheder — {{count}} ændring siden v{{version}}",
@@ -437,7 +472,11 @@
     "overlay": {
       "status": "Status",
       "scan": "Scanning",
-      "refinery": "Raffinaderiordre"
+      "refinery": "Raffinaderiordre",
+      "pools": "Blueprint-puljer",
+      "gathering": "Indsamling",
+      "orders": "Raffinaderiordrer",
+      "points": "Dine point"
     }
   },
   "refinery": {

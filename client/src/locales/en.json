@@ -361,7 +361,42 @@
     "report": "System info",
     "reportCopy": "Copy",
     "reportCopied": "Copied",
-    "readingBorderRefused": "Windows has not let StarBuddy turn that border off on this machine. Open Settings › Privacy & security › Screenshot borders — it is at the bottom of the list — and switch on \"Screenshot border settings access\", \"Let apps turn off the screenshot border\", and \"Let desktop apps turn off the screenshot border\", where StarBuddy is listed. The border goes the next time reading is switched on."
+    "readingBorderRefused": "Windows has not let StarBuddy turn that border off on this machine. Open Settings › Privacy & security › Screenshot borders — it is at the bottom of the list — and switch on \"Screenshot border settings access\", \"Let apps turn off the screenshot border\", and \"Let desktop apps turn off the screenshot border\", where StarBuddy is listed. The border goes the next time reading is switched on.",
+    "tracker": {
+      "eyebrow": "Tracker",
+      "unreachable": "The website cannot be reached.",
+      "pools": {
+        "title": "Blueprint pools",
+        "next": "{{pool}}: {{left}} left",
+        "allDone": "Every tracked pool is complete.",
+        "none": "No pools tracked. Track one under Blueprints.",
+        "unnamed": "Unnamed mission",
+        "event": "{{event}}: {{points}} points tier"
+      },
+      "gathering": {
+        "title": "Gathering",
+        "still": "{{still}} of {{of}} materials still to gather",
+        "none": "No craft targets pinned."
+      },
+      "orders": {
+        "title": "Refinery orders",
+        "none": "No open orders.",
+        "ready_one": "{{count}} order ready to collect",
+        "ready_other": "{{count}} orders ready to collect",
+        "next": "Next ready in {{time}}",
+        "open_one": "{{count}} open order",
+        "open_other": "{{count}} open orders",
+        "readyOne": "Ready"
+      },
+      "points": {
+        "title": "Your points",
+        "rank": "{{org}}: #{{rank}} of {{count}} this month",
+        "noOrg": "Choose a main org on the website.",
+        "mission": "Missions",
+        "refinery": "Refinery",
+        "travel": "Travel"
+      }
+    }
   },
   "changes": {
     "sinceLive_one": "What’s new — {{count}} change since v{{version}}",
@@ -437,7 +472,11 @@
     "overlay": {
       "status": "Status",
       "scan": "Scan",
-      "refinery": "Refinery order"
+      "refinery": "Refinery order",
+      "pools": "Blueprint pools",
+      "gathering": "Gathering",
+      "orders": "Refinery orders",
+      "points": "Your points"
     }
   },
   "refinery": {
