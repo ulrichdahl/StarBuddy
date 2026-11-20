@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -16,6 +16,7 @@ import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import DesktopWindowsOutlinedIcon from '@mui/icons-material/DesktopWindowsOutlined'
 import DownloadIcon from '@mui/icons-material/Download'
 import LinkIcon from '@mui/icons-material/Link'
+import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { api } from '../lib/api'
 import { deviceState, latestSync, useDevices, type DeviceState } from '../lib/devices'
 import type { Me } from '../lib/types'
@@ -304,6 +305,105 @@ function DesktopClientSection() {
   )
 }
 
+interface UdiStatus {
+  linked: boolean
+  reachable: boolean | null
+  profile: { revision: number; updated_at: string; channel: 'live' | 'ptu'; labels: boolean; config: boolean } | null
+}
+
+/**
+ * The link to the UDI StarLabels/StarConfig tools on uniteddanes.org: the
+ * player sets up ship names and game settings there, and their StarBuddy
+ * desktop clients install global.ini and user.cfg. The token lives on the
+ * account; it goes to UDI only in the setup URL's fragment.
+ */
+function UdiSection() {
+  const { t, i18n } = useTranslation()
+  const stamp = useStamp()
+  const queryClient = useQueryClient()
+  const { data: status } = useQuery({
+    queryKey: ['udi-link-status'],
+    queryFn: async () => (await api.get<UdiStatus>('/api/me/udi-link/status')).data,
+  })
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ['udi-link-status'] })
+
+  const open = useMutation({
+    mutationFn: async () => {
+      // Open the tab first, inside the click, so no popup blocker stops it.
+      const tab = window.open('about:blank', '_blank')
+      try {
+        const { data } = await api.get<{ token: string; setup_url: Record<string, string> }>('/api/me/udi-link')
+        const url = data.setup_url[i18n.language.startsWith('da') ? 'da' : 'en']
+        if (tab) {
+          tab.opener = null
+          tab.location.href = `${url}#starbuddy=${data.token}`
+        }
+      } catch (error) {
+        tab?.close()
+        throw error
+      }
+    },
+    onSettled: refresh,
+  })
+  const unlink = useMutation({
+    mutationFn: async () => api.delete('/api/me/udi-link'),
+    onSuccess: refresh,
+  })
+
+  const profile = status?.profile
+  const [dot, text] = !status?.linked
+    ? [hud.textFaint, t('udi.notLinked')]
+    : profile
+      ? [hud.teal, t('udi.sent', { revision: profile.revision })]
+      : status.reachable === false
+        ? [hud.amber, t('udi.unreachable')]
+        : [hud.amber, t('udi.waiting')]
+
+  return (
+    <HudPanel
+      title={t('udi.title')}
+      component="h3"
+      id="pm-udi"
+      raised
+      aside={
+        <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 12.5, color: hud.textMuted }}>
+          <StatusDot colour={dot} />
+          {text}
+        </Box>
+      }
+    >
+      <Typography variant="body2" sx={{ color: hud.textMuted, lineHeight: 1.55 }}>
+        {t('udi.help')}
+      </Typography>
+      {profile && (
+        <Typography variant="body2" sx={{ color: hud.textDim }}>
+          {t('udi.details', {
+            channel: profile.channel.toUpperCase(),
+            what: [profile.labels && 'global.ini', profile.config && 'user.cfg'].filter(Boolean).join(' + ') || '—',
+          })}{' '}
+          <Mono colour={hud.text}>{stamp(profile.updated_at)}</Mono>
+        </Typography>
+      )}
+      {open.isError && <Alert severity="error">{t('udi.openError')}</Alert>}
+      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+        <Button variant="outlined" color="primary" startIcon={<OpenInNewIcon />} onClick={() => open.mutate()} disabled={open.isPending}>
+          {t('udi.open')}
+        </Button>
+        {status?.linked && (
+          <Button
+            variant="outlined"
+            color="inherit"
+            disabled={unlink.isPending}
+            onClick={() => window.confirm(t('udi.unlinkConfirm')) && unlink.mutate()}
+          >
+            {t('udi.unlink')}
+          </Button>
+        )}
+      </Box>
+    </HudPanel>
+  )
+}
+
 /** Profile & desktop client, opened from the avatar menu. */
 export function ProfileDialog({ me, open, onClose }: { me: Me; open: boolean; onClose: () => void }) {
   const { t } = useTranslation()
@@ -325,6 +425,7 @@ export function ProfileDialog({ me, open, onClose }: { me: Me; open: boolean; on
       <Box sx={{ p: 2.75, display: 'flex', flexDirection: 'column', gap: 2.25, overflowY: 'auto' }}>
         <IdentitySection me={me} />
         <DesktopClientSection />
+        <UdiSection />
       </Box>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', py: 1.75, px: 2.75, borderTop: `1px solid ${hud.lineSoft}`, bgcolor: hud.well }}>
         <Button variant="outlined" color="inherit" onClick={onClose} sx={{ height: 44, px: 2.75 }}>

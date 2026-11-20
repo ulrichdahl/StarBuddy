@@ -45,4 +45,9 @@ return [
     // Discord role id => org name. Members holding the role are attached to
     // the org on login. Format: JSON object, e.g. {"123456789":"Stellar Forge"}
     'role_org_map' => json_decode(env('STARBUDDY_ROLE_ORG_MAP', env('STARMAKER_ROLE_ORG_MAP', '{}')), true) ?: [],
+
+    // The UDI website whose StarLabels/StarConfig tools StarBuddy links to
+    // (docs: UnitedDanes website docs/starbuddy-api.md). The server only
+    // checks the link's status and unlinks; desktop clients fetch the files.
+    'udi_url' => rtrim(env('STARBUDDY_UDI_URL', 'https://uniteddanes.org'), '/'),
 ];

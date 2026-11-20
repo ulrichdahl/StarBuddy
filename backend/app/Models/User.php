@@ -17,13 +17,16 @@ class User extends Authenticatable
         'name', 'email', 'discord_id', 'discord_username', 'avatar_url', 'handle', 'locale',
     ];
 
-    protected $hidden = ['password', 'remember_token'];
+    // The UDI link token is a bearer secret: only GET /api/me/udi-link hands it out.
+    protected $hidden = ['password', 'remember_token', 'udi_link_token'];
 
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'udi_link_token' => 'encrypted',
+            'udi_linked_at' => 'datetime',
         ];
     }
 

@@ -1058,5 +1058,18 @@
     "note": "Lager i lavere kvalitet tæller ikke, så du ved hvad der er værd at mine.",
     "empty": "Intet fastgjort endnu. Fastgør en blueprint som fremstillingsmål, så dukker materialerne op her.",
     "loadError": "Kunne ikke hente indkøbslisten."
+  },
+  "udi": {
+    "title": "Skibsnavne og spilindstillinger",
+    "help": "Opsæt skibsnavne (StarLabels) og spilindstillinger (StarConfig) på uniteddanes.org, og tryk så “Send til StarBuddy” der. Dine StarBuddy-desktopklienter installerer global.ini og user.cfg og henter nye navne når spillet opdateres.",
+    "notLinked": "Ikke forbundet",
+    "waiting": "Forbundet · venter på Send",
+    "unreachable": "Forbundet · UDI kan ikke nås",
+    "sent": "Forbundet · revision {{revision}}",
+    "details": "{{channel}} · {{what}} · sendt",
+    "open": "Åbn UDI StarLabels-opsætning",
+    "unlink": "Fjern forbindelse",
+    "unlinkConfirm": "Fjern forbindelsen til UDI? Dine indstillinger dér slettes. Filer der allerede er installeret bliver liggende.",
+    "openError": "Kunne ikke åbne opsætningen. Prøv igen."
   }
 }

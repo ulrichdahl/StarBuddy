@@ -1061,5 +1061,18 @@
     "note": "Lower-quality stock you hold does not count, so you know what is worth mining.",
     "empty": "Nothing pinned yet. Pin a blueprint as a craft target and its materials show up here.",
     "loadError": "Could not load the shopping list."
+  },
+  "udi": {
+    "title": "Ship names & game settings",
+    "help": "Set up ship names (StarLabels) and game settings (StarConfig) on uniteddanes.org, then press “Send to StarBuddy” there. Your StarBuddy desktop clients install global.ini and user.cfg, and fetch new names when the game updates.",
+    "notLinked": "Not linked",
+    "waiting": "Linked · waiting for Send",
+    "unreachable": "Linked · UDI not reachable",
+    "sent": "Linked · revision {{revision}}",
+    "details": "{{channel}} · {{what}} · sent",
+    "open": "Open UDI StarLabels setup",
+    "unlink": "Unlink",
+    "unlinkConfirm": "Unlink from UDI? Your settings stored there are deleted. Files already installed stay.",
+    "openError": "Could not open the setup. Try again."
   }
 }

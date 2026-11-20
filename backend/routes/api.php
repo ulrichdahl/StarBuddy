@@ -29,6 +29,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         return $user;
     });
+    Route::get('me/udi-link', [\App\Http\Controllers\UdiLinkController::class, 'show']);
+    Route::get('me/udi-link/status', [\App\Http\Controllers\UdiLinkController::class, 'status'])->middleware('throttle:30,1');
+    Route::put('me/udi-link', [\App\Http\Controllers\UdiLinkController::class, 'adopt']);
+    Route::delete('me/udi-link', [\App\Http\Controllers\UdiLinkController::class, 'destroy']);
     Route::put('me/main-org', [\App\Http\Controllers\OrgController::class, 'setMain']);
     Route::patch('me', [\App\Http\Controllers\ProfileController::class, 'update']);
 
