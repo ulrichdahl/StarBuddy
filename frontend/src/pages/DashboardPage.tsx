@@ -617,7 +617,7 @@ function Gathering() {
     unit === 'mscu'
       ? `${(value / 1000).toLocaleString(i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SCU`
       : t('dashboard.pieces', { count: value })
-  const lines = data.gathering.filter((g) => g.missing > 0).slice(0, 5)
+  const lines = data.gathering.filter((g) => g.missing > 0)
   const { materials, still_to_gather } = data.summary
 
   return (
@@ -695,7 +695,7 @@ function Crew({ me, memberCount, onJoin }: { me: Me; memberCount: number; onJoin
   const canManage = org?.pivot && (org.pivot.role === 'manager' || org.pivot.role === 'admin')
   const { data: mates = [] } = useQuery({
     queryKey: ['org-mates'],
-    queryFn: async () => (await api.get<{ id: number; handle: string }[]>('/api/org/mates')).data,
+    queryFn: async () => (await api.get<{ id: number; handle: string; avatar_url: string | null }[]>('/api/org/mates')).data,
   })
   const shown = mates.slice(0, 5)
   const rest = Math.max(0, memberCount - 1 - shown.length)
@@ -718,7 +718,7 @@ function Crew({ me, memberCount, onJoin }: { me: Me; memberCount: number; onJoin
         </Box>
         {shown.map((m) => (
           <Box key={m.id} sx={ring}>
-            <PersonAvatar name={m.handle} size={30} ring={false} />
+            <PersonAvatar name={m.handle} src={m.avatar_url} size={30} ring={false} />
           </Box>
         ))}
       </Box>

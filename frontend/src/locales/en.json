@@ -295,7 +295,7 @@
     "noOrgHelp": "Join an org to see how it ranks against the others.",
     "findOrg": "Find an org",
     "loadError": "Could not load the leaderboard.",
-    "trackedPools": "Tracked pools",
+    "trackedPools": "Blueprints",
     "noTrackedPools": "Track a reward pool from a blueprint's details to follow it here.",
     "poolComplete": "Every blueprint in this pool is yours.",
     "stillMissing": "Still missing",

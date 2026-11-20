@@ -78,7 +78,7 @@ class OrgController extends Controller
     {
         return OrgMembers::of($request->user())
             ->reject(fn ($u) => $u->id === $request->user()->id)
-            ->map(fn ($u) => ['id' => $u->id, 'handle' => $u->handle ?? $u->name])
+            ->map(fn ($u) => ['id' => $u->id, 'handle' => $u->handle ?? $u->name, 'avatar_url' => $u->avatar_url])
             ->values();
     }
 

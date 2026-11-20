@@ -13,7 +13,7 @@ class OrgMembers
      */
     public static function of(User $me): Collection
     {
-        return $me->orgs()->with('members:users.id,users.name,users.handle')->get()
+        return $me->orgs()->with('members:users.id,users.name,users.handle,users.avatar_url')->get()
             ->flatMap(fn ($org) => $org->members)
             ->push($me)
             ->unique('id')
