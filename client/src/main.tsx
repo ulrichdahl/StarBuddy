@@ -30,6 +30,10 @@ const WINDOWS: Record<string, React.LazyExoticComponent<React.ComponentType>> = 
   status: lazy(() => import("./overlay/StatusOverlay").then((m) => ({ default: m.StatusOverlay }))),
   scan: lazy(() => import("./overlay/ScanOverlay").then((m) => ({ default: m.ScanOverlay }))),
   refinery: lazy(() => import("./overlay/RefineryOverlay").then((m) => ({ default: m.RefineryOverlay }))),
+  pools: lazy(() => import("./overlay/TrackerOverlays").then((m) => ({ default: m.PoolsOverlay }))),
+  gathering: lazy(() => import("./overlay/TrackerOverlays").then((m) => ({ default: m.GatheringOverlay }))),
+  orders: lazy(() => import("./overlay/TrackerOverlays").then((m) => ({ default: m.OrdersOverlay }))),
+  points: lazy(() => import("./overlay/TrackerOverlays").then((m) => ({ default: m.PointsOverlay }))),
   region: lazy(() => import("./overlay/RegionSelector").then((m) => ({ default: m.RegionSelector }))),
 };
 const Root = (overlay && WINDOWS[overlay]) || App;

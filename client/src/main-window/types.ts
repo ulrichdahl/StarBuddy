@@ -20,12 +20,17 @@ export interface ScanProgress {
 }
 
 export interface LogEvent {
-  kind: "blueprint" | "refinery_completed";
+  /** The last four are travel, sent for the org ranking and not listed. */
+  kind: "blueprint" | "refinery_completed" | "mission_completed" | "quantum_arrived" | "vehicle_released" | "location" | "jurisdiction";
   timestamp: string;
   detail: string;
   item_class: string | null;
   file: string;
 }
+
+/** The kinds the client lists; the rest are only sent. */
+export const SHOWN_KINDS: ReadonlySet<LogEvent["kind"]> = new Set(["blueprint", "refinery_completed", "mission_completed"]);
+export const shown = (e: LogEvent) => SHOWN_KINDS.has(e.kind);
 
 export interface ScanResult {
   live_dir: string;
@@ -45,7 +50,12 @@ export interface SyncSummary {
   duplicates: number;
   blueprints_added: number;
   refinery_completed: number;
+  /** Absent from a server that does not count missions. */
+  missions_completed?: number;
   backfilled?: number;
+  /** Travel events the server counted, and points scored; absent from older servers. */
+  travel?: number;
+  points?: number;
 }
 
 export interface AppVersion {
@@ -122,4 +132,4 @@ export interface KdeRuleInfo {
 }
 
 export const kindLabel = (t: TFunction, kind: LogEvent["kind"]) =>
-  kind === "blueprint" ? t("events.kindBlueprint") : t("events.kindRefineryDone");
+  kind === "blueprint" ? t("events.kindBlueprint") : kind === "mission_completed" ? t("events.kindMission") : t("events.kindRefineryDone");

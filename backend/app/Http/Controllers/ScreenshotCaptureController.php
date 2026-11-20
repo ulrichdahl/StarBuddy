@@ -25,6 +25,14 @@ class ScreenshotCaptureController extends Controller
     private const DISK = 'local';
     private const DIRECTORY = 'training/screenshots';
 
+    /**
+     * Unlabelled captures kept per player. The hotkey makes grabbing frames
+     * cheap, so the queue is first in, first out: the oldest unlabelled one
+     * goes when a newer one would make it one too many. Labelled (submitted)
+     * ones are never pruned.
+     */
+    public const KEEP_UNSUBMITTED = 10;
+
     /** Smallest believable panel, as a fraction of the frame. */
     private const MIN_QUAD_AREA = 0.01;
 
@@ -115,6 +123,8 @@ class ScreenshotCaptureController extends Controller
             'reader_dump' => $this->readerDump($data['reader'] ?? null),
         ]);
 
+        $this->prune($request->user()->id);
+
         return response()->json($this->present($capture), 201);
     }
 
@@ -187,6 +197,22 @@ class ScreenshotCaptureController extends Controller
     }
 
     /** Throw a capture away, image and all. */
+    /** Drop the player's oldest unlabelled captures beyond the ones kept. */
+    private function prune(int $userId): void
+    {
+        ScreenshotSubmission::where('user_id', $userId)
+            ->where('status', 'captured')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->skip(self::KEEP_UNSUBMITTED)
+            ->take(PHP_INT_MAX)
+            ->get()
+            ->each(function (ScreenshotSubmission $old) {
+                Storage::disk(self::DISK)->delete($old->image_path);
+                $old->delete();
+            });
+    }
+
     public function destroy(Request $request, ScreenshotSubmission $submission)
     {
         $this->authorizeOwner($request, $submission);

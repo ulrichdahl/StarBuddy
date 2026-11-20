@@ -252,4 +252,29 @@ class ScreenshotCaptureTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('reader_dump', null);
     }
+
+    public function test_only_the_last_ten_unlabelled_captures_are_kept(): void
+    {
+        $this->actingAs($this->member)
+            ->postJson('/api/training/captures', ['image' => $this->capture('A')])
+            ->assertCreated();
+        $labelled = ScreenshotSubmission::sole();
+        $this->actingAs($this->member)
+            ->postJson("/api/training/captures/{$labelled->id}/contribute", $this->labels())
+            ->assertOk();
+
+        $ids = [];
+        foreach (range(0, 10) as $i) {
+            $ids[] = $this->actingAs($this->member)
+                ->postJson('/api/training/captures', ['image' => $this->capture(chr(ord('b') + $i))])
+                ->assertCreated()
+                ->json('id');
+        }
+        $first = ScreenshotSubmission::find($ids[0]);
+
+        $this->assertNull($first, 'the oldest unlabelled capture made way for the eleventh');
+        $this->assertSame(10, ScreenshotSubmission::where('user_id', $this->member->id)->where('status', 'captured')->count());
+        $this->assertNotNull($labelled->fresh(), 'a submitted capture is never pruned');
+        $this->assertCount(11, Storage::disk('local')->files('training/screenshots'), 'ten captures and the submitted one');
+    }
 }

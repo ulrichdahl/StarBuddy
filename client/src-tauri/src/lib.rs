@@ -1,6 +1,7 @@
 use tauri::Manager;
 
 mod analysis;
+mod api;
 mod capture;
 mod changes;
 mod diagnostics;
@@ -10,6 +11,7 @@ mod host;
 mod http;
 mod kde_rule;
 mod lock;
+mod main_window;
 mod outbox;
 mod pairing;
 mod prefs;
@@ -26,9 +28,13 @@ mod region;
 mod rsi_status;
 pub mod scan;
 pub mod sigs;
+mod tools;
 mod training;
 mod update;
 mod watcher;
+mod game_session;
+mod presence;
+mod udi;
 mod webkit_tuning;
 mod webview2_args;
 mod webview_power;
@@ -131,6 +137,7 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
@@ -138,6 +145,8 @@ pub fn run() {
                 .build(),
         )
         .manage(watcher::WatcherState::default())
+        .manage(game_session::SessionState::default())
+        .manage(udi::UdiState::default())
         .manage(rsi_status::RsiStatusState::default())
         .setup(|app| {
             let handle = app.handle().clone();
@@ -174,6 +183,11 @@ pub fn run() {
             rsi_status::start(&handle);
             overlay::show_if_open(&handle, overlay::STATUS);
             overlay::show_if_open(&handle, scan::SCAN);
+            overlay::show_if_open(&handle, refinery::REFINERY);
+            // The website's dashboard trackers, each its own window.
+            for tracker in overlay::TRACKERS {
+                overlay::show_if_open(&handle, tracker);
+            }
             let args: Vec<String> = std::env::args().collect();
             if let Some(action) = overlay::action_in(&args) {
                 overlay::run_action(&handle, &action);
@@ -182,13 +196,26 @@ pub fn run() {
             // after the main window is closed.
             if let Some(main) = app.get_webview_window("main") {
                 let exit_handle = handle.clone();
+                let close_win = main.clone();
                 main.on_window_event(move |event| {
-                    if let tauri::WindowEvent::CloseRequested { .. } = event {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        // As the overlay, closing puts it away; the hotkey
+                        // brings it back. As a window, it quits StarBuddy.
+                        if !close_win.is_decorated().unwrap_or(true) {
+                            api.prevent_close();
+                            main_window::hide(&exit_handle);
+                            return;
+                        }
+                        main_window::remember(&exit_handle);
                         overlay::save_now(&exit_handle);
                         exit_handle.exit(0);
                     }
                 });
             }
+            main_window::setup(&handle);
+            watcher::start_at_launch(&handle);
+            presence::start(&handle);
+            udi::start(&handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -229,14 +256,33 @@ pub fn run() {
             region::region_current,
             region::region_clear,
             region::region_frame,
+            api::server_api,
+            main_window::main_mode_get,
+            main_window::main_mode_set,
+            main_window::main_hide,
+            main_window::app_quit,
+            tools::tool_links_get,
+            tools::tool_links_set,
             training::training_capture,
             training::training_sharing_get,
             training::training_sharing_set,
             watcher::start_watcher,
             watcher::stop_watcher,
             watcher::watcher_status,
+            game_session::game_session,
+            presence::presence_sharing_get,
+            presence::presence_sharing_set,
+            udi::udi_status,
+            udi::udi_link,
+            udi::udi_profile,
+            udi::udi_install,
+            udi::udi_auto_set,
+            udi::udi_unlink,
             update::check_for_update,
+            update::update_can_install,
+            update::update_install,
             diagnostics::app_version,
+            diagnostics::debug_mode,
             diagnostics::log_dir,
             diagnostics::system_report,
             diagnostics::open_log_dir,

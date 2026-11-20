@@ -5,6 +5,10 @@ export interface Org {
   id: number
   name: string
   tag?: string
+  /** RSI Spectrum id, when the org registered one. */
+  sid?: string | null
+  /** The caller's membership, on orgs listed under GET /api/me. */
+  pivot?: { role: OrgRole; status: OrgMembershipStatus }
 }
 
 /** Authenticated member, from GET /api/me. */
@@ -16,6 +20,9 @@ export interface Me {
   avatar_url: string | null
   // UI language ('en' | 'da'); null until first login stores the browser's.
   locale: string | null
+  /** Where the player's points go; always set while they are in an org. */
+  main_org_id: number | null
+  /** Active orgs, the main org first. */
   orgs: Org[]
 }
 
@@ -350,6 +357,8 @@ export interface BlueprintInfo {
   stat_ranges: Record<string, { min_percent: number; max_percent: number }>
   /** The reward pools holding this blueprint, tightest draw first. */
   missions: BlueprintPool[]
+  /** Pinned as a craft target, and how many; null when not pinned. */
+  craft_target: { quantity: number } | null
 }
 
 /** One mission, and whether the game has it on the board yet. */
@@ -372,6 +381,8 @@ export interface PoolMember {
   draw_percent: number | null
   owned: boolean
   is_this_one: boolean
+  /** Org members holding it, the viewer included. */
+  holders: { id: number; handle: string | null }[]
 }
 
 /**
@@ -390,6 +401,12 @@ export interface BlueprintPool {
   contents: PoolMember[]
   draw_percent: number | null
   sources: PoolSource[]
+  /** Held by anyone in the org, or free to everyone. */
+  owned_in_pool_org: number
+  /** The viewer is farming this pool. */
+  tracked: boolean
+  /** Contractors handing the pool out. */
+  factions: string[]
 }
 
 export interface CatalogCategory {
@@ -478,4 +495,55 @@ export interface OrgMaterialRow extends OrgRowBase {
 
 export interface OrgInventoryExtra {
   members: MatrixMember[]
+}
+
+export type CompetitionPeriod = 'month' | 'all'
+/** The scored categories: all from Game.log activity. */
+export type CompetitionMetric = 'mission' | 'refinery' | 'travel'
+
+export interface CompetitionKind {
+  points: number
+  /** Points per contributing pilot: what the category ranks by. */
+  per_pilot: number
+  events: number
+}
+
+/** One org's line on the leaderboard, from GET /api/dashboard/competition. */
+export interface CompetitionOrg {
+  id: number
+  name: string
+  sid: string | null
+  member_count: number
+  /** Pilots who scored for the org in the period. */
+  contributors: number
+  points: number
+  /** Points per contributing pilot. */
+  score: number
+  kinds: Record<CompetitionMetric, CompetitionKind>
+  /** Side information typed in the app, never ranked. */
+  refinery_orders: number
+  resources_scu: number
+  rank: Record<CompetitionMetric | 'overall', number>
+  /** Places climbed since the comparison window; null when unknown. */
+  trend: number | null
+  mine: boolean
+}
+
+/** One member of the caller's own org, from GET /api/dashboard/members. */
+export interface OrgMemberScore {
+  id: number
+  handle: string
+  avatar_url: string | null
+  points: number
+  rank: number
+  kinds: Record<CompetitionMetric, { points: number; events: number }>
+}
+
+export interface Competition {
+  period: CompetitionPeriod
+  from: string | null
+  to: string
+  my_org_id: number | null
+  orgs: CompetitionOrg[]
+  contribution: Record<CompetitionMetric, { mine: number; org: number }> | null
 }

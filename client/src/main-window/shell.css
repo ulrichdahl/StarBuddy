@@ -1,0 +1,650 @@
+/* ── Main window frame ───────────────────────────────────────────────────
+   The overlays' design system (theme.css) at window size: the same glass,
+   lines, cyan accent, cut corners and type, so the window and the panels
+   pinned over the game are plainly one app. */
+
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  background: #05080b;
+}
+
+.sb {
+  /* The names the older panels' rules (App.css, base.css) still use, pointed
+     at the design system's values so they take its look without a rewrite. */
+  --bg: var(--bg0);
+  --panel: rgba(120, 160, 190, 0.06);
+  --ink: var(--text);
+  --accent: var(--cyan);
+
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--glass);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.45;
+  border-top: 2px solid var(--acc);
+  box-shadow: inset 0 1px 14px -8px var(--acc);
+}
+
+/* title bar */
+.sb-hd {
+  height: 52px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px 0 16px;
+  border-bottom: 1px solid var(--line2);
+}
+.sb-logo { width: 26px; height: 26px; display: block; flex: none; }
+.sb-brand {
+  font-family: var(--disp);
+  font-weight: 700;
+  font-size: 21px;
+  letter-spacing: 0.2em;
+  line-height: 1;
+  color: var(--text);
+  white-space: nowrap;
+}
+.sb-brand-dot { color: var(--acc); }
+.sb-sect {
+  font-family: var(--disp);
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: 0.03em;
+  color: #fff;
+  padding-left: 12px;
+  border-left: 1px solid var(--line2);
+}
+.sb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  padding: 3px 10px;
+  border: 1px solid var(--line2);
+  background: rgba(120, 160, 190, 0.08);
+  white-space: nowrap;
+}
+.sb-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+.sb-dot.warn { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.sb-dot.bad { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.sb-dot.off { background: var(--dim); box-shadow: none; }
+
+/* rail + section */
+.sb-mid {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+.sb-rail {
+  width: 196px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 8px;
+  border-right: 1px solid var(--line2);
+  overflow-y: auto;
+}
+.sb-nav {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--body);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.sb-nav:hover { color: var(--text); background: rgba(120, 160, 190, 0.08); }
+.sb-nav:focus-visible { outline: 1px solid var(--cyan); outline-offset: -1px; }
+.sb-nav.on {
+  color: #fff;
+  font-weight: 600;
+  background: var(--acc-soft);
+  border-color: rgba(60, 201, 240, 0.3);
+}
+/* The selected section wears the panels' accent bar on its left edge. */
+.sb-nav.on::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  bottom: -1px;
+  width: 3px;
+  background: var(--acc);
+  box-shadow: 0 0 10px var(--acc);
+}
+.sb-nav-ic { display: flex; color: var(--steel); }
+.sb-nav.on .sb-nav-ic { color: var(--acc); }
+.sb-nav-ic svg { width: 18px; height: 18px; }
+.sb-soon {
+  margin-left: auto;
+  font-family: var(--disp);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.sb-rule {
+  height: 1px;
+  background: var(--line2);
+  margin: 8px 4px;
+}
+.sb-rail-foot {
+  margin-top: auto;
+  padding: 10px 12px 0;
+  border-top: 1px solid var(--line2);
+}
+
+.sb-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 20px 24px 24px;
+}
+/* The sections stack their panels; the first sits flush with the top. */
+.sb-main > :first-child { margin-top: 0; }
+
+.sb-soon-card {
+  max-width: 560px;
+  padding: 20px 22px;
+  border: 1px solid var(--line2);
+  background: rgba(120, 160, 190, 0.06);
+  clip-path: var(--cut);
+}
+.sb-soon-card h2 {
+  margin: 6px 0 8px;
+  font-family: var(--disp);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+}
+.sb-soon-card p { margin: 0; color: var(--muted); }
+
+/* ── The older panels, in the design system's look ─────────────────────── */
+
+.sb .panel {
+  background: rgba(120, 160, 190, 0.06);
+  border: 1px solid var(--line2);
+  border-radius: 0;
+  clip-path: var(--cut);
+  padding: 14px 18px;
+}
+.sb .panel h2 {
+  font-family: var(--disp);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--acc);
+}
+.sb button {
+  font-family: var(--disp);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid rgba(60, 201, 240, 0.5);
+  border-radius: 0;
+  background: rgba(60, 201, 240, 0.12);
+  color: var(--cyan);
+}
+.sb button:hover:not(:disabled) { background: rgba(60, 201, 240, 0.2); }
+.sb button:focus-visible { outline: 1px solid var(--cyan); outline-offset: 1px; }
+/* Buttons the frame draws itself keep their own look. */
+.sb .sb-nav {
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: normal;
+}
+.sb .sb-nav { font-size: 14px; border-color: transparent; background: transparent; color: var(--muted); }
+.sb .sb-nav:hover { background: rgba(120, 160, 190, 0.08); color: var(--text); }
+.sb .sb-nav.on { background: var(--acc-soft); border-color: rgba(60, 201, 240, 0.3); color: #fff; }
+.sb input[type="text"],
+.sb input[type="search"],
+.sb input:not([type]),
+.sb select {
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--line2);
+  border-radius: 0;
+  color: var(--text);
+  font-family: var(--body);
+}
+.sb input:focus,
+.sb select:focus { outline: 1px solid var(--cyan); outline-offset: 0; }
+.sb .mono,
+.sb code,
+.sb kbd { font-family: var(--mono); }
+.sb th { color: var(--muted); font-family: var(--disp); text-transform: uppercase; letter-spacing: 0.1em; font-size: 11px; }
+.sb th,
+.sb td { border-bottom-color: var(--line2); }
+
+/* The overlay's small parts, for a window that does not load overlay.css. */
+.sb-grip {
+  width: 12px;
+  height: 14px;
+  flex: none;
+  background: radial-gradient(circle, var(--steel) 1px, transparent 1.4px) 0 0 / 5px 5px;
+  opacity: 0.7;
+}
+.sb-sp { flex: 1; }
+.sb-eyebrow {
+  font-family: var(--disp);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--acc);
+  line-height: 1.2;
+}
+.sb-dim { color: var(--dim); font-size: 12px; }
+
+/* ── Home ──────────────────────────────────────────────────────────────── */
+.sb-home { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+.sb-main > .sb-home:first-child { margin-top: 0; }
+.sb-cards3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.sb-cols { display: flex; gap: 14px; align-items: flex-start; }
+.sb-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.sb-col-wide { flex: 1.5; }
+@media (max-width: 820px) {
+  .sb-cards3 { grid-template-columns: 1fr; }
+  .sb-cols { flex-direction: column; align-items: stretch; }
+}
+.sb-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px 14px;
+  border: 1px solid var(--line2);
+  background: rgba(120, 160, 190, 0.06);
+  clip-path: var(--cut);
+  min-width: 0;
+}
+.sb-card-big {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+.sb-card-sub { color: var(--muted); font-size: 12.5px; margin: 0; }
+.sb .sb-card-btn { align-self: flex-start; padding: 5px 12px; margin-top: 2px; }
+.sb-card-corner { position: absolute; top: 10px; right: 14px; }
+.sb .sb-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--cyan);
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.sb .sb-link:hover:not(:disabled) { background: none; text-decoration: underline; }
+.sb-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line2);
+  font-size: 13.5px;
+  min-width: 0;
+}
+.sb-row-main { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-row-side { color: var(--text); }
+.sb-row-time { color: var(--dim); font-size: 12px; flex: none; }
+.sb-row-kind {
+  flex: none;
+  width: 92px;
+  font-family: var(--disp);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--acc);
+}
+.sb-check { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; }
+.sb-check input { accent-color: var(--cyan); width: 17px; height: 17px; margin: 0; }
+
+/* ── Pages: a lead line with the section's actions, then its cards ─────── */
+.sb-page { display: flex; flex-direction: column; gap: 14px; }
+.sb-page-hd { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sb-page-hd .sb-card-sub { flex: 1 1 260px; max-width: 620px; }
+.sb .sb-ghost { background: transparent; }
+.sb .sb-ghost:hover:not(:disabled) { background: rgba(60, 201, 240, 0.1); }
+.sb-kbd {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 5px;
+  margin-left: 6px;
+  border: 1px solid rgba(60, 201, 240, 0.45);
+  color: var(--text);
+  letter-spacing: 0;
+}
+.sb-card-row { flex-direction: row; align-items: center; gap: 16px; }
+.sb-card-row > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.sb-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.sb-table th { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--line2); white-space: nowrap; }
+.sb-table td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line2); }
+.sb-table tr:last-child td { border-bottom: 0; }
+.sb-table .num { text-align: right; }
+.sb-muted { color: var(--muted); }
+.sb-state { display: inline-flex; align-items: center; gap: 7px; }
+.sb-dot.cyan { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+
+/* ── Tools: tiles that open a site ─────────────────────────────────────── */
+.sb-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.sb-tile { position: relative; display: flex; min-width: 0; }
+.sb .sb-tile-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--line2);
+  background: rgba(10, 16, 24, 0.55);
+  color: var(--text);
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: normal;
+  text-align: left;
+  cursor: pointer;
+}
+.sb .sb-tile-open:hover:not(:disabled) { border-color: rgba(60, 201, 240, 0.55); background: var(--acc-soft); }
+.sb-tile-name { font-size: 14px; font-weight: 600; color: #fff; }
+.sb-tile-blurb { font-size: 12.5px; color: var(--muted); }
+.sb-tile-blurb:empty { display: none; }
+.sb-tile-host { font-size: 11px; color: var(--dim); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb .sb-tile-x {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1;
+  border-color: transparent;
+  background: transparent;
+  color: var(--dim);
+}
+.sb .sb-tile-x:hover:not(:disabled) { color: var(--red); background: rgba(224, 86, 75, 0.12); }
+.sb-addlink { display: flex; gap: 8px; flex-wrap: wrap; }
+.sb .sb-addlink input { flex: 1 1 180px; min-width: 0; padding: 7px 10px; font-size: 13px; }
+
+/* ── Settings: tabs beside the panels ──────────────────────────────────── */
+.sb-settings { display: flex; gap: 20px; align-items: flex-start; }
+.sb-subnav { width: 190px; flex: none; display: flex; flex-direction: column; gap: 2px; position: sticky; top: 0; }
+.sb .sb-subnav-item {
+  text-align: left;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.sb .sb-subnav-item:hover:not(:disabled) { background: rgba(120, 160, 190, 0.08); color: var(--text); }
+.sb .sb-subnav-item.on { color: #fff; font-weight: 600; background: var(--acc-soft); border-color: rgba(60, 201, 240, 0.3); }
+.sb-settings-body { flex: 1; min-width: 0; }
+.sb-settings-body > :first-child { margin-top: 0; }
+@media (max-width: 820px) {
+  .sb-settings { flex-direction: column; align-items: stretch; }
+  .sb-subnav { width: auto; flex-direction: row; flex-wrap: wrap; position: static; }
+}
+
+/* ── The main window as an overlay ─────────────────────────────────────── */
+.sb-overlay { border: 1px solid var(--line); border-top: 2px solid var(--acc); }
+.sb-overlay .sb-hd { cursor: grab; }
+.sb .sb-hd-x {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--steel);
+}
+.sb .sb-hd-x:hover:not(:disabled) { color: var(--text); background: rgba(120, 160, 190, 0.12); border-color: var(--line); }
+.sb-hd-x svg { width: 17px; height: 17px; }
+.sb-ft {
+  height: 34px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 16px;
+  border-top: 1px solid var(--line2);
+  font-size: 12px;
+  color: var(--muted);
+}
+.sb-ft .sb-kbd { margin: 0 4px 0 0; }
+
+/* Overlay or window: two choices, each with what it means. */
+.sb-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
+.sb-choice {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line2);
+  background: rgba(10, 16, 24, 0.55);
+  cursor: pointer;
+}
+.sb-choice.on { border-color: rgba(60, 201, 240, 0.55); background: var(--acc-soft); }
+.sb-choice input { grid-row: 1 / 3; margin: 3px 0 0; accent-color: var(--cyan); }
+.sb-choice-name { font-weight: 600; color: #fff; }
+.sb-choice-text { grid-column: 2; font-size: 12.5px; color: var(--muted); }
+@media (max-width: 820px) { .sb-choices { grid-template-columns: 1fr; } }
+
+/* ── Settings: one row per hotkey ──────────────────────────────────────── */
+.sb-hk {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line2);
+  flex-wrap: wrap;
+}
+.panel h2 + .sb-hk { border-top: 0; }
+.sb-hk-what { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; }
+.sb-hk-name { font-weight: 600; color: #fff; }
+.sb-hk-sub { font-size: 12.5px; color: var(--muted); }
+.sb .sb-hk .hotkey { display: flex; align-items: center; gap: 10px; margin: 0; flex-wrap: wrap; }
+.sb .sb-hk .hotkey-what kbd {
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 4px 9px;
+  border: 1px solid rgba(60, 201, 240, 0.45);
+  background: rgba(10, 16, 24, 0.7);
+  color: var(--text);
+  min-width: 40px;
+  display: inline-block;
+  text-align: center;
+}
+.sb .sb-hk .hotkey > button { padding: 5px 12px; background: transparent; }
+.sb .sb-hk .hotkey-hold { flex-basis: 100%; }
+
+/* Links that are buttons keep the look of a link, not of a button. */
+.sb .link-button {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  font-family: var(--body);
+  font-size: inherit;
+  font-weight: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--cyan);
+  cursor: pointer;
+}
+.sb .link-button:hover:not(:disabled) { background: none; text-decoration: underline; }
+.sb a { color: var(--cyan); text-decoration: none; }
+.sb a:hover { text-decoration: underline; }
+
+/* The fan-site notice at the foot of Home. */
+.sb .fansite {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line2);
+  font-size: 12px;
+  color: var(--dim);
+  background: none;
+}
+.sb .fansite p { margin: 0 0 4px; }
+.sb .fansite a img { display: block; }
+.sb-hk-ctl { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+
+/* A two- or three-way switch: Open / All. */
+.sb-seg { display: inline-flex; border: 1px solid var(--line2); }
+.sb .sb-seg button { border: 0; background: transparent; color: var(--muted); padding: 6px 14px; }
+.sb .sb-seg button.on { background: var(--acc-soft); color: var(--cyan); }
+.sb-collect { display: inline-flex; gap: 6px; align-items: center; }
+.sb .sb-collect select { padding: 5px 8px; max-width: 200px; }
+.sb .sb-table button { padding: 5px 12px; }
+
+/* ── Gathering: the pinned targets, then the shopping list ─────────────── */
+.sb-targets { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.sb-target {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line2);
+  background: rgba(10, 16, 24, 0.55);
+  min-width: 0;
+}
+.sb-target.done { border-color: rgba(47, 191, 164, 0.55); }
+.sb-target-name { font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-target-row { display: flex; align-items: center; gap: 10px; }
+.sb-target-state { font-size: 12.5px; color: var(--muted); flex: 1; }
+.sb-target.done .sb-target-state { color: var(--green); }
+.sb-qty { display: inline-flex; align-items: center; gap: 6px; }
+.sb .sb-qty button, .sb .sb-target-x { width: 24px; height: 24px; padding: 0; font-family: var(--body); font-size: 15px; line-height: 1; }
+.sb .sb-target-x { border-color: transparent; background: transparent; color: var(--dim); }
+.sb .sb-target-x:hover:not(:disabled) { color: var(--red); background: rgba(224, 86, 75, 0.12); }
+.sb .sb-target-add {
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  color: var(--muted);
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 13.5px;
+  min-height: 64px;
+}
+.sb-card-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sb-card-head .sb-seg { margin-left: auto; }
+.sb-row-done td { color: var(--dim); }
+.sb-still { color: var(--amber2); }
+.sb-row-done .sb-still { color: var(--green); }
+.sb-below { color: var(--amber); margin-left: 2px; }
+/* Notes that belong to every hotkey: a line, not a panel of their own. */
+.sb .panel.sb-notes { background: none; border: 0; clip-path: none; padding: 0 2px; }
+.sb .panel.sb-notes:not(:has(*)) { display: none; }
+
+/* Where the player is, as the log last said: before the status chip. */
+.sb-place { display: inline-flex; gap: 14px; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.sb-place > span { overflow: hidden; text-overflow: ellipsis; }
+.sb-place-k { color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; font-size: 11px; margin-right: 4px; }
+
+/* Something about the hotkeys the player has to act on. */
+.sb .sb-warn {
+  border: 1px solid rgba(224, 165, 38, 0.55);
+  background: rgba(224, 165, 38, 0.1);
+  color: var(--amber2);
+  padding: 10px 14px;
+  margin: 0 0 14px;
+}
+.sb .sb-warn p { margin: 0 0 6px; color: inherit; }
+.sb .sb-warn p:last-child { margin-bottom: 0; }
+.sb .sb-warn pre { margin: 6px 0 0; white-space: pre-wrap; color: var(--txt, inherit); }
+
+/* A setting's name and what it is, beside its control. */
+.sb .sb-set { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.sb .sb-set:first-of-type { border-top: 0; }
+.sb .sb-set-what { flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; }
+.sb .sb-set-ctl { display: flex; gap: 8px; align-items: center; }
+.sb .sb-links { display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0 0; }
+
+/* Search, paging and the org page's same-shard mark. */
+.sb .sb-search { flex: 1 1 220px; max-width: 360px; }
+.sb .sb-pager { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+.sb .sb-pager button { padding: 3px 12px; }
+.sb .sb-inline { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.sb-shard { display: inline-grid; place-items: center; color: var(--cyan); margin-left: 4px; }
+.sb-shard svg { width: 16px; height: 16px; }
+.sb-avatar { width: 22px; height: 22px; border-radius: 50%; vertical-align: middle; margin-right: 8px; object-fit: cover; }
+.sb-avatar-none { display: inline-grid; place-items: center; background: rgba(120, 160, 190, 0.18); font-size: 11px; color: var(--muted); }
+
+/* Selects drawn like the window's buttons and segmented controls, not the
+   desktop's own widget: same font, edge and height, with a cyan chevron. */
+.sb select {
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: var(--disp);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background-color: rgba(0, 0, 0, 0.3);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%233cc9f0' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px 7px;
+  border: 1px solid var(--line2);
+  border-radius: 0;
+  padding: 6px 30px 6px 12px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+.sb select:hover { border-color: rgba(60, 201, 240, 0.5); }
+.sb select option {
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: normal;
+  background: #0b1218;
+  color: var(--text);
+}
+.sb .sb-collect select { padding: 5px 28px 5px 10px; }

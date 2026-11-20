@@ -1,10 +1,10 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import type { Reading } from "./types";
 
 /**
- * Reading the game's window, and whether refinery reads go to training. Part
+ * Reading the game's window. Part
  * of the overlay panel's section rather than a section of its own: everything
  * else in it reads the game's window, and nothing reads it until this is on.
  */
@@ -12,28 +12,17 @@ export function ScreenReadingPanel({
   reading,
   onReading,
   onError,
-  hotkeyField,
 }: {
   reading: Reading | null;
   onReading: (reading: Reading) => void;
   /** Where the overlay panel shows its errors; null clears it. */
   onError: (message: string | null) => void;
-  hotkeyField: (action: string, label: string, placeholder: string) => ReactNode;
 }) {
   const { t } = useTranslation();
   /** Windows only: the open windows to choose the game from. */
   const [gameWindows, setGameWindows] = useState<string[]>([]);
   const [gameWindow, setGameWindow] = useState("");
   const [readingBusy, setReadingBusy] = useState(false);
-  /** Whether F8 refinery reads go to the server for training; off by default. */
-  const [shareTraining, setShareTraining] = useState(false);
-
-  useEffect(() => {
-    invoke<boolean>("training_sharing_get")
-      .then(setShareTraining)
-      .catch((e) => onError(String(e)));
-    // Once, on mount: onError only hands the message up.
-  }, []);
 
   // Reading the screen: off until switched on, and off again when asked. On
   // Windows the window is picked from the list below; on Wayland the desktop
@@ -66,16 +55,6 @@ export function ScreenReadingPanel({
     }
   };
 
-  const toggleShareTraining = async (enabled: boolean) => {
-    onError(null);
-    try {
-      await invoke("training_sharing_set", { enabled });
-      setShareTraining(enabled);
-    } catch (e) {
-      onError(String(e));
-    }
-  };
-
   return (
     <>
       {/* Everything below this reads the game's window, and nothing reads it
@@ -105,29 +84,47 @@ export function ScreenReadingPanel({
         >
           {reading?.on ? t("overlay.readingStop") : t("overlay.readingStart")}
         </button>
-        {hotkeyField("reading", t("overlay.hotkeyReading"), "F10")}
       </div>
-      <p className="hint">
-        {reading?.on
-          ? t("overlay.readingOn", { source: reading.source ?? t("overlay.readingSourceUnknown") })
-          : t("overlay.readingHint")}
-      </p>
+      {reading?.on && (
+        <p className="hint">{t("overlay.readingOn", { source: reading.source ?? t("overlay.readingSourceUnknown") })}</p>
+      )}
       {reading?.error && <p className="error">{reading.error}</p>}
       {/* Windows 10 draws a yellow border round whatever is being captured
           and offers no way to turn it off; Windows 11 does, and it is. */}
       {reading?.on && reading.capture_border && <p className="hint">{t("overlay.readingBorder")}</p>}
       {reading?.on && reading.border_refused && <p className="hint">{t("overlay.readingBorderRefused")}</p>}
-      <div className="row">
-        <label>
-          <input
-            type="checkbox"
-            checked={shareTraining}
-            onChange={(e) => void toggleShareTraining(e.target.checked)}
-          />{" "}
-          {t("reading.shareTraining")}
-        </label>
-      </div>
-      <p className="hint">{t("reading.shareTrainingHint")}</p>
     </>
+  );
+}
+
+/** Whether F8 refinery reads go to the server for training; off by default. Sits with the refinery area. */
+export function ShareTrainingRow({ onError }: { onError: (message: string | null) => void }) {
+  const { t } = useTranslation();
+  const [shareTraining, setShareTraining] = useState(false);
+
+  useEffect(() => {
+    invoke<boolean>("training_sharing_get")
+      .then(setShareTraining)
+      .catch((e) => onError(String(e)));
+    // Once, on mount: onError only hands the message up.
+  }, []);
+
+  const toggle = async (enabled: boolean) => {
+    onError(null);
+    try {
+      await invoke("training_sharing_set", { enabled });
+      setShareTraining(enabled);
+    } catch (e) {
+      onError(String(e));
+    }
+  };
+
+  return (
+    <div className="row">
+      <label>
+        <input type="checkbox" checked={shareTraining} onChange={(e) => void toggle(e.target.checked)} />{" "}
+        {t("reading.shareTraining")}
+      </label>
+    </div>
   );
 }

@@ -3,39 +3,51 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { listenFailed } from "../listen";
-import { kindLabel, type LogEvent, type SyncSummary } from "./types";
+import { kindLabel, shown, type LogEvent, type SyncSummary } from "./types";
 
-/** Following Game.log as it is written, and what that has sent so far. */
-export function WatcherPanel({ liveDir, customDir }: { liveDir: string | null; customDir: string }) {
-  const { t } = useTranslation();
+/** What following Game.log has seen and sent, and the switch for it. */
+export interface Watcher {
+  watching: boolean;
+  error: string | null;
+  /** Newest first, at most 25. */
+  events: LogEvent[];
+  /** Events the server accepted since the window opened. */
+  synced: number;
+  toggle: () => Promise<void>;
+}
+
+/**
+ * Following Game.log as it is written. Held by the window rather than by a
+ * panel, so events that arrive while another section is open are still there
+ * when Home is shown again.
+ */
+export function useWatcher(liveDir: string | null, customDir: string): Watcher {
   const [watching, setWatching] = useState(false);
-  const [watcherError, setWatcherError] = useState<string | null>(null);
-  const [liveEvents, setLiveEvents] = useState<LogEvent[]>([]);
-  const [liveSynced, setLiveSynced] = useState(0);
-  const liveSyncedRef = useRef(0);
+  const [error, setError] = useState<string | null>(null);
+  const [events, setEvents] = useState<LogEvent[]>([]);
+  const [synced, setSynced] = useState(0);
+  const syncedRef = useRef(0);
 
   useEffect(() => {
     invoke<boolean>("watcher_status")
       .then(setWatching)
-      .catch((e) => setWatcherError(String(e)));
+      .catch((e) => setError(String(e)));
 
-    const failed = listenFailed(setWatcherError);
+    const failed = listenFailed(setError);
     const subs = [
-      listen<LogEvent>("watcher-event", (e) =>
-        setLiveEvents((prev) => [e.payload, ...prev].slice(0, 25)),
-      ).catch(failed),
+      listen<LogEvent>("watcher-event", (e) => shown(e.payload) && setEvents((prev) => [e.payload, ...prev].slice(0, 25))).catch(failed),
       listen<SyncSummary>("watcher-sync", (e) => {
-        liveSyncedRef.current += e.payload.accepted;
-        setLiveSynced(liveSyncedRef.current);
+        syncedRef.current += e.payload.accepted;
+        setSynced(syncedRef.current);
       }).catch(failed),
-      listen<string>("watcher-sync-error", (e) => setWatcherError(e.payload)).catch(failed),
+      listen<string>("watcher-sync-error", (e) => setError(e.payload)).catch(failed),
       listen<{ running: boolean }>("watcher-status", (e) => setWatching(e.payload.running)).catch(failed),
     ];
     return () => subs.forEach((p) => p.then((un) => un()));
   }, []);
 
-  const toggleWatcher = async () => {
-    setWatcherError(null);
+  const toggle = async () => {
+    setError(null);
     try {
       if (watching) {
         await invoke("stop_watcher");
@@ -44,9 +56,17 @@ export function WatcherPanel({ liveDir, customDir }: { liveDir: string | null; c
         setWatching(true);
       }
     } catch (e) {
-      setWatcherError(String(e));
+      setError(String(e));
     }
   };
+
+  return { watching, error, events, synced, toggle };
+}
+
+/** The watcher's switch and the events it has seen. */
+export function WatcherPanel({ watcher, canStart }: { watcher: Watcher; canStart: boolean }) {
+  const { t } = useTranslation();
+  const { watching, error: watcherError, events: liveEvents, synced: liveSynced, toggle: toggleWatcher } = watcher;
 
   return (
     <section className="panel">
@@ -59,7 +79,7 @@ export function WatcherPanel({ liveDir, customDir }: { liveDir: string | null; c
               })
             : t("watcher.notWatching")}
         </p>
-        <button disabled={!liveDir && !customDir} onClick={toggleWatcher}>
+        <button disabled={!canStart && !watching} onClick={toggleWatcher}>
           {watching ? t("watcher.stop") : t("watcher.start")}
         </button>
       </div>

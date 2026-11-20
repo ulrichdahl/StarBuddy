@@ -22,12 +22,17 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
 /// The RSI status window — the first overlay surface.
 pub const STATUS: &str = "status";
+/// The dashboard trackers: tracked pools, gathering, refinery orders, points.
+pub const TRACKERS: [&str; 4] = ["pools", "gathering", "orders", "points"];
 /// Default per action. F6 is unbound in Star Citizen's current default
 /// keyset (F1 mobiGlas, F2 starmap, F4 camera, F11 comms, F12 chat are not).
 /// F8 reads the refinery panel, F9 sends the frame for training, F10 switches
 /// reading the screen on and off. None is bound in Star Citizen's current
 /// default keyset, like F6 and F7.
-pub const DEFAULT_HOTKEYS: [(&str, &str); 5] = [
+pub const DEFAULT_HOTKEYS: [(&str, &str); 6] = [
+    // Insert: bound to nothing in Star Citizen's default profile
+    // (Data/Libs/Config/defaultProfile.xml, 4.x), where F12 is chat.
+    ("main", "Insert"),
     ("status", "F6"),
     ("scan", "F7"),
     ("refinery", "F8"),
@@ -228,13 +233,24 @@ fn name_of(label: &str) -> Option<&str> {
 }
 
 fn window_prefs(app: &AppHandle, name: &str) -> WindowPrefs {
-    app.state::<OverlayState>().prefs.lock_or_recover().windows.get(name).cloned().unwrap_or_default()
+    app.state::<OverlayState>().prefs.lock_or_recover().windows.get(name).cloned().unwrap_or_else(|| first_place(name))
+}
+
+/// Where a window opens the first time: the trackers down the right of the
+/// default spot rather than all on top of each other and the status window.
+fn first_place(name: &str) -> WindowPrefs {
+    let mut prefs = WindowPrefs::default();
+    if let Some(i) = TRACKERS.iter().position(|t| *t == name) {
+        prefs.x = 500.0;
+        prefs.y = 40.0 + 230.0 * i as f64;
+    }
+    prefs
 }
 
 fn update_prefs(app: &AppHandle, name: &str, f: impl FnOnce(&mut WindowPrefs)) -> WindowPrefs {
     let state = app.state::<OverlayState>();
     let mut prefs = state.prefs.lock_or_recover();
-    let w = prefs.windows.entry(name.to_string()).or_default();
+    let w = prefs.windows.entry(name.to_string()).or_insert_with(|| first_place(name));
     f(w);
     w.clone()
 }
@@ -836,6 +852,7 @@ pub fn wanted_hotkeys(app: &AppHandle) -> Vec<(String, String)> {
 /// "refinery" on its own would tell nobody anything.
 pub fn describe_action(action: &str) -> &'static str {
     match action {
+        "main" => "Show or hide StarBuddy over the game",
         "status" => "Show or hide the server status window",
         "scan" => "Start or stop reading mining scans",
         "refinery" => "Read the refinery order on screen",
@@ -965,6 +982,7 @@ pub fn run_action(app: &AppHandle, action: &str) {
     // work, which is what made this look like two broken keys rather than one
     // broken thread.
     let dispatch = move || match action.as_str() {
+        "main" => crate::main_window::toggle(&app2),
         "status" => {
             if let Err(e) = toggle(&app2, STATUS) {
                 log::error!("overlay toggle failed: {e}");

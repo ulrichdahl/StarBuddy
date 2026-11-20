@@ -17,14 +17,39 @@ class User extends Authenticatable
         'name', 'email', 'discord_id', 'discord_username', 'avatar_url', 'handle', 'locale',
     ];
 
-    protected $hidden = ['password', 'remember_token'];
+    // The UDI link token is a bearer secret: only GET /api/me/udi-link hands it out.
+    protected $hidden = ['password', 'remember_token', 'udi_link_token'];
 
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'udi_link_token' => 'encrypted',
+            'udi_linked_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The player's main org: where their points go and what the dashboard
+     * shows. Kept valid: a player in any org always has one, and it is
+     * always one of their active orgs.
+     */
+    public function mainOrg(): ?Org
+    {
+        return $this->main_org_id ? $this->orgs()->where('orgs.id', $this->main_org_id)->first() : null;
+    }
+
+    /** Repair main_org_id after a membership changed; returns it. */
+    public function ensureMainOrg(): ?int
+    {
+        $active = $this->orgs()->orderBy('orgs.id')->pluck('orgs.id');
+        $main = $active->contains($this->main_org_id) ? $this->main_org_id : $active->first();
+        if ($main !== $this->main_org_id) {
+            $this->forceFill(['main_org_id' => $main])->save();
+        }
+
+        return $main;
     }
 
     // Active memberships only — pending join requests don't grant access.

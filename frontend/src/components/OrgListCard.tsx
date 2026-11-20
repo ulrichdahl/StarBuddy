@@ -6,6 +6,12 @@ import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
+import MenuItem from '@mui/material/MenuItem'
+import TextField from '@mui/material/TextField'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import ListItemText from '@mui/material/ListItemText'
@@ -14,6 +20,7 @@ import Skeleton from '@mui/material/Skeleton'
 import Typography from '@mui/material/Typography'
 import GroupsIcon from '@mui/icons-material/Groups'
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts'
+import { isAxiosError } from 'axios'
 import { api, unwrapList } from '../lib/api'
 import type { Me, OrgSummary } from '../lib/types'
 import { OrgMembersDialog } from './OrgMembersDialog'
@@ -34,10 +41,13 @@ function orgStats(org: OrgSummary, t: TFunction): string {
  * membership actions: request to join, cancel a pending request, leave,
  * and (for managers/admins) open the member-moderation dialog.
  */
-export function OrgListCard({ me }: { me: Me }) {
+export function OrgListCard({ me, bare = false }: { me: Me; bare?: boolean }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [manageOrg, setManageOrg] = useState<OrgSummary | null>(null)
+  // The last manager leaving: who takes over.
+  const [handover, setHandover] = useState<{ org: OrgSummary; candidates: { id: number; handle: string }[] } | null>(null)
+  const [successor, setSuccessor] = useState<number | ''>('')
 
   const orgsQuery = useQuery({
     queryKey: ['orgs'],
@@ -47,6 +57,8 @@ export function OrgListCard({ me }: { me: Me }) {
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ['orgs'] })
     void queryClient.invalidateQueries({ queryKey: ['me'] })
+    void queryClient.invalidateQueries({ queryKey: ['competition'] })
+    void queryClient.invalidateQueries({ queryKey: ['competition-members'] })
   }
 
   const join = useMutation({
@@ -57,18 +69,36 @@ export function OrgListCard({ me }: { me: Me }) {
   })
 
   const leave = useMutation({
-    mutationFn: async (orgId: number) => api.delete(`/api/orgs/${orgId}/leave`),
+    mutationFn: async ({ org, successorId }: { org: OrgSummary; successorId?: number }) =>
+      api.delete(`/api/orgs/${org.id}/leave`, { data: successorId ? { successor_id: successorId } : undefined }),
+    onSuccess: () => {
+      setHandover(null)
+      invalidate()
+    },
+    onError: (error, { org }) => {
+      const body = isAxiosError(error) ? (error.response?.data as { code?: string; candidates?: { id: number; handle: string }[] }) : undefined
+      if (body?.code === 'successor_required' && body.candidates) {
+        setSuccessor('')
+        setHandover({ org, candidates: body.candidates })
+      }
+    },
+  })
+
+  const makeMain = useMutation({
+    mutationFn: async (orgId: number) => api.put('/api/me/main-org', { org_id: orgId }),
     onSuccess: invalidate,
   })
 
-  const busy = join.isPending || leave.isPending
+  const busy = join.isPending || leave.isPending || makeMain.isPending
 
   return (
-    <Paper sx={{ p: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <GroupsIcon color="primary" />
-        <Typography variant="h6">{t('org.title')}</Typography>
-      </Box>
+    <Paper sx={bare ? { p: 0, border: 0, bgcolor: 'transparent' } : { p: 3 }}>
+      {!bare && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <GroupsIcon color="primary" />
+          <Typography variant="h6">{t('org.title')}</Typography>
+        </Box>
+      )}
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
         {t('org.help')}
       </Typography>
@@ -118,7 +148,7 @@ export function OrgListCard({ me }: { me: Me }) {
                         size="small"
                         color="inherit"
                         disabled={busy}
-                        onClick={() => leave.mutate(org.id)}
+                        onClick={() => leave.mutate({ org })}
                       >
                         {t('common.cancel')}
                       </Button>
@@ -126,6 +156,13 @@ export function OrgListCard({ me }: { me: Me }) {
                   )}
                   {membership?.status === 'active' && (
                     <>
+                      {org.id === me.main_org_id ? (
+                        <Chip size="small" color="primary" label={t('org.main')} title={t('org.mainHelp')} />
+                      ) : (
+                        <Button size="small" variant="outlined" color="inherit" disabled={busy} onClick={() => makeMain.mutate(org.id)} title={t('org.mainHelp')}>
+                          {t('org.makeMain')}
+                        </Button>
+                      )}
                       <Chip
                         size="small"
                         label={t(`org.role.${membership.role}`)}
@@ -146,7 +183,7 @@ export function OrgListCard({ me }: { me: Me }) {
                         color="error"
                         disabled={busy}
                         onClick={() => {
-                          if (window.confirm(t('org.leaveConfirm', { org: org.name }))) leave.mutate(org.id)
+                          if (window.confirm(t('org.leaveConfirm', { org: org.name }))) leave.mutate({ org })
                         }}
                       >
                         {t('org.leave')}
@@ -158,6 +195,42 @@ export function OrgListCard({ me }: { me: Me }) {
             )
           })}
         </List>
+      )}
+
+      {handover && (
+        <Dialog open onClose={() => setHandover(null)} maxWidth="xs" fullWidth>
+          <DialogTitle>{t('org.handoverTitle', { org: handover.org.name })}</DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              {t('org.handoverHelp')}
+            </Typography>
+            <TextField
+              select
+              label={t('org.newManager')}
+              value={successor}
+              onChange={(e) => setSuccessor(Number(e.target.value))}
+            >
+              {handover.candidates.map((c) => (
+                <MenuItem key={c.id} value={c.id}>
+                  {c.handle}
+                </MenuItem>
+              ))}
+            </TextField>
+          </DialogContent>
+          <DialogActions>
+            <Button color="inherit" onClick={() => setHandover(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              disabled={successor === '' || leave.isPending}
+              onClick={() => successor !== '' && leave.mutate({ org: handover.org, successorId: successor })}
+            >
+              {t('org.appointAndLeave')}
+            </Button>
+          </DialogActions>
+        </Dialog>
       )}
 
       {manageOrg && (

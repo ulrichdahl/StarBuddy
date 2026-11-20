@@ -14,7 +14,7 @@ use base64::Engine;
 use serde::{Deserialize, Serialize};
 use crate::lock::LockExt;
 use std::sync::Mutex;
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
 /// Window label of the full-screen selector.
 const SELECTOR: &str = "region-selector";
@@ -92,6 +92,13 @@ impl Purpose {
             "refinery" => Ok(Self::Refinery),
             "scan" => Ok(Self::Scan),
             other => Err(format!("unknown capture area {other}")),
+        }
+    }
+
+    fn name(&self) -> &'static str {
+        match self {
+            Self::Refinery => "refinery",
+            Self::Scan => "scan",
         }
     }
 }
@@ -185,6 +192,8 @@ pub fn region_selected(
     if purpose == Purpose::Scan {
         crate::scan::region_changed(&app);
     }
+    // Settings shows whether an area is framed, and the selector is another window.
+    let _ = app.emit("region-changed", purpose.name());
     Ok(Some(area))
 }
 
@@ -207,6 +216,7 @@ pub fn region_clear(app: AppHandle, purpose: String) -> Result<(), String> {
     if purpose == Purpose::Scan {
         crate::scan::region_changed(&app);
     }
+    let _ = app.emit("region-changed", purpose.name());
     Ok(())
 }
 

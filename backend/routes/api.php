@@ -19,10 +19,26 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('me', fn (Request $request) => $request->user()->load('orgs'));
+    // orgs: the main org first, so orgs[0] is the main org. main_org_id is
+    // repaired here too, should an org have been deleted.
+    Route::get('me', function (Request $request) {
+        $user = $request->user();
+        $main = $user->ensureMainOrg();
+        $user->load('orgs');
+        $user->setRelation('orgs', $user->orgs->sortBy(fn ($o) => [$o->id === $main ? 0 : 1, $o->id])->values());
+
+        return $user;
+    });
+    Route::get('me/udi-link', [\App\Http\Controllers\UdiLinkController::class, 'show']);
+    Route::get('me/udi-link/status', [\App\Http\Controllers\UdiLinkController::class, 'status'])->middleware('throttle:30,1');
+    Route::put('me/udi-link', [\App\Http\Controllers\UdiLinkController::class, 'adopt']);
+    Route::delete('me/udi-link', [\App\Http\Controllers\UdiLinkController::class, 'destroy']);
+    Route::put('me/main-org', [\App\Http\Controllers\OrgController::class, 'setMain']);
     Route::patch('me', [\App\Http\Controllers\ProfileController::class, 'update']);
 
     Route::get('dashboard', DashboardController::class);
+    Route::get('dashboard/competition', \App\Http\Controllers\CompetitionController::class);
+    Route::get('dashboard/members', [\App\Http\Controllers\CompetitionController::class, 'members']);
     Route::get('status', \App\Http\Controllers\StatusController::class);
     Route::get('scan/signatures', [\App\Http\Controllers\ScanController::class, 'signatures']);
     Route::get('scan/signature/{value}', [\App\Http\Controllers\ScanController::class, 'lookup']);
@@ -54,6 +70,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('blueprints-owned/bulk', [BlueprintController::class, 'bulkOwned']);
     Route::post('blueprints-owned', [BlueprintController::class, 'storeOwned']);
     Route::delete('blueprints-owned/{blueprintOwned}', [BlueprintController::class, 'destroyOwned']);
+
+    // What a player is working towards: blueprints pinned to craft (their
+    // materials become the desktop client's gathering list) and mission
+    // reward pools being farmed.
+    Route::get('craft-targets', [\App\Http\Controllers\CraftTargetController::class, 'index']);
+    Route::post('craft-targets', [\App\Http\Controllers\CraftTargetController::class, 'store']);
+    Route::post('craft-targets/share', [\App\Http\Controllers\CraftTargetController::class, 'share'])->middleware('throttle:6,1');
+    Route::delete('craft-targets/{blueprint}', [\App\Http\Controllers\CraftTargetController::class, 'destroy']);
+    Route::get('tracked-pools', [\App\Http\Controllers\TrackedPoolController::class, 'index']);
+    Route::post('tracked-pools', [\App\Http\Controllers\TrackedPoolController::class, 'store']);
+    Route::delete('tracked-pools/{poolKey}', [\App\Http\Controllers\TrackedPoolController::class, 'destroy'])->where('poolKey', '.*');
 
     Route::get('refinery-orders', [RefineryOrderController::class, 'index']);
     Route::post('refinery-orders', [RefineryOrderController::class, 'store']);
@@ -91,6 +118,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('devices/{tokenId}', [DeviceController::class, 'destroy']);
 
     // Game.log event ingestion from paired desktop clients (idempotent)
+    Route::post('presence', [\App\Http\Controllers\PresenceController::class, 'store'])->middleware('throttle:20,1');
     Route::post('ingest/events', [IngestController::class, 'store']);
 
     // Contributed screenshots for training the panel detector. Members submit

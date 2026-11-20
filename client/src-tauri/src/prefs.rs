@@ -24,6 +24,21 @@ pub(crate) struct ClientPrefs {
     /// the reader. Off unless the player switches it on; the F9 training
     /// capture is its own explicit action and does not look at this.
     pub(crate) share_reads_for_training: bool,
+    /// Links the player added to Tools, in the order they added them.
+    pub(crate) tool_links: Vec<crate::tools::ToolLink>,
+    /// How the main window opens over the game, when the game is running.
+    pub(crate) main_mode: crate::main_window::MainMode,
+    /// Where the main window was left as an overlay.
+    pub(crate) main_overlay_at: Option<crate::main_window::Placement>,
+    /// Where the main window was left as a window, kept across restarts.
+    pub(crate) main_window_at: Option<crate::main_window::Placement>,
+    /// The player switched the Game.log watcher off. It is on otherwise,
+    /// from the start, whenever a game folder is found.
+    pub(crate) log_watch_off: bool,
+    /// The player switched off showing their game status to org mates.
+    pub(crate) presence_off: bool,
+    /// The link to United Danes' StarLabels and StarConfig (udi.rs).
+    pub(crate) udi: crate::udi::UdiPrefs,
 }
 
 fn client_prefs_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {

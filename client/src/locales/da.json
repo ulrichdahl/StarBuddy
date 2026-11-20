@@ -58,7 +58,7 @@
     "syncing_one": "Synkroniserer {{count}} hændelse…",
     "syncing_other": "Synkroniserer {{count}} hændelser…",
     "pairToSync": "Par med en server ovenfor for at synkronisere.",
-    "syncResult": "{{accepted}} ({{duplicates}}): {{blueprints}}, {{refinery}}{{backfilled}}.",
+    "syncResult": "{{accepted}} ({{duplicates}}): {{blueprints}}, {{refinery}}{{missions}}{{travel}}{{backfilled}}{{points}}.",
     "syncAccepted_one": "Serveren modtog {{count}} ny hændelse",
     "syncAccepted_other": "Serveren modtog {{count}} nye hændelser",
     "syncDuplicates_one": "{{count}} allerede kendt",
@@ -68,7 +68,21 @@
     "syncRefineryRecorded_one": "{{count}} færdig raffinering registreret",
     "syncRefineryRecorded_other": "{{count}} færdige raffineringer registreret",
     "syncBackfilled_one": ", {{count}} blueprint-identitet efterudfyldt",
-    "syncBackfilled_other": ", {{count}} blueprint-identiteter efterudfyldt"
+    "syncBackfilled_other": ", {{count}} blueprint-identiteter efterudfyldt",
+    "filterMissions": "Missioner",
+    "kindMission": "Mission fuldført",
+    "syncMissions_one": ", {{count}} mission registreret",
+    "syncMissions_other": ", {{count}} missioner registreret",
+    "travel_one": "{{count}} rejsehændelse",
+    "travel_other": "{{count}} rejsehændelser",
+    "missions_one": "{{count}} mission",
+    "missions_other": "{{count}} missioner",
+    "syncTravel_one": ", {{count}} rejsehændelse talt med",
+    "syncTravel_other": ", {{count}} rejsehændelser talt med",
+    "syncPoints_one": ". {{count}} point til org'en",
+    "syncPoints_other": ". {{count}} point til org'en",
+    "showLines_one": "Vis hændelsen",
+    "showLines_other": "Vis de {{count}} hændelser"
   },
   "update": {
     "available": "StarBuddy v{{latest}} er tilgængelig (du har v{{current}}).",
@@ -82,7 +96,11 @@
     "versionBuild": "v{{version}} · {{build}}",
     "openLog": "Åbn logmappe",
     "devAvailable": "Der er et nyere dev-build ({{latest}}; du har {{current}}).",
-    "notes": "Hvad er ændret"
+    "notes": "Hvad er ændret",
+    "install": "Installér og genstart",
+    "downloading": "Henter opdateringen… {{pct}} %",
+    "installing": "Installerer; StarBuddy genstarter af sig selv.",
+    "nothingNewer": "Der blev ikke fundet en nyere version at installere."
   },
   "footer": {
     "disclaimer": "Dette er en uofficiel Star Citizen-fanapplikation uden tilknytning til Cloud Imperium-koncernen. Alt indhold, der ikke er skabt af værten eller brugerne, tilhører de respektive ejere.",
@@ -337,12 +355,48 @@
       "scan": "scanning",
       "refinery": "raffinaderiordre",
       "capture": "træningsbillede",
-      "reading": "skærmaflæsning"
+      "reading": "skærmaflæsning",
+      "main": "StarBuddy"
     },
     "report": "Systemoplysninger",
     "reportCopy": "Kopiér",
     "reportCopied": "Kopieret",
-    "readingBorderRefused": "Windows har ikke ladet StarBuddy slå den kant fra på denne maskine. Åbn Indstillinger › Beskyttelse af personlige oplysninger og sikkerhed › Skærmbilledkanter — den ligger nederst på listen — og slå \"Adgang til indstillinger for skærmbilledkanter\", \"Lad apps slå skærmbilledkanten fra\" og \"Lad computerprogrammer slå skærmbilledkanten fra\" til, hvor StarBuddy står. Kanten forsvinder, næste gang aflæsning slås til."
+    "readingBorderRefused": "Windows har ikke ladet StarBuddy slå den kant fra på denne maskine. Åbn Indstillinger › Beskyttelse af personlige oplysninger og sikkerhed › Skærmbilledkanter — den ligger nederst på listen — og slå \"Adgang til indstillinger for skærmbilledkanter\", \"Lad apps slå skærmbilledkanten fra\" og \"Lad computerprogrammer slå skærmbilledkanten fra\" til, hvor StarBuddy står. Kanten forsvinder, næste gang aflæsning slås til.",
+    "tracker": {
+      "eyebrow": "Tracker",
+      "unreachable": "Hjemmesiden kan ikke nås.",
+      "pools": {
+        "title": "Blueprint-puljer",
+        "next": "{{pool}}: {{left}} tilbage",
+        "allDone": "Alle fulgte puljer er komplette.",
+        "none": "Ingen puljer fulgt. Følg en under Blueprints.",
+        "unnamed": "Unavngiven mission",
+        "event": "{{event}}: trin på {{points}} point"
+      },
+      "gathering": {
+        "title": "Indsamling",
+        "still": "{{still}} af {{of}} materialer mangler",
+        "none": "Ingen craft-mål fastgjort."
+      },
+      "orders": {
+        "title": "Raffinaderiordrer",
+        "none": "Ingen åbne ordrer.",
+        "ready_one": "{{count}} ordre klar til afhentning",
+        "ready_other": "{{count}} ordrer klar til afhentning",
+        "next": "Næste klar om {{time}}",
+        "open_one": "{{count}} åben ordre",
+        "open_other": "{{count}} åbne ordrer",
+        "readyOne": "Klar"
+      },
+      "points": {
+        "title": "Dine point",
+        "rank": "{{org}}: nr. {{rank}} af {{count}} denne måned",
+        "noOrg": "Vælg en hoved-org på hjemmesiden.",
+        "mission": "Missioner",
+        "refinery": "Raffinaderi",
+        "travel": "Rejser"
+      }
+    }
   },
   "changes": {
     "sinceLive_one": "Nyheder — {{count}} ændring siden v{{version}}",
@@ -354,5 +408,337 @@
   "reading": {
     "shareTraining": "Del F8-raffinaderiaflæsninger for at forbedre aflæsningen",
     "shareTrainingHint": "Sender det fangede panel og det aflæste til din StarBuddy-server. Slået fra som standard. F9 sender altid, når du trykker på den."
+  },
+  "shell": {
+    "sections": "StarBuddy-sektioner",
+    "soon": "Snart",
+    "allSystems": "Alle systemer kører",
+    "section": {
+      "home": "Hjem",
+      "craft": "Fremstil",
+      "blueprints": "Blueprints",
+      "gathering": "Indsamling",
+      "refinery": "Raffinaderi",
+      "stash": "Mit lager",
+      "org": "Org",
+      "tools": "Værktøjer",
+      "settings": "Indstillinger"
+    },
+    "soonText": {
+      "craft": "Hvad du og din org kan fremstille lige nu, ud fra jeres blueprints og de materialer I har tilsammen.",
+      "blueprints": "Alle blueprints du og din org har, hvor de manglende kan findes, og hvad hver kræver.",
+      "gathering": "En indkøbsliste til det, du vil fremstille: hvad der skal mines eller købes, i den kvalitet der tæller.",
+      "stash": "Hvad du har og hvor, ud fra dine raffinaderiordrer og spillets log.",
+      "org": "Din orgs medlemmer, events og opslag fra hjemmesiden.",
+      "refinery": "Dine raffinaderiordrer i én liste med den resterende tid på hver.",
+      "tools": "Orgens sider og fællesskabets værktøjer, et klik fra spillet."
+    },
+    "hide": "Tilbage til spillet",
+    "keyToggle": "vis / skjul",
+    "keyBack": "tilbage til spillet",
+    "location": "Sted",
+    "ship": "Skib",
+    "gameRunning": "Spillet kører",
+    "gameNotRunning": "Spillet kører ikke; dette er sidste session",
+    "quit": "Luk StarBuddy"
+  },
+  "home": {
+    "servers": "Servere",
+    "watcher": "Logovervågning",
+    "reading": "Skærmaflæsning",
+    "unknown": "Ikke kendt endnu",
+    "checkedAt": "RSI-status tjekket {{time}}",
+    "watching": "Overvåger",
+    "notWatching": "Overvåger ikke",
+    "synced_one": "{{count}} hændelse sendt i denne session",
+    "synced_other": "{{count}} hændelser sendt i denne session",
+    "watcherHint": "Følger Game.log og sender det, den finder, til din server.",
+    "readingOn": "Til",
+    "readingOff": "Fra",
+    "readingHint": "Kræves til raffinaderiaflæsning og scanning.",
+    "readingStart": "Slå til",
+    "readingStop": "Slå fra",
+    "refinery": "Raffinaderi",
+    "openRefinery": "Åbn",
+    "noRefinery": "Ingen ordre aflæst endnu. Tryk F8 ved en raffinaderikiosk for at aflæse en.",
+    "readAt": "Aflæst ved {{station}} · {{time}}",
+    "unknownStation": "en ukendt station",
+    "noMaterials": "Intet valgt til raffinering",
+    "ready": "Klar",
+    "recent": "Seneste fra Game.log",
+    "noEventsYet": "Intet nyt i loggen endnu i denne session.",
+    "noEvents": "Start logovervågningen for at se, hvad spillet logger.",
+    "overlays": "Over spillet",
+    "overlay": {
+      "status": "Status",
+      "scan": "Scanning",
+      "refinery": "Raffinaderiordre",
+      "pools": "Blueprint-puljer",
+      "gathering": "Indsamling",
+      "orders": "Raffinaderiordrer",
+      "points": "Dine point"
+    }
+  },
+  "refinery": {
+    "lead": "Dine raffinaderiordrer, aflæst ved kiosken med genvejstasten.",
+    "pairFirst": "Par med din orgs StarBuddy-hjemmeside under Indstillinger for at se dine raffinaderiordrer.",
+    "open": "Åbne",
+    "all": "Alle",
+    "loading": "Henter…",
+    "none": "Ingen raffinaderiordrer endnu.",
+    "noneOpen": "Intet i et raffinaderi lige nu.",
+    "refining": "Raffinerer",
+    "collectedAt": "Hentet · {{place}}",
+    "collectTo": "Tag det til…",
+    "collect": "Hent",
+    "col": {
+      "station": "Raffinaderi",
+      "materials": "Raffinerer",
+      "status": "Status",
+      "time": "Tid tilbage"
+    }
+  },
+  "tools": {
+    "lead": "Din orgs sider og fællesskabets værktøjer, et klik fra spillet. De åbner i din browser.",
+    "org": "Din org",
+    "community": "Fællesskabet",
+    "mine": "Dine links",
+    "name": "Navn",
+    "url": "Adresse",
+    "add": "Tilføj link",
+    "remove": "Fjern {{name}}",
+    "site": {
+      "uex": "Varepriser og handelsruter",
+      "regolith": "Minesessioner og raffinaderiberegning",
+      "erkul": "Beregner til skibsudstyr",
+      "wiki": "Genstande, opskrifter og steder",
+      "cstone": "Hvor en genstand kan købes",
+      "sctrade": "Planlægning af handelsruter"
+    },
+    "page": {
+      "dashboard": {
+        "name": "Dashboard",
+        "blurb": "Hvordan orgerne klarer sig denne måned"
+      },
+      "resources": {
+        "name": "Materialer",
+        "blurb": "Hvem har hvad, hvor og i hvilken kvalitet"
+      },
+      "items": {
+        "name": "Genstande",
+        "blurb": "Genstande på tværs af orgen"
+      },
+      "blueprints": {
+        "name": "Blueprintbibliotek",
+        "blurb": "Alle blueprints orgen har"
+      },
+      "craft": {
+        "name": "Fremstil",
+        "blurb": "Hvad orgen kan fremstille"
+      },
+      "refinery": {
+        "name": "Raffinaderiordrer",
+        "blurb": "Ordrer gemt fra dine aflæsninger"
+      }
+    }
+  },
+  "settings": {
+    "tab": {
+      "general": "Generelt",
+      "hotkeys": "Genvejstaster",
+      "game": "Spilinstallation",
+      "reading": "Skærmaflæsning",
+      "updates": "Opdateringer",
+      "diagnostics": "Fejlsøgning"
+    },
+    "reportHint": "Når noget ikke virker, fortæller denne rapport, hvad StarBuddy ved om din maskine. Sæt den ind sammen med dit spørgsmål.",
+    "openAs": "Åbn StarBuddy som",
+    "mode": {
+      "overlay": "Overlay",
+      "window": "Vindue"
+    },
+    "modeText": {
+      "overlay": "Over spillet, uden ramme. Genvejstasten viser og skjuler det, og det bliver, hvor du placerer det.",
+      "window": "Et almindeligt vindue, du skifter til med Alt+Tab."
+    },
+    "modeNoGame": "Når spillet ikke kører, åbner StarBuddy altid som et vindue.",
+    "hotkeyMain": "Vis / skjul StarBuddy",
+    "hkCount_one": "{{count}} genvejstast registreret",
+    "hkCount_other": "{{count}} genvejstaster registreret",
+    "hk": {
+      "main": "Åbn / luk StarBuddy",
+      "status": "Statusvindue",
+      "reading": "Skærmaflæsning til / fra",
+      "refinery": "Aflæs raffinaderiordre",
+      "scan": "Live-scanning",
+      "capture": "Skærmbillede til træning"
+    },
+    "hkSub": {
+      "main": "Den ene tast at huske",
+      "status": "Serverstatus over spillet",
+      "reading": "Lader StarBuddy aflæse spillet",
+      "refinery": "Ved raffinaderikiosken",
+      "scan": "Aflæser scanningssignaturen",
+      "capture": "Hjælper med at forbedre aflæsningen"
+    },
+    "change": "Skift",
+    "groupWindows": "Vinduer",
+    "groupCapture": "Skærmaflæsning",
+    "captureNeedsReading": "Disse aflæser spillets vindue: slå skærmaflæsning til først.",
+    "area": {
+      "refinery": "Raffinaderiordre-område"
+    },
+    "areaFramed": "Indrammet: kun den del af skærmen læses",
+    "areaWhole": "Ikke indrammet: StarBuddy leder efter panelet på hele skærmen",
+    "areaFrame": "Indram område",
+    "areaReframe": "Indram igen",
+    "areaClear": "Ryd",
+    "areaNeedsReading": "Slå skærmaflæsning til for at indramme et område.",
+    "lastHotkey": "Seneste genvejstast",
+    "heard": "{{action}} kl. {{time}}: tasterne når frem til StarBuddy.",
+    "heardNone": "Ingen genvejstast er nået frem til StarBuddy, siden den startede.",
+    "reportIssue": "Meld en fejl på GitHub",
+    "knownIssues": "Kendte fejl",
+    "hkFailed": "Virker ikke: {{names}}. Et andet program har måske tasten; vælg en anden.",
+    "hkCommands": "Vis kommandoerne",
+    "presence": "Spilstatus til din org",
+    "presenceShare": "Vis mine org-kammerater om jeg spiller, hvor, i hvilket skib og på hvilken shard",
+    "presenceHint": "Kun medlemmer af din hoved-org ser det. Slået fra glemmer hjemmesiden det med det samme."
+  },
+  "gathering": {
+    "lead": "Hvad dine fastgjorte fremstillingsmål kræver, holdt op mod hvad du har i den rette kvalitet.",
+    "pairFirst": "Par med din orgs StarBuddy-hjemmeside under Indstillinger for at se din indkøbsliste.",
+    "post": "Del indkøbslisten på Discord",
+    "posted_one": "Delte {{count}} materiale på Discord.",
+    "posted_other": "Delte {{count}} materialer på Discord.",
+    "less": "Én færre",
+    "more": "Én mere",
+    "unpin": "Frigør {{name}}",
+    "ready": "Klar til fremstilling",
+    "needs_one": "Mangler {{count}} materiale",
+    "needs_other": "Mangler {{count}} materialer",
+    "pin": "+ Fastgør et blueprint",
+    "list": "Indkøbsliste",
+    "still": "{{still}} af {{of}} mangler stadig",
+    "mine": "Kun mine",
+    "withOrg": "Med orgens lager",
+    "empty": "Fastgør et blueprint som fremstillingsmål, så dukker dets materialer op her.",
+    "done": "Klar",
+    "below": "Du har også {{amount}} under den krævede kvalitet",
+    "qualityNote": "Lager under den kvalitet, en opskrift kræver, tæller ikke med, så du ved, hvad der er værd at mine.",
+    "col": {
+      "material": "Materiale",
+      "need": "Behov",
+      "quality": "Kvalitet",
+      "mine": "Du har",
+      "org": "Orgen har",
+      "still": "Mangler",
+      "for": "Til"
+    }
+  },
+  "pages": {
+    "pairFirst": "Par med din orgs StarBuddy-hjemmeside under Indstillinger for at se dette.",
+    "search": "Søg",
+    "page": "Side {{page}} af {{last}}",
+    "total_one": "{{count}} i alt",
+    "total_other": "{{count}} i alt"
+  },
+  "blueprints": {
+    "category": "Kategori",
+    "allCategories": "Alle kategorier",
+    "show": {
+      "all": "Alle",
+      "mine": "Mine",
+      "missing": "Mangler"
+    },
+    "none": "Ingen blueprints passer.",
+    "col": {
+      "name": "Navn",
+      "type": "Type",
+      "grade": "Grad",
+      "held": "Har",
+      "pool": "Falder fra"
+    },
+    "default": "Standard",
+    "orgHolds_one": "{{count}} i org'en",
+    "orgHolds_other": "{{count}} i org'en",
+    "track": "Følg denne pulje",
+    "pin": "Fastgør",
+    "marked": "{{name}} markeret som din.",
+    "unmarked": "{{name}} er ikke længere markeret som din.",
+    "pinned": "{{name}} fastgjort som craft-mål.",
+    "tracked": "Følger nu {{pool}}."
+  },
+  "craft": {
+    "craftable": "Kan craftes nu",
+    "allMine": "Alle mine blueprints",
+    "working": "Regner ud hvad du kan crafte…",
+    "none": "Intet fundet.",
+    "noneCraftable": "Intet kan craftes af det du har.",
+    "col": {
+      "coverage": "Dækket",
+      "quality": "Kvalitet",
+      "missing": "Mangler stadig"
+    },
+    "craft": "Craft",
+    "done": "Craftede {{name}} (kvalitet {{quality}}).",
+    "undo": "Fortryd"
+  },
+  "items": {
+    "mine": "Mine",
+    "org": "Org",
+    "none": "Ingen genstande fundet.",
+    "col": {
+      "item": "Genstand",
+      "quantity": "Antal",
+      "quality": "Kvalitet",
+      "location": "Hvor",
+      "shared": "Delt",
+      "holders": "Ejere"
+    },
+    "withOrg": "Med org'en",
+    "private": "Privat"
+  },
+  "org": {
+    "lead": "{{org}}: {{playing}} af {{count}} spiller nu",
+    "noOrg": "Du er ikke i en org endnu. Meld dig ind på hjemmesiden.",
+    "main": "Hoved-org",
+    "none": "Ingen medlemmer at vise.",
+    "col": {
+      "member": "Medlem",
+      "status": "Status",
+      "location": "Sidste sted",
+      "ship": "Skib",
+      "build": "Version"
+    },
+    "you": "dig",
+    "playing": "Spiller",
+    "lastSeen": "Sidst set {{when}}",
+    "unknown": "Ingen spilstatus",
+    "sameShard": "På samme shard som dig",
+    "presenceNote": "Spilstatus kommer fra hvert medlems StarBuddy-klient. Medlemmer kan slå det fra under Indstillinger › Generelt."
+  },
+  "udi": {
+    "title": "UnitedDanes StarLabels og StarConfig",
+    "lead": "Bedre skibs- og genstandsnavne i spillet (StarLabels) og dine spilindstillinger (StarConfig), sat op på uniteddanes.org og installeret i din spilmappe af StarBuddy.",
+    "setUp": "Sæt op på uniteddanes.org",
+    "openLabels": "Åbn StarLabels",
+    "openConfig": "Åbn StarConfig",
+    "waiting": "Venter på at du trykker “Send til StarBuddy” på siden…",
+    "fresh": "Nye indstillinger fra uniteddanes.org: {{what}}.",
+    "whatLabels": "navne (global.ini)",
+    "whatConfig": "spilindstillinger (user.cfg)",
+    "and": " og ",
+    "install": "Installér",
+    "reinstall": "Installér igen",
+    "auto": "Installér nye indstillinger og spilversioner af sig selv",
+    "installed": "Installeret til {{channel}}, spil {{version}}, {{when}}.",
+    "doneIni": "Navne installeret til spil {{version}}.",
+    "doneCfg": "Spilindstillinger installeret.",
+    "backedUp": "Din egen user.cfg er gemt som user.cfg.before-starbuddy.",
+    "iniLater": "uniteddanes.org kunne ikke lave navnene lige nu; de installerede bliver, og StarBuddy prøver igen senere.",
+    "upToDate": "Allerede opdateret.",
+    "note": "Virker næste gang spillet starter. Afkobling lader de installerede filer blive.",
+    "unlink": "Afkobl"
   }
 }
