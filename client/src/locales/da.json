@@ -354,5 +354,30 @@
   "reading": {
     "shareTraining": "Del F8-raffinaderiaflæsninger for at forbedre aflæsningen",
     "shareTrainingHint": "Sender det fangede panel og det aflæste til din StarBuddy-server. Slået fra som standard. F9 sender altid, når du trykker på den."
+  },
+  "shell": {
+    "sections": "StarBuddy-sektioner",
+    "soon": "Snart",
+    "allSystems": "Alle systemer kører",
+    "section": {
+      "home": "Hjem",
+      "craft": "Fremstil",
+      "blueprints": "Blueprints",
+      "gathering": "Indsamling",
+      "refinery": "Raffinaderi",
+      "stash": "Mit lager",
+      "org": "Org",
+      "tools": "Værktøjer",
+      "settings": "Indstillinger"
+    },
+    "soonText": {
+      "craft": "Hvad du og din org kan fremstille lige nu, ud fra jeres blueprints og de materialer I har tilsammen.",
+      "blueprints": "Alle blueprints du og din org har, hvor de manglende kan findes, og hvad hver kræver.",
+      "gathering": "En indkøbsliste til det, du vil fremstille: hvad der skal mines eller købes, i den kvalitet der tæller.",
+      "stash": "Hvad du har og hvor, ud fra dine raffinaderiordrer og spillets log.",
+      "org": "Din orgs medlemmer, events og opslag fra hjemmesiden.",
+      "refinery": "Dine raffinaderiordrer i én liste med den resterende tid på hver.",
+      "tools": "Orgens sider og fællesskabets værktøjer, et klik fra spillet."
+    }
   }
 }

@@ -354,5 +354,30 @@
   "reading": {
     "shareTraining": "Share F8 refinery reads to improve reading",
     "shareTrainingHint": "Sends the captured panel and what was read to your StarBuddy server. Off by default. F9 always sends when you press it."
+  },
+  "shell": {
+    "sections": "StarBuddy sections",
+    "soon": "Soon",
+    "allSystems": "All systems operational",
+    "section": {
+      "home": "Home",
+      "craft": "Craft",
+      "blueprints": "Blueprints",
+      "gathering": "Gathering",
+      "refinery": "Refinery",
+      "stash": "My stash",
+      "org": "Org",
+      "tools": "Tools",
+      "settings": "Settings"
+    },
+    "soonText": {
+      "craft": "What you and your org can craft right now, from the blueprints and the materials you hold between you.",
+      "blueprints": "Every blueprint you and your org hold, where the missing ones drop, and what each needs.",
+      "gathering": "A shopping list for the items you want to craft: what to mine or buy, at the quality that counts.",
+      "stash": "What you hold and where, kept from your refinery orders and the game's log.",
+      "org": "Your org's members, events and notices, from the website.",
+      "refinery": "Your refinery orders in one list, with the time left on each.",
+      "tools": "The org's pages and the community's tools, one click from the game."
+    }
   }
 }
