@@ -490,11 +490,11 @@
   },
   "settings": {
     "tab": {
-      "hotkeys": "Overlay og genvejstaster",
+      "general": "Generelt",
+      "hotkeys": "Genvejstaster",
       "game": "Spilinstallation",
       "reading": "Skærmaflæsning",
       "account": "Konto og server",
-      "general": "Generelt",
       "updates": "Opdateringer",
       "diagnostics": "Fejlsøgning"
     },
@@ -546,7 +546,8 @@
     "heardNone": "Ingen genvejstast er nået frem til StarBuddy, siden den startede.",
     "reportIssue": "Meld en fejl på GitHub",
     "knownIssues": "Kendte fejl",
-    "hkFailed": "Virker ikke: {{names}}. Et andet program har måske tasten; vælg en anden."
+    "hkFailed": "Virker ikke: {{names}}. Et andet program har måske tasten; vælg en anden.",
+    "hkCommands": "Vis kommandoerne"
   },
   "gathering": {
     "lead": "Hvad dine fastgjorte fremstillingsmål kræver, holdt op mod hvad du har i den rette kvalitet.",

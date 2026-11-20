@@ -490,11 +490,11 @@
   },
   "settings": {
     "tab": {
-      "hotkeys": "Overlay & hotkeys",
+      "general": "General",
+      "hotkeys": "Hotkeys",
       "game": "Game install",
       "reading": "Screen reading",
       "account": "Account & server",
-      "general": "General",
       "updates": "Updates",
       "diagnostics": "Diagnostics"
     },
@@ -546,7 +546,8 @@
     "heardNone": "No hotkey has reached StarBuddy since it started.",
     "reportIssue": "Report a problem on GitHub",
     "knownIssues": "Known problems",
-    "hkFailed": "Not working: {{names}}. Another program may own the key; pick a different one."
+    "hkFailed": "Not working: {{names}}. Another program may own the key; pick a different one.",
+    "hkCommands": "Show the commands"
   },
   "gathering": {
     "lead": "What your pinned craft targets need, against what you hold at the right quality.",

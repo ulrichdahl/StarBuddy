@@ -315,7 +315,10 @@ export function OverlayPanel({
           {unset && (
             <>
               <p>{t("overlay.hotkeyDesktopUnset")}</p>
-              <pre>{commands}</pre>
+              <details>
+                <summary>{t("settings.hkCommands")}</summary>
+                <pre>{commands}</pre>
+              </details>
             </>
           )}
           {noGlobal && (

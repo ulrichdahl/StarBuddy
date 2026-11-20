@@ -1,19 +1,19 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-export const SETTINGS_TABS = ["hotkeys", "game", "reading", "account", "general", "updates", "diagnostics"] as const;
+export const SETTINGS_TABS = ["general", "hotkeys", "game", "reading", "account", "updates", "diagnostics"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 const STORE_KEY = "starbuddy.settingsTab";
 
-/** The tab Settings was left on; a convenience, so Overlay & hotkeys when unreadable. */
+/** The tab Settings was left on; a convenience, so General when unreadable. */
 export function useSettingsTab(): [SettingsTab, (tab: SettingsTab) => void] {
   const [tab, setTab] = useState<SettingsTab>(() => {
     try {
       const saved = localStorage.getItem(STORE_KEY);
-      return (SETTINGS_TABS as readonly string[]).includes(saved ?? "") ? (saved as SettingsTab) : "hotkeys";
+      return (SETTINGS_TABS as readonly string[]).includes(saved ?? "") ? (saved as SettingsTab) : "general";
     } catch {
-      return "hotkeys";
+      return "general";
     }
   });
   const choose = (next: SettingsTab) => {
