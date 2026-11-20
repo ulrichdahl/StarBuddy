@@ -1,5 +1,6 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import { emit, listen } from "@tauri-apps/api/event";
 import en from "./locales/en.json";
 import da from "./locales/da.json";
 
@@ -12,6 +13,8 @@ export const LOCALE_NAMES: Record<Locale, string> = {
 };
 
 const STORAGE_KEY = "starbuddy.locale";
+/** Tauri event that tells every window the language was changed in one of them. */
+const LOCALE_EVENT = "locale-changed";
 
 function isLocale(value: unknown): value is Locale {
   return typeof value === "string" && (SUPPORTED_LOCALES as readonly string[]).includes(value);
@@ -46,14 +49,35 @@ i18n.use(initReactI18next).init({
 
 document.documentElement.lang = initialLocale;
 
+/** Switch this window's language, if it is not already the one asked for. */
+function applyLocale(locale: Locale): void {
+  if (i18n.language !== locale) void i18n.changeLanguage(locale);
+  document.documentElement.lang = locale;
+}
+
 export function setLocale(locale: Locale): void {
-  void i18n.changeLanguage(locale);
+  applyLocale(locale);
   try {
     localStorage.setItem(STORAGE_KEY, locale);
   } catch {
     // Storage unavailable; the choice still applies for this session.
   }
-  document.documentElement.lang = locale;
+  // Every other window open at the time follows. The storage event below
+  // does that wherever the webviews share storage events; this does it where
+  // they do not. Either one arriving twice changes nothing.
+  void emit(LOCALE_EVENT, locale).catch(() => {});
 }
+
+// Overlays are separate webviews on the same origin, so they share the stored
+// choice — but only read it when they load. These keep an open one in step.
+window.addEventListener("storage", (e) => {
+  if (e.key === STORAGE_KEY && isLocale(e.newValue)) applyLocale(e.newValue);
+});
+void listen<string>(LOCALE_EVENT, (e) => {
+  if (isLocale(e.payload)) applyLocale(e.payload);
+}).catch(() => {
+  // Outside Tauri (a plain browser in dev) there are no events to hear; the
+  // storage event still covers other tabs.
+});
 
 export default i18n;

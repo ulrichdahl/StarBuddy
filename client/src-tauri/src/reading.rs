@@ -15,87 +15,29 @@
 //! Off by default and off again when asked, because a client that watches the
 //! screen from the moment it starts is not something to discover afterwards.
 
-use crate::scan::Captured;
 use serde::Serialize;
-use std::sync::{Mutex, OnceLock};
 
-/// The newest frame the stream has delivered, and what the stream is doing.
-///
-/// Only ever the newest: a capture is a question about now, so nothing is
-/// queued and a reader takes a copy when it wants one.
-#[derive(Default)]
-struct Feed {
-    frame: Option<Captured>,
-    /// When it arrived. A stream that quietly stops sending looks exactly like
-    /// a game with nothing on screen — the same frame answers every time — and
-    /// the age is the only thing that tells them apart.
-    at: Option<std::time::Instant>,
-    live: bool,
-    error: Option<String>,
-}
-
-fn feed() -> &'static Mutex<Feed> {
-    static FEED: OnceLock<Mutex<Feed>> = OnceLock::new();
-    FEED.get_or_init(|| Mutex::new(Feed::default()))
-}
-
-/// A frame has arrived from whichever stream this platform uses.
-pub fn set_frame(frame: Captured) {
-    if let Ok(mut feed) = feed().lock() {
-        feed.frame = Some(frame);
-        feed.at = Some(std::time::Instant::now());
-        feed.live = true;
-        feed.error = None;
-    }
-}
+// The frames themselves live in `capture`, raw; what is here is the switch and
+// the answers about the stream that the rest of the client asks for.
 
 /// The stream stopped, or could not start.
 pub fn set_stopped(error: Option<String>) {
-    if let Ok(mut feed) = feed().lock() {
-        feed.frame = None;
-        feed.at = None;
-        feed.live = false;
-        feed.error = error;
-    }
-}
-
-/// The newest frame, if one has arrived.
-pub fn frame() -> Option<Captured> {
-    feed().lock().ok().and_then(|f| f.frame.clone())
+    crate::capture::stopped(error);
 }
 
 /// Whether frames are arriving.
 pub fn streaming() -> bool {
-    feed().lock().map(|f| f.live).unwrap_or(false)
+    crate::capture::live()
 }
 
 /// How long ago the newest frame arrived.
 pub fn frame_age() -> Option<std::time::Duration> {
-    feed().lock().ok()?.at.map(|at| at.elapsed())
+    crate::capture::age()
 }
 
 /// Why the stream is not running, when it is not.
 pub fn trouble() -> Option<String> {
-    feed().lock().ok().and_then(|f| f.error.clone())
-}
-
-/// The game's frame, waiting a moment for the first one after a start.
-///
-/// A compositor sends a frame when the window next paints, and a game paints
-/// constantly — so this only ever waits at the very beginning.
-pub fn game_frame() -> Result<Captured, String> {
-    if let Some(frame) = frame() {
-        return Ok(frame);
-    }
-    for _ in 0..40 {
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        if let Some(frame) = frame() {
-            return Ok(frame);
-        }
-    }
-    Err(trouble().unwrap_or_else(|| {
-        "The window is not sending anything — is the game still running, and is screen reading on?".into()
-    }))
+    crate::capture::error()
 }
 
 /// What the client can see, and whether it is looking.

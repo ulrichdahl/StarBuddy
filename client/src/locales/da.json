@@ -10,7 +10,8 @@
     "hint": "Log ind på dit communitys StarBuddy-hjemmeside, generér en parringskode på dashboardet, og indtast den her.",
     "pairingCodePlaceholder": "Parringskode",
     "pair": "Par",
-    "pairing": "Parrer…"
+    "pairing": "Parrer…",
+    "urlPlaceholder": "https://starbuddy.example.org"
   },
   "scan": {
     "title": "Star Citizen-installation",
@@ -89,7 +90,8 @@
     "source": "kildekode på GitHub",
     "creditPrefix": "Et",
     "creditMiddle": "-fællesskabsprojekt — bygget af",
-    "creditWith": "med"
+    "creditWith": "med",
+    "madeByCommunity": "Star Citizen — Made by the Community"
   },
   "common": {
     "separator": " · "
@@ -162,7 +164,8 @@
         "disrupted": "Forringet",
         "down": "Nede",
         "notice": "Meddelelse"
-      }
+      },
+      "okBadge": "OK"
     },
     "hotkeyStatus": "Genvejstast til statusvinduet",
     "hotkeyScan": "Genvejstast til scanning",
@@ -174,9 +177,9 @@
       "title": "Scanning",
       "idle": "Tryk på scannings-genvejstasten på et scanningsresultat.",
       "phase": {
-        "downloading": "Henter {{detail}}…",
+        "downloading": "Henter OCR-model {{detail}}…",
         "capturing": "Tager billede…",
-        "ocr": "Læser: {{detail}}…",
+        "ocr": "Læser {{detail}}…",
         "error": "Fejlede: {{detail}}"
       },
       "signature": "Signatur {{value}}",
@@ -219,7 +222,9 @@
         "rare": "sjælden",
         "epic": "episk",
         "legendary": "legendarisk"
-      }
+      },
+      "qualityBand": "Q {{from}}–{{to}}",
+      "pinShape": "nål {{shape}}"
     },
     "liveScanStart": "Start live-scanning (F7)",
     "liveScanStop": "Stop live-scanning (F7)",
@@ -345,5 +350,9 @@
     "inVersion": "Nyheder i v{{version}}",
     "summaryHint": "På vej i næste live-udgivelse:",
     "commitsHint": "Alle ændringer i dette dev-build:"
+  },
+  "reading": {
+    "shareTraining": "Del F8-raffinaderiaflæsninger for at forbedre aflæsningen",
+    "shareTrainingHint": "Sender det fangede panel og det aflæste til din StarBuddy-server. Slået fra som standard. F9 sender altid, når du trykker på den."
   }
 }

@@ -16,9 +16,9 @@ use rten_imageproc::{BoundingRect, RotatedRect};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use crate::lock::LockExt;
+use std::sync::Mutex;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager};
 
 /// Window name of the scan overlay.
@@ -46,7 +46,8 @@ pub struct Badge {
     /// The number read to the right of the icon.
     pub value: f64,
     pub text: String,
-    /// How closely the icon matched the pin template (0–1).
+    /// How closely the icon matched the pin template (0–1); for a badge found
+    /// by its plate instead, how much of the plate's bottom edge was found.
     pub shape: f32,
 }
 
@@ -98,6 +99,11 @@ impl Default for ScanRegion {
     }
 }
 
+impl ScanRegion {
+    /// The whole frame, for a reader the player has not framed an area for.
+    pub const WHOLE: ScanRegion = ScanRegion { x: 0.0, y: 0.0, w: 1.0, h: 1.0 };
+}
+
 #[derive(Serialize, Clone, Debug)]
 pub struct LiveReading {
     pub at: u64,
@@ -110,13 +116,10 @@ pub struct LiveReading {
 
 #[derive(Default)]
 pub struct ScanState {
-    engine: Mutex<Option<OcrEngine>>,
-    /// The same models, told they may only produce digits — see [`Reader`].
-    digits: Mutex<Option<OcrEngine>>,
     last: Mutex<Option<ScanResult>>,
     busy: Mutex<bool>,
-    /// Stop flag of the running live loop, if any.
-    live: Mutex<Option<Arc<AtomicBool>>>,
+    /// The live scan's subscription, while it runs.
+    live: Mutex<Option<crate::analysis::Handle>>,
 }
 
 fn status(app: &AppHandle, phase: &str, detail: impl Into<String>, progress: Option<f64>) {
@@ -126,10 +129,11 @@ fn status(app: &AppHandle, phase: &str, detail: impl Into<String>, progress: Opt
     } else {
         log::debug!("scan: {phase} {detail}");
     }
-    let _ = app.emit("scan-status", ScanStatus { phase: phase.into(), detail, progress });
+    // Only the scan window listens; a hidden one gets the latest when shown.
+    crate::overlay::emit_to_overlay(app, SCAN, "scan-status", ScanStatus { phase: phase.into(), detail, progress });
 }
 
-fn models_dir(app: &AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn models_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("ocr");
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir)
@@ -145,7 +149,7 @@ pub(crate) async fn ensure_models(app: &AppHandle) -> Result<(PathBuf, PathBuf),
         if path.exists() {
             continue;
         }
-        status(app, "downloading", format!("OCR model {}/2", i + 1), Some(i as f64 / 2.0));
+        status(app, "downloading", format!("{}/2", i + 1), Some(i as f64 / 2.0));
         let bytes = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(180))
             .build()
@@ -182,24 +186,6 @@ pub struct Captured {
     pub origin: (u32, u32),
 }
 
-/// The frame a purpose is framed against: the game's window, always.
-///
-/// Every area a player frames is fractions of this, so there is one frame and
-/// no other. It used to be whichever of several capture routes answered, and
-/// they did not agree with each other — a region drawn against one of them
-/// landed somewhere else entirely when another answered the next time.
-pub(crate) fn capture_for(app: &AppHandle, _purpose: &crate::region::Purpose) -> Result<Captured, String> {
-    capture_game(app)
-}
-
-/// The game's window, from the stream the player switched on.
-pub(crate) fn capture_game(app: &AppHandle) -> Result<Captured, String> {
-    if !crate::reading::state(app).on {
-        return Err("Screen reading is off. Switch it on in StarBuddy and choose the game's window.".into());
-    }
-    crate::reading::game_frame()
-}
-
 /// Region fractions → pixel rect inside a frame of the given size.
 pub(crate) fn region_px(r: ScanRegion, width: u32, height: u32) -> (i32, i32, i32, i32) {
     let x = (r.x.clamp(0.0, 0.95) * width as f32) as i32;
@@ -207,28 +193,6 @@ pub(crate) fn region_px(r: ScanRegion, width: u32, height: u32) -> (i32, i32, i3
     let w = ((r.w.clamp(0.02, 1.0) * width as f32) as i32).min(width as i32 - x);
     let h = ((r.h.clamp(0.02, 1.0) * height as f32) as i32).min(height as i32 - y);
     (x, y, w.max(8), h.max(8))
-}
-
-/// The signature region of the game frame (the live loop's capture).
-///
-/// One frame, cut down. There is no separate route for a region: the stream
-/// gives the window, and every area a player framed is fractions of it.
-fn capture_region(app: &AppHandle, region: ScanRegion) -> Result<Captured, String> {
-    crop_region(capture_game(app)?, region)
-}
-
-pub(crate) fn crop_region(full: Captured, region: ScanRegion) -> Result<Captured, String> {
-    let (x, y, w, h) = region_px(region, full.width, full.height);
-    let img = image::RgbImage::from_raw(full.width, full.height, full.rgb).ok_or("bad frame")?;
-    let crop = image::imageops::crop_imm(&img, x as u32, y as u32, w as u32, h as u32).to_image();
-    Ok(Captured {
-        rgb: crop.into_raw(),
-        width: w as u32,
-        height: h as u32,
-        source: full.source,
-        full_height: full.height,
-        origin: (x as u32, y as u32),
-    })
 }
 
 /// One number, whichever way the panel and the reader between them spelled it.
@@ -257,49 +221,6 @@ fn parse_number(text: &str) -> Result<f64, std::num::ParseFloatError> {
         return text.replace(['.', ','], "").parse();
     }
     text.replace(',', "").parse()
-}
-
-/// Read with the engine the app already has, loading it once if it has none.
-///
-/// The two models are twelve megabytes of weights, and parsing them again for
-/// every press of the hotkey is time spent before a single pixel is looked at.
-/// The live loop has always kept its engine; a refinery read built a fresh one
-/// each time.
-///
-/// The lock is held for the read itself, so a scan and a refinery read take
-/// turns rather than both driving every core at once — which on a machine
-/// that is also running the game is the difference between a read and a wait.
-pub(crate) fn with_engine<T>(
-    app: &AppHandle,
-    det: &PathBuf,
-    rec: &PathBuf,
-    read: impl FnOnce(&OcrEngine) -> Result<T, String>,
-) -> Result<T, String> {
-    let state = app.state::<ScanState>();
-    let mut engine = state.engine.lock().map_err(|_| "the OCR engine is in a bad state")?;
-    if engine.is_none() {
-        *engine = Some(load_engine(det, rec)?);
-    }
-    read(engine.as_ref().expect("just loaded"))
-}
-
-/// Both readers, loaded the first time a scan asks for them.
-pub(crate) fn with_reader<T>(
-    app: &AppHandle,
-    det: &PathBuf,
-    rec: &PathBuf,
-    read: impl FnOnce(Reader) -> Result<T, String>,
-) -> Result<T, String> {
-    let state = app.state::<ScanState>();
-    let mut engine = state.engine.lock().map_err(|_| "the OCR engine is in a bad state")?;
-    if engine.is_none() {
-        *engine = Some(load_engine(det, rec)?);
-    }
-    let mut digits = state.digits.lock().map_err(|_| "the OCR engine is in a bad state")?;
-    if digits.is_none() {
-        *digits = Some(load_digit_engine(det, rec)?);
-    }
-    read(Reader { text: engine.as_ref().expect("just loaded"), digits: digits.as_ref().expect("just loaded") })
 }
 
 pub(crate) fn load_engine(det: &PathBuf, rec: &PathBuf) -> Result<OcrEngine, String> {
@@ -467,7 +388,7 @@ fn pin_score_mask(mask: &[bool], w: usize, h: usize) -> f32 {
         return 0.0;
     }
     let mut diff = 0.0f32;
-    for j in 0..th {
+    for (j, row) in PIN_TEMPLATE.iter().enumerate() {
         let y0 = j * h / th;
         let y1 = ((j + 1) * h / th).max(y0 + 1).min(h);
         for i in 0..tw {
@@ -482,7 +403,7 @@ fn pin_score_mask(mask: &[bool], w: usize, h: usize) -> f32 {
                 }
             }
             let cell = on as f32 / n.max(1) as f32;
-            let want = if PIN_TEMPLATE[j].as_bytes()[i] == b'#' { 1.0 } else { 0.0 };
+            let want = if row.as_bytes()[i] == b'#' { 1.0 } else { 0.0 };
             diff += (cell - want).abs();
         }
     }
@@ -564,7 +485,7 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
             // good enough to read is the caller's to decide, which is also
             // what lets a corpus say how close the near misses were.
             blobs.push(Blob { x, y, w, h, shape });
-            if shape < PIN_MIN_SCORE && shape >= PIN_MIN_SCORE - 0.1 {
+            if (PIN_MIN_SCORE - 0.1..PIN_MIN_SCORE).contains(&shape) {
                 // In the game window's own coordinates, which is what a
                 // player can point at: inside the framed area the same badge
                 // is at a different pair of numbers on every screen.
@@ -597,9 +518,123 @@ fn find_amber_icons(cap: &Captured) -> Vec<Blob> {
     blobs
 }
 
+/// Badge plates: the filled box every badge's icon and number sit on, a tint
+/// of the HUD colour a little lighter than whatever is behind it.
+///
+/// Found by its outline rather than its colour, which changes with the ship
+/// and with what is behind the badge: a straight edge that turns lighter
+/// going down, long enough to be a plate and not a glyph, with an edge that
+/// turns darker again along most of its length a plate's height below. Rock
+/// outlines are lit too, but they are not straight for a plate's width.
+fn find_plates(cap: &Captured) -> Vec<Blob> {
+    let (w, h) = (cap.width as usize, cap.height as usize);
+    if w < 8 || h < 8 {
+        return Vec::new();
+    }
+    let k = cap.full_height as f32 / 1440.0;
+    let sum: Vec<i32> = cap.rgb.as_chunks::<3>().0.iter().map(|p| p[0] as i32 + p[1] as i32 + p[2] as i32).collect();
+    // Over two rows: the edge is blurred across two or three by the scaling
+    // and the stream's compression, and is too weak in any one step of it.
+    const STEP: i32 = 40;
+    let mut lighter = vec![false; w * h];
+    let mut darker = vec![false; w * h];
+    for y in 0..h - 2 {
+        for x in 0..w {
+            let d = sum[(y + 2) * w + x] - sum[y * w + x];
+            lighter[y * w + x] = d > STEP;
+            darker[y * w + x] = d < -STEP;
+        }
+    }
+    let darker_near = |x: usize, y: usize| (y.saturating_sub(1)..=(y + 1).min(h - 1)).any(|yy| darker[yy * w + x]);
+    let min_len = (55.0 * k) as usize;
+    let (min_h, max_h) = ((15.0 * k) as usize, (30.0 * k) as usize);
+    // Glyphs and debris break the edge for a few pixels at a time.
+    let gap_allowed = (5.0 * k).max(2.0) as usize;
+    let mut found: Vec<Blob> = Vec::new();
+    for y in 0..h - 2 {
+        let mut x = 0;
+        while x < w {
+            if !lighter[y * w + x] {
+                x += 1;
+                continue;
+            }
+            let start = x;
+            let mut gap = 0;
+            while x < w && (lighter[y * w + x] || gap < gap_allowed) {
+                gap = if lighter[y * w + x] { 0 } else { gap + 1 };
+                x += 1;
+            }
+            let end = x - gap;
+            if end - start < min_len {
+                continue;
+            }
+            let mut best: Option<(f32, usize)> = None;
+            for yb in y + min_h..=(y + max_h).min(h - 1) {
+                let hits = (start..end).filter(|&xx| darker_near(xx, yb)).count();
+                let cover = hits as f32 / (end - start) as f32;
+                if cover >= 0.75 && best.is_none_or(|(c, _)| cover > c) {
+                    best = Some((cover, yb));
+                }
+            }
+            if let Some((cover, yb)) = best {
+                found.push(Blob { x: start as i32, y: y as i32 + 1, w: (end - start) as i32, h: (yb - y) as i32, shape: cover });
+            }
+        }
+    }
+    // One plate shows as several rows of edge; keep the widest of each.
+    found.sort_by_key(|b| -b.w);
+    let mut plates: Vec<Blob> = Vec::new();
+    for b in found {
+        let same = plates.iter().any(|p| (b.y - p.y).abs() < (8.0 * k) as i32 && b.x < p.x + p.w && p.x < b.x + b.w);
+        if !same {
+            plates.push(b);
+        }
+    }
+    let (cx, cy) = (cap.width as i32 / 2, cap.height as i32 / 2);
+    plates.sort_by_key(|b| (b.x + b.w / 2 - cx).pow(2) + (b.y + b.h / 2 - cy).pow(2));
+    plates
+}
+
+/// How far into a plate its number starts: past the icon, at the first
+/// column of the gap between the icon and the digits.
+///
+/// The icon is about as wide as the plate is tall, but not exactly, and a
+/// sliver of it left in front of the number is read as a 1 — 17,200 became
+/// 117,200. Lit columns are those with something much brighter than the
+/// plate's own fill in them; the icon is the first run of them and the gap
+/// the run of unlit ones after it. Where that is not found, the icon's usual
+/// width stands in.
+fn icon_end(cap: &Captured, p: &Blob) -> i32 {
+    let usual = (p.h as f32 * 1.4) as i32;
+    let at = |x: i32, y: i32| {
+        let i = (y as usize * cap.width as usize + x as usize) * 3;
+        cap.rgb.get(i..i + 3).map(|c| c[0] as i32 + c[1] as i32 + c[2] as i32).unwrap_or(0)
+    };
+    // The fill, as the median of the plate's middle row.
+    let mid = p.y + p.h / 2;
+    let mut row: Vec<i32> = (p.x..p.x + p.w).map(|x| at(x, mid)).collect();
+    row.sort_unstable();
+    let fill = row[row.len() / 2];
+    // Rows clear of the plate's own edges, where the blur would light them.
+    let inner = (p.y + 3)..(p.y + p.h - 2).max(p.y + 4);
+    let lit = |x: i32| inner.clone().any(|y| at(x, y) > fill + 150);
+    let mut x = p.x + 2;
+    let stop = p.x + (p.h as f32 * 2.2) as i32;
+    while x < stop && !lit(x) {
+        x += 1;
+    }
+    while x < stop && lit(x) {
+        x += 1;
+    }
+    if x >= stop || x - p.x < p.h / 2 {
+        return usual;
+    }
+    // A step back into the gap, so the first digit is not cut at its edge.
+    x - p.x + 1
+}
+
 /// Crop a strip to the right of the icon and upscale it for the OCR.
 fn crop_upscaled(cap: &Captured, x: i32, y: i32, w: i32, h: i32, scale: u32) -> Option<image::RgbImage> {
-    let img = image::RgbImage::from_raw(cap.width, cap.height, cap.rgb.clone())?;
     let x0 = x.max(0) as u32;
     let y0 = y.max(0) as u32;
     let cw = (w as u32).min(cap.width.saturating_sub(x0));
@@ -607,11 +642,17 @@ fn crop_upscaled(cap: &Captured, x: i32, y: i32, w: i32, h: i32, scale: u32) -> 
     if cw < 4 || ch < 4 {
         return None;
     }
-    let crop = image::imageops::crop_imm(&img, x0, y0, cw, ch).to_image();
+    // Only the strip is copied, not the whole capture it is cut from.
+    let mut strip = Vec::with_capacity(cw as usize * ch as usize * 3);
+    for row in y0..y0 + ch {
+        let start = (row as usize * cap.width as usize + x0 as usize) * 3;
+        strip.extend_from_slice(cap.rgb.get(start..start + cw as usize * 3)?);
+    }
+    let crop = image::RgbImage::from_raw(cw, ch, strip)?;
     Some(image::imageops::resize(&crop, cw * scale, ch * scale, image::imageops::FilterType::CatmullRom))
 }
 
-fn ocr_text(engine: &OcrEngine, img: &image::RgbImage) -> Result<String, String> {
+pub(crate) fn ocr_text(engine: &OcrEngine, img: &image::RgbImage) -> Result<String, String> {
     let source = ImageSource::from_bytes(img.as_raw(), img.dimensions()).map_err(|e| e.to_string())?;
     let input = engine.prepare_input(source).map_err(|e| e.to_string())?;
     let words = engine.detect_words(&input).map_err(|e| e.to_string())?;
@@ -627,14 +668,29 @@ fn badge_number(text: &str) -> Option<f64> {
         .split_whitespace()
         .filter(|t| t.chars().any(|c| c.is_ascii_digit()))
         .max_by_key(|t| t.chars().filter(|c| c.is_ascii_digit()).count())?;
+    // Specks of the plate's edge read as dots either side, ".2.000.", or as a
+    // second comma beside the real one, "3,,400".
+    let token = token.trim_matches(['.', ',']);
+    let mut squeezed = String::with_capacity(token.len());
+    for c in token.chars() {
+        let separator = c == '.' || c == ',';
+        if !(separator && squeezed.ends_with(['.', ','])) {
+            squeezed.push(c);
+        }
+    }
+    let token = squeezed.as_str();
     if token.chars().any(|c| !c.is_ascii_digit() && c != ',' && c != '.') {
         return None;
     }
     // Groups: a leading 1–3 digits, then only exact thousands groups —
-    // "15,600" and "2,000" pass, "11.8" and "7.4" do not.
+    // "15,600" and "2,000" pass, "11.8" and "7.4" do not. A number with no
+    // separator at all is one whose comma the reader lost — "3400" for
+    // "3,400", the commonest misreading there is — and the range still
+    // stands guard over it.
     let mut groups = token.split([',', '.']);
     let first = groups.next()?;
-    if first.is_empty() || first.len() > 3 || !groups.clone().all(|g| g.len() == 3) {
+    let ungrouped = !token.contains([',', '.']);
+    if first.is_empty() || (!ungrouped && (first.len() > 3 || !groups.clone().all(|g| g.len() == 3))) {
         return None;
     }
     let digits: String = token.chars().filter(|c| c.is_ascii_digit()).collect();
@@ -659,18 +715,73 @@ const SIGNATURE_RANGE: std::ops::RangeInclusive<f64> = 500.0..=250_000.0;
 /// Find signature badges: OCR the strip right of every icon candidate.
 pub fn find_badges(reader: &Reader, cap: &Captured) -> Vec<Badge> {
     let k = cap.full_height as f32 / 1440.0;
-    let mut out = Vec::new();
+    // The plate first: it is found whatever the icon on it and whatever is
+    // drawn around it, where the pin is lost in a field of lit asteroid
+    // outlines and is not on the heat, power and cross-section badges at all.
+    let mut plated = Vec::new();
+    let mut plate_boxes = Vec::new();
+    for p in find_plates(cap).into_iter().take(MOST_STRIPS) {
+        // From just past the icon: read with it, the icon becomes a digit in
+        // front of the number.
+        let skip = icon_end(cap, &p);
+        // With room round the digits: the reader finds text badly where it
+        // touches the edge of the picture, and read flush with the plate a
+        // clean "3,400" came back as ".00 3,". It is not steady either way —
+        // the same plate reads at one margin and not at the other — so a
+        // plate that gives no number is read once more, at the other.
+        let read = |pad: i32| {
+            let crop = crop_upscaled(cap, p.x + skip, p.y - pad, p.w - skip + pad, p.h + 2 * pad, 3)?;
+            let text = ocr_text(reader.digits, &crop).ok()?;
+            badge_number(&text).map(|value| (value, text))
+        };
+        if let Some((value, text)) = read((8.0 * k) as i32).or_else(|| read((3.0 * k) as i32)) {
+            plate_boxes.push((p.x, p.y, p.w, p.h));
+            plated.push(Badge { x: p.x, y: p.y, w: p.h, h: p.h, shape: p.shape, value, text: text.trim().to_string() });
+        }
+    }
+    // A pin on a plate already read is that plate's badge, and not read again;
+    // nor is one whose strip would reach over such a plate — a speck of rock
+    // passing for a pin just left of the badge reads the badge's own number.
+    let strip = (150.0 * k) as i32;
+    let on_a_plate = |b: &Blob| {
+        plate_boxes.iter().any(|&(x, y, w, h)| b.x < x + w && b.x + b.w + strip > x && (b.y + b.h / 2 - (y + h / 2)).abs() < h)
+    };
     // Nearest the middle first, and only so many: reading a strip costs about
     // ten milliseconds, and a HUD full of lit specks would otherwise turn one
     // frame into two and a half seconds of reading.
-    for b in find_amber_icons(cap).into_iter().filter(|b| b.shape >= PIN_MIN_SCORE).take(MOST_STRIPS) {
+    let mut pinned = Vec::new();
+    for b in find_amber_icons(cap).into_iter().filter(|b| b.shape >= PIN_MIN_SCORE && !on_a_plate(b)).take(MOST_STRIPS) {
         let Some(crop) = crop_upscaled(cap, b.x + b.w - (4.0 * k) as i32, b.y - (8.0 * k) as i32, (150.0 * k) as i32, b.h + (16.0 * k) as i32, 3) else { continue };
         let Ok(text) = ocr_text(reader.digits, &crop) else { continue };
         if let Some(value) = badge_number(&text) {
-            out.push(Badge { x: b.x, y: b.y, w: b.w, h: b.h, shape: b.shape, value, text: text.trim().to_string() });
+            pinned.push(Badge { x: b.x, y: b.y, w: b.w, h: b.h, shape: b.shape, value, text: text.trim().to_string() });
         }
     }
-    out
+    plated.extend(within_one_number(pinned, strip));
+    let (cx, cy) = (cap.width as i32 / 2, cap.height as i32 / 2);
+    plated.sort_by_key(|b| (b.x + b.w / 2 - cx).pow(2) + (b.y + b.h / 2 - cy).pow(2));
+    plated
+}
+
+/// One badge per number. A digit can pass for the pin — an "8" scores as well
+/// as some ships' icons do — and the strip read to the right of it is the rest
+/// of the same number: "8,570" gave a second badge reading 570, a signature as
+/// believable as the real one and, being nearer the middle, the one used. A
+/// candidate sitting inside the strip of one further left on the same row is
+/// part of that badge's number, not a badge of its own.
+fn within_one_number(mut badges: Vec<Badge>, strip: i32) -> Vec<Badge> {
+    let centre_order: Vec<(i32, i32)> = badges.iter().map(|b| (b.x, b.y)).collect();
+    badges.sort_by_key(|b| b.x);
+    let mut kept: Vec<Badge> = Vec::with_capacity(badges.len());
+    for b in badges {
+        let inside = kept.iter().any(|a| (b.y - a.y).abs() < a.h.max(b.h) && b.x > a.x && b.x < a.x + a.w + strip);
+        if !inside {
+            kept.push(b);
+        }
+    }
+    // Back to nearest-the-middle first, which is what callers take the first of.
+    kept.sort_by_key(|b| centre_order.iter().position(|&p| p == (b.x, b.y)));
+    kept
 }
 
 /// Whole analysis of one capture — shared by the app and the harness.
@@ -794,7 +905,7 @@ fn labelled(lines: &[OcrLine], labels: &[&str]) -> Option<f64> {
 pub async fn scan(app: AppHandle) -> Result<ScanResult, String> {
     {
         let state = app.state::<ScanState>();
-        let mut busy = state.busy.lock().unwrap();
+        let mut busy = state.busy.lock_or_recover();
         if *busy {
             return Err("a scan is already running".into());
         }
@@ -805,11 +916,11 @@ pub async fn scan(app: AppHandle) -> Result<ScanResult, String> {
         r.matches = r.signature.map(|v| crate::sigs::lookup(&app, v)).unwrap_or_default();
         r
     });
-    *app.state::<ScanState>().busy.lock().unwrap() = false;
+    *app.state::<ScanState>().busy.lock_or_recover() = false;
     match &result {
         Ok(r) => {
-            *app.state::<ScanState>().last.lock().unwrap() = Some(r.clone());
-            let _ = app.emit("scan-result", r.clone());
+            *app.state::<ScanState>().last.lock_or_recover() = Some(r.clone());
+            crate::overlay::emit_to_overlay(&app, SCAN, "scan-result", r.clone());
             status(&app, "done", format!("{} lines in {} ms", r.lines.len(), r.elapsed_ms), None);
         }
         Err(e) => status(&app, "error", e.clone(), None),
@@ -818,217 +929,169 @@ pub async fn scan(app: AppHandle) -> Result<ScanResult, String> {
 }
 
 async fn scan_inner(app: &AppHandle) -> Result<ScanResult, String> {
-    let (det, rec) = ensure_models(app).await?;
-    let app2 = app.clone();
-    tauri::async_runtime::spawn_blocking(move || {
-        let started = Instant::now();
-        // The same area the live loop watches, and for the same reasons: the
-        // badge is printed in one place — a little above the middle of the
-        // window — and reading the whole window instead means every lit thing
-        // in the HUD gets weighed as a possible badge, on a picture some
-        // twenty times larger than the one that holds the answer.
-        let region = current_region(&app2);
-        status(&app2, "capturing", "capturing the signature area", None);
-        let cap = capture_region(&app2, region)?;
-        status(&app2, "ocr", format!("reading {}×{}", cap.width, cap.height), None);
-        with_reader(&app2, &det, &rec, |reader| analyze(&reader, &cap, started))
-    })
-    .await
-    .map_err(|e| e.to_string())?
+    ensure_models(app).await?;
+    // The same area the live scan watches, and for the same reasons: the
+    // badge is printed in one place — a little above the middle of the
+    // window — and reading the whole window instead means every lit thing
+    // in the HUD gets weighed as a possible badge, on a picture some
+    // twenty times larger than the one that holds the answer.
+    let region = current_region(app);
+    status(app, "capturing", "capturing the signature area", None);
+    crate::analysis::run_once(app, Readout, region).await?.ok_or_else(|| "nothing was read".to_string())
 }
 
-/// Hotkey path: make sure the scan window is up, then toggle the live loop.
+/// "Scan now": the whole signature area read once, lines and all.
+struct Readout;
+
+impl crate::analysis::Analyzer for Readout {
+    type Output = ScanResult;
+
+    fn kind(&self) -> crate::analysis::AnalyzerKind {
+        crate::analysis::AnalyzerKind::ScanReadout
+    }
+
+    fn event(&self) -> &'static str {
+        "scan-result"
+    }
+
+    fn read(&self, cut: crate::analysis::Cut, cx: &crate::analysis::Ctx) -> Result<Option<ScanResult>, String> {
+        let cap = &cut.crop;
+        status(cx.app, "ocr", format!("{}×{}", cap.width, cap.height), None);
+        analyze(&cx.ocr.reader(), cap, cut.taken).map(Some)
+    }
+}
+
+/// Hotkey path: make sure the scan window is up, then toggle the live scan.
 pub fn trigger(app: &AppHandle) {
     let _ = crate::overlay::show(app, SCAN);
     let running = live_toggle(app);
     log::info!("live scan {}", if running { "started" } else { "stopped" });
 }
 
-// ── Live loop: region capture, change detection, badge read ────────────────
+// ── Live scan: the badge, read whenever the area changes ───────────────────
 
-/// Mean absolute difference of two equally sized frames (sampled).
-fn frame_diff(a: &[u8], b: &[u8]) -> f32 {
-    if a.len() != b.len() || a.is_empty() {
-        return 255.0;
-    }
-    let mut sum = 0u64;
-    let mut n = 0u64;
-    for i in (0..a.len()).step_by(24) {
-        sum += (a[i] as i16 - b[i] as i16).unsigned_abs() as u64;
-        n += 1;
-    }
-    sum as f32 / n.max(1) as f32
-}
+/// How often the live scan looks at its area, at most. A read is followed by
+/// half a second's pause before the next look, which keeps it near one
+/// reading a second while the area changes and close to nothing while it
+/// does not.
+const LIVE_RATE_HZ: f32 = 2.0;
 
 pub fn current_region(app: &AppHandle) -> ScanRegion {
     crate::load_client_prefs(app).scan_region.unwrap_or_default()
 }
 
-/// Whether the live signature loop is running.
+/// Whether the live signature scan is running.
 pub(crate) fn live_running(app: &AppHandle) -> bool {
     app.state::<ScanState>().live.lock().map(|live| live.is_some()).unwrap_or(false)
 }
 
-/// Start or stop the live loop; returns whether it is running afterwards.
+/// The scan area was framed again: a running live scan follows it.
+pub(crate) fn region_changed(app: &AppHandle) {
+    if let Some(handle) = *app.state::<ScanState>().live.lock_or_recover() {
+        crate::analysis::retarget(app, handle, current_region(app));
+    }
+}
+
+/// Start or stop the live scan; returns whether it is running afterwards.
 pub fn live_toggle(app: &AppHandle) -> bool {
     if !crate::reading::state(app).on {
         status(app, "error", "Screen reading is off. Switch it on in StarBuddy and choose the game's window.", None);
         return false;
     }
     let state = app.state::<ScanState>();
-    let mut live = state.live.lock().unwrap();
-    if let Some(stop) = live.take() {
-        stop.store(true, Ordering::Relaxed);
+    let mut live = state.live.lock_or_recover();
+    if let Some(handle) = live.take() {
+        crate::analysis::unsubscribe(app, handle);
         let _ = app.emit("scan-live-state", false);
+        log::info!("live scan loop ended");
         return false;
     }
-    let stop = Arc::new(AtomicBool::new(false));
-    *live = Some(stop.clone());
+    *live = Some(crate::analysis::subscribe(app, SCAN, LiveBadge, current_region(app), LIVE_RATE_HZ));
     drop(live);
     let _ = app.emit("scan-live-state", true);
     crate::sigs::refresh_in_background(app);
-    let app2 = app.clone();
-    std::thread::Builder::new()
-        .name("scan-live".into())
-        .spawn(move || live_loop(app2, stop))
-        .expect("spawn live scan thread");
     true
 }
 
-fn live_loop(app: AppHandle, stop: Arc<AtomicBool>) {
-    let mut prev: Option<Vec<u8>> = None;
-    let mut last_error = String::new();
-    let mut idle_since = Instant::now();
-    // A session's own account of itself, at Info so it is there in a release
-    // build. A loop that quietly stops finding anything looks exactly like one
-    // that is working on a screen with nothing to find, and after an hour
-    // nobody can say which it was.
-    let (mut reads, mut found, mut failed, mut spent) = (0u64, 0u64, 0u64, Duration::ZERO);
-    let mut last_report = Instant::now();
-    while !stop.load(Ordering::Relaxed) {
-        // Reading can be switched off mid-flight, and without frames this loop
-        // is nothing but a warning every two seconds. End with the stream.
-        if !crate::reading::state(&app).on {
-            log::info!("live scan: screen reading went off");
-            status(&app, "error", "Screen reading was switched off.", None);
-            break;
-        }
-        let region = current_region(&app);
-        let cap = match capture_region(&app, region) {
-            Ok(c) => c,
-            Err(e) => {
-                failed += 1;
-                // Compared without the size the message carries: the active
-                // window is a different size each time it is the wrong one, so
-                // the same fault would otherwise announce itself every couple
-                // of seconds for as long as the session lasts.
-                let kind = e.split(" (tried").next().unwrap_or(&e).to_string();
-                if kind != last_error {
-                    log::warn!("live scan capture: {e}");
-                    status(&app, "error", format!("live: {e}"), None);
-                    last_error = kind;
-                }
-                std::thread::sleep(Duration::from_millis(2000));
-                continue;
-            }
-        };
-        if !last_error.is_empty() {
-            // Recovered: clear the error the window is showing, or its
-            // red accent would outlive the hiccup.
-            status(&app, "idle", "", None);
-            last_error.clear();
-        }
+/// The live scan's analyzer: the badge's number, or the area's lone number
+/// when the icon beside it was not recognised.
+struct LiveBadge;
 
-        // Skip OCR while the region is static (badge already read, or no HUD).
-        let changed = prev.as_ref().map(|p| frame_diff(p, &cap.rgb) > 4.0).unwrap_or(true);
-        prev = Some(cap.rgb.clone());
-        if !changed && idle_since.elapsed() < Duration::from_secs(3) {
-            std::thread::sleep(Duration::from_millis(250));
-            continue;
-        }
-        idle_since = Instant::now();
+impl crate::analysis::Analyzer for LiveBadge {
+    type Output = LiveReading;
 
+    fn kind(&self) -> crate::analysis::AnalyzerKind {
+        crate::analysis::AnalyzerKind::ScanBadge
+    }
+
+    fn event(&self) -> &'static str {
+        "scan-live"
+    }
+
+    fn read(&self, cut: crate::analysis::Cut, cx: &crate::analysis::Ctx) -> Result<Option<LiveReading>, String> {
         let started = Instant::now();
-        let reading = {
-            let state = app.state::<ScanState>();
-            let mut engine = state.engine.lock().unwrap();
-            if engine.is_none() {
-                let dir = match models_dir(&app) {
-                    Ok(d) => d,
-                    Err(e) => {
-                        status(&app, "error", e, None);
-                        break;
-                    }
-                };
-                match engine_from_dir(&dir) {
-                    Ok(e) => *engine = Some(e),
-                    Err(e) => {
-                        status(&app, "error", format!("OCR models not ready ({e}) — press Scan now once to download them"), None);
-                        break;
-                    }
-                }
-            }
-            let engine = engine.as_ref().unwrap();
-            // The badge's own number is read by the digits reader, which is
-            // loaded beside the first one and kept for as long as it is.
-            let mut digits = state.digits.lock().unwrap();
-            if digits.is_none() {
-                match models_dir(&app).and_then(|dir| digit_engine_from_dir(&dir)) {
-                    Ok(e) => *digits = Some(e),
-                    Err(e) => log::warn!("digits-only reader unavailable, reading badges as text: {e}"),
-                }
-            }
-            let reader = Reader { text: engine, digits: digits.as_ref().unwrap_or(engine) };
-            let badges = find_badges(&reader, &cap);
-            // Only when the icon was not found: a read of the area costs a
-            // few hundred milliseconds, against two for the pixel scan, and
-            // there is nothing to gain by it when the badge is already in hand.
-            let without_icon = badges
-                .is_empty()
-                .then(|| run_ocr(reader.text, &cap).ok().and_then(|lines| signature_in_text(&lines, &cap)))
-                .flatten();
-            let signature = badges.first().map(|b| b.value).or(without_icon);
-            LiveReading {
-                at: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
-                signature,
-                // Named from whichever reading was had: a signature with no
-                // icon behind it is still a signature, and a window that
-                // printed the number and then said nothing about the mineral
-                // would be the same silence in a new place.
-                matches: signature.map(|value| crate::sigs::lookup(&app, value)).unwrap_or_default(),
-                badges,
-                region_px: region_px(region, cap.width, cap.full_height),
-                elapsed_ms: started.elapsed().as_millis(),
-            }
-        };
-        reads += 1;
-        spent += started.elapsed();
-        if reading.signature.is_some() {
-            found += 1;
-            log::debug!("live scan: signature {:?} in {} ms", reading.signature, reading.elapsed_ms);
-        }
-        if last_report.elapsed() >= Duration::from_secs(60) {
-            log::info!(
-                "live scan: {reads} reads, {found} with a signature, {failed} captures failed, {} ms each on average, newest frame {} ms old",
-                spent.as_millis() as u64 / reads.max(1),
-                crate::reading::frame_age().map(|a| a.as_millis() as u64).unwrap_or(0),
-            );
-            (reads, found, failed, spent) = (0, 0, 0, Duration::ZERO);
-            last_report = Instant::now();
-        }
-        let _ = app.emit("scan-live", &reading);
-        // Taking the newest frame off the stream costs nothing, so the pause
-        // is only here to keep the loop near one reading per second.
-        std::thread::sleep(Duration::from_millis(400));
+        let cap = &cut.crop;
+        let reader = cx.ocr.reader();
+        let badges = find_badges(&reader, cap);
+        // Only when the icon was not found: a read of the area costs a
+        // few hundred milliseconds, against two for the pixel scan, and
+        // there is nothing to gain by it when the badge is already in hand.
+        let without_icon = badges
+            .is_empty()
+            .then(|| {
+                let lines = cx.ocr.lines(cap, crate::analysis::Charset::Text).ok()?;
+                signature_in_text(&lines, cap)
+            })
+            .flatten();
+        // A reading without a signature is not sent: the window keeps the last
+        // one that had one, because a badge that drifted out of the area for a
+        // moment must not blank it.
+        let Some(signature) = badges.first().map(|b| b.value).or(without_icon) else { return Ok(None) };
+        log::debug!("live scan: signature {signature} in {} ms", started.elapsed().as_millis());
+        Ok(Some(LiveReading {
+            at: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
+            signature: Some(signature),
+            // Named from whichever reading was had: a signature with no
+            // icon behind it is still a signature, and a window that
+            // printed the number and then said nothing about the mineral
+            // would be the same silence in a new place.
+            matches: crate::sigs::lookup(cx.app, signature),
+            badges,
+            region_px: (cap.origin.0 as i32, cap.origin.1 as i32, cap.width as i32, cap.height as i32),
+            elapsed_ms: started.elapsed().as_millis(),
+        }))
     }
-    // Loop ended on its own (error) — reflect that in the state.
-    let state = app.state::<ScanState>();
-    let mut live = state.live.lock().unwrap();
-    if live.as_ref().is_some_and(|s| Arc::ptr_eq(s, &stop)) {
-        *live = None;
-        let _ = app.emit("scan-live-state", false);
+
+    /// News is a different signature, or a different answer about it — the
+    /// table can arrive after the first reading did.
+    fn differs(&self, before: &LiveReading, now: &LiveReading) -> bool {
+        before.signature != now.signature
+            || before.matches.len() != now.matches.len()
+            || before.matches.iter().zip(&now.matches).any(|(a, b)| a.name != b.name || a.kind != b.kind || a.count != b.count)
     }
-    log::info!("live scan loop ended");
+
+    fn failed(&self, app: &AppHandle, error: &str) {
+        log::warn!("live scan: {error}");
+        status(app, "error", format!("live: {error}"), None);
+    }
+
+    fn recovered(&self, app: &AppHandle) {
+        // Clear the error the window is showing, or its red accent would
+        // outlive the hiccup.
+        status(app, "idle", "", None);
+    }
+
+    fn ended(&self, app: &AppHandle, handle: crate::analysis::Handle, why: &str) {
+        log::info!("live scan: {why}");
+        status(app, "error", "Screen reading was switched off.", None);
+        let state = app.state::<ScanState>();
+        let mut live = state.live.lock_or_recover();
+        if *live == Some(handle) {
+            *live = None;
+            let _ = app.emit("scan-live-state", false);
+        }
+        log::info!("live scan loop ended");
+    }
 }
 
 #[tauri::command]
@@ -1038,7 +1101,7 @@ pub fn scan_live_toggle(app: AppHandle) -> bool {
 
 #[tauri::command]
 pub fn scan_live_running(app: AppHandle) -> bool {
-    app.state::<ScanState>().live.lock().unwrap().is_some()
+    live_running(&app)
 }
 
 #[tauri::command]
@@ -1052,6 +1115,7 @@ pub fn scan_region_set(app: AppHandle, region: ScanRegion) -> Result<ScanRegion,
     prefs.scan_region = Some(region);
     crate::save_client_prefs(&app, &prefs)?;
     log::info!("scan region set to {region:?}");
+    region_changed(&app);
     Ok(region)
 }
 
@@ -1062,7 +1126,7 @@ pub async fn scan_now(app: AppHandle) -> Result<ScanResult, String> {
 
 #[tauri::command]
 pub fn scan_last(app: AppHandle) -> Option<ScanResult> {
-    app.state::<ScanState>().last.lock().unwrap().clone()
+    app.state::<ScanState>().last.lock_or_recover().clone()
 }
 
 #[cfg(test)]
@@ -1181,13 +1245,23 @@ mod tests {
                 .collect();
 
             let img = image::open(root.join(file)).unwrap().into_rgb8();
-            let cap = Captured { rgb: img.as_raw().clone(), width: img.width(), height: img.height(), source: file.clone(), full_height: img.height(), origin: (0, 0) };
             // Every one of these is the game's own window — a 49-inch
             // ultrawide is one screen — so all of them are framed the way the
-            // client frames what it reads.
-            let framed = crop_region(cap, ScanRegion::default()).unwrap();
+            // client frames what it reads, from a frame laid out the way the
+            // stream sends one.
+            let frame = crate::capture::Frame::from_rgb(img.as_raw(), img.width(), img.height());
+            let framed = frame.crop_rgb(ScanRegion::default()).unwrap();
             let started = Instant::now();
-            let found: Vec<f64> = find_badges(&reader, &framed).iter().map(|b| b.value).collect();
+            let badges = find_badges(&reader, &framed);
+            for b in &badges {
+                println!("     read {:?} at {},{} {}x{}", b.text, b.x, b.y, b.w, b.h);
+            }
+            let mut found: Vec<f64> = badges.iter().map(|b| b.value).collect();
+            // As the live scan does: the area read as text when no badge was.
+            if found.is_empty() {
+                let lines = run_ocr(reader.text, &framed).unwrap();
+                found.extend(signature_in_text(&lines, &framed));
+            }
 
             let mut hits = 0;
             for want in &wanted {
@@ -1235,7 +1309,8 @@ mod tests {
             // And again through the crop the client actually reads, which is
             // the one place a badge has to survive: whole-frame reads are a
             // debugging convenience, the framed area is the product.
-            let framed = crop_region(cap, ScanRegion::default()).unwrap();
+            let frame = crate::capture::Frame::from_rgb(&cap.rgb, cap.width, cap.height);
+            let framed = frame.crop_rgb(ScanRegion::default()).unwrap();
             let result = analyze(&engine, &framed, Instant::now()).unwrap();
             println!("{file}: framed {}×{} -> {:?}", framed.width, framed.height, result.signature);
             assert_eq!(result.signature, Some(want), "{file}, framed area");
@@ -1261,6 +1336,48 @@ mod tests {
     }
 
     #[test]
+    fn plates_are_found_by_their_outline() {
+        // A dark frame with a lighter 80×19 plate, a brighter lit square on
+        // it for the icon, and lit specks about it that are no plate.
+        let (w, h) = (400u32, 120u32);
+        let mut rgb = vec![0u8; (w * h * 3) as usize];
+        let mut paint = |x0: u32, y0: u32, pw: u32, ph: u32, c: [u8; 3]| {
+            for y in y0..y0 + ph {
+                for x in x0..x0 + pw {
+                    let i = ((y * w + x) * 3) as usize;
+                    rgb[i..i + 3].copy_from_slice(&c);
+                }
+            }
+        };
+        paint(0, 0, w, h, [8, 74, 66]);
+        paint(150, 50, 80, 19, [51, 120, 112]);
+        paint(155, 53, 13, 13, [100, 255, 240]);
+        paint(40, 20, 12, 12, [100, 255, 240]);
+        paint(300, 80, 30, 2, [100, 255, 240]);
+        let cap = Captured { rgb, width: w, height: h, source: "test".into(), full_height: 1440, origin: (0, 0) };
+        let plates = find_plates(&cap);
+        assert_eq!(plates.len(), 1, "one plate");
+        let p = &plates[0];
+        assert!((p.x - 150).abs() <= 2 && (p.y - 50).abs() <= 2 && (p.w - 80).abs() <= 3 && (p.h - 19).abs() <= 2, "{},{} {}x{}", p.x, p.y, p.w, p.h);
+        // The number starts past the icon, not at the plate's edge.
+        let skip = icon_end(&cap, p);
+        assert!((18..=26).contains(&skip), "skip {skip}");
+    }
+
+    #[test]
+    fn a_digit_read_as_a_pin_is_part_of_the_number() {
+        let badge = |x, y, value: f64| Badge { x, y, w: 20, h: 22, shape: 0.6, value, text: value.to_string() };
+        // The real pin at 100, the "8" mistaken for one at 125, nearer the
+        // middle so first; and an unrelated contact on another row.
+        let found = within_one_number(vec![badge(125, 50, 570.0), badge(100, 50, 8570.0), badge(300, 200, 2000.0)], 150);
+        let values: Vec<f64> = found.iter().map(|b| b.value).collect();
+        assert_eq!(values, vec![8570.0, 2000.0]);
+        // Two contacts side by side, further apart than a strip, are both kept.
+        let found = within_one_number(vec![badge(100, 50, 4612.0), badge(400, 50, 11490.0)], 150);
+        assert_eq!(found.len(), 2);
+    }
+
+    #[test]
     fn badge_numbers() {
         assert_eq!(badge_number("V 15,600"), Some(15600.0));
         assert_eq!(badge_number("2,000"), Some(2000.0));
@@ -1275,6 +1392,12 @@ mod tests {
         // the front of it. No signature is a million, so the range catches it.
         assert_eq!(badge_number("715,600"), None);
         assert_eq!(badge_number("1,234,500"), None);
+        // The comma lost, or specks of the plate's edge read as dots.
+        assert_eq!(badge_number("3400"), Some(3400.0));
+        assert_eq!(badge_number(".2.000."), Some(2000.0));
+        assert_eq!(badge_number("3,,400"), Some(3400.0));
+        assert_eq!(badge_number("715600"), None);
+        assert_eq!(badge_number("16.7"), None);
         assert!(is_hud(220, 120, 30)); // amber pin
         assert!(is_hud(64, 202, 202)); // cyan pin (F7C-M HUD)
         assert!(!is_hud(200, 200, 200)); // grey

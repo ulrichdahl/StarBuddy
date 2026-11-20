@@ -76,9 +76,15 @@ export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, titl
   }, []);
 
   // Wrap the native window around the panel whenever its size changes.
+  // Keyed on what can change the panel's size, not on prefs as a whole:
+  // each opacity step would otherwise tear down the observer and re-send
+  // the fit for a panel that has not moved.
+  const loaded = prefs !== null;
+  const mode = prefs?.mode;
+  const size = prefs?.size;
   useLayoutEffect(() => {
     const el = rootRef.current;
-    if (!el || !prefs) return;
+    if (!el || !loaded) return;
     // The panel's own box, and nothing else. The scroll extent was used here
     // for a while, to let a window grow around content wider than itself —
     // but it counts anything hanging outside the panel, so the native window
@@ -100,15 +106,55 @@ export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, titl
     const ro = new ResizeObserver(fit);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [prefs]);
+  }, [loaded, mode, size]);
 
+  // Opacity not yet written to disk; null when nothing is waiting.
+  const pendingOpacity = useRef<number | null>(null);
+  const opacityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Mode and size change the layout, so they go to Rust at once. A reply
+  // that lands while an opacity is still waiting keeps the local opacity,
+  // or a drag would flick back to the value on disk.
   const update = useCallback(
-    (patch: Partial<Pick<WindowPrefs, "mode" | "size" | "opacity">>) => {
+    (patch: Partial<Pick<WindowPrefs, "mode" | "size">>) => {
       setPrefs((p) => (p ? { ...p, ...patch } : p));
-      void invoke<WindowPrefs>("overlay_update", { name, patch }).then(setPrefs).catch(() => {});
+      void invoke<WindowPrefs>("overlay_update", { name, patch })
+        .then((r) => setPrefs((p) => (p && pendingOpacity.current !== null ? { ...r, opacity: p.opacity } : r)))
+        .catch(() => {});
     },
     [name],
   );
+
+  const flushOpacity = useCallback(() => {
+    if (opacityTimer.current) clearTimeout(opacityTimer.current);
+    opacityTimer.current = null;
+    const opacity = pendingOpacity.current;
+    if (opacity === null) return;
+    pendingOpacity.current = null;
+    // The reply only echoes what is already on screen; taking it could
+    // undo a step made since this one was sent.
+    void invoke("overlay_update", { name, patch: { opacity } }).catch(() => {});
+  }, [name]);
+
+  // Opacity is purely visual: it applies here at once, and Rust (which
+  // re-applies the layout and writes prefs to disk) hears only where a
+  // slider drag or wheel spin came to rest.
+  const setOpacity = useCallback(
+    (next: (current: number) => number) => {
+      setPrefs((p) => {
+        if (!p) return p;
+        const opacity = next(p.opacity);
+        pendingOpacity.current = opacity;
+        return { ...p, opacity };
+      });
+      if (opacityTimer.current) clearTimeout(opacityTimer.current);
+      opacityTimer.current = setTimeout(flushOpacity, 300);
+    },
+    [flushOpacity],
+  );
+
+  // A window torn down mid-drag still keeps its last opacity.
+  useEffect(() => flushOpacity, [flushOpacity]);
 
   const startDrag = (e: React.MouseEvent) => {
     if (e.button !== 0 || (e.target as HTMLElement).closest("button, input")) return;
@@ -170,9 +216,11 @@ export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, titl
         aria-label={t("overlay.opacity")}
         aria-expanded={pop === "opacity"}
         onClick={() => setPop(pop === "opacity" ? "none" : "opacity")}
+        // No preventDefault: React wheel listeners are passive, and the body
+        // is overflow:hidden, so there is no scroll to stop.
         onWheel={(e) => {
-          e.preventDefault();
-          update({ opacity: Math.min(1, Math.max(0.25, prefs.opacity + (e.deltaY < 0 ? 0.05 : -0.05))) });
+          const step = e.deltaY < 0 ? 0.05 : -0.05;
+          setOpacity((o) => Math.min(1, Math.max(0.25, o + step)));
         }}
       >
         <OpacityIcon />
@@ -182,7 +230,10 @@ export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, titl
         className="ov-ib"
         title={t("overlay.close")}
         aria-label={t("overlay.close")}
-        onClick={() => void invoke("overlay_close").catch(() => {})}
+        onClick={() => {
+          flushOpacity();
+          void invoke("overlay_close").catch(() => {});
+        }}
       >
         <CloseIcon />
       </button>
@@ -258,7 +309,10 @@ export function OverlayWindow({ name, displayName, accent, urgent, eyebrow, titl
                 step={5}
                 value={Math.round(prefs.opacity * 100)}
                 aria-label={t("overlay.opacity")}
-                onChange={(e) => update({ opacity: Number(e.target.value) / 100 })}
+                onChange={(e) => {
+                  const opacity = Number(e.target.value) / 100;
+                  setOpacity(() => opacity);
+                }}
               />
               <div className="ov-opop-f">
                 <span>25%</span>
