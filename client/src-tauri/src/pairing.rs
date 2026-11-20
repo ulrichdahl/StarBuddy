@@ -269,6 +269,8 @@ pub struct SyncSummary {
     /// Travel events counted, and the points scored; absent from older servers.
     pub travel: usize,
     pub points: u64,
+    /// Blueprints whose item class the server filled in after the fact.
+    pub backfilled: usize,
 }
 
 impl SyncSummary {
@@ -280,6 +282,7 @@ impl SyncSummary {
         self.missions_completed += other.missions_completed;
         self.travel += other.travel;
         self.points += other.points;
+        self.backfilled += other.backfilled;
     }
 }
 

@@ -58,7 +58,7 @@
     "syncing_one": "Synkroniserer {{count}} hændelse…",
     "syncing_other": "Synkroniserer {{count}} hændelser…",
     "pairToSync": "Par med en server ovenfor for at synkronisere.",
-    "syncResult": "{{accepted}} ({{duplicates}}): {{blueprints}}, {{refinery}}{{missions}}{{backfilled}}.",
+    "syncResult": "{{accepted}} ({{duplicates}}): {{blueprints}}, {{refinery}}{{missions}}{{travel}}{{backfilled}}{{points}}.",
     "syncAccepted_one": "Serveren modtog {{count}} ny hændelse",
     "syncAccepted_other": "Serveren modtog {{count}} nye hændelser",
     "syncDuplicates_one": "{{count}} allerede kendt",
@@ -72,7 +72,15 @@
     "filterMissions": "Missioner",
     "kindMission": "Mission fuldført",
     "syncMissions_one": ", {{count}} mission registreret",
-    "syncMissions_other": ", {{count}} missioner registreret"
+    "syncMissions_other": ", {{count}} missioner registreret",
+    "travel_one": "{{count}} rejsehændelse",
+    "travel_other": "{{count}} rejsehændelser",
+    "missions_one": "{{count}} mission",
+    "missions_other": "{{count}} missioner",
+    "syncTravel_one": ", {{count}} rejsehændelse talt med",
+    "syncTravel_other": ", {{count}} rejsehændelser talt med",
+    "syncPoints_one": ". {{count}} point til org'en",
+    "syncPoints_other": ". {{count}} point til org'en"
   },
   "update": {
     "available": "StarBuddy v{{latest}} er tilgængelig (du har v{{current}}).",

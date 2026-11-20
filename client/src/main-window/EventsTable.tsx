@@ -29,6 +29,8 @@ export function EventsTable({ result, paired }: { result: ScanResult; paired: bo
   const events = listed.filter((e) => filter === "all" || e.kind === filter);
   const blueprintCount = listed.filter((e) => e.kind === "blueprint").length;
   const refineryCount = listed.filter((e) => e.kind === "refinery_completed").length;
+  const missionCount = listed.filter((e) => e.kind === "mission_completed").length;
+  const travelCount = result.events.length - listed.length;
 
   return (
     <section className="panel">
@@ -37,6 +39,8 @@ export function EventsTable({ result, paired }: { result: ScanResult; paired: bo
           t("events.logFiles", { count: result.files_scanned }),
           t("events.blueprints", { count: blueprintCount }),
           t("events.refineryCompletions", { count: refineryCount }),
+          t("events.missions", { count: missionCount }),
+          t("events.travel", { count: travelCount }),
         ].join(t("common.separator"))}
       </h2>
       <div className="row">
@@ -102,6 +106,8 @@ export function EventsTable({ result, paired }: { result: ScanResult; paired: bo
             blueprints: t("events.syncBlueprintsAdded", { count: syncResult.blueprints_added }),
             refinery: t("events.syncRefineryRecorded", { count: syncResult.refinery_completed }),
             missions: syncResult.missions_completed ? t("events.syncMissions", { count: syncResult.missions_completed }) : "",
+            travel: syncResult.travel ? t("events.syncTravel", { count: syncResult.travel }) : "",
+            points: syncResult.points ? t("events.syncPoints", { count: syncResult.points }) : "",
             backfilled: syncResult.backfilled
               ? t("events.syncBackfilled", { count: syncResult.backfilled })
               : "",

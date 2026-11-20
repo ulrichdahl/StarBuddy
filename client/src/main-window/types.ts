@@ -53,6 +53,9 @@ export interface SyncSummary {
   /** Absent from a server that does not count missions. */
   missions_completed?: number;
   backfilled?: number;
+  /** Travel events the server counted, and points scored; absent from older servers. */
+  travel?: number;
+  points?: number;
 }
 
 export interface AppVersion {

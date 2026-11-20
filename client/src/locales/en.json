@@ -58,7 +58,7 @@
     "syncing_one": "Syncing {{count}} event…",
     "syncing_other": "Syncing {{count}} events…",
     "pairToSync": "Pair with a server above to sync.",
-    "syncResult": "{{accepted}} ({{duplicates}}): {{blueprints}}, {{refinery}}{{missions}}{{backfilled}}.",
+    "syncResult": "{{accepted}} ({{duplicates}}): {{blueprints}}, {{refinery}}{{missions}}{{travel}}{{backfilled}}{{points}}.",
     "syncAccepted_one": "Server accepted {{count}} new event",
     "syncAccepted_other": "Server accepted {{count}} new events",
     "syncDuplicates_one": "{{count}} already known",
@@ -72,7 +72,15 @@
     "filterMissions": "Missions",
     "kindMission": "Mission done",
     "syncMissions_one": ", {{count}} mission recorded",
-    "syncMissions_other": ", {{count}} missions recorded"
+    "syncMissions_other": ", {{count}} missions recorded",
+    "travel_one": "{{count}} travel event",
+    "travel_other": "{{count}} travel events",
+    "missions_one": "{{count}} mission",
+    "missions_other": "{{count}} missions",
+    "syncTravel_one": ", {{count}} travel event counted",
+    "syncTravel_other": ", {{count}} travel events counted",
+    "syncPoints_one": ". {{count}} point scored for the org",
+    "syncPoints_other": ". {{count}} points scored for the org"
   },
   "update": {
     "available": "StarBuddy v{{latest}} is available (you have v{{current}}).",
