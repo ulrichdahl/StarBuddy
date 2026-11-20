@@ -107,9 +107,10 @@ function App() {
             </>
           ),
           reading: <OverlayPanel paired={paired} part="reading" />,
-          account: <ServerPanel connection={connection} onConnection={setConnection} />,
           general: (
             <>
+              <OpenAsPanel mainState={mainState} onMainMode={setMainMode} />
+              <ServerPanel connection={connection} onConnection={setConnection} />
               <section className="panel">
                 <h2>{t("header.language")}</h2>
                 <select
@@ -125,7 +126,6 @@ function App() {
                   ))}
                 </select>
               </section>
-              <OpenAsPanel mainState={mainState} onMainMode={setMainMode} />
             </>
           ),
           updates: (
