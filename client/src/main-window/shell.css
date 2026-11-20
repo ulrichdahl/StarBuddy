@@ -541,3 +541,41 @@ body {
 .sb-collect { display: inline-flex; gap: 6px; align-items: center; }
 .sb .sb-collect select { padding: 5px 8px; max-width: 200px; }
 .sb .sb-table button { padding: 5px 12px; }
+
+/* ── Gathering: the pinned targets, then the shopping list ─────────────── */
+.sb-targets { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.sb-target {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line2);
+  background: rgba(10, 16, 24, 0.55);
+  min-width: 0;
+}
+.sb-target.done { border-color: rgba(47, 191, 164, 0.55); }
+.sb-target-name { font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-target-row { display: flex; align-items: center; gap: 10px; }
+.sb-target-state { font-size: 12.5px; color: var(--muted); flex: 1; }
+.sb-target.done .sb-target-state { color: var(--green); }
+.sb-qty { display: inline-flex; align-items: center; gap: 6px; }
+.sb .sb-qty button, .sb .sb-target-x { width: 24px; height: 24px; padding: 0; font-family: var(--body); font-size: 15px; line-height: 1; }
+.sb .sb-target-x { border-color: transparent; background: transparent; color: var(--dim); }
+.sb .sb-target-x:hover:not(:disabled) { color: var(--red); background: rgba(224, 86, 75, 0.12); }
+.sb .sb-target-add {
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  color: var(--muted);
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 13.5px;
+  min-height: 64px;
+}
+.sb-card-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sb-card-head .sb-seg { margin-left: auto; }
+.sb-row-done td { color: var(--dim); }
+.sb-still { color: var(--amber2); }
+.sb-row-done .sb-still { color: var(--green); }
+.sb-below { color: var(--amber); margin-left: 2px; }

@@ -532,5 +532,36 @@
       "capture": "Hjælper med at forbedre aflæsningen"
     },
     "change": "Skift"
+  },
+  "gathering": {
+    "lead": "Hvad dine fastgjorte fremstillingsmål kræver, holdt op mod hvad du har i den rette kvalitet.",
+    "pairFirst": "Par med din orgs StarBuddy-hjemmeside under Indstillinger for at se din indkøbsliste.",
+    "post": "Del indkøbslisten på Discord",
+    "posted_one": "Delte {{count}} materiale på Discord.",
+    "posted_other": "Delte {{count}} materialer på Discord.",
+    "less": "Én færre",
+    "more": "Én mere",
+    "unpin": "Frigør {{name}}",
+    "ready": "Klar til fremstilling",
+    "needs_one": "Mangler {{count}} materiale",
+    "needs_other": "Mangler {{count}} materialer",
+    "pin": "+ Fastgør et blueprint",
+    "list": "Indkøbsliste",
+    "still": "{{still}} af {{of}} mangler stadig",
+    "mine": "Kun mine",
+    "withOrg": "Med orgens lager",
+    "empty": "Fastgør et blueprint som fremstillingsmål, så dukker dets materialer op her.",
+    "done": "Klar",
+    "below": "Du har også {{amount}} under den krævede kvalitet",
+    "qualityNote": "Lager under den kvalitet, en opskrift kræver, tæller ikke med, så du ved, hvad der er værd at mine.",
+    "col": {
+      "material": "Materiale",
+      "need": "Behov",
+      "quality": "Kvalitet",
+      "mine": "Du har",
+      "org": "Orgen har",
+      "still": "Mangler",
+      "for": "Til"
+    }
   }
 }

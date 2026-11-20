@@ -532,5 +532,36 @@
       "capture": "Helps improve the reader"
     },
     "change": "Change"
+  },
+  "gathering": {
+    "lead": "What your pinned craft targets need, against what you hold at the right quality.",
+    "pairFirst": "Pair with your org's StarBuddy website in Settings to see your shopping list.",
+    "post": "Post shopping list to Discord",
+    "posted_one": "Posted {{count}} material to Discord.",
+    "posted_other": "Posted {{count}} materials to Discord.",
+    "less": "One fewer",
+    "more": "One more",
+    "unpin": "Unpin {{name}}",
+    "ready": "Ready to craft",
+    "needs_one": "Needs {{count}} material",
+    "needs_other": "Needs {{count}} materials",
+    "pin": "+ Pin a blueprint",
+    "list": "Shopping list",
+    "still": "{{still}} of {{of}} still to gather",
+    "mine": "Only mine",
+    "withOrg": "Include org stock",
+    "empty": "Pin a blueprint as a craft target and its materials show up here.",
+    "done": "Done",
+    "below": "You also hold {{amount}} below the quality needed",
+    "qualityNote": "Stock below the quality a recipe needs does not count, so you know what is worth mining.",
+    "col": {
+      "material": "Material",
+      "need": "Needed",
+      "quality": "Quality",
+      "mine": "You have",
+      "org": "Org has",
+      "still": "Still to get",
+      "for": "For"
+    }
   }
 }

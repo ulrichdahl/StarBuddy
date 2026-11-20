@@ -14,6 +14,7 @@ import { UpdateBanner } from "./main-window/UpdateBanner";
 import { useWatcher, WatcherPanel } from "./main-window/WatcherPanel";
 import { Home } from "./main-window/Home";
 import { Refinery } from "./main-window/Refinery";
+import { Gathering } from "./main-window/Gathering";
 import { Tools } from "./main-window/Tools";
 import { Settings, useSettingsTab } from "./main-window/Settings";
 import { useMainMode } from "./main-window/mainMode";
@@ -66,7 +67,9 @@ function App() {
 
   const paired = Boolean(connection?.paired);
   let body;
-  if (COMING_SOON.has(section)) {
+  if (section === "gathering") {
+    body = <Gathering paired={paired} onSection={setSection} />;
+  } else if (COMING_SOON.has(section)) {
     body = <ComingSoon section={section} />;
   } else if (section === "home") {
     body = (
