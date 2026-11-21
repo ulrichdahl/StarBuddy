@@ -5,12 +5,24 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
-## Unreleased
+## 1.0.2 — 2026-11-21
+
+**Your game status stays private until you choose to share it, and you can clear your own stock after a wipe.**
+
+### New
+
+- **Clear your own stock after a game wipe,** under Profile › Your stock. Every player can do it.
+- **Home shows whether your game status is shared,** with a button to switch it.
 
 ### Changed
 
 - **Sharing your game status with your org is now opt-in.** Whether you play, where, in what ship and on which shard stays private until you switch it on, on Home or under Settings › General. This applies to everyone, including players who had it on before.
-- **Home shows whether your game status is shared,** with a button to switch it.
+- **Scan training is for testers only.** Testers are set by a Discord role on the server. Testers sign in on the website once after this update to see it.
+
+### Fixed
+
+- **The Admin page shows only to officers of your main org,** and its clear acts on your main org, not your first one.
+- **A player without an org gets a clear "you are not in an org" message** from the admin clear instead of an error.
 - **The fan-site notice sits at the bottom of Home,** however tall the window.
 
 ## 1.0.1 — 2026-11-21
