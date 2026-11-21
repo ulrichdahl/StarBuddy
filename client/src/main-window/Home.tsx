@@ -326,10 +326,10 @@ export function Home({ watcher, canStart, onSection }: { watcher: Watcher; canSt
       <div className="sb-cols">
         <div className="sb-col sb-col-wide">
           <RefineryCard onSection={onSection} />
+          <PresenceCard />
           <EventsCard watcher={watcher} />
         </div>
         <div className="sb-col">
-          <PresenceCard />
           <OverlaysCard />
         </div>
       </div>
