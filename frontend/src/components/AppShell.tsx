@@ -34,6 +34,7 @@ import { HudAvatar } from './hud'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { OrganizationsDialog } from './OrganizationsDialog'
 import { ProfileDialog } from './ProfileDialog'
+import { canSee } from '../lib/access'
 import { StatusAlertBanner } from './StatusAlertBanner'
 import { UserMenu } from './UserMenu'
 
@@ -168,7 +169,7 @@ function ItemSearch() {
   )
 }
 
-function NavList({ mini, onNavigate }: { mini: boolean; onNavigate: () => void }) {
+function NavList({ me, mini, onNavigate }: { me: Me; mini: boolean; onNavigate: () => void }) {
   const { t } = useTranslation()
   const { pathname } = useLocation()
 
@@ -196,7 +197,7 @@ function NavList({ mini, onNavigate }: { mini: boolean; onNavigate: () => void }
               {t(`nav.${group.key}`)}
             </Box>
           )}
-          {group.items.map((item) => {
+          {group.items.filter((item) => canSee(me, item.key)).map((item) => {
             const active = item.to === '/' ? pathname === '/' : pathname.startsWith(item.to)
             return (
               <Tooltip key={item.to} title={mini ? t(`nav.${item.key}`) : ''} placement="right">
@@ -376,7 +377,7 @@ export function AppShell({ me }: AppShellProps) {
           }}
         >
           <Toolbar sx={{ minHeight: { xs: 64 } }} />
-          <NavList mini={rail} onNavigate={() => undefined} />
+          <NavList me={me} mini={rail} onNavigate={() => undefined} />
         </Drawer>
       ) : (
         <Drawer
@@ -387,7 +388,7 @@ export function AppShell({ me }: AppShellProps) {
           sx={{ '& .MuiDrawer-paper': { width: DRAWER_WIDTH } }}
         >
           <Toolbar sx={{ minHeight: { xs: 64 } }} />
-          <NavList mini={false} onNavigate={() => setMobileOpen(false)} />
+          <NavList me={me} mini={false} onNavigate={() => setMobileOpen(false)} />
         </Drawer>
       )}
 

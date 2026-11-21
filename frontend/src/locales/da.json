@@ -76,7 +76,7 @@
     "title": "Admin",
     "subtitle": "Administrationsværktøjer til din org",
     "bulkClearTitle": "Ryd lagerbeholdning",
-    "bulkClearDescription": "Fjerner permanent de matchende materialestakke (og ved en game wipe også genstande) fra org’en. Kan ikke fortrydes.",
+    "bulkClearDescription": "Fjerner permanent de matchende materialestakke (og ved en game wipe også genstande) hos medlemmerne af {{org}}. Ingen uden for org’en berøres. Vil du kun rydde dit eget lager, så brug Profil › Dit lager. Kan ikke fortrydes.",
     "clearBy": "Ryd efter",
     "byCategory": "Efter kategori",
     "byResourceType": "Efter ressourcetype",
@@ -100,7 +100,7 @@
     "scopeAllLocations": "alle lokationer",
     "everything": "Alt (game wipe)",
     "everythingHelp": "Efter en server-wipe: fjerner de valgte materialekategorier (og, hvis markeret, genstande) for alle org-medlemmer, inklusive private lagre. Blueprints, lokationer og raffineringsordrer bevares.",
-    "includePrivate": "Ryd også medlemmernes private lagre",
+    "includePrivate": "Ryd også org-medlemmernes private lagre",
     "clearedCounts": "Ryddede {{materials}} materialestakke og {{items}} genstandsstakke.",
     "scopeEverything": "alt — alle materialer og genstande",
     "scopeWithPrivate": "inklusive private lagre",
@@ -1017,6 +1017,13 @@
     "synced": "Klient synkroniseret <t>{{time}}</t> · {{device}}",
     "stale": "Klient sidst synkroniseret {{time}}",
     "notPaired": "Desktopklient ikke parret"
+  },
+  "ownStock": {
+    "title": "Dit lager",
+    "help": "Efter en game wipe kan du rydde det, patchen tog, fra dine egne materialer og genstande: både privat og org-synligt lager. Ingen andres lager berøres.",
+    "open": "Ryd mit lager…",
+    "clear": "Ryd mit lager",
+    "confirmBody": "Du er ved at slette dine egne stakke: {{scope}}. Skriv <strong>{{word}}</strong> for at bekræfte."
   },
   "profileDialog": {
     "title": "Profil & desktopklient",

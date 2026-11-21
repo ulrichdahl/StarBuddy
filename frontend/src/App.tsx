@@ -18,6 +18,7 @@ import { RefineryPage } from './pages/RefineryPage'
 import { ImportPage } from './pages/ImportPage'
 import { AdminPage } from './pages/AdminPage'
 import { TrainingPage } from './pages/TrainingPage'
+import { canSee } from './lib/access'
 import { AboutPage } from './pages/AboutPage'
 
 /**
@@ -64,8 +65,8 @@ export default function App() {
         <Route path="/blueprints" element={<BlueprintsPage />} />
         <Route path="/refinery" element={<RefineryPage />} />
         <Route path="/import" element={<ImportPage />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/training" element={<TrainingPage />} />
+        <Route path="/admin" element={canSee(me, 'admin') ? <AdminPage /> : <Navigate to="/" replace />} />
+        <Route path="/training" element={canSee(me, 'training') ? <TrainingPage /> : <Navigate to="/" replace />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

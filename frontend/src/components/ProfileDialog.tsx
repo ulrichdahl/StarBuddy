@@ -23,6 +23,7 @@ import type { Me } from '../lib/types'
 import { useNow } from '../lib/useNow'
 import { fonts, hud } from '../theme'
 import { HudAvatar, HudBadge, HudPanel, Mono, OrgTag, StatusDot } from './hud'
+import { OwnStockSection } from './OwnStockSection'
 
 const RELEASES = 'https://github.com/ulrichdahl/StarBuddy/releases'
 
@@ -431,6 +432,7 @@ export function ProfileDialog({ me, open, focus, onClose }: { me: Me; open: bool
         <IdentitySection me={me} />
         <DesktopClientSection />
         <UdiSection />
+        <OwnStockSection />
       </Box>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', py: 1.75, px: 2.75, borderTop: `1px solid ${hud.lineSoft}`, bgcolor: hud.well }}>
         <Button variant="outlined" color="inherit" onClick={onClose} sx={{ height: 44, px: 2.75 }}>

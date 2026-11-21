@@ -42,6 +42,11 @@ return [
     'status_mention' => env('STARBUDDY_STATUS_MENTION', env('STARMAKER_STATUS_MENTION', '@here')),
     'status_url' => env('STARBUDDY_STATUS_URL', env('STARMAKER_STATUS_URL', 'https://status.robertsspaceindustries.com')),
 
+    // Discord role in the home guild whose holders see features still being
+    // tried out (scan training). Read at sign-in. Set it empty to show them
+    // to everyone.
+    'tester_role_id' => env('STARBUDDY_TESTER_ROLE_ID', '1541812372685983855'),
+
     // Discord role id => org name. Members holding the role are attached to
     // the org on login. Format: JSON object, e.g. {"123456789":"Stellar Forge"}
     'role_org_map' => json_decode(env('STARBUDDY_ROLE_ORG_MAP', env('STARMAKER_ROLE_ORG_MAP', '{}')), true) ?: [],
