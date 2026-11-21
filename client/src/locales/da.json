@@ -592,7 +592,8 @@
       "game": "Spilinstallation",
       "reading": "Skærmaflæsning",
       "updates": "Opdateringer",
-      "diagnostics": "Fejlsøgning"
+      "diagnostics": "Fejlsøgning",
+      "credits": "Kreditering og licenser"
     },
     "reportHint": "Når noget ikke virker, fortæller denne rapport, hvad StarBuddy ved om din maskine. Sæt den ind sammen med dit spørgsmål.",
     "openAs": "Åbn StarBuddy som",
@@ -810,5 +811,22 @@
     "upToDate": "Allerede opdateret.",
     "note": "Virker næste gang spillet starter. Afkobling lader de installerede filer blive.",
     "unlink": "Afkobl"
+  },
+  "credits": {
+    "title": "StarBuddy",
+    "made": "Et United Danes-fællesskabsprojekt, bygget af DK-Raven med Claude (Anthropic).",
+    "license": "StarBuddy er fri software under",
+    "source": "Kildekode på GitHub",
+    "trademark": "Star Citizen®, Roberts Space Industries® og Cloud Imperium® er registrerede varemærker tilhørende Cloud Imperium Rights LLC. Dette er en uofficiel fanapplikation uden tilknytning til Cloud Imperium-koncernen.",
+    "bundled": "Følger med StarBuddy",
+    "by": "af {{by}}",
+    "ocrNote": "Medfølger uændret; de aflæser scanningssignaturer og raffinaderiordrer på din skærm.",
+    "data": "Spildata på hjemmesiden kommer fra Star Citizen Wiki, SC Trade Tools og RSI's statusside; hjemmesidens Om-side krediterer dem.",
+    "components": "Open source-komponenter",
+    "componentsHint": "StarBuddy er bygget på disse, hver under sin egen licens. Klik på en for at se dens kildekode og fulde licenstekst.",
+    "rust_one": "{{count}} Rust-crate",
+    "rust_other": "{{count}} Rust-crates",
+    "npm_one": "{{count}} JavaScript-pakke",
+    "npm_other": "{{count}} JavaScript-pakker"
   }
 }

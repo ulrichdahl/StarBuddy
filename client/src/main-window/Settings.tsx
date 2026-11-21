@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-export const SETTINGS_TABS = ["general", "hotkeys", "game", "reading", "updates", "diagnostics"] as const;
+export const SETTINGS_TABS = ["general", "hotkeys", "game", "reading", "updates", "diagnostics", "credits"] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 const STORE_KEY = "starbuddy.settingsTab";

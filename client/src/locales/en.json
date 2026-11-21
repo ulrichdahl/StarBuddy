@@ -592,7 +592,8 @@
       "game": "Game install",
       "reading": "Screen reading",
       "updates": "Updates",
-      "diagnostics": "Diagnostics"
+      "diagnostics": "Diagnostics",
+      "credits": "Credits and licenses"
     },
     "reportHint": "When something does not work, this report says what StarBuddy knows about your machine. Paste it with your question.",
     "openAs": "Open StarBuddy as",
@@ -810,5 +811,22 @@
     "upToDate": "Already up to date.",
     "note": "Takes effect the next time the game starts. Unlinking leaves the installed files in place.",
     "unlink": "Unlink"
+  },
+  "credits": {
+    "title": "StarBuddy",
+    "made": "A United Danes community project, built by DK-Raven with Claude (Anthropic).",
+    "license": "StarBuddy is free software under the",
+    "source": "Source code on GitHub",
+    "trademark": "Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. This is an unofficial fan application, not affiliated with the Cloud Imperium group of companies.",
+    "bundled": "Included with StarBuddy",
+    "by": "by {{by}}",
+    "ocrNote": "Bundled unchanged; they read the scan signatures and refinery orders on your screen.",
+    "data": "Game data on the website comes from the Star Citizen Wiki, SC Trade Tools and RSI's status page; the website's About page credits them.",
+    "components": "Open-source components",
+    "componentsHint": "StarBuddy is built on these, each under its own license. Click one to see its source and full license text.",
+    "rust_one": "{{count}} Rust crate",
+    "rust_other": "{{count}} Rust crates",
+    "npm_one": "{{count}} JavaScript package",
+    "npm_other": "{{count}} JavaScript packages"
   }
 }
