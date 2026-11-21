@@ -148,14 +148,17 @@ function PresenceCard() {
   };
   return (
     <Card label={t("home.presence")}>
-      <div className="sb-card-big">
-        <span className={`sb-dot ${on ? "" : "off"}`} />
-        {on ? t("home.presenceOn") : t("home.presenceOff")}
+      {/* One row: the state, what it means, and the switch at the right. */}
+      <div className="sb-card-inline">
+        <div className="sb-card-big">
+          <span className={`sb-dot ${on ? "" : "off"}`} />
+          {on ? t("home.presenceOn") : t("home.presenceOff")}
+        </div>
+        <div className="sb-card-sub sb-grow">{error ?? (on ? t("home.presenceHintOn") : t("home.presenceHintOff"))}</div>
+        <button type="button" className="sb-card-btn" disabled={busy || on === null} onClick={() => void toggle()}>
+          {on ? t("home.presenceStop") : t("home.presenceStart")}
+        </button>
       </div>
-      <div className="sb-card-sub">{error ?? (on ? t("home.presenceHintOn") : t("home.presenceHintOff"))}</div>
-      <button type="button" className="sb-card-btn" disabled={busy || on === null} onClick={() => void toggle()}>
-        {on ? t("home.presenceStop") : t("home.presenceStart")}
-      </button>
     </Card>
   );
 }

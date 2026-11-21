@@ -304,6 +304,11 @@ body {
 .sb-card-sub { color: var(--muted); font-size: 12.5px; margin: 0; }
 .sb .sb-card-btn { align-self: flex-start; padding: 5px 12px; margin-top: 2px; }
 .sb-card-corner { position: absolute; top: 10px; right: 14px; }
+/* A card's content on one line, its button at the right end. */
+.sb-card-inline { display: flex; align-items: center; gap: 14px; }
+.sb-card-inline .sb-card-big { flex: none; }
+.sb-card-inline .sb-grow { flex: 1 1 auto; min-width: 0; }
+.sb .sb-card-inline .sb-card-btn { margin-top: 0; flex: none; }
 .sb .sb-link {
   background: none;
   border: 0;
