@@ -111,7 +111,9 @@ foreach ($nova as $uid) {
 $bps = DB::table('blueprints')->inRandomOrder()->limit(400)->get(['id', 'name']);
 foreach ($nova as $uid) {
     foreach ($bps->random($uid === $me ? 140 : mt_rand(30, 90)) as $bp) {
-        DB::table('blueprint_owned')->insert(['user_id' => $uid, 'blueprint_id' => $bp->id, 'blueprint_name' => $bp->name, 'acquired_at' => $now->subDays(mt_rand(1, 60)), 'source' => 'log', 'created_at' => $now, 'updated_at' => $now]);
+        // insertOrIgnore: a held blueprint is unique by name, and some names
+        // belong to more than one blueprint.
+        DB::table('blueprint_owned')->insertOrIgnore(['user_id' => $uid, 'blueprint_id' => $bp->id, 'blueprint_name' => $bp->name, 'acquired_at' => $now->subDays(mt_rand(1, 60)), 'source' => 'log', 'created_at' => $now, 'updated_at' => $now]);
     }
 }
 foreach (DB::table('blueprint_owned')->where('user_id', $me)->inRandomOrder()->limit(4)->pluck('blueprint_id') as $bid) {
@@ -125,7 +127,7 @@ foreach ($pools as $pid) {
     foreach (DB::table('blueprint_pool_entries')->join('blueprints', 'blueprints.id', '=', 'blueprint_pool_entries.blueprint_id')
         ->where('blueprint_pool_id', $pid)->whereNotIn('blueprints.id', $have)->get(['blueprints.id', 'blueprints.name']) as $bp) {
         if (mt_rand(1, 10) <= 6) {
-            DB::table('blueprint_owned')->insert(['user_id' => $me, 'blueprint_id' => $bp->id, 'blueprint_name' => $bp->name, 'acquired_at' => $now->subDays(5), 'source' => 'log', 'created_at' => $now, 'updated_at' => $now]);
+            DB::table('blueprint_owned')->insertOrIgnore(['user_id' => $me, 'blueprint_id' => $bp->id, 'blueprint_name' => $bp->name, 'acquired_at' => $now->subDays(5), 'source' => 'log', 'created_at' => $now, 'updated_at' => $now]);
         }
     }
 }

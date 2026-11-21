@@ -787,7 +787,7 @@
     "lastSeen": "Last seen {{when}}",
     "unknown": "No game status",
     "sameShard": "On the same shard as you",
-    "presenceNote": "Game status comes from each member's StarBuddy client. Members switch it on on Home or under Settings › General."
+    "presenceNote": "Game status comes from each member's StarBuddy client. Members turn it on from Home or Settings › General."
   },
   "udi": {
     "title": "UnitedDanes StarLabels and StarConfig",
