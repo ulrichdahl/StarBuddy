@@ -78,6 +78,7 @@ export function HotkeyCapture({
   failed,
   onCapture,
   onClear,
+  locked,
   bare = false,
 }: {
   action: string;
@@ -85,6 +86,8 @@ export function HotkeyCapture({
   current: string;
   failed?: string;
   onCapture: (action: string, hotkey: string) => void;
+  /** Why this key cannot be changed here (the desktop holds it); no buttons then. */
+  locked?: string;
   /** Take the key away. Without it there is no way back to "none". */
   onClear?: (action: string) => void;
   /** Only the key and the button: the row around it already says what it is. */
@@ -171,43 +174,62 @@ export function HotkeyCapture({
           <span className="hotkey-none">{t("overlay.hotkeyNone")}</span>
         )}
       </span>
-      <button className={listening ? "active" : undefined} onClick={() => (listening ? stop() : setListening(true))}>
-        {listening
-          ? t("overlay.hotkeyListening")
-          : bare
-            ? t("settings.change")
-            : current
-              ? t("overlay.hotkeyChange")
-              : t("overlay.hotkeyUnset")}
-      </button>
-      {/* Always there when the key can be taken away, hidden while there is
+      {locked ? (
+        <span className="hint hotkey-locked">{locked}</span>
+      ) : (
+        <>
+          <button
+            className={listening ? "active" : undefined}
+            onClick={() => (listening ? stop() : setListening(true))}
+          >
+            {listening
+              ? t("overlay.hotkeyListening")
+              : bare
+                ? t("settings.change")
+                : current
+                  ? t("overlay.hotkeyChange")
+                  : t("overlay.hotkeyUnset")}
+          </button>
+          {/* Always there when the key can be taken away, hidden while there is
           none, so the Change buttons line up from row to row. */}
-      {onClear && (
-        <button
-          type="button"
-          className="hotkey-clear"
-          aria-label={t("settings.clearKey")}
-          title={t("settings.clearKey")}
-          disabled={!current || listening}
-          style={{ visibility: current && !listening ? "visible" : "hidden" }}
-          onClick={() => onClear(action)}
-        >
-          ×
-        </button>
+          {onClear && (
+            <button
+              type="button"
+              className="hotkey-clear"
+              aria-label={t("settings.clearKey")}
+              title={t("settings.clearKey")}
+              disabled={!current || listening}
+              style={{
+                visibility: current && !listening ? "visible" : "hidden",
+              }}
+              onClick={() => onClear(action)}
+            >
+              ×
+            </button>
+          )}
+        </>
       )}
       {listening && (
         <div className="hotkey-hold">
           <div className="hotkey-hold-track">
-            <div className="hotkey-hold-fill" style={{ width: `${Math.round(held * 100)}%` }} />
+            <div
+              className="hotkey-hold-fill"
+              style={{ width: `${Math.round(held * 100)}%` }}
+            />
           </div>
           <span className="hint">
             {combination
-              ? t("overlay.hotkeyHold", { keys: combination, seconds: Math.ceil((1 - held) * (HOLD_MS / 1000)) })
+              ? t("overlay.hotkeyHold", {
+                  keys: combination,
+                  seconds: Math.ceil((1 - held) * (HOLD_MS / 1000)),
+                })
               : t("overlay.hotkeyPress")}
           </span>
         </div>
       )}
-      {!listening && failed && <span className="error hotkey-failed">{failed}</span>}
+      {!listening && failed && (
+        <span className="error hotkey-failed">{failed}</span>
+      )}
     </div>
   );
 }

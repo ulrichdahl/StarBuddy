@@ -224,11 +224,14 @@ export function OverlayPanel({
     <HotkeyCapture
       action={action}
       label={label}
-      current={(hotkey?.desktop_owned ? hotkey.triggers[action] : undefined) ?? hotkey?.hotkeys[action] ?? ""}
+      // A key the desktop put on the action is the one that works, and is
+      // changed in the desktop's settings; the rest are StarBuddy's own.
+      current={hotkey?.triggers[action] || hotkey?.hotkeys[action] || ""}
+      locked={hotkey?.triggers[action] ? t("overlay.hotkeyInDesktop") : undefined}
       failed={hotkey?.failed?.[action] && t("overlay.hotkeyTaken", { detail: hotkey.failed[action] })}
       onCapture={(action, keys) => void saveHotkey(action, keys)}
       // The desktop holds the keys where it delivers them; it clears them too.
-      onClear={hotkey?.desktop_owned ? undefined : (action) => void saveHotkey(action, "")}
+      onClear={(action) => void saveHotkey(action, "")}
       bare
     />
   );

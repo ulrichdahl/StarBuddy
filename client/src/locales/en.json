@@ -342,7 +342,7 @@
     "hotkeyPress": "Hold the combination you want. Escape cancels.",
     "hotkeyHold": "{{keys}} — keep holding, {{seconds}}s",
     "hotkeyWindows": "If a hotkey does nothing on Windows, StarBuddy also watches the keyboard directly, so a combination another program already owns still reaches it. If nothing arrives at all, the line above says so — and the usual cause left is keyboard software that remaps these keys for the game.",
-    "hotkeyDesktop": "Your desktop delivers these hotkeys, so they work while the game has focus — and it has the last word on them: setting one here is a request, and the key you end up with is the one shown. They can also be changed under your desktop's own keyboard shortcut settings, listed as StarBuddy.",
+    "hotkeyDesktop": "Keys you give StarBuddy's actions in your desktop's keyboard shortcut settings (listed as StarBuddy) work while the game has focus, and are changed there. Actions without a key there use the key set here.",
     "hotkeyDesktopUnset": "Your desktop has taken these hotkeys over but has not put a key on any of them yet — until it does, they only work while a StarBuddy window has focus. Open your desktop's keyboard shortcut settings, find StarBuddy, and give each one a key. If it is not listed there, bind these commands to keys instead.",
     "hotkeyChange": "Click to change",
     "hotkeyNone": "none",
@@ -415,7 +415,8 @@
         "title": "Star Citizen {{version}} is patched",
         "body": "The language file was not updated: {{detail}}"
       }
-    }
+    },
+    "hotkeyInDesktop": "Set in desktop settings"
   },
   "changes": {
     "sinceLive_one": "What’s new — {{count}} change since v{{version}}",

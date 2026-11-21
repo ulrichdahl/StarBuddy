@@ -838,20 +838,27 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
     if !DEFAULT_HOTKEYS.iter().any(|(a, _)| *a == action) {
         return Err(format!("unknown action {action}"));
     }
+    // The desktop has the last word on a key it put on an action, and does
+    // not take requests: KDE ignores the key asked for. Changed there or not
+    // at all, so say where.
+    if let Some(key) = crate::shortcuts::desktop_key(&action) {
+        return Err(format!(
+            "{key} is set in your desktop's keyboard shortcut settings (StarBuddy). Change or remove it there."
+        ));
+    }
     let hotkey = hotkey.trim().to_string();
     // An empty key takes the action's key away. Stored as "" rather than
     // removed, so an action with a default does not fall back to it.
     if hotkey.is_empty() {
         app.state::<OverlayState>().prefs.lock_or_recover().hotkeys.insert(action, String::new());
-        if crate::shortcuts::in_charge() {
-            crate::shortcuts::rebind();
-        } else {
-            let _ = register_hotkeys(&app);
-        }
+        let _ = register_hotkeys(&app);
         save(&app, true);
         return Ok(overlay_hotkey(app));
     }
     let wanted = hotkey.parse::<Shortcut>().map_err(|e| format!("Not a valid shortcut: {e}"))?;
+    if let Some(other) = desktop_holds(&hotkey) {
+        return Err(format!("{hotkey} is the {other} shortcut in your desktop's keyboard shortcut settings."));
+    }
 
     // One shortcut cannot serve two actions: the second registration fails as
     // already taken, which reads as the key doing nothing. Refusing it here
@@ -871,14 +878,6 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
     }
 
     let previous = app.state::<OverlayState>().prefs.lock_or_recover().hotkeys.insert(action.clone(), hotkey.clone());
-    // Where the desktop delivers the hotkeys there is nothing to grab and
-    // nothing to fail: it is handed the new list and decides for itself, so
-    // this is only ever a request. It may bind something else, and says so.
-    if crate::shortcuts::in_charge() {
-        crate::shortcuts::rebind();
-        save(&app, true);
-        return Ok(overlay_hotkey(app));
-    }
     // Only this action's own failure is a reason to refuse the change. Another
     // action's shortcut may be unavailable for good — a key some other program
     // owns — and that must not make every later rebind fail with it.
@@ -937,36 +936,53 @@ pub fn describe_action(action: &str) -> &'static str {
     }
 }
 
-/// Give up the X11 grabs.
+/// The action the desktop has bound `key` to, if it has.
 ///
-/// Called when the desktop has taken the hotkeys over: with both in place a
-/// key would fire twice while StarBuddy itself has focus.
-pub fn drop_x11_hotkeys(app: &AppHandle) {
-    if let Err(e) = app.global_shortcut().unregister_all() {
-        log::warn!("could not release the X11 hotkeys: {e}");
-    }
-    app.state::<OverlayState>().registered.lock_or_recover().clear();
-    app.state::<OverlayState>().failures.lock_or_recover().clear();
+/// KDE names keys its own way ("F9", "Meta+Shift+R"); both sides are parsed
+/// where they can be, and compared as text, ignoring case, where they cannot.
+fn desktop_holds(key: &str) -> Option<String> {
+    let mine = key.parse::<Shortcut>().ok();
+    crate::shortcuts::triggers().into_iter().find_map(|(action, trigger)| {
+        if trigger.is_empty() {
+            return None;
+        }
+        let same = match (mine, trigger.parse::<Shortcut>().ok()) {
+            (Some(a), Some(b)) => a == b,
+            _ => trigger.eq_ignore_ascii_case(key),
+        };
+        same.then_some(action)
+    })
 }
 
 /// (Re)register every action's shortcut. Errors are returned so the
 /// caller can decide; at startup they are only logged — another app may
 /// own the combination.
 pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
-    // Not while the desktop is delivering them: a key held both ways fires
-    // twice whenever StarBuddy has focus.
-    if crate::shortcuts::in_charge() {
-        return Ok(());
-    }
+    // Not the actions the desktop delivers, nor any key it holds: a key held
+    // both ways fires twice, or fires two actions, whenever StarBuddy has focus.
     let state = app.state::<OverlayState>();
-    let wanted = state.prefs.lock_or_recover().all_hotkeys();
+    let mut failures = HashMap::new();
+    let wanted: Vec<(String, String)> = state
+        .prefs
+        .lock_or_recover()
+        .all_hotkeys()
+        .into_iter()
+        .filter(|(action, _)| crate::shortcuts::desktop_key(action).is_none())
+        .filter(|(action, key)| match desktop_holds(key) {
+            // Said on the row, or the key just looks dead.
+            Some(other) => {
+                failures.insert(action.clone(), format!("{key} is given to {other} in the desktop's shortcut settings"));
+                false
+            }
+            None => true,
+        })
+        .collect();
     let gs = app.global_shortcut();
     gs.unregister_all().map_err(|e| e.to_string())?;
     let mut registered = Vec::new();
     let mut first_err = None;
-    let mut failures = HashMap::new();
     let names: Vec<String> = wanted.iter().map(|(a, k)| format!("{a}={k}")).collect();
-    for (action, key) in wanted {
+    for (action, key) in wanted.clone() {
         let outcome = key
             .parse::<Shortcut>()
             .map_err(|e| e.to_string())
@@ -979,7 +995,7 @@ pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
             }
         }
     }
-    crate::winkeys::set_bindings(&state.prefs.lock_or_recover().all_hotkeys());
+    crate::winkeys::set_bindings(&wanted);
     log::info!("hotkeys wanted: {}; registered {}, refused {}", names.join(" "), registered.len(), failures.len());
     for (action, why) in &failures {
         log::warn!("hotkey {action} refused: {why}");

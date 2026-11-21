@@ -342,7 +342,7 @@
     "hotkeyPress": "Hold den kombination du vil bruge. Escape annullerer.",
     "hotkeyHold": "{{keys}} — bliv ved, {{seconds}}s",
     "hotkeyWindows": "Hvis en genvejstast ikke gør noget på Windows, holder StarBuddy også øje med tastaturet direkte, så en kombination et andet program allerede ejer stadig når frem. Hvis intet når frem overhovedet, siger linjen ovenfor det — og den sædvanlige årsag tilbage er tastaturprogrammer, der ombinder tasterne til spillet.",
-    "hotkeyDesktop": "Dit skrivebord leverer disse genvejstaster, så de virker mens spillet har fokus — og det har sidste ord: at vælge en her er en anmodning, og tasten du ender med er den der vises. De kan også ændres i skrivebordets egne indstillinger for tastaturgenveje, opført som StarBuddy.",
+    "hotkeyDesktop": "Taster du giver StarBuddys handlinger i skrivebordets indstillinger for tastaturgenveje (opført som StarBuddy) virker mens spillet har fokus, og ændres der. Handlinger uden en tast der bruger tasten valgt her.",
     "hotkeyDesktopUnset": "Dit skrivebord har overtaget disse genvejstaster, men har endnu ikke sat en tast på nogen af dem — indtil det sker, virker de kun mens et StarBuddy-vindue har fokus. Åbn skrivebordets indstillinger for tastaturgenveje, find StarBuddy, og giv hver enkelt en tast. Er den ikke opført der, så bind disse kommandoer til taster i stedet.",
     "hotkeyChange": "Klik for at ændre",
     "hotkeyNone": "ingen",
@@ -415,7 +415,8 @@
         "title": "Star Citizen {{version}} er patchet",
         "body": "Sprogfilen blev ikke opdateret: {{detail}}"
       }
-    }
+    },
+    "hotkeyInDesktop": "Sat i skrivebordets indstillinger"
   },
   "changes": {
     "sinceLive_one": "Nyheder — {{count}} ændring siden v{{version}}",
