@@ -5,6 +5,14 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## Unreleased
+
+### Changed
+
+- **Sharing your game status with your org is now opt-in.** Whether you play, where, in what ship and on which shard stays private until you switch it on, on Home or under Settings › General. This applies to everyone, including players who had it on before.
+- **Home shows whether your game status is shared,** with a button to switch it.
+- **The fan-site notice sits at the bottom of Home,** however tall the window.
+
 ## 1.0.1 — 2026-11-21
 
 **A short video on the sign-in page shows what StarBuddy does.**

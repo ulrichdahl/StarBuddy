@@ -521,9 +521,13 @@ body {
 .sb a { color: var(--cyan); text-decoration: none; }
 .sb a:hover { text-decoration: underline; }
 
-/* The fan-site notice at the foot of Home. */
+/* The fan-site notice at the foot of Home, pinned to the bottom of the page
+   when Home is shorter than the window. */
+.sb-main:has(> .fansite) { display: flex; flex-direction: column; }
+.sb-main:has(> .fansite) > * { flex-shrink: 0; }
+.sb-main > .sb-home { margin-bottom: 28px; }
 .sb .fansite {
-  margin-top: 28px;
+  margin-top: auto;
   padding-top: 16px;
   border-top: 1px solid var(--line2);
   font-size: 12px;

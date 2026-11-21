@@ -86,7 +86,7 @@ function AreaRow({ purpose, enabled, onError }: { purpose: "refinery" | "scan"; 
   );
 }
 
-/** Whether org mates see this player's game status (presence.rs); on unless switched off. */
+/** Whether org mates see this player's game status (presence.rs); off until switched on. */
 export function PresencePanel() {
   const { t } = useTranslation();
   const [on, setOn] = useState<boolean | null>(null);

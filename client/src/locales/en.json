@@ -468,6 +468,13 @@
     "recent": "Recent from Game.log",
     "noEventsYet": "Nothing new in the log yet this session.",
     "noEvents": "Start the log watcher to see what the game logs.",
+    "presence": "Game status for your org",
+    "presenceOn": "Shared",
+    "presenceOff": "Not shared",
+    "presenceHintOn": "Your main org sees whether you play, where, in what ship and on which shard.",
+    "presenceHintOff": "Off until you switch it on. Then your main org sees whether you play, where, in what ship and on which shard.",
+    "presenceStart": "Share",
+    "presenceStop": "Stop sharing",
     "overlays": "Over the game",
     "overlay": {
       "status": "Status",
@@ -603,7 +610,7 @@
     "hkCommands": "Show the commands",
     "presence": "Game status for your org",
     "presenceShare": "Show my org mates whether I play, where, in what ship and on which shard",
-    "presenceHint": "Only members of your main org see it. Turned off, the website forgets it at once."
+    "presenceHint": "Off until you switch it on. Only members of your main org see it, and turned off, the website forgets it at once."
   },
   "gathering": {
     "lead": "What your pinned craft targets need, against what you hold at the right quality.",
@@ -716,7 +723,7 @@
     "lastSeen": "Last seen {{when}}",
     "unknown": "No game status",
     "sameShard": "On the same shard as you",
-    "presenceNote": "Game status comes from each member's StarBuddy client. Members can switch it off under Settings › General."
+    "presenceNote": "Game status comes from each member's StarBuddy client. Members switch it on on Home or under Settings › General."
   },
   "udi": {
     "title": "UnitedDanes StarLabels and StarConfig",

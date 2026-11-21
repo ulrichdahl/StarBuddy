@@ -468,6 +468,13 @@
     "recent": "Seneste fra Game.log",
     "noEventsYet": "Intet nyt i loggen endnu i denne session.",
     "noEvents": "Start logovervågningen for at se, hvad spillet logger.",
+    "presence": "Spilstatus til din org",
+    "presenceOn": "Deles",
+    "presenceOff": "Deles ikke",
+    "presenceHintOn": "Din hoved-org ser om du spiller, hvor, i hvilket skib og på hvilken shard.",
+    "presenceHintOff": "Slået fra, indtil du slår det til. Så ser din hoved-org om du spiller, hvor, i hvilket skib og på hvilken shard.",
+    "presenceStart": "Del",
+    "presenceStop": "Stop deling",
     "overlays": "Over spillet",
     "overlay": {
       "status": "Status",
@@ -603,7 +610,7 @@
     "hkCommands": "Vis kommandoerne",
     "presence": "Spilstatus til din org",
     "presenceShare": "Vis mine org-kammerater om jeg spiller, hvor, i hvilket skib og på hvilken shard",
-    "presenceHint": "Kun medlemmer af din hoved-org ser det. Slået fra glemmer hjemmesiden det med det samme."
+    "presenceHint": "Slået fra, indtil du slår det til. Kun medlemmer af din hoved-org ser det, og slået fra glemmer hjemmesiden det med det samme."
   },
   "gathering": {
     "lead": "Hvad dine fastgjorte fremstillingsmål kræver, holdt op mod hvad du har i den rette kvalitet.",
@@ -716,7 +723,7 @@
     "lastSeen": "Sidst set {{when}}",
     "unknown": "Ingen spilstatus",
     "sameShard": "På samme shard som dig",
-    "presenceNote": "Spilstatus kommer fra hvert medlems StarBuddy-klient. Medlemmer kan slå det fra under Indstillinger › Generelt."
+    "presenceNote": "Spilstatus kommer fra hvert medlems StarBuddy-klient. Medlemmer slår det til på Hjem eller under Indstillinger › Generelt."
   },
   "udi": {
     "title": "UnitedDanes StarLabels og StarConfig",
