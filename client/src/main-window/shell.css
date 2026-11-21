@@ -216,6 +216,12 @@ body {
 }
 .sb button:hover:not(:disabled) { background: rgba(60, 201, 240, 0.2); }
 .sb button:focus-visible { outline: 1px solid var(--cyan); outline-offset: 1px; }
+/* A button that is on, like a hotkey field listening for keys: solid cyan
+   with dark text. App.css's button.active paints it with --accent and --bg,
+   which the redesign does not define, so it came out as near-black text on
+   the dark panel. */
+.sb button.active,
+.sb button.active:hover:not(:disabled) { background: var(--cyan); border-color: var(--cyan); color: #04121a; }
 /* Buttons the frame draws itself keep their own look. */
 .sb .sb-nav {
   font-family: var(--body);
@@ -501,6 +507,7 @@ body {
   text-align: center;
 }
 .sb .sb-hk .hotkey > button { padding: 5px 12px; background: transparent; }
+.sb .sb-hk .hotkey > button.active { background: var(--cyan); }
 .sb .sb-hk .hotkey-hold { flex-basis: 100%; }
 
 /* Links that are buttons keep the look of a link, not of a button. */
