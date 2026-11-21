@@ -646,7 +646,13 @@
     "presenceShare": "Vis mine org-kammerater om jeg spiller, hvor, i hvilket skib og på hvilken shard",
     "presenceHint": "Slået fra, indtil du slår det til. Kun medlemmer af din hoved-org ser det, og slået fra glemmer hjemmesiden det med det samme.",
     "groupOverlays": "Over spillet",
-    "clearKey": "Fjern"
+    "clearKey": "Fjern",
+    "hkReset": "Nulstil alle genveje",
+    "hkResetSub": "Alle taster tilbage til StarBuddys standard",
+    "hkResetSubDesktop": "Alle taster tilbage til StarBuddys standard. Taster sat i skrivebordets genvejsindstillinger bliver; fjern dem der.",
+    "hkResetButton": "Nulstil",
+    "hkResetConfirm": "Ja, nulstil alle",
+    "hkResetCancel": "Annuller"
   },
   "gathering": {
     "lead": "Hvad dine fastgjorte fremstillingsmål kræver, holdt op mod hvad du har i den rette kvalitet.",

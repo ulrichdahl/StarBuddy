@@ -169,6 +169,8 @@ export function OverlayPanel({
   /** Whether the client is watching the game's window, and what it says about it. */
   const [reading, setReading] = useState<Reading | null>(null);
   const [hotkey, setHotkey] = useState<HotkeyInfo | null>(null);
+  // Reset asks twice: one click must not wipe every key the player set.
+  const [confirmReset, setConfirmReset] = useState(false);
   const [captureStatus, setCaptureStatus] = useState<{ phase: string; detail: string } | null>(null);
   // Scan training is for testers only; nobody else sees its key or switch.
   const tester = useTester();
@@ -392,6 +394,36 @@ export function OverlayPanel({
             {t(`overlay.capture.${captureStatus.phase}`, { detail: captureStatus.detail })}
           </p>
         )}
+      </section>
+      <section className="panel">
+        <div className="sb-hk">
+          <div className="sb-hk-what">
+            <span className="sb-hk-name">{t("settings.hkReset")}</span>
+            <span className="sb-hk-sub">
+              {hotkey?.desktop_owned ? t("settings.hkResetSubDesktop") : t("settings.hkResetSub")}
+            </span>
+          </div>
+          <div className="sb-hk-ctl">
+            {confirmReset && (
+              <button type="button" className="link-button" onClick={() => setConfirmReset(false)}>
+                {t("settings.hkResetCancel")}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                if (!confirmReset) return setConfirmReset(true);
+                setConfirmReset(false);
+                setHotkeyError(null);
+                invoke<HotkeyInfo>("overlay_reset_hotkeys")
+                  .then(setHotkey)
+                  .catch((e) => setHotkeyError(String(e)));
+              }}
+            >
+              {confirmReset ? t("settings.hkResetConfirm") : t("settings.hkResetButton")}
+            </button>
+          </div>
+        </div>
       </section>
       {!paired && <p className="hint">{t("overlay.pairHint")}</p>}
       {errors}

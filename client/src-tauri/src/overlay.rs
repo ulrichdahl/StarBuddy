@@ -939,6 +939,20 @@ pub fn describe_action(action: &str) -> &'static str {
     }
 }
 
+/// Every key back to its default: the ones StarBuddy grabs itself. Keys the
+/// player gave actions in the desktop's settings stay; only the desktop can
+/// take those away.
+#[tauri::command]
+pub fn overlay_reset_hotkeys(app: AppHandle) -> HotkeyInfo {
+    app.state::<OverlayState>().prefs.lock_or_recover().hotkeys.clear();
+    if let Err(e) = register_hotkeys(&app) {
+        log::warn!("hotkeys after a reset: {e}");
+    }
+    save(&app, true);
+    log::info!("hotkeys reset to their defaults");
+    overlay_hotkey(app)
+}
+
 /// The action the desktop has bound `key` to, if it has.
 ///
 /// KDE names keys its own way ("F9", "Meta+Shift+R"); both sides are parsed

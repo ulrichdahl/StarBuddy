@@ -646,7 +646,13 @@
     "presenceShare": "Show my org mates whether I play, where, in what ship and on which shard",
     "presenceHint": "Off until you switch it on. Only members of your main org see it, and turned off, the website forgets it at once.",
     "groupOverlays": "Over the game",
-    "clearKey": "Remove"
+    "clearKey": "Remove",
+    "hkReset": "Reset all bindings",
+    "hkResetSub": "Every key back to StarBuddy's defaults",
+    "hkResetSubDesktop": "Every key back to StarBuddy's defaults. Keys set in your desktop's shortcut settings stay; remove those there.",
+    "hkResetButton": "Reset",
+    "hkResetConfirm": "Yes, reset all",
+    "hkResetCancel": "Cancel"
   },
   "gathering": {
     "lead": "What your pinned craft targets need, against what you hold at the right quality.",
