@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
@@ -33,6 +34,11 @@ class AuthController extends Controller
             ->collect();
 
         if (! $guilds->contains(fn ($g) => (string) ($g['id'] ?? '') === $homeGuild)) {
+            Log::notice('Sign-in refused: not a member of the home guild', [
+                'discord_id' => $discordUser->getId(),
+                'discord_username' => $discordUser->getNickname() ?? $discordUser->getName(),
+            ]);
+
             return redirect('/?error=not_a_member');
         }
 

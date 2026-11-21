@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
+import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
@@ -16,6 +17,8 @@ export function LoginPage() {
   const { t, i18n } = useTranslation()
   // Two files: browsers cannot switch the audio track inside one.
   const intro = i18n.language === 'da' ? 'da' : 'en'
+  // Set by the sign-in callback when it refuses the account.
+  const error = new URLSearchParams(window.location.search).get('error')
   return (
     <Box
       sx={{
@@ -69,6 +72,11 @@ export function LoginPage() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
           {t('login.tagline')}
         </Typography>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2, textAlign: 'left' }}>
+            {t(error === 'not_a_member' ? 'login.notAMember' : 'login.failed')}
+          </Alert>
+        )}
         <Button
           variant="contained"
           size="large"
