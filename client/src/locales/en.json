@@ -403,6 +403,18 @@
         "refinery": "Refinery",
         "travel": "Travel"
       }
+    },
+    "notice": {
+      "eyebrow": "StarBuddy",
+      "dismiss": "Got it",
+      "patched": {
+        "title": "Star Citizen {{version}} is ready",
+        "body": "Patched, and the language file is up to date. You can start the game now."
+      },
+      "patchedNoIni": {
+        "title": "Star Citizen {{version}} is patched",
+        "body": "The language file was not updated: {{detail}}"
+      }
     }
   },
   "changes": {

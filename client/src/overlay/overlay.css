@@ -98,6 +98,17 @@ html.debug-bounds::after {
 @media (prefers-reduced-motion: reduce) {
   .ov.ov-urgent::before { animation: none; }
 }
+/* A notice the player must not miss (a patched game ready to start): a
+   larger box with a glow that breathes, on top of the pulsing accent bar. */
+.ov-box.ov-callout { padding: 14px 16px; font-size: 15px; font-weight: 600; color: #fff; animation: ov-glow 1.6s ease-in-out infinite; }
+.ov-box.ov-callout .big { font-size: 30px; }
+@keyframes ov-glow {
+  0%, 100% { box-shadow: 0 0 0 1px var(--acc), 0 0 18px 2px var(--acc); }
+  50% { box-shadow: 0 0 0 1px var(--acc), 0 0 4px 0 var(--acc); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ov-box.ov-callout { animation: none; box-shadow: 0 0 0 1px var(--acc), 0 0 12px 1px var(--acc); }
+}
 
 /* title bar */
 .ov-tb {

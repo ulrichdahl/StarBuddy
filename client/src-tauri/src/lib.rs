@@ -31,6 +31,7 @@ pub mod sigs;
 mod tools;
 mod training;
 mod tester;
+mod notice;
 mod update;
 mod watcher;
 mod game_session;
@@ -269,6 +270,9 @@ pub fn run() {
             training::training_sharing_get,
             training::training_sharing_set,
             tester::tester_status,
+            notice::status_notice,
+            notice::status_notice_dismiss,
+            notice::ui_locale,
             watcher::start_watcher,
             watcher::stop_watcher,
             watcher::watcher_status,

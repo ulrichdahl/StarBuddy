@@ -3,6 +3,7 @@ import { initReactI18next } from "react-i18next";
 import { emit, listen } from "@tauri-apps/api/event";
 import en from "./locales/en.json";
 import da from "./locales/da.json";
+import { invoke } from "@tauri-apps/api/core";
 
 export const SUPPORTED_LOCALES = ["en", "da"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
@@ -48,6 +49,12 @@ i18n.use(initReactI18next).init({
 });
 
 document.documentElement.lang = initialLocale;
+
+// The desktop words its own system notifications, so it is told the language
+// too. Outside the app (the preview in a browser) there is nothing to tell.
+const tellDesktop = (locale: string) => void invoke("ui_locale", { locale }).catch(() => {});
+tellDesktop(initialLocale);
+i18n.on("languageChanged", tellDesktop);
 
 /** Switch this window's language, if it is not already the one asked for. */
 function applyLocale(locale: Locale): void {

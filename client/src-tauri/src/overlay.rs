@@ -325,6 +325,11 @@ pub fn toggle_all(app: &AppHandle) {
     }
 }
 
+/// Whether an overlay window is on screen now.
+pub fn is_showing(app: &AppHandle, name: &str) -> bool {
+    app.get_webview_window(&label(name)).is_some_and(|w| w.is_visible().unwrap_or(false))
+}
+
 /// Show (never hide) — for actions that need the window up, like a scan.
 /// Main thread only, like [`toggle`].
 pub fn show(app: &AppHandle, name: &str) -> Result<(), String> {

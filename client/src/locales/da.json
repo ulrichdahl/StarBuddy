@@ -403,6 +403,18 @@
         "refinery": "Raffinaderi",
         "travel": "Rejser"
       }
+    },
+    "notice": {
+      "eyebrow": "StarBuddy",
+      "dismiss": "Forstået",
+      "patched": {
+        "title": "Star Citizen {{version}} er klar",
+        "body": "Patchet, og sprogfilen er opdateret. Du kan starte spillet nu."
+      },
+      "patchedNoIni": {
+        "title": "Star Citizen {{version}} er patchet",
+        "body": "Sprogfilen blev ikke opdateret: {{detail}}"
+      }
     }
   },
   "changes": {
