@@ -12,7 +12,8 @@ import { useGameSession, whereabouts } from "../gameSession";
 interface Notice {
   kind: "ok" | "warn";
   code: "patched" | "patchedNoIni";
-  version: string;
+  /** The game environment: "LIVE", "PTU"... */
+  environment: string;
   detail: string | null;
   id: number;
 }
@@ -83,6 +84,7 @@ export function StatusOverlay() {
   // press Launch and this is what says whether to.
   if (notice) {
     const ok = notice.kind === "ok";
+    const dismiss = () => void invoke("status_notice_dismiss", { id: notice.id }).catch(() => {});
     return (
       <OverlayWindow
         name="status"
@@ -90,7 +92,7 @@ export function StatusOverlay() {
         accent={ok ? "ov-accent-ok" : "ov-accent-maintenance"}
         urgent
         eyebrow={t("overlay.notice.eyebrow")}
-        title={t(`overlay.notice.${notice.code}.title`, { version: notice.version })}
+        title={t(`overlay.notice.${notice.code}.title`, { environment: notice.environment })}
         firstBox={
           <div className="ov-box acc ov-callout" role="alert">
             <span className="mono big">{ok ? "✓" : "!"}</span>
@@ -98,11 +100,17 @@ export function StatusOverlay() {
           </div>
         }
         strip={
-          <span className="ov-stow ov-strip-item">{t(`overlay.notice.${notice.code}.title`, { version: notice.version })}</span>
+          <>
+            <span className="ov-stow ov-strip-item">{t(`overlay.notice.${notice.code}.short`)}</span>
+            {/* The strip has no footer, so the way to dismiss it lives here too. */}
+            <button type="button" className="lnk ov-strip-item" onClick={dismiss}>
+              {t("overlay.notice.dismiss")}
+            </button>
+          </>
         }
       >
         <div className="ov-foot">
-          <button type="button" className="lnk" onClick={() => void invoke("status_notice_dismiss", { id: notice.id }).catch(() => {})}>
+          <button type="button" className="lnk" onClick={dismiss}>
             {t("overlay.notice.dismiss")}
           </button>
         </div>

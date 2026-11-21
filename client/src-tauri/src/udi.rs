@@ -127,14 +127,19 @@ async fn token(app: &tauri::AppHandle, create: bool) -> Result<Option<String>, S
     Ok(found)
 }
 
-/// LIVE, HOTFIX → live; PTU, EPTU, TECH-PREVIEW → ptu.
+/// LIVE → live; every other environment (PTU, EPTU, HOTFIX, TECH-PREVIEW)
+/// → ptu. Only LIVE runs the build the live language file is made for.
 fn channel_of(live_dir: &Path) -> &'static str {
-    let name = live_dir.file_name().map(|n| n.to_string_lossy().to_ascii_uppercase()).unwrap_or_default();
-    if ["PTU", "EPTU", "TECH-PREVIEW"].contains(&name.as_str()) {
-        "ptu"
-    } else {
+    if environment_of(live_dir) == "LIVE" {
         "live"
+    } else {
+        "ptu"
     }
+}
+
+/// The game environment a channel folder is: "LIVE", "PTU", "HOTFIX"...
+fn environment_of(live_dir: &Path) -> String {
+    live_dir.file_name().map(|n| n.to_string_lossy().to_ascii_uppercase()).unwrap_or_default()
 }
 
 /// Every entry in `dir` named `name` in any casing. The game runs on Windows,
@@ -505,7 +510,7 @@ pub fn start(app: &tauri::AppHandle) {
                 if patching {
                     patching = false;
                     last_build = build.clone();
-                    tell_patched(&app, &build, Err("not linked to UnitedDanes".into()));
+                    tell_patched(&app, &dir, Err("not linked to UnitedDanes".into()));
                 }
                 continue;
             }
@@ -531,7 +536,7 @@ pub fn start(app: &tauri::AppHandle) {
                 Err(e) => log::info!("UnitedDanes files not checked: {e}"),
             }
             if std::mem::take(&mut patching) {
-                tell_patched(&app, &build, result.map(|_| ()));
+                tell_patched(&app, &dir, result.map(|_| ()));
             }
         }
     });
@@ -539,31 +544,28 @@ pub fn start(app: &tauri::AppHandle) {
 
 /// Say in the status window, and as a system notification, that a new build
 /// is patched in and whether the language file is ready for it.
-fn tell_patched(app: &tauri::AppHandle, build: &Option<String>, result: Result<(), String>) {
-    // "sc-alpha-4.10.0 4.10.201.48085" → "4.10.201": the build number on the
-    // end means nothing to a player and does not fit the window's title.
-    let version = build
-        .as_deref()
-        .and_then(|b| b.split(' ').nth(1))
-        .map(|v| v.split('.').take(3).collect::<Vec<_>>().join("."))
-        .unwrap_or_default();
+///
+/// Named by environment (LIVE, PTU...), not version: the manifest's version is
+/// the launcher's, not what the game reports, and would only mislead.
+fn tell_patched(app: &tauri::AppHandle, dir: &str, result: Result<(), String>) {
+    let environment = environment_of(Path::new(dir));
     let da = crate::notice::danish();
     match result {
         Ok(()) => {
             let (title, body) = if da {
-                (format!("Star Citizen {version} er klar"), "Sprogfilen er opdateret. Du kan starte spillet nu.".to_string())
+                (format!("Star Citizen {environment} er klar"), "Sprogfilen er opdateret. Du kan starte spillet nu.".to_string())
             } else {
-                (format!("Star Citizen {version} is ready"), "The language file is up to date. You can start the game now.".to_string())
+                (format!("Star Citizen {environment} is ready"), "The language file is up to date. You can start the game now.".to_string())
             };
-            crate::notice::show(app, "ok", "patched", version, None, &title, &body);
+            crate::notice::show(app, "ok", "patched", environment, None, &title, &body);
         }
         Err(e) => {
             let (title, body) = if da {
-                (format!("Star Citizen {version} er patchet"), format!("Sprogfilen blev ikke opdateret: {e}"))
+                (format!("Star Citizen {environment} er patchet"), format!("Sprogfilen blev ikke opdateret: {e}"))
             } else {
-                (format!("Star Citizen {version} is patched"), format!("The language file was not updated: {e}"))
+                (format!("Star Citizen {environment} is patched"), format!("The language file was not updated: {e}"))
             };
-            crate::notice::show(app, "warn", "patchedNoIni", version, Some(e), &title, &body);
+            crate::notice::show(app, "warn", "patchedNoIni", environment, Some(e), &title, &body);
         }
     }
 }
@@ -584,7 +586,9 @@ mod tests {
     #[test]
     fn channels_map_to_live_and_ptu() {
         assert_eq!(channel_of(Path::new("/x/StarCitizen/LIVE")), "live");
-        assert_eq!(channel_of(Path::new("/x/StarCitizen/HOTFIX")), "live");
+        assert_eq!(channel_of(Path::new("/x/StarCitizen/live")), "live");
+        assert_eq!(channel_of(Path::new("/x/StarCitizen/HOTFIX")), "ptu");
+        assert_eq!(channel_of(Path::new("/x/StarCitizen/EPTU")), "ptu");
         assert_eq!(channel_of(Path::new("/x/StarCitizen/PTU")), "ptu");
         assert_eq!(channel_of(Path::new("/x/StarCitizen/TECH-PREVIEW")), "ptu");
     }

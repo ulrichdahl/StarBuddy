@@ -22,8 +22,8 @@ pub struct Notice {
     pub kind: &'static str,
     /// Which message, for the window to word in the player's language.
     pub code: &'static str,
-    /// The game version, e.g. "4.10.201.48085".
-    pub version: String,
+    /// The game environment the folder is, e.g. "LIVE" or "PTU".
+    pub environment: String,
     /// Why it went wrong, for a "warn".
     pub detail: Option<String>,
     /// Counts up per notice, so dismissing an old one cannot end a new one.
@@ -41,12 +41,20 @@ static CURRENT: Mutex<Current> = Mutex::new(Current { notice: None, opened_it: f
 
 /// Show a notice: in the status window, opened for it if need be, and as a
 /// system notification.
-pub fn show(app: &AppHandle, kind: &'static str, code: &'static str, version: String, detail: Option<String>, os_title: &str, os_body: &str) {
+pub fn show(
+    app: &AppHandle,
+    kind: &'static str,
+    code: &'static str,
+    environment: String,
+    detail: Option<String>,
+    os_title: &str,
+    os_body: &str,
+) {
     let id = {
         let mut c = CURRENT.lock().unwrap_or_else(|e| e.into_inner());
         let id = c.next_id;
         c.next_id += 1;
-        c.notice = Some(Notice { kind, code, version, detail, id });
+        c.notice = Some(Notice { kind, code, environment, detail, id });
         id
     };
     let _ = app.emit("status-notice", current());

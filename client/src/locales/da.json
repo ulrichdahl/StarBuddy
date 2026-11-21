@@ -408,12 +408,14 @@
       "eyebrow": "StarBuddy",
       "dismiss": "Forstået",
       "patched": {
-        "title": "Star Citizen {{version}} er klar",
-        "body": "Patchet, og sprogfilen er opdateret. Du kan starte spillet nu."
+        "title": "Star Citizen {{environment}} er klar",
+        "body": "Patchet, og sprogfilen er opdateret. Du kan starte spillet nu.",
+        "short": "Sprogfilen er opdateret: klar til start"
       },
       "patchedNoIni": {
-        "title": "Star Citizen {{version}} er patchet",
-        "body": "Sprogfilen blev ikke opdateret: {{detail}}"
+        "title": "Star Citizen {{environment}} er patchet",
+        "body": "Sprogfilen blev ikke opdateret: {{detail}}",
+        "short": "Sprogfilen blev ikke opdateret"
       }
     },
     "hotkeyInDesktop": "Sat i skrivebordets indstillinger"
