@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverApi } from "./api";
 import { gradeLabel, Pager, useSearch, useServerList } from "./pageParts";
-import { PinIcon, PinToggle, usePins } from "./pins";
+import { changed, PinIcon, PinToggle, usePins } from "./pins";
 
 /** GET /api/blueprints/catalog: one row per recipe, with who holds it. */
 interface CatalogRow {
@@ -63,7 +63,9 @@ export function Blueprints({ paired }: { paired: boolean }) {
     }
   };
   const toggleOwned = (row: CatalogRow) =>
-    act(() => serverApi("POST", "/api/blueprints-owned/toggle", { body: { blueprint_id: row.id } }), t(row.owned_by_me ? "blueprints.unmarked" : "blueprints.marked", { name: row.name }));
+    act(
+      () => serverApi("POST", "/api/blueprints-owned/toggle", { body: { blueprint_id: row.id } }).then(() => changed("/api/tracked-pools")),
+      t(row.owned_by_me ? "blueprints.unmarked" : "blueprints.marked", { name: row.name }));
   const pin = (row: CatalogRow) =>
     pins.targets.has(row.id)
       ? act(() => pins.unpinTarget(row.id), t("blueprints.unpinned", { name: row.name }))

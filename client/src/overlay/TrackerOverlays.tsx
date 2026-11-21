@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { OverlayWindow } from "./OverlayWindow";
 import { serverApi, type Paginated } from "../main-window/api";
@@ -32,8 +33,17 @@ function useServerData<T>(path: string, query?: Record<string, string | number>)
     if (!visible) return;
     load();
     const id = setInterval(load, REFRESH_MS);
-    return () => clearInterval(id);
-  }, [visible, load]);
+    // The main window says when it changed what this shows (a pool tracked or
+    // let go, a blueprint pinned), so the change shows here at once rather
+    // than on the next refresh.
+    const sub = listen<string>("server-data-changed", (e) => {
+      if (e.payload === path) load();
+    }).catch(() => null);
+    return () => {
+      clearInterval(id);
+      void sub.then((un) => un?.());
+    };
+  }, [visible, load, path]);
   return { data, error };
 }
 

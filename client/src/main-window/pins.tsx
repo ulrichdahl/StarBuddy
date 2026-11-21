@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { emit } from "@tauri-apps/api/event";
 import { serverApi } from "./api";
+
+/**
+ * Tell every window that what `path` returns has changed, so a tracker
+ * window showing it fetches it again now (TrackerOverlays).
+ */
+export const changed = (path: string) => void emit("server-data-changed", path).catch(() => {});
 
 /** A push pin, 24-px grid like the overlay glyphs: filled when pinned. */
 export function PinIcon({ filled }: { filled: boolean }) {
@@ -42,10 +49,16 @@ export function usePins(paired: boolean) {
   }, [paired, nonce]);
   const reload = useCallback(() => setNonce((n) => n + 1), []);
 
-  const pinTarget = (id: number) => serverApi("POST", "/api/craft-targets", { body: { blueprint_id: id, quantity: 1 } });
-  const unpinTarget = (id: number) => serverApi("DELETE", `/api/craft-targets/${id}`);
-  const track = (key: string) => serverApi("POST", "/api/tracked-pools", { body: { pool_key: key } });
-  const untrack = (key: string) => serverApi("DELETE", `/api/tracked-pools/${encodeURIComponent(key)}`);
+  const then = (path: string) => (r: unknown) => {
+    changed(path);
+    return r;
+  };
+  const pinTarget = (id: number) =>
+    serverApi("POST", "/api/craft-targets", { body: { blueprint_id: id, quantity: 1 } }).then(then("/api/craft-targets"));
+  const unpinTarget = (id: number) => serverApi("DELETE", `/api/craft-targets/${id}`).then(then("/api/craft-targets"));
+  const track = (key: string) => serverApi("POST", "/api/tracked-pools", { body: { pool_key: key } }).then(then("/api/tracked-pools"));
+  const untrack = (key: string) =>
+    serverApi("DELETE", `/api/tracked-pools/${encodeURIComponent(key)}`).then(then("/api/tracked-pools"));
   return { targets, pools, reload, pinTarget, unpinTarget, track, untrack };
 }
 

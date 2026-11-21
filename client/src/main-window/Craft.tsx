@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverApi } from "./api";
 import { amount, gradeLabel, Pager, useSearch, useServerList } from "./pageParts";
-import { PinToggle, usePins } from "./pins";
+import { changed, PinToggle, usePins } from "./pins";
 
 /** GET /api/craftability: what the player (and the org's shared stock) can craft. */
 interface CraftResult {
@@ -67,6 +67,7 @@ export function Craft({ paired }: { paired: boolean }) {
     setError(null);
     try {
       setLast(await serverApi<Crafted>("POST", `/api/craftability/${row.id}/craft`, { body: { quantity: 1 } }));
+      changed("/api/craft-targets");
       reload();
     } catch (e) {
       setError(String(e));
@@ -78,6 +79,7 @@ export function Craft({ paired }: { paired: boolean }) {
     if (!last) return;
     try {
       await serverApi("POST", `/api/crafts/${last.craft_id}/undo`);
+      changed("/api/craft-targets");
       setLast(null);
       reload();
     } catch (e) {
