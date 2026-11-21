@@ -14,7 +14,6 @@
 use ocrs::{ImageSource, OcrEngine, OcrEngineParams, TextItem};
 use rten_imageproc::{BoundingRect, RotatedRect};
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::path::PathBuf;
 use crate::lock::LockExt;
 use std::sync::Mutex;
@@ -24,8 +23,6 @@ use tauri::{AppHandle, Emitter, Manager};
 /// Window name of the scan overlay.
 pub const SCAN: &str = "scan";
 
-const DETECTION_URL: &str = "https://ocrs-models.s3-accelerate.amazonaws.com/text-detection.rten";
-const RECOGNITION_URL: &str = "https://ocrs-models.s3-accelerate.amazonaws.com/text-recognition.rten";
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct OcrLine {
@@ -133,41 +130,30 @@ fn status(app: &AppHandle, phase: &str, detail: impl Into<String>, progress: Opt
     crate::overlay::emit_to_overlay(app, SCAN, "scan-status", ScanStatus { phase: phase.into(), detail, progress });
 }
 
+/// Where the OCR models are: bundled with the client (`ocr/` in the
+/// installation), never downloaded. The bucket they came from closed in 2026,
+/// and the copies published since read worse (ocr/NOTICE.md).
 pub(crate) fn models_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    let dir = app.path().app_data_dir().map_err(|e| e.to_string())?.join("ocr");
-    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir)
+    Ok(app.path().resource_dir().map_err(|e| e.to_string())?.join("ocr"))
 }
 
-/// Download the two OCR models on first use (≈ 15 MB total). Written to a
-/// temp name and renamed so a torn download never poses as a model.
+/// The two bundled OCR models, or why they cannot be used.
 pub(crate) async fn ensure_models(app: &AppHandle) -> Result<(PathBuf, PathBuf), String> {
     let dir = models_dir(app)?;
-    let targets = [("text-detection.rten", DETECTION_URL), ("text-recognition.rten", RECOGNITION_URL)];
-    for (i, (name, url)) in targets.iter().enumerate() {
-        let path = dir.join(name);
-        if path.exists() {
-            continue;
-        }
-        status(app, "downloading", format!("{}/2", i + 1), Some(i as f64 / 2.0));
-        let bytes = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(180))
-            .build()
-            .map_err(|e| e.to_string())?
-            .get(*url)
-            .send()
-            .await
-            .map_err(|e| format!("model download failed: {e}"))?
-            .error_for_status()
-            .map_err(|e| format!("model download failed: {e}"))?
-            .bytes()
-            .await
-            .map_err(|e| e.to_string())?;
-        let tmp = dir.join(format!("{name}.part"));
-        fs::write(&tmp, &bytes).map_err(|e| e.to_string())?;
-        fs::rename(&tmp, &path).map_err(|e| e.to_string())?;
+    let paths = (dir.join("text-detection.rten"), dir.join("text-recognition.rten"));
+    if !paths.0.exists() || !paths.1.exists() {
+        return Err(format!("The OCR models are missing from {}. Reinstall StarBuddy.", dir.display()));
     }
-    Ok((dir.join("text-detection.rten"), dir.join("text-recognition.rten")))
+    Ok(paths)
+}
+
+/// Where the corpus tests find the models: `STARBUDDY_OCR_MODELS`, to try a
+/// candidate set on the same screenshots, else the bundled ones.
+#[cfg(test)]
+pub(crate) fn test_models_dir() -> PathBuf {
+    std::env::var_os("STARBUDDY_OCR_MODELS")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("ocr"))
 }
 
 #[derive(Clone)]
@@ -1131,6 +1117,17 @@ pub fn scan_last(app: AppHandle) -> Option<ScanResult> {
 
 #[cfg(test)]
 mod tests {
+    /// Whether a pair of model files loads in this build's reader:
+    /// `STARBUDDY_OCR_DET=… STARBUDDY_OCR_REC=… cargo test models_load -- --ignored`.
+    /// What to run before pointing the hosted manifest at new models.
+    #[test]
+    #[ignore]
+    fn models_load() {
+        let det = PathBuf::from(std::env::var("STARBUDDY_OCR_DET").expect("STARBUDDY_OCR_DET"));
+        let rec = PathBuf::from(std::env::var("STARBUDDY_OCR_REC").expect("STARBUDDY_OCR_REC"));
+        load_engine(&det, &rec).unwrap();
+    }
+
     use super::*;
 
     #[test]
@@ -1219,7 +1216,7 @@ mod tests {
     #[test]
     #[ignore]
     fn scan_corpus() {
-        let models = dirs::data_dir().unwrap().join("io.github.ulrichdahl.starbuddy").join("ocr");
+        let models = test_models_dir();
         let text = engine_from_dir(&models).unwrap();
         let digits = digit_engine_from_dir(&models).unwrap();
         let reader = Reader { text: &text, digits: &digits };
@@ -1294,7 +1291,7 @@ mod tests {
             // Cyan HUD, whole 5120×1440 desktop with the game centred.
             ("4.10.0-anvil-f7c-m-scanning-signature.png", 10200.0),
         ];
-        let models = dirs::data_dir().unwrap().join("io.github.ulrichdahl.starbuddy").join("ocr");
+        let models = test_models_dir();
         let text = engine_from_dir(&models).expect("OCR models present");
         let digits = digit_engine_from_dir(&models).expect("OCR models present");
         let engine = Reader { text: &text, digits: &digits };

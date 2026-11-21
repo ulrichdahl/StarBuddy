@@ -240,7 +240,6 @@ pub async fn read_with(app: AppHandle, merge_with_last: bool) -> Result<Refinery
 }
 
 async fn read_inner(app: &AppHandle) -> Result<RefineryTerminal, String> {
-    status(app, "downloading", "checking OCR models");
     scan::ensure_models(app).await?;
     let region = current_region(app);
     status(app, "capturing", "grabbing the panel");
@@ -677,7 +676,7 @@ mod corpus {
     fn corpus_reads() {
         let Ok(root) = std::env::var("REFINERY_CORPUS") else { return };
         let root = std::path::Path::new(&root);
-        let models = dirs::data_dir().unwrap().join("io.github.ulrichdahl.starbuddy").join("ocr");
+        let models = crate::scan::test_models_dir();
         let engine = crate::scan::engine_from_dir(&models).expect("OCR models present");
 
         for line in std::fs::read_to_string(root.join("labels.jsonl")).unwrap().lines() {
