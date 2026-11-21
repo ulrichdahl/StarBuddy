@@ -592,6 +592,16 @@ pub fn emit_to_overlay<S: Serialize + Clone>(app: &AppHandle, name: &str, event:
 /// and snap back to their edge.
 fn on_moved(app: &AppHandle, name: &str, pos: PhysicalPosition<i32>) {
     if is_quiet(app, name) {
+        // Not always ours. Shown again after a hide, the window can report
+        // the position it is meant to have, so apply_layout leaves it alone,
+        // and then the window manager places it somewhere else. Measured on
+        // KDE: every other show of a floating window landed 763 px away from
+        // where it was left. So put it back where its layout says; a move
+        // that is ours is already there, and nothing happens.
+        log::debug!("overlay {name}: moved to {},{} while placing it", pos.x, pos.y);
+        if app.get_webview_window(&label(name)).is_some_and(|w| w.is_visible().unwrap_or(false)) {
+            let _ = apply_layout(app, name);
+        }
         return;
     }
     let Some(win) = app.get_webview_window(&label(name)) else { return };
@@ -651,6 +661,7 @@ pub fn apply_layout(app: &AppHandle, name: &str) -> Result<(), String> {
 
     let current: LogicalPosition<f64> = win.outer_position().map_err(|e| e.to_string())?.to_logical(scale);
     if (current.x - target.x).abs() > 0.5 || (current.y - target.y).abs() > 0.5 {
+        log::debug!("overlay {name}: placed at {:.0},{:.0} (was {:.0},{:.0})", target.x, target.y, current.x, current.y);
         quiet(app, name, 300);
         win.set_position(target).map_err(|e| e.to_string())?;
     }
