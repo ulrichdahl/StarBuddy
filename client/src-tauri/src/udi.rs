@@ -407,29 +407,45 @@ pub async fn udi_unlink(app: tauri::AppHandle) -> Result<(), String> {
 }
 
 /// Keep installed files current: at start, when the game's build changes,
-/// and every few hours, never while the game runs. A new Send is installed
+/// and every few hours, never while the game runs. A new build is seen in the
+/// launcher's build_manifest.id as soon as patching ends, so the files are
+/// brought up to date before the game is started on it; Game.log's branch is
+/// the fallback for a folder without one. A new Send is installed
 /// too when the player chose automatic install. Only for folders StarBuddy
 /// has installed into before.
 pub fn start(app: &tauri::AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let mut last_check: Option<Instant> = None;
-        let mut last_branch: Option<String> = None;
+        let mut last_profile: Option<Instant> = None;
+        let mut last_build: Option<String> = None;
         loop {
-            tokio::time::sleep(Duration::from_secs(60)).await;
+            // Often enough to beat a player who presses Launch right after
+            // patching. A pass reads a few small local files; the server is
+            // asked only when there is something to do, as before.
+            tokio::time::sleep(Duration::from_secs(15)).await;
             let prefs = load_client_prefs(&app);
             let Some(dir) = crate::game_dir::detect_game_log(app.clone()) else { continue };
-            if !prefs.udi.installed.contains_key(&dir) || !matches!(token(&app, false).await, Ok(Some(_))) {
+            if !prefs.udi.installed.contains_key(&dir) {
                 continue;
             }
             let session = app.try_state::<crate::game_session::SessionState>().map(|s| s.current()).unwrap_or_default();
             if session.running || crate::main_window::game_running() {
                 continue;
             }
-            let new_build = session.branch.is_some() && session.branch != last_branch;
+            let build = crate::game_dir::installed_build(Path::new(&dir)).or(session.branch.clone());
+            let new_build = build.is_some() && build != last_build;
             let due = last_check.is_none_or(|t| t.elapsed() >= Duration::from_secs(3 * 3600));
+            let profile_due = last_profile.is_none_or(|t| t.elapsed() >= Duration::from_secs(600));
+            if !(new_build || due || (prefs.udi.auto_install && profile_due)) {
+                continue;
+            }
+            if !matches!(token(&app, false).await, Ok(Some(_))) {
+                continue;
+            }
             let mut new_send = false;
-            if prefs.udi.auto_install && last_check.is_none_or(|t| t.elapsed() >= Duration::from_secs(600)) {
+            if prefs.udi.auto_install && profile_due {
+                last_profile = Some(Instant::now());
                 if let Ok(Some(p)) = udi_profile(app.clone()).await {
                     new_send = prefs.udi.revision != Some(p.revision);
                 }
@@ -437,7 +453,10 @@ pub fn start(app: &tauri::AppHandle) {
             if !(new_build || due || new_send) {
                 continue;
             }
-            last_branch = session.branch.clone();
+            if new_build {
+                log::info!("game build {} found; checking the UnitedDanes files", build.as_deref().unwrap_or("?"));
+            }
+            last_build = build;
             last_check = Some(Instant::now());
             match install_into(&app, &dir, false).await {
                 Ok(r) if r.ini || r.cfg => log::info!("UnitedDanes files brought up to date (global.ini {}, user.cfg {})", r.ini, r.cfg),
