@@ -148,9 +148,11 @@ def mux(video, tracks, out):
     subprocess.run(["ffmpeg", "-v", "error", "-y", *args, *maps, "-c", "copy", "-shortest", out], check=True)
 
 def web_version(src, track, out):
-    """One language for a <video> tag (browsers cannot switch tracks): smaller, streams at once."""
+    """One language for a <video> tag (browsers cannot switch tracks): streams at once.
+    CRF 20, not 26: at 26 the small UI text and the blurred backdrops showed
+    blocking; this is about twice the size (~30 MB for two minutes)."""
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-map", "0:v", "-map", f"0:a:{track}", "-c:v", "libx264",
-                    "-preset", "slow", "-crf", "26", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
+                    "-preset", "slow", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
                     "-movflags", "+faststart", out], check=True)
 
 def run(name, keys, scene_frame, langs, long_keys=()):
