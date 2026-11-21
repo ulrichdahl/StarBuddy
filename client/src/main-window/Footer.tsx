@@ -78,7 +78,7 @@ export function Footer({
           {t("footer.creditPrefix")}{" "}
           <button className="link-button" onClick={() => openUrl("https://uniteddanes.org").catch(() => {})}>United Danes</button>
           {t("footer.creditMiddle")}{" "}
-          <button className="link-button" onClick={() => openUrl("https://robertsspaceindustries.com/citizens/DK-Raven").catch(() => {})}>DK-Raven</button>
+          <button className="link-button" onClick={() => openUrl("https://robertsspaceindustries.com/citizens/RavenMind").catch(() => {})}>RavenMind</button>
           {" "}{t("footer.creditWith")}{" "}
           <button className="link-button" onClick={() => openUrl("https://claude.ai").catch(() => {})}>Claude.ai</button>.
         </p>
