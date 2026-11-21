@@ -1,6 +1,7 @@
 <#
-  Lists the subscriber perk settings (cig_subscriber.*) baked into a Star Citizen build,
-  with their default values and descriptions, plus the log lines the perks can write.
+  Lists the subscriber perks baked into a Star Citizen build: the cig_subscriber.* settings
+  with their default values and descriptions, the perk feature switches, the subscriber
+  tiers, and the log lines the perks can write.
 
   Usage:
     powershell -ExecutionPolicy Bypass -File .\Find-SubscriberPerks.ps1            # PTU
@@ -11,6 +12,9 @@ param(
     [string]$Root = 'C:\Program Files\Roberts Space Industries\StarCitizen',
     [string]$Channel = 'PTU'
 )
+
+# Feature switches, found by exact name. A later build may add more.
+$switches = 'g_activate_subscriber_perk', 'g_enable_discount_perk'
 
 $dir = Join-Path $Root $Channel
 $exe = Join-Path $dir 'Bin64\StarCitizen.exe'
@@ -28,60 +32,80 @@ if (Test-Path $manifest) {
 # Read the exe as one byte-per-char string so string offsets equal file offsets.
 $text = [Text.Encoding]::GetEncoding(28591).GetString([IO.File]::ReadAllBytes($exe))
 
-# Find where the subscriber strings sit; they are stored together.
-$hits = foreach ($needle in 'cig_subscriber', '[Subscriber]') {
-    $i = $text.IndexOf($needle, [StringComparison]::Ordinal)
-    while ($i -ge 0) { $i; $i = $text.IndexOf($needle, $i + 1, [StringComparison]::Ordinal) }
+function Test-Printable([char]$c) { ($c -ge ' ' -and $c -le '~') -or $c -eq "`t" }
+
+# Every offset where $needle occurs.
+function Find-All([string]$needle, [switch]$IgnoreCase) {
+    $mode = if ($IgnoreCase) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
+    $i = $text.IndexOf($needle, $mode)
+    while ($i -ge 0) { $i; $i = $text.IndexOf($needle, $i + $needle.Length, $mode) }
 }
-if (-not $hits) { 'No subscriber perks in this build.'; exit 0 }
-$from = [Math]::Max(0, ($hits | Measure-Object -Minimum).Minimum - 4096)
-$to = [Math]::Min($text.Length, ($hits | Measure-Object -Maximum).Maximum + 4096)
 
-# The readable strings in that region, in file order.
-$strings = @([regex]::Matches($text.Substring($from, $to - $from), '[\x20-\x7E\t]{6,}') |
-    ForEach-Object { $_.Value.Trim() })
+# The whole readable string around an offset, with where it starts and ends.
+function Get-StringAt([int]$i) {
+    $a = $i; while ($a -gt 0 -and (Test-Printable $text[$a - 1])) { $a-- }
+    $b = $i; while ($b -lt $text.Length -and (Test-Printable $text[$b])) { $b++ }
+    [pscustomobject]@{ Start = $a; End = $b; Value = $text.Substring($a, $b - $a).Trim() }
+}
 
-$isName = { param($s) $s -match '^cig_subscriber\.[\w.]+$' }
-$isDefault = { param($s) $s -match '^[\d.]+(\s*,\s*[\d.]+)+$' }
+# The string stored right after / right before another, across the zero padding between them.
+function Get-Next($s) {
+    $i = $s.End; $stop = [Math]::Min($text.Length, $i + 16)
+    while ($i -lt $stop -and $text[$i] -eq [char]0) { $i++ }
+    if ($i -lt $text.Length -and $i -gt $s.End -and (Test-Printable $text[$i])) { Get-StringAt $i }
+}
+function Get-Previous($s) {
+    $i = $s.Start; $stop = [Math]::Max(0, $i - 16)
+    while ($i -gt $stop -and $text[$i - 1] -eq [char]0) { $i-- }
+    if ($i -gt 0 -and $i -lt $s.Start -and (Test-Printable $text[$i - 1])) { Get-StringAt ($i - 1) }
+}
 
-'Settings:'
-$seen = @{}
-$rows = for ($i = 0; $i -lt $strings.Count; $i++) {
-    $name = $strings[$i]
-    if (-not (& $isName $name) -or $seen[$name]) { continue }
-    $seen[$name] = $true
+$isDefault = '^[\d.]+(\s*,\s*[\d.]+)+$'
+$notDescription = '^\[|^cig_|^g_|::'
+
+# Settings: each name is stored next to its default value (if any) and its description,
+# which mostly follows the name and sometimes comes just before it.
+$settings = [ordered]@{}
+foreach ($i in Find-All 'cig_subscriber.') {
+    $s = Get-StringAt $i
+    if ($s.Value -notmatch '^cig_subscriber\.[\w.]+$' -or $settings.Contains($s.Value)) { continue }
     $default = ''
-    $j = $i + 1
-    if ($j -lt $strings.Count -and (& $isDefault $strings[$j])) { $default = $strings[$j]; $j++ }
-    # The description follows the name, except for a few where it comes just before.
-    $desc = if ($j -lt $strings.Count -and $strings[$j] -notmatch '^\[|^cig_' ) { $strings[$j] }
-            elseif ($i -gt 0 -and $strings[$i - 1] -notmatch '^\[|^cig_|::') { $strings[$i - 1] }
+    $next = Get-Next $s
+    if ($next -and $next.Value -match $isDefault) { $default = $next.Value; $next = Get-Next $next }
+    $previous = Get-Previous $s
+    $desc = if ($next -and $next.Value -notmatch $notDescription -and $next.Value -notmatch $isDefault) { $next.Value }
+            elseif ($previous -and $previous.Value -notmatch $notDescription -and $previous.Value -notmatch $isDefault) { $previous.Value }
             else { '' }
-    [pscustomobject]@{ Setting = $name; Default = $default; Description = $desc }
+    $settings[$s.Value] = [pscustomobject]@{ Setting = $s.Value; Default = $default; Description = $desc }
 }
-
-# Feature switches stored elsewhere, each with its description just before the name.
-$rows = @($rows) + @(foreach ($name in 'g_activate_subscriber_perk', 'g_enable_discount_perk') {
-    $i = $text.IndexOf("`0$name`0", [StringComparison]::Ordinal)
-    if ($i -lt 0) { continue }
-    $e = $i; while ($e -gt 0 -and $text[$e - 1] -eq "`0") { $e-- }
-    $a = $e; while ($a -gt 0 -and $text[$a - 1] -match '[\x20-\x7E\t]') { $a-- }
-    [pscustomobject]@{ Setting = $name; Default = ''; Description = $text.Substring($a, $e - $a).Trim() }
-})
-$rows | Format-Table -AutoSize -Wrap | Out-String -Width 220
-
-'Log lines:'
-# Lines elsewhere in the exe that mention the perks: take the whole string around each hit.
-$elsewhere = foreach ($needle in 'with subscriber perks', 'subscriber perk') {
-    $i = $text.IndexOf($needle, [StringComparison]::OrdinalIgnoreCase)
-    while ($i -ge 0) {
-        $a = $i; while ($a -gt 0 -and $text[$a - 1] -match '[\x20-\x7E\t]') { $a-- }
-        $b = $i; while ($b -lt $text.Length -and $text[$b] -match '[\x20-\x7E\t]') { $b++ }
-        if ($a -lt $from -or $a -ge $to) { $text.Substring($a, $b - $a).Trim() }
-        $i = $text.IndexOf($needle, $b, [StringComparison]::OrdinalIgnoreCase)
+# Switches: the description comes just before the name.
+foreach ($name in $switches) {
+    foreach ($i in Find-All "`0$name`0") {
+        $s = Get-StringAt ($i + 1)
+        $previous = Get-Previous $s
+        $settings[$name] = [pscustomobject]@{ Setting = $name; Default = ''; Description = if ($previous) { $previous.Value } else { '' } }
+        break
     }
 }
-@($elsewhere) + $strings | Where-Object {
-    ($_ -match '^\[Subscriber\]\[' -or $_ -match 'subscriber perk' -or $_ -match 'with subscriber perks' -or $_ -match '^Example: cig_subscriber') -and
-    $_ -notmatch 'Error_'
-} | Select-Object -Unique | ForEach-Object { "  $_" }
+
+# Subscriber tiers, as badges.
+$tiers = @(Find-All 'RSI_BADGE_SUBSCRIBER' | ForEach-Object { (Get-StringAt $_).Value } |
+    Where-Object { $_ -match '^RSI_BADGE_SUBSCRIBER\w*$' } | Select-Object -Unique)
+
+# Log lines about the perks and the party's subscriber tier.
+$descriptions = @($settings.Values | ForEach-Object { $_.Description })
+$lines = @(foreach ($needle in '[Subscriber][', 'subscriber perk', 'party subscriber tier', 'Example: cig_subscriber') {
+    Find-All $needle -IgnoreCase | ForEach-Object { (Get-StringAt $_).Value }
+}) | Where-Object { $_ -notmatch 'Error_|::|^g_|^cig_' -and $descriptions -notcontains $_ } | Select-Object -Unique
+
+if ($settings.Count -eq 0 -and $lines.Count -eq 0) { 'No subscriber perks in this build.'; exit 0 }
+
+'Settings:'
+$settings.Values | Format-Table -AutoSize -Wrap | Out-String -Width 220
+
+'Tiers (badges):'
+if ($tiers) { $tiers | ForEach-Object { "  $_" } } else { '  (none)' }
+''
+
+'Log lines:'
+if ($lines) { $lines | ForEach-Object { "  $_" } } else { '  (none)' }
