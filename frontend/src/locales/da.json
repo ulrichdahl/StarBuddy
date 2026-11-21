@@ -835,7 +835,27 @@
     "testersTitle": "Testere",
     "testersBody": "Medlemmer der kører dev-builds, går til for at få ting til at gå i stykker og fortæller hvad der skete — tak.",
     "creditsTitle": "Kreditering",
-    "creditsBody": "Et United Danes-fællesskabsprojekt, bygget af RavenMind med Claude (Anthropic). Design og kode ligger på GitHub under AGPL-3.0; Star Citizen Wiki, SC Trade Tools, ocrs og signaturtabellens forfattere gør datasiden mulig.\nStar Citizen®, Roberts Space Industries® og Cloud Imperium® er registrerede varemærker tilhørende Cloud Imperium Rights LLC. Dette er en uofficiel fanside."
+    "creditsBody": "Et United Danes-fællesskabsprojekt, bygget af RavenMind med Claude (Anthropic). Design og kode ligger på GitHub under AGPL-3.0; Star Citizen Wiki, SC Trade Tools, ocrs og signaturtabellens forfattere gør datasiden mulig.\nStar Citizen®, Roberts Space Industries® og Cloud Imperium® er registrerede varemærker tilhørende Cloud Imperium Rights LLC. Dette er en uofficiel fanside.",
+    "licenses": {
+      "title": "Licenser",
+      "own": "StarBuddy er fri software under",
+      "source": "Kildekode på GitHub",
+      "creditsHeading": "Lavet med",
+      "by": "af {{by}}",
+      "notes": {
+        "ocr": "desktop-klienten har dem med uændret til at læse scan-signaturer og raffinaderiordrer på din skærm.",
+        "music": "musik i introvideoen.",
+        "voiceEn": "lavede den engelske speak i introvideoen.",
+        "voiceDa": "lavede den danske speak i introvideoen, med en klonet stemme.",
+        "font": "skrifttype på hjemmesiden."
+      },
+      "componentsHeading": "Open source-pakker",
+      "componentsHint": "Hjemmesiden er bygget på disse, hver under sin egen licens. Klik på en for at se kildekoden og den fulde licenstekst.",
+      "npm_one": "{{count}} JavaScript-pakke (hjemmeside)",
+      "npm_other": "{{count}} JavaScript-pakker (hjemmeside)",
+      "composer_one": "{{count}} PHP-pakke (server)",
+      "composer_other": "{{count}} PHP-pakker (server)"
+    }
   },
   "bulk": {
     "amount": "Mængde",

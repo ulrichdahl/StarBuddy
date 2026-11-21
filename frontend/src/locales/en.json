@@ -838,7 +838,27 @@
     "testersTitle": "Testers",
     "testersBody": "Members who run the dev builds, break things on purpose and tell us what happened — thank you.",
     "creditsTitle": "Credits",
-    "creditsBody": "A United Danes community project, built by RavenMind with Claude (Anthropic). Design and code are on GitHub under AGPL-3.0; the Star Citizen Wiki, SC Trade Tools, ocrs and the signature-table authors make the data side possible.\nStar Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. This is an unofficial fan site."
+    "creditsBody": "A United Danes community project, built by RavenMind with Claude (Anthropic). Design and code are on GitHub under AGPL-3.0; the Star Citizen Wiki, SC Trade Tools, ocrs and the signature-table authors make the data side possible.\nStar Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. This is an unofficial fan site.",
+    "licenses": {
+      "title": "Licenses",
+      "own": "StarBuddy is free software under the",
+      "source": "Source code on GitHub",
+      "creditsHeading": "Made with",
+      "by": "by {{by}}",
+      "notes": {
+        "ocr": "the desktop client bundles them unchanged to read scan signatures and refinery orders on your screen.",
+        "music": "music in the intro video.",
+        "voiceEn": "made the English narration of the intro video.",
+        "voiceDa": "made the Danish narration of the intro video, in a cloned voice.",
+        "font": "font on this website."
+      },
+      "componentsHeading": "Open-source packages",
+      "componentsHint": "The website is built on these, each under its own license. Click one to see its source and full license text.",
+      "npm_one": "{{count}} JavaScript package (website)",
+      "npm_other": "{{count}} JavaScript packages (website)",
+      "composer_one": "{{count}} PHP package (server)",
+      "composer_other": "{{count}} PHP packages (server)"
+    }
   },
   "bulk": {
     "amount": "Amount",
