@@ -870,6 +870,9 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
         prefs
             .all_hotkeys()
             .into_iter()
+            // The capture key is not grabbed for a player who is not a tester,
+            // so it is free for them to use elsewhere.
+            .filter(|(other, _)| other != "capture" || crate::tester::is_tester())
             .find(|(other, key)| *other != action && key.parse::<Shortcut>().is_ok_and(|s| s == wanted))
             .map(|(other, _)| other)
     };
@@ -967,6 +970,9 @@ pub fn register_hotkeys(app: &AppHandle) -> Result<(), String> {
         .lock_or_recover()
         .all_hotkeys()
         .into_iter()
+        // Training captures are for testers only. For anyone else the key is
+        // not grabbed at all, so it stays free for the game and everything else.
+        .filter(|(action, _)| action != "capture" || crate::tester::is_tester())
         .filter(|(action, _)| crate::shortcuts::desktop_key(action).is_none())
         .filter(|(action, key)| match desktop_holds(key) {
             // Said on the row, or the key just looks dead.

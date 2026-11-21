@@ -25,6 +25,10 @@ pub fn set(app: &AppHandle, value: bool) {
     if IS_TESTER.swap(value, Ordering::Relaxed) != value {
         log::info!("scan training {}", if value { "available (tester)" } else { "hidden (not a tester)" });
         let _ = app.emit("tester-changed", value);
+        // The capture key is grabbed for testers only.
+        if let Err(e) = crate::overlay::register_hotkeys(app) {
+            log::debug!("hotkeys after the tester change: {e}");
+        }
     }
 }
 
