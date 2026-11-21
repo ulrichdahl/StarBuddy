@@ -8,6 +8,7 @@ import { listenFailed } from "../listen";
 import { KdeRuleRow } from "./KdeRuleRow";
 import { ScreenReadingPanel, ShareTrainingRow } from "./ScreenReadingPanel";
 import type { HotkeyInfo, Reading } from "./types";
+import { useTester } from "./useTester";
 import type { MainMode, MainState } from "./mainMode";
 
 /** Which of the panel's three parts a Settings tab shows. */
@@ -166,6 +167,8 @@ export function OverlayPanel({
   const [reading, setReading] = useState<Reading | null>(null);
   const [hotkey, setHotkey] = useState<HotkeyInfo | null>(null);
   const [captureStatus, setCaptureStatus] = useState<{ phase: string; detail: string } | null>(null);
+  // Scan training is for testers only; nobody else sees its key or switch.
+  const tester = useTester();
   const [hotkeyError, setHotkeyError] = useState<string | null>(null);
   /** Everything about this machine a bug report needs, when asked for. */
   const [report, setReport] = useState<string | null>(null);
@@ -252,7 +255,7 @@ export function OverlayPanel({
         <ScreenReadingPanel reading={reading} onReading={setReading} onError={setOverlayError} />
         <AreaRow purpose="refinery" enabled={Boolean(reading?.on)} onError={setOverlayError} />
         {!reading?.on && <p className="hint">{t("settings.areaNeedsReading")}</p>}
-        <ShareTrainingRow onError={setOverlayError} />
+        {tester && <ShareTrainingRow onError={setOverlayError} />}
         {errors}
       </section>
     );
@@ -331,7 +334,7 @@ export function OverlayPanel({
   );
 
   // What stops a hotkey from working, and only that: the player has to act.
-  const failed = Object.keys(hotkey?.failed ?? {});
+  const failed = Object.keys(hotkey?.failed ?? {}).filter((a) => tester || a !== "capture");
   const unset = Boolean(hotkey?.desktop_offered && !hotkey.desktop_owned);
   const noGlobal = Boolean(hotkey && !hotkey.global_supported);
   const problem = failed.length > 0 || unset || noGlobal;
@@ -369,9 +372,9 @@ export function OverlayPanel({
         {row("reading")}
         {row("scan")}
         {row("refinery")}
-        {row("capture")}
+        {tester && row("capture")}
         {reading && !reading.on && <p className="hint">{t("settings.captureNeedsReading")}</p>}
-        {captureStatus && (
+        {tester && captureStatus && (
           <p className={captureStatus.phase === "error" ? "error" : "hint"}>
             {t(`overlay.capture.${captureStatus.phase}`, { detail: captureStatus.detail })}
           </p>
