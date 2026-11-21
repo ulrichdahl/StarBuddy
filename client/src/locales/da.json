@@ -495,7 +495,7 @@
     "presenceHintOff": "Slået fra, indtil du slår det til. Så ser din hoved-org om du spiller, hvor, i hvilket skib og på hvilken shard.",
     "presenceStart": "Del",
     "presenceStop": "Stop deling",
-    "overlays": "Over spillet",
+    "overlays": "Vinduer over spillet",
     "overlay": {
       "status": "Status",
       "scan": "Scanning",
@@ -504,7 +504,8 @@
       "gathering": "Indsamling",
       "orders": "Raffinaderiordrer",
       "points": "Dine point"
-    }
+    },
+    "overlaysAll": "Skjul / vis alle"
   },
   "refinery": {
     "lead": "Dine raffinaderiordrer, aflæst ved kiosken med genvejstasten.",

@@ -495,7 +495,7 @@
     "presenceHintOff": "Off until you switch it on. Then your main org sees whether you play, where, in what ship and on which shard.",
     "presenceStart": "Share",
     "presenceStop": "Stop sharing",
-    "overlays": "Over the game",
+    "overlays": "Windows over the game",
     "overlay": {
       "status": "Status",
       "scan": "Scan",
@@ -504,7 +504,8 @@
       "gathering": "Gathering",
       "orders": "Refinery orders",
       "points": "Your points"
-    }
+    },
+    "overlaysAll": "Hide / show all"
   },
   "refinery": {
     "lead": "Your refinery orders, read at the kiosk with the hotkey.",

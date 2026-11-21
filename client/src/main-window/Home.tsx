@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { asSeverity, localTime, onRsiStatus, type RsiStatusUpdate } from "../status";
 import type { Section } from "./Shell";
-import { kindLabel, type Reading } from "./types";
+import { kindLabel, type HotkeyInfo, type Reading } from "./types";
 import type { Watcher } from "./WatcherPanel";
 
 /** The few fields of a refinery read that Home shows. */
@@ -223,7 +223,29 @@ function EventsCard({ watcher }: { watcher: Watcher }) {
   );
 }
 
-/** The overlay windows, each switched on or off over the game from here. */
+/** The hotkey action that opens and closes each overlay window. */
+const KEY_ACTION: Record<Overlay, string> = {
+  status: "status",
+  scan: "overlay-scan",
+  refinery: "overlay-refinery",
+  pools: "overlay-pools",
+  gathering: "overlay-gathering",
+  orders: "overlay-orders",
+  points: "overlay-points",
+};
+
+/**
+ * The key that works for an action now, if any: the desktop's when it put one
+ * on it, otherwise StarBuddy's own once it is registered. A key that is set
+ * but refused or held elsewhere is not shown, since pressing it does nothing.
+ */
+function activeKey(info: HotkeyInfo | null, action: string): string | null {
+  if (!info) return null;
+  if (info.triggers[action]) return info.triggers[action];
+  return info.live.includes(action) ? info.hotkeys[action] ?? null : null;
+}
+
+/** The overlay windows, each switched on or off over the game from here, with its key. */
 function OverlaysCard() {
   const { t } = useTranslation();
   const [open, setOpen] = useState<Record<Overlay, boolean>>({
@@ -236,6 +258,14 @@ function OverlaysCard() {
     points: false,
   });
   const [error, setError] = useState<string | null>(null);
+  const [keys, setKeys] = useState<HotkeyInfo | null>(null);
+  useEffect(() => {
+    const readKeys = () => invoke<HotkeyInfo>("overlay_hotkey").then(setKeys).catch(() => {});
+    readKeys();
+    // The desktop answers about the keys in its own time.
+    const sub = listen("hotkeys-changed", readKeys).catch(() => null);
+    return () => void sub.then((un) => un?.());
+  }, []);
   useEffect(() => {
     for (const name of OVERLAYS) {
       invoke<{ open: boolean }>("overlay_prefs", { name })
@@ -259,12 +289,21 @@ function OverlaysCard() {
   };
   return (
     <Card label={t("home.overlays")}>
-      {OVERLAYS.map((name) => (
-        <label key={name} className="sb-check">
-          <input type="checkbox" checked={open[name]} onChange={() => void toggle(name)} />
-          {t(`home.overlay.${name}`)}
-        </label>
-      ))}
+      {OVERLAYS.map((name) => {
+        const key = activeKey(keys, KEY_ACTION[name]);
+        return (
+          <label key={name} className="sb-check">
+            <input type="checkbox" checked={open[name]} onChange={() => void toggle(name)} />
+            {t(`home.overlay.${name}`)}
+            {key && <kbd className="sb-key">{key}</kbd>}
+          </label>
+        );
+      })}
+      {activeKey(keys, "overlays") && (
+        <div className="sb-card-sub sb-keyline">
+          {t("home.overlaysAll")} <kbd className="sb-key">{activeKey(keys, "overlays")}</kbd>
+        </div>
+      )}
       {error && <p className="error">{error}</p>}
     </Card>
   );
