@@ -348,6 +348,11 @@ body {
 .sb-page-hd .sb-card-sub { flex: 1 1 260px; max-width: 620px; }
 .sb .sb-ghost { background: transparent; }
 .sb .sb-ghost:hover:not(:disabled) { background: rgba(60, 201, 240, 0.1); }
+/* Pin a blueprint as a craft target: an outline pin, filled cyan once pinned. */
+.sb .sb-pin { background: transparent; border-color: transparent; padding: 3px 5px; color: var(--dim); line-height: 0; }
+.sb .sb-pin:hover:not(:disabled) { color: var(--cyan); background: rgba(60, 201, 240, 0.1); }
+.sb .sb-pin.on { color: var(--cyan); }
+.sb .sb-link svg { vertical-align: -3px; color: var(--cyan); }
 .sb-kbd {
   font-family: var(--mono);
   font-size: 11px;

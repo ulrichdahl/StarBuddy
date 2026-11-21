@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverApi } from "./api";
 import { amount, gradeLabel, Pager, useSearch, useServerList } from "./pageParts";
+import { PinToggle, usePins } from "./pins";
 
 /** GET /api/craftability: what the player (and the org's shared stock) can craft. */
 interface CraftResult {
@@ -51,6 +52,16 @@ export function Craft({ paired }: { paired: boolean }) {
   const lastPage = Math.max(1, Math.ceil(results.length / PER_PAGE));
   const shown = useMemo(() => results.slice((page - 1) * PER_PAGE, page * PER_PAGE), [results, page]);
 
+  const pins = usePins(paired);
+  const togglePin = async (row: CraftResult) => {
+    setError(null);
+    try {
+      await (pins.targets.has(row.id) ? pins.unpinTarget(row.id) : pins.pinTarget(row.id));
+      pins.reload();
+    } catch (e) {
+      setError(String(e));
+    }
+  };
   const craft = async (row: CraftResult) => {
     setBusy(row.id);
     setError(null);
@@ -114,6 +125,7 @@ export function Craft({ paired }: { paired: boolean }) {
                 <th className="num">{t("craft.col.quality")}</th>
                 <th>{t("craft.col.missing")}</th>
                 <th />
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -130,6 +142,9 @@ export function Craft({ paired }: { paired: boolean }) {
                       .map((m) => `${m.name} ${amount(m.missing, m.unit)}`)
                       .join(", ")}
                     {row.missing.length > 3 ? " …" : ""}
+                  </td>
+                  <td className="num">
+                    <PinToggle pinned={pins.targets.has(row.id)} name={row.name} onToggle={() => void togglePin(row)} />
                   </td>
                   <td className="num">
                     {row.craftable && (

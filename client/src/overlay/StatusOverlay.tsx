@@ -96,24 +96,24 @@ export function StatusOverlay() {
         firstBox={
           <div className="ov-box acc ov-callout" role="alert">
             <span className="mono big">{ok ? "✓" : "!"}</span>
-            <span>{t(`overlay.notice.${notice.code}.body`, { detail: notice.detail ?? "" })}</span>
+            <span>{t(`overlay.notice.${notice.code}.short`)}</span>
+            <button type="button" className="push" onClick={dismiss}>
+              {t("overlay.notice.dismiss")}
+            </button>
           </div>
         }
         strip={
           <>
             <span className="ov-stow ov-strip-item">{t(`overlay.notice.${notice.code}.short`)}</span>
             {/* The strip has no footer, so the way to dismiss it lives here too. */}
-            <button type="button" className="lnk ov-strip-item" onClick={dismiss}>
+            <button type="button" className="ov-strip-item" onClick={dismiss}>
               {t("overlay.notice.dismiss")}
             </button>
           </>
         }
       >
-        <div className="ov-foot">
-          <button type="button" className="lnk" onClick={dismiss}>
-            {t("overlay.notice.dismiss")}
-          </button>
-        </div>
+        {/* Why the language file was not updated; the short line says that it was not. */}
+        {notice.detail && <p className="ov-p">{notice.detail}</p>}
       </OverlayWindow>
     );
   }

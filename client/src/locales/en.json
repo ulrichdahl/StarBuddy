@@ -409,12 +409,10 @@
       "dismiss": "Got it",
       "patched": {
         "title": "Star Citizen {{environment}} is ready",
-        "body": "Patched, and the language file is up to date. You can start the game now.",
         "short": "Language file updated: safe to start"
       },
       "patchedNoIni": {
         "title": "Star Citizen {{environment}} is patched",
-        "body": "The language file was not updated: {{detail}}",
         "short": "Language file not updated"
       }
     },
@@ -718,7 +716,12 @@
     "marked": "{{name}} marked as held.",
     "unmarked": "{{name}} no longer marked as held.",
     "pinned": "{{name}} pinned as a craft target.",
-    "tracked": "Now tracking {{pool}}."
+    "tracked": "Now tracking {{pool}}.",
+    "unpinned": "{{name}} is no longer a craft target.",
+    "untracked": "No longer tracking {{pool}}.",
+    "untrack": "Stop tracking this pool",
+    "pinLabel": "Pin {{name}} as a craft target",
+    "unpinLabel": "Pinned: unpin {{name}}"
   },
   "craft": {
     "craftable": "Craftable now",
