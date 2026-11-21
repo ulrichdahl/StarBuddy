@@ -76,7 +76,7 @@
     "title": "Admin",
     "subtitle": "Org administration tools",
     "bulkClearTitle": "Bulk-clear inventory",
-    "bulkClearDescription": "Permanently removes matching material stacks (and, for a game wipe, items) from the org. This cannot be undone.",
+    "bulkClearDescription": "Permanently removes matching material stacks (and, for a game wipe, items) from the members of {{org}}. Nobody outside the org is affected. To clear only your own stock, use Profile › Your stock. This cannot be undone.",
     "clearBy": "Clear by",
     "byCategory": "By category",
     "byResourceType": "By resource type",
@@ -100,7 +100,7 @@
     "scopeAllLocations": "all locations",
     "everything": "Everything (game wipe)",
     "everythingHelp": "After a server wipe: removes the selected material categories (and, if ticked, items) for every org member, including private stashes. Blueprints, locations and refinery orders are kept.",
-    "includePrivate": "Also clear members' private stashes",
+    "includePrivate": "Also clear the org members' private stock",
     "clearedCounts": "Cleared {{materials}} material stacks and {{items}} item stacks.",
     "scopeEverything": "everything — all materials and items",
     "scopeWithPrivate": "including private stashes",
@@ -1020,6 +1020,13 @@
     "synced": "Client synced <t>{{time}}</t> · {{device}}",
     "stale": "Client last synced {{time}}",
     "notPaired": "Desktop client not paired"
+  },
+  "ownStock": {
+    "title": "Your stock",
+    "help": "After a game wipe, clear what the patch took from your own materials and items: private and org-visible stock alike. Nobody else's stock is touched.",
+    "open": "Clear my stock…",
+    "clear": "Clear my stock",
+    "confirmBody": "You are about to delete your own stacks: {{scope}}. Type <strong>{{word}}</strong> to confirm."
   },
   "profileDialog": {
     "title": "Profile & desktop client",

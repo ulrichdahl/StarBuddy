@@ -35,8 +35,10 @@ pub(crate) struct ClientPrefs {
     /// The player switched the Game.log watcher off. It is on otherwise,
     /// from the start, whenever a game folder is found.
     pub(crate) log_watch_off: bool,
-    /// The player switched off showing their game status to org mates.
-    pub(crate) presence_off: bool,
+    /// The player switched on showing their game status to org mates. Off
+    /// until they do. It used to be on unless switched off (`presence_off`);
+    /// that key is ignored now, so everyone starts from off.
+    pub(crate) share_presence: bool,
     /// The link to United Danes' StarLabels and StarConfig (udi.rs).
     pub(crate) udi: crate::udi::UdiPrefs,
 }

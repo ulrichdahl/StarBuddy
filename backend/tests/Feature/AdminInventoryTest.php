@@ -99,4 +99,51 @@ class AdminInventoryTest extends TestCase
         $this->actingAs($this->manager)->deleteJson('/api/admin/inventory', [])->assertStatus(422);
         $this->assertSame(4, ResourceStack::count());
     }
+
+    public function test_the_main_org_is_cleared_not_the_first(): void
+    {
+        // The outsider is a manager of Stellar Forge too, but their main org is Other Org.
+        $forge = Org::where('name', 'Stellar Forge')->first();
+        $forge->memberships()->attach($this->outsider->id, ['role' => 'manager', 'status' => 'active']);
+        $this->outsider->forceFill(['main_org_id' => Org::where('name', 'Other Org')->value('id')])->save();
+
+        // A plain member of their main org: refused, even though they manage the first org.
+        $this->actingAs($this->outsider)->deleteJson('/api/admin/inventory', ['category' => 'ore'])->assertForbidden();
+        $this->assertSame(4, ResourceStack::count());
+    }
+
+    public function test_a_player_without_an_org_is_told_so(): void
+    {
+        $solo = User::factory()->create(['discord_id' => '4']);
+        $this->actingAs($solo)->deleteJson('/api/admin/inventory', ['everything' => true])
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'no_org');
+    }
+
+    public function test_anyone_can_clear_their_own_stock_private_included(): void
+    {
+        $this->actingAs($this->member)
+            ->deleteJson('/api/me/inventory', ['everything' => true])
+            ->assertOk()
+            ->assertJsonPath('cleared.resource_stacks', 2)
+            ->assertJsonPath('cleared.item_stacks', 1);
+
+        $this->assertSame(0, ResourceStack::where('user_id', $this->member->id)->count());
+        $this->assertSame(2, ResourceStack::count(), 'the manager\'s and the outsider\'s stacks kept');
+        $this->assertDatabaseHas('audit_logs', ['action' => 'inventory.own_wipe', 'user_id' => $this->member->id]);
+    }
+
+    public function test_own_clear_by_category_and_without_org(): void
+    {
+        $solo = User::factory()->create(['discord_id' => '4']);
+        $this->actingAs($solo)->deleteJson('/api/me/inventory', ['category' => 'ore'])
+            ->assertOk()
+            ->assertJsonPath('cleared.resource_stacks', 0);
+
+        $this->actingAs($this->member)->deleteJson('/api/me/inventory', ['category' => 'gem'])
+            ->assertOk()
+            ->assertJsonPath('cleared.resource_stacks', 1);
+        $this->assertSame(1, ResourceStack::where('user_id', $this->member->id)->count(), 'private ore kept');
+        $this->actingAs($this->member)->deleteJson('/api/me/inventory', [])->assertStatus(422);
+    }
 }

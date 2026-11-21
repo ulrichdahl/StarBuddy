@@ -30,6 +30,7 @@ pub mod scan;
 pub mod sigs;
 mod tools;
 mod training;
+mod tester;
 mod update;
 mod watcher;
 mod game_session;
@@ -216,6 +217,7 @@ pub fn run() {
             watcher::start_at_launch(&handle);
             presence::start(&handle);
             udi::start(&handle);
+            tester::start(&handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -266,6 +268,7 @@ pub fn run() {
             training::training_capture,
             training::training_sharing_get,
             training::training_sharing_set,
+            tester::tester_status,
             watcher::start_watcher,
             watcher::stop_watcher,
             watcher::watcher_status,

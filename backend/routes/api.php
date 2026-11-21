@@ -101,6 +101,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // P1.1 — bulk clear of org inventory by type/category
     Route::delete('admin/inventory', [AdminInventoryController::class, 'clear']);
+    // Anyone can clear their own stock, e.g. after a game wipe.
+    Route::delete('me/inventory', [AdminInventoryController::class, 'clearOwn']);
 
     // Orgs: browse/join for members, moderation for managers
     Route::get('orgs', [\App\Http\Controllers\OrgController::class, 'index']);
@@ -121,25 +123,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('presence', [\App\Http\Controllers\PresenceController::class, 'store'])->middleware('throttle:20,1');
     Route::post('ingest/events', [IngestController::class, 'store']);
 
-    // Contributed screenshots for training the panel detector. Members submit
-    // and see their own; managers review the queue and export the approved set.
-    Route::get('training/labels', [ScreenshotSubmissionController::class, 'labels']);
-    Route::get('training/screenshots', [ScreenshotSubmissionController::class, 'index']);
-    Route::post('training/screenshots', [ScreenshotSubmissionController::class, 'store'])
-        ->middleware('throttle:60,1');
-    Route::get('training/screenshots/queue', [ScreenshotSubmissionController::class, 'queue']);
-    Route::get('training/screenshots/export', [ScreenshotSubmissionController::class, 'export']);
-    Route::get('training/screenshots/{submission}/image', [ScreenshotSubmissionController::class, 'image']);
+    // Scan training is for testers only (the tester role in the home guild).
+    Route::middleware('tester')->group(function () {
+        // Contributed screenshots for training the panel detector. Members submit
+        // and see their own; managers review the queue and export the approved set.
+        Route::get('training/labels', [ScreenshotSubmissionController::class, 'labels']);
+        Route::get('training/screenshots', [ScreenshotSubmissionController::class, 'index']);
+        Route::post('training/screenshots', [ScreenshotSubmissionController::class, 'store'])
+            ->middleware('throttle:60,1');
+        Route::get('training/screenshots/queue', [ScreenshotSubmissionController::class, 'queue']);
+        Route::get('training/screenshots/export', [ScreenshotSubmissionController::class, 'export']);
+        Route::get('training/screenshots/{submission}/image', [ScreenshotSubmissionController::class, 'image']);
 
-    // Hotkey grabs from the desktop client: they arrive unlabelled, wait in the
-    // player's own queue, and become ordinary submissions once labelled.
-    Route::post('training/captures', [ScreenshotCaptureController::class, 'store'])
-        ->middleware('throttle:120,1');
-    Route::get('training/captures', [ScreenshotCaptureController::class, 'index']);
-    Route::post('training/captures/{submission}/contribute', [ScreenshotCaptureController::class, 'contribute']);
-    Route::delete('training/captures/{submission}', [ScreenshotCaptureController::class, 'destroy']);
-    Route::patch('training/screenshots/{submission}', [ScreenshotSubmissionController::class, 'update']);
-    Route::post('training/screenshots/{submission}/review', [ScreenshotSubmissionController::class, 'review']);
+        // Hotkey grabs from the desktop client: they arrive unlabelled, wait in the
+        // player's own queue, and become ordinary submissions once labelled.
+        Route::post('training/captures', [ScreenshotCaptureController::class, 'store'])
+            ->middleware('throttle:120,1');
+        Route::get('training/captures', [ScreenshotCaptureController::class, 'index']);
+        Route::post('training/captures/{submission}/contribute', [ScreenshotCaptureController::class, 'contribute']);
+        Route::delete('training/captures/{submission}', [ScreenshotCaptureController::class, 'destroy']);
+        Route::patch('training/screenshots/{submission}', [ScreenshotSubmissionController::class, 'update']);
+        Route::post('training/screenshots/{submission}/review', [ScreenshotSubmissionController::class, 'review']);
+    });
 });
 
 // Deployed version for footers and support requests — public, no auth needed.

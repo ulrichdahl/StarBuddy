@@ -45,7 +45,17 @@ class AuthController extends Controller
             ],
         );
 
-        $this->syncOrgsFromRoles($user, $discordUser->token, $homeGuild);
+        // The member's roles in the home guild: they gate features and map
+        // onto orgs. Roles we cannot read (no guilds.members.read consent)
+        // leave what we knew unchanged.
+        $member = Http::withToken($discordUser->token)
+            ->acceptJson()
+            ->get("https://discord.com/api/users/@me/guilds/{$homeGuild}/member");
+        if ($member->successful()) {
+            $roles = array_map('strval', $member->json('roles', []));
+            $user->forceFill(['discord_role_ids' => $roles])->save();
+            $this->syncOrgsFromRoles($user, $roles);
+        }
 
         Auth::login($user, remember: true);
         $request->session()->regenerate();
@@ -63,24 +73,15 @@ class AuthController extends Controller
     }
 
     // Map the member's roles in the home guild onto orgs, per config
-    // role_org_map. Roles we cannot read (no guilds.members.read consent or
-    // missing scope) simply leave memberships unchanged.
-    private function syncOrgsFromRoles(User $user, string $token, string $homeGuild): void
+    // role_org_map.
+    private function syncOrgsFromRoles(User $user, array $roles): void
     {
         $map = config('starbuddy.role_org_map');
         if (empty($map)) {
             return;
         }
 
-        $member = Http::withToken($token)
-            ->acceptJson()
-            ->get("https://discord.com/api/users/@me/guilds/{$homeGuild}/member");
-
-        if (! $member->successful()) {
-            return;
-        }
-
-        foreach ($member->json('roles', []) as $roleId) {
+        foreach ($roles as $roleId) {
             if (isset($map[$roleId])) {
                 $org = Org::firstOrCreate(
                     ['name' => $map[$roleId]],

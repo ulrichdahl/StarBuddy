@@ -28,7 +28,14 @@ fn status(app: &AppHandle, phase: &str, detail: impl Into<String>) {
 
 /// Hotkey entry point: grab the game window and send it, reporting progress
 /// through the `training-capture` event so the UI can show what happened.
+///
+/// For a player who is not a tester the key does nothing: the server would
+/// refuse the frame, and the settings do not show the key at all.
 pub fn trigger(app: &AppHandle) {
+    if !crate::tester::is_tester() {
+        log::debug!("training hotkey ignored: not a tester");
+        return;
+    }
     let app2 = app.clone();
     tauri::async_runtime::spawn(async move {
         match send(app2.clone()).await {
@@ -111,7 +118,16 @@ pub async fn upload(
         .map_err(|e| format!("Could not reach server: {e}"))?;
 
     if !resp.status().is_success() {
-        return Err(crate::error_body(resp).await);
+        let status = resp.status();
+        let body = resp.json::<serde_json::Value>().await.unwrap_or_default();
+        // Testers only, and this player is no longer one: hide the training
+        // screens rather than show the refusal.
+        if crate::tester::is_tester_only(status, &body) {
+            crate::tester::set(app, false);
+            return Err("Scan training is for testers only.".into());
+        }
+        let msg = body.get("message").and_then(|m| m.as_str()).unwrap_or_default();
+        return Err(format!("Server said {status}: {msg}"));
     }
     Ok(())
 }

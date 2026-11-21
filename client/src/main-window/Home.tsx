@@ -121,6 +121,45 @@ function ReadingCard({ onSection }: { onSection: (s: Section) => void }) {
   );
 }
 
+/**
+ * Game status for the org: whether org mates see where this player is. Off
+ * until the player switches it on, here or under Settings › General.
+ */
+function PresenceCard() {
+  const { t } = useTranslation();
+  const [on, setOn] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    invoke<boolean>("presence_sharing_get").then(setOn).catch((e) => setError(String(e)));
+  }, []);
+  const toggle = async () => {
+    if (on === null) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await invoke("presence_sharing_set", { enabled: !on });
+      setOn(!on);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Card label={t("home.presence")}>
+      <div className="sb-card-big">
+        <span className={`sb-dot ${on ? "" : "off"}`} />
+        {on ? t("home.presenceOn") : t("home.presenceOff")}
+      </div>
+      <div className="sb-card-sub">{error ?? (on ? t("home.presenceHintOn") : t("home.presenceHintOff"))}</div>
+      <button type="button" className="sb-card-btn" disabled={busy || on === null} onClick={() => void toggle()}>
+        {on ? t("home.presenceStop") : t("home.presenceStart")}
+      </button>
+    </Card>
+  );
+}
+
 /** The latest refinery read: the station and each order on it. */
 function RefineryCard({ onSection }: { onSection: (s: Section) => void }) {
   const { t, i18n } = useTranslation();
@@ -233,8 +272,9 @@ function OverlaysCard() {
 
 /**
  * Home: how the client is doing at a glance — servers, the log watcher and
- * screen reading — with the latest refinery read, what the log has seen, and
- * the overlay windows to pin over the game.
+ * screen reading — with the latest refinery read, what the log has seen,
+ * whether org mates see the player's game status, and the overlay windows to
+ * pin over the game.
  */
 export function Home({ watcher, canStart, onSection }: { watcher: Watcher; canStart: boolean; onSection: (s: Section) => void }) {
   return (
@@ -250,6 +290,7 @@ export function Home({ watcher, canStart, onSection }: { watcher: Watcher; canSt
           <EventsCard watcher={watcher} />
         </div>
         <div className="sb-col">
+          <PresenceCard />
           <OverlaysCard />
         </div>
       </div>
