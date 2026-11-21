@@ -97,7 +97,7 @@ export function StatusOverlay() {
           <div className="ov-box acc ov-callout" role="alert">
             <span className="mono big">{ok ? "✓" : "!"}</span>
             <span>{t(`overlay.notice.${notice.code}.short`)}</span>
-            <button type="button" className="push" onClick={dismiss}>
+            <button type="button" className="push ov-notice-btn" onClick={dismiss}>
               {t("overlay.notice.dismiss")}
             </button>
           </div>
@@ -106,7 +106,7 @@ export function StatusOverlay() {
           <>
             <span className="ov-stow ov-strip-item">{t(`overlay.notice.${notice.code}.short`)}</span>
             {/* The strip has no footer, so the way to dismiss it lives here too. */}
-            <button type="button" className="ov-strip-item" onClick={dismiss}>
+            <button type="button" className="ov-strip-item ov-notice-btn" onClick={dismiss}>
               {t("overlay.notice.dismiss")}
             </button>
           </>
