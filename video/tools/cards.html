@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face { font-family: Rajdhani; font-weight: 600; src: url('../../client/src/assets/fonts/rajdhani-600.woff2'); }
+  @font-face { font-family: Rajdhani; font-weight: 700; src: url('../../client/src/assets/fonts/rajdhani-700.woff2'); }
+  @font-face { font-family: 'Exo 2'; font-weight: 400 600; src: url('../../client/src/assets/fonts/exo-2.woff2'); }
+  @font-face { font-family: Mono; src: url('../../client/src/assets/fonts/share-tech-mono-400.woff2'); }
+  html, body { margin: 0; background: transparent; }
+  .card { width: 1920px; height: 1080px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #e8f1f5; font-family: 'Exo 2', sans-serif; }
+  .lockup { display: flex; align-items: center; gap: 36px; }
+  .lockup img { width: 150px; height: 150px; filter: drop-shadow(0 0 30px rgba(60, 201, 240, .45)); }
+  .word { font-family: Rajdhani; font-weight: 700; font-size: 132px; letter-spacing: .22em; line-height: 1; }
+  .word b { color: #3cc9f0; font-weight: 700; }
+  .tag { margin-top: 34px; font-size: 40px; color: #b8cad3; letter-spacing: .02em; }
+  .url { margin-top: 44px; font-family: Mono; font-size: 46px; color: #3cc9f0; letter-spacing: .04em; padding: 14px 30px; border: 2px solid rgba(60, 201, 240, .5); background: rgba(8, 16, 22, .55); }
+  .small { margin-top: 26px; font-family: Rajdhani; font-weight: 600; font-size: 30px; letter-spacing: .28em; color: #8aa3ae; text-transform: uppercase; }
+  .label { display: inline-flex; align-items: center; gap: 18px; padding: 16px 28px 16px 22px; background: rgba(8, 14, 19, .82); border-left: 4px solid #3cc9f0; color: #e8f1f5; font-family: Rajdhani; font-weight: 700; font-size: 44px; letter-spacing: .06em; }
+  .label span { font-weight: 600; font-size: 26px; letter-spacing: .3em; color: #3cc9f0; text-transform: uppercase; }
+  .label.client { border-left-color: #f0b24a; }
+  .label.client span { color: #f0b24a; }
+</style>
+</head>
+<body>
+  <div class="card" id="intro">
+    <div class="lockup"><img src="../../branding/starbuddy-mark.svg"><div class="word">STAR<b>·</b>BUDDY</div></div>
+    <div class="tag">Your org's companion for Star Citizen</div>
+  </div>
+  <div class="card" id="outro">
+    <div class="lockup"><img src="../../branding/starbuddy-mark.svg"><div class="word">STAR<b>·</b>BUDDY</div></div>
+    <div class="url">starbuddy.uniteddanes.org</div>
+    <div class="small">Free &amp; open source · Windows &amp; Linux</div>
+  </div>
+  <div id="labels" style="padding: 20px; display: flex; flex-direction: column; gap: 20px; align-items: flex-start;">
+    <div class="label" id="l-dashboard"><span>Website</span>Dashboard</div>
+    <div class="label" id="l-craft"><span>Website</span>Craft</div>
+    <div class="label" id="l-gathering"><span>Website</span>Gathering</div>
+    <div class="label" id="l-blueprints"><span>Website</span>Blueprints</div>
+    <div class="label" id="l-refinery"><span>Website</span>Refinery</div>
+    <div class="label client" id="l-client"><span>Desktop client</span>Home</div>
+    <div class="label client" id="l-overlays"><span>Desktop client</span>Over the game</div>
+    <div class="label client" id="l-f8"><span>Desktop client</span>Refinery read · F8</div>
+    <div class="label client" id="l-org"><span>Desktop client</span>Org</div>
+  </div>
+</body>
+</html>

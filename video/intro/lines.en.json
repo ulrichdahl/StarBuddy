@@ -1,0 +1,13 @@
+{
+  "01_intro": "This is StarBuddy: a free companion for Star Citizen orgs. It reads what you do in the game, and turns it into one shared picture for your whole org.",
+  "02_dashboard": "On the website, your dashboard shows where your org ranks against the others this month, in missions, refining and travel. Every point comes straight from Game dot log, sent by your members' desktop clients.",
+  "03_members": "See who earned what, while your trackers keep blueprint pools, gathering and refinery orders in view.",
+  "04_craft": "Craft shows what the org can build with the materials on hand. Best options first, and the nearest misses after.",
+  "05_gathering": "Pin the blueprints you are working towards, and Gathering turns them into a shopping list. Only stock at the right quality counts, so you know what is worth mining.",
+  "06_blueprints": "Blueprints is a checklist in the fabricator's own order, with the reward pools each one drops from.",
+  "07_refinery": "And Refinery keeps every work order across the org in one place.",
+  "08_client": "The desktop client brings all of this into the game. Run it as a window, or as an overlay you open with the Insert key.",
+  "09_overlays": "Small tracker windows sit on top of the game: blueprint pools, gathering, refinery orders, and your points. At a refinery terminal, press F8, and the work order is read and saved for you.",
+  "10_org": "The Org page shows who is playing right now, where they are, and what they fly. A globe marks everyone on your shard.",
+  "11_outro": "StarBuddy is free and open source. Get the desktop client at starbuddy dot united danes dot org, and fly together."
+}

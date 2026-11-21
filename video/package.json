@@ -1,0 +1,8 @@
+{
+  "name": "starbuddy-video",
+  "private": true,
+  "description": "Screenshots and title cards for StarBuddy videos (see README.md)",
+  "dependencies": {
+    "playwright-core": "1.63.0"
+  }
+}
