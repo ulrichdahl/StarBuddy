@@ -5,6 +5,14 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## 1.0.1 — 2026-11-21
+
+**A short video on the sign-in page shows what StarBuddy does.**
+
+### New
+
+- **An intro video on the sign-in page.** In under two minutes it shows the website and the desktop client, narrated in English or Danish to match the site's language.
+
 ## 1.0.0 — 2026-11-21
 
 **StarBuddy 1.0: the whole site in a window over the game, and an org ranking built from what you actually play.**
