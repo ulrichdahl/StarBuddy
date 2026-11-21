@@ -51,7 +51,7 @@
     "freeSoftware": "StarBuddy is free software (AGPL-3.0) —",
     "source": "source on GitHub",
     "badgeAlt": "Star Citizen — Made by the Community",
-    "credit": "A <community>United Danes</community> community project — built by <author>DK-Raven</author> with <claude>Claude.ai</claude>.",
+    "credit": "A <community>United Danes</community> community project — built by <author>RavenMind</author> with <claude>Claude.ai</claude>.",
     "serverVersion": "Server v{{version}}"
   },
   "import": {
@@ -838,7 +838,7 @@
     "testersTitle": "Testers",
     "testersBody": "Members who run the dev builds, break things on purpose and tell us what happened — thank you.",
     "creditsTitle": "Credits",
-    "creditsBody": "A United Danes community project, built by DK-Raven with Claude (Anthropic). Design and code are on GitHub under AGPL-3.0; the Star Citizen Wiki, SC Trade Tools, ocrs and the signature-table authors make the data side possible.\nStar Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. This is an unofficial fan site."
+    "creditsBody": "A United Danes community project, built by RavenMind with Claude (Anthropic). Design and code are on GitHub under AGPL-3.0; the Star Citizen Wiki, SC Trade Tools, ocrs and the signature-table authors make the data side possible.\nStar Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. This is an unofficial fan site."
   },
   "bulk": {
     "amount": "Amount",
