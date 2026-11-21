@@ -37,6 +37,36 @@ function Card({ label, children, className = "" }: { label: string; children: Re
   );
 }
 
+/**
+ * One of the four status boxes along the top of Home: a dot, a short label,
+ * the state and its switch on one line, and what it means under them.
+ */
+function StatusBox({
+  label,
+  dot,
+  state,
+  action,
+  children,
+}: {
+  label: string;
+  dot: string;
+  state: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="sb-status">
+      <div className="sb-status-line">
+        <span className={`sb-dot ${dot}`} />
+        <span className="sb-eyebrow">{label}</span>
+        <span className="sb-status-state">{state}</span>
+        {action}
+      </div>
+      <div className="sb-status-sub">{children}</div>
+    </section>
+  );
+}
+
 /** Servers: the RSI status the client already follows for the status overlay. */
 function ServersCard() {
   const { t, i18n } = useTranslation();
@@ -46,33 +76,31 @@ function ServersCard() {
   const worst = status?.active.map((i) => asSeverity(i.severity))[0];
   const dot = !status ? "off" : worst === "down" ? "bad" : worst ? "warn" : "";
   return (
-    <Card label={t("home.servers")}>
-      <div className="sb-card-big">
-        <span className={`sb-dot ${dot}`} />
-        {!status ? t("home.unknown") : worst ? t(`status.severity.${worst}`) : t("shell.allSystems")}
-      </div>
-      <div className="sb-card-sub">
-        {status?.fetched_at ? t("home.checkedAt", { time: localTime(status.fetched_at, i18n.language) }) : update?.error ?? ""}
-      </div>
-    </Card>
+    <StatusBox
+      label={t("home.short.servers")}
+      dot={dot}
+      state={!status ? t("home.unknown") : worst ? t(`status.severity.${worst}`) : t("home.allRunning")}
+    >
+      {status?.fetched_at ? t("home.checkedAt", { time: localTime(status.fetched_at, i18n.language) }) : update?.error ?? ""}
+    </StatusBox>
   );
 }
 
 function WatcherCard({ watcher, canStart }: { watcher: Watcher; canStart: boolean }) {
   const { t } = useTranslation();
   return (
-    <Card label={t("home.watcher")}>
-      <div className="sb-card-big">
-        <span className={`sb-dot ${watcher.watching ? "" : "off"}`} />
-        {watcher.watching ? t("home.watching") : t("home.notWatching")}
-      </div>
-      <div className="sb-card-sub">
-        {watcher.error ?? (watcher.watching ? t("home.synced", { count: watcher.synced }) : t("home.watcherHint"))}
-      </div>
-      <button type="button" className="sb-card-btn" disabled={!canStart && !watcher.watching} onClick={() => void watcher.toggle()}>
-        {watcher.watching ? t("watcher.stop") : t("watcher.start")}
-      </button>
-    </Card>
+    <StatusBox
+      label={t("home.short.watcher")}
+      dot={watcher.watching ? "" : "off"}
+      state={watcher.watching ? t("home.watching") : t("home.notWatching")}
+      action={
+        <button type="button" className="sb-status-btn" disabled={!canStart && !watcher.watching} onClick={() => void watcher.toggle()}>
+          {watcher.watching ? t("home.btn.stop") : t("home.btn.start")}
+        </button>
+      }
+    >
+      {watcher.error ?? (watcher.watching ? `${t("home.watcherHint")} ${t("home.synced", { count: watcher.synced })}` : t("home.watcherHint"))}
+    </StatusBox>
   );
 }
 
@@ -106,18 +134,22 @@ function ReadingCard({ onSection }: { onSection: (s: Section) => void }) {
   };
   const available = reading?.available !== false;
   return (
-    <Card label={t("home.reading")}>
-      <div className="sb-card-big">
-        <span className={`sb-dot ${reading?.on ? "" : "off"}`} />
-        {reading?.on ? t("home.readingOn") : t("home.readingOff")}
-      </div>
-      <div className="sb-card-sub">{error ?? reading?.error ?? (reading?.on ? reading.source ?? "" : t("home.readingHint"))}</div>
-      {available && (
-        <button type="button" className="sb-card-btn" disabled={busy || !reading} onClick={() => void toggle()}>
-          {reading?.on ? t("home.readingStop") : t("home.readingStart")}
-        </button>
-      )}
-    </Card>
+    <StatusBox
+      label={t("home.short.reading")}
+      dot={reading?.on ? "" : "off"}
+      state={reading?.on ? t("home.readingOn") : t("home.readingOff")}
+      action={
+        available && (
+          <button type="button" className="sb-status-btn" disabled={busy || !reading} onClick={() => void toggle()}>
+            {reading?.on ? t("home.btn.off") : t("home.btn.on")}
+          </button>
+        )
+      }
+    >
+      {error ??
+        reading?.error ??
+        (reading?.on && reading.source ? t("home.readingSource", { source: reading.source }) : t("home.readingHint"))}
+    </StatusBox>
   );
 }
 
@@ -147,19 +179,18 @@ function PresenceCard() {
     }
   };
   return (
-    <Card label={t("home.presence")}>
-      {/* One row: the state, what it means, and the switch at the right. */}
-      <div className="sb-card-inline">
-        <div className="sb-card-big">
-          <span className={`sb-dot ${on ? "" : "off"}`} />
-          {on ? t("home.presenceOn") : t("home.presenceOff")}
-        </div>
-        <div className="sb-card-sub sb-grow">{error ?? (on ? t("home.presenceHintOn") : t("home.presenceHintOff"))}</div>
-        <button type="button" className="sb-card-btn" disabled={busy || on === null} onClick={() => void toggle()}>
-          {on ? t("home.presenceStop") : t("home.presenceStart")}
+    <StatusBox
+      label={t("home.short.presence")}
+      dot={on ? "" : "off"}
+      state={on ? t("home.presenceOn") : t("home.presenceOff")}
+      action={
+        <button type="button" className="sb-status-btn" disabled={busy || on === null} onClick={() => void toggle()}>
+          {on ? t("home.btn.stop") : t("home.btn.share")}
         </button>
-      </div>
-    </Card>
+      }
+    >
+      {error ?? (on ? t("home.presenceHintOn") : t("home.presenceHintOff"))}
+    </StatusBox>
   );
 }
 
@@ -210,17 +241,20 @@ function RefineryCard({ onSection }: { onSection: (s: Section) => void }) {
 function EventsCard({ watcher }: { watcher: Watcher }) {
   const { t } = useTranslation();
   return (
-    <Card label={t("home.recent")} className="sb-card-list sb-grow">
+    <Card label={t("home.recent")} className="sb-card-list sb-card-fill">
       {watcher.events.length === 0 ? (
         <p className="sb-card-sub">{watcher.watching ? t("home.noEventsYet") : t("home.noEvents")}</p>
       ) : (
-        watcher.events.slice(0, 8).map((e, i) => (
-          <div key={`${e.timestamp}-${i}`} className="sb-row">
-            <span className="sb-row-time mono">{e.timestamp.slice(11, 16)}</span>
-            <span className="sb-row-kind">{kindLabel(t, e.kind)}</span>
-            <span className="sb-row-main">{e.detail}</span>
-          </div>
-        ))
+        // As tall as the window leaves room for, and scrolls past that.
+        <div className="sb-card-scroll">
+          {watcher.events.map((e, i) => (
+            <div key={`${e.timestamp}-${i}`} className="sb-row">
+              <span className="sb-row-time mono">{e.timestamp.slice(11, 16)}</span>
+              <span className="sb-row-kind">{kindLabel(t, e.kind)}</span>
+              <span className="sb-row-main">{e.detail}</span>
+            </div>
+          ))}
+        </div>
       )}
     </Card>
   );
@@ -292,6 +326,7 @@ function OverlaysCard() {
   };
   return (
     <Card label={t("home.overlays")}>
+      <div className="sb-check-grid">
       {OVERLAYS.map((name) => {
         const key = activeKey(keys, KEY_ACTION[name]);
         return (
@@ -302,6 +337,7 @@ function OverlaysCard() {
           </label>
         );
       })}
+      </div>
       {activeKey(keys, "overlays") && (
         <div className="sb-card-sub sb-keyline">
           {t("home.overlaysAll")} <kbd className="sb-key">{activeKey(keys, "overlays")}</kbd>
@@ -321,15 +357,15 @@ function OverlaysCard() {
 export function Home({ watcher, canStart, onSection }: { watcher: Watcher; canStart: boolean; onSection: (s: Section) => void }) {
   return (
     <div className="sb-home">
-      <div className="sb-cards3">
+      <div className="sb-status4">
         <ServersCard />
         <WatcherCard watcher={watcher} canStart={canStart} />
         <ReadingCard onSection={onSection} />
+        <PresenceCard />
       </div>
-      <div className="sb-cols">
+      <div className="sb-cols sb-home-body">
         <div className="sb-col sb-col-wide">
           <RefineryCard onSection={onSection} />
-          <PresenceCard />
           <EventsCard watcher={watcher} />
         </div>
         <div className="sb-col">

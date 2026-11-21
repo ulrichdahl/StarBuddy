@@ -505,7 +505,22 @@
       "orders": "Refinery orders",
       "points": "Your points"
     },
-    "overlaysAll": "Hide / show all"
+    "overlaysAll": "Hide / show all",
+    "short": {
+      "servers": "Servers",
+      "watcher": "Game.log",
+      "reading": "Screen",
+      "presence": "Game status"
+    },
+    "btn": {
+      "stop": "Stop",
+      "start": "Start",
+      "off": "Turn off",
+      "on": "Turn on",
+      "share": "Share"
+    },
+    "allRunning": "All running",
+    "readingSource": "Reading {{source}}. Refinery reads and scanning need it."
   },
   "refinery": {
     "lead": "Your refinery orders, read at the kiosk with the hotkey.",

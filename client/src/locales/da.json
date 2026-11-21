@@ -505,7 +505,22 @@
       "orders": "Raffinaderiordrer",
       "points": "Dine point"
     },
-    "overlaysAll": "Skjul / vis alle"
+    "overlaysAll": "Skjul / vis alle",
+    "short": {
+      "servers": "Servere",
+      "watcher": "Game.log",
+      "reading": "Skærm",
+      "presence": "Spilstatus"
+    },
+    "btn": {
+      "stop": "Stop",
+      "start": "Start",
+      "off": "Slå fra",
+      "on": "Slå til",
+      "share": "Del"
+    },
+    "allRunning": "Alle kører",
+    "readingSource": "Læser {{source}}. Raffinaderiaflæsning og scanning bruger det."
   },
   "refinery": {
     "lead": "Dine raffinaderiordrer, aflæst ved kiosken med genvejstasten.",

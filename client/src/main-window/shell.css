@@ -274,14 +274,53 @@ body {
 /* ── Home ──────────────────────────────────────────────────────────────── */
 .sb-home { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
 .sb-main > .sb-home:first-child { margin-top: 0; }
-.sb-cards3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .sb-cols { display: flex; gap: 14px; align-items: flex-start; }
 .sb-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 .sb-col-wide { flex: 1.5; }
 @media (max-width: 820px) {
-  .sb-cards3 { grid-template-columns: 1fr; }
   .sb-cols { flex-direction: column; align-items: stretch; }
 }
+
+/* The four status boxes along the top: state and switch on one line, what it
+   means under them. */
+.sb-status4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.sb-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 14px 10px;
+  border: 1px solid var(--line2);
+  background: rgba(120, 160, 190, 0.06);
+  clip-path: var(--cut);
+  min-width: 0;
+}
+.sb-status-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sb-status-line .sb-eyebrow { margin: 0; white-space: nowrap; }
+.sb-status-state { font-weight: 600; font-size: 14px; color: #fff; white-space: nowrap; }
+.sb .sb-status-btn { margin-left: auto; flex: none; padding: 3px 8px; font-size: 10.5px; }
+.sb-status-sub { color: var(--muted); font-size: 11.5px; line-height: 1.35; }
+@media (max-width: 1100px) { .sb-status4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .sb-status4 { grid-template-columns: 1fr; } }
+
+/* Home fills the window down to the footer; the log card takes what is left
+   and scrolls inside, so a long log never pushes the page. */
+.sb-main > .sb-home { flex: 1 1 auto; min-height: 420px; }
+.sb-home-body { flex: 1 1 0; min-height: 0; align-items: stretch; }
+.sb-home-body > .sb-col { min-height: 0; }
+.sb-home-body > .sb-col:not(.sb-col-wide) { align-self: flex-start; }
+.sb-card.sb-card-fill { flex: 1 1 0; min-height: 140px; }
+.sb-card-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; margin-right: -8px; padding-right: 8px; }
+@media (max-width: 820px) {
+  .sb-home-body { flex: none; }
+  .sb-card.sb-card-fill { flex: none; }
+  .sb-card-scroll { max-height: 320px; }
+}
+
+/* The overlay windows in two columns, each with its key. */
+.sb-check-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; row-gap: 8px; }
+@media (max-width: 1100px) { .sb-check-grid { grid-template-columns: 1fr; } }
+/* An event's kind on one line, in a column as wide as the longest. */
+.sb-card-scroll .sb-row-kind { white-space: nowrap; flex: 0 0 150px; }
 .sb-card {
   position: relative;
   display: flex;
@@ -304,11 +343,6 @@ body {
 .sb-card-sub { color: var(--muted); font-size: 12.5px; margin: 0; }
 .sb .sb-card-btn { align-self: flex-start; padding: 5px 12px; margin-top: 2px; }
 .sb-card-corner { position: absolute; top: 10px; right: 14px; }
-/* A card's content on one line, its button at the right end. */
-.sb-card-inline { display: flex; align-items: center; gap: 14px; }
-.sb-card-inline .sb-card-big { flex: none; }
-.sb-card-inline .sb-grow { flex: 1 1 auto; min-width: 0; }
-.sb .sb-card-inline .sb-card-btn { margin-top: 0; flex: none; }
 .sb .sb-link {
   background: none;
   border: 0;
