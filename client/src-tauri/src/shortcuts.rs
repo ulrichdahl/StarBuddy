@@ -142,12 +142,15 @@ mod portal {
         let session =
             proxy.create_session(CreateSessionOptions::default()).await.map_err(|e| e.to_string())?;
 
-        let wanted = crate::overlay::wanted_hotkeys(app);
+        // Every action, those without a key too: the desktop's own settings
+        // are where a key is given to them.
+        let wanted = crate::overlay::all_actions(app);
         let shortcuts: Vec<NewShortcut> = wanted
             .iter()
             .map(|(action, key)| {
+                let trigger = key.as_deref().map(as_trigger);
                 NewShortcut::new(action.clone(), crate::overlay::describe_action(action))
-                    .preferred_trigger(Some(as_trigger(key).as_str()))
+                    .preferred_trigger(trigger.as_deref())
             })
             .collect();
 

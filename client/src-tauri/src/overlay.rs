@@ -29,7 +29,11 @@ pub const TRACKERS: [&str; 4] = ["pools", "gathering", "orders", "points"];
 /// F8 reads the refinery panel, F9 sends the frame for training, F10 switches
 /// reading the screen on and off. None is bound in Star Citizen's current
 /// default keyset, like F6 and F7.
-pub const DEFAULT_HOTKEYS: [(&str, &str); 6] = [
+///
+/// The rest open and close one overlay window each, or hide and show them all
+/// at once. They have no key until the player gives them one: a key the game
+/// or another program uses is worse than none.
+pub const DEFAULT_HOTKEYS: [(&str, &str); 13] = [
     // Insert: bound to nothing in Star Citizen's default profile
     // (Data/Libs/Config/defaultProfile.xml, 4.x), where F12 is chat.
     ("main", "Insert"),
@@ -38,7 +42,19 @@ pub const DEFAULT_HOTKEYS: [(&str, &str); 6] = [
     ("refinery", "F8"),
     ("capture", "F9"),
     ("reading", "F10"),
+    ("overlays", ""),
+    ("overlay-scan", ""),
+    ("overlay-refinery", ""),
+    ("overlay-pools", ""),
+    ("overlay-gathering", ""),
+    ("overlay-orders", ""),
+    ("overlay-points", ""),
 ];
+
+/// Every overlay window, in the order the "overlays" key goes through them.
+pub fn overlay_windows() -> impl Iterator<Item = &'static str> {
+    [STATUS, crate::scan::SCAN, crate::refinery::REFINERY].into_iter().chain(TRACKERS)
+}
 /// Every overlay's window is destroyed after it has been hidden this long.
 /// A hidden webview is a whole browser process kept alive for nothing: measured
 /// on Linux, about 55 MB each, since WebKitGTK cannot suspend one. Rebuilding
@@ -283,6 +299,30 @@ pub fn toggle(app: &AppHandle, name: &str) -> Result<bool, String> {
     update_prefs(app, name, |w| w.open = now_visible);
     save(app, true);
     Ok(now_visible)
+}
+
+/// The "overlays" key: hide every overlay window that is showing, or, when
+/// none is, show again every one the player has open.
+///
+/// Hidden this way a window stays open in the player's settings, so the next
+/// press, and the next start, bring it back. Main thread only, like [`toggle`].
+pub fn toggle_all(app: &AppHandle) {
+    let showing: Vec<&str> = overlay_windows()
+        .filter(|n| app.get_webview_window(&label(n)).is_some_and(|w| w.is_visible().unwrap_or(false)))
+        .collect();
+    let result = if showing.is_empty() {
+        overlay_windows().filter(|n| window_prefs(app, n).open).try_for_each(|n| toggle(app, n).map(|_| ()))
+    } else {
+        showing.iter().try_for_each(|n| {
+            toggle(app, n)?;
+            update_prefs(app, n, |w| w.open = true);
+            Ok::<_, String>(())
+        })
+    };
+    save(app, true);
+    if let Err(e) = result {
+        log::error!("overlays toggle failed: {e}");
+    }
 }
 
 /// Show (never hide) — for actions that need the window up, like a scan.
@@ -731,8 +771,11 @@ pub fn overlay_close(app: AppHandle, window: tauri::WebviewWindow) -> Result<(),
 
 #[derive(Serialize)]
 pub struct HotkeyInfo {
-    /// action → shortcut, e.g. {"status": "F6"}.
+    /// action → shortcut, e.g. {"status": "F6"}. Actions without a key are
+    /// left out.
     pub hotkeys: HashMap<String, String>,
+    /// Every action, with a key or not, in the order they are listed.
+    pub actions: Vec<String>,
     /// False on Wayland sessions, where X11-style global grabs do not reach
     /// the compositor; the CLI toggle is the way there.
     pub global_supported: bool,
@@ -771,6 +814,7 @@ pub fn overlay_hotkey(app: AppHandle) -> HotkeyInfo {
     let exe = std::env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|_| "starbuddy".into());
     HotkeyInfo {
         hotkeys,
+        actions: DEFAULT_HOTKEYS.iter().map(|(a, _)| a.to_string()).collect(),
         global_supported: crate::shortcuts::in_charge()
             || !(cfg!(target_os = "linux") && on_wayland() && std::env::var("GDK_BACKEND").as_deref() != Ok("x11")),
         desktop_offered: crate::shortcuts::registered(),
@@ -790,6 +834,18 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
         return Err(format!("unknown action {action}"));
     }
     let hotkey = hotkey.trim().to_string();
+    // An empty key takes the action's key away. Stored as "" rather than
+    // removed, so an action with a default does not fall back to it.
+    if hotkey.is_empty() {
+        app.state::<OverlayState>().prefs.lock_or_recover().hotkeys.insert(action, String::new());
+        if crate::shortcuts::in_charge() {
+            crate::shortcuts::rebind();
+        } else {
+            let _ = register_hotkeys(&app);
+        }
+        save(&app, true);
+        return Ok(overlay_hotkey(app));
+    }
     let wanted = hotkey.parse::<Shortcut>().map_err(|e| format!("Not a valid shortcut: {e}"))?;
 
     // One shortcut cannot serve two actions: the second registration fails as
@@ -841,9 +897,16 @@ pub fn overlay_set_hotkey(app: AppHandle, action: String, hotkey: String) -> Res
     Ok(overlay_hotkey(app))
 }
 
-/// Every action and the shortcut it is set to.
-pub fn wanted_hotkeys(app: &AppHandle) -> Vec<(String, String)> {
-    app.state::<OverlayState>().prefs.lock_or_recover().all_hotkeys()
+/// Every action and its key, if it has one: what the desktop's shortcut
+/// settings are offered, so a key can be given there to an action that has
+/// none yet.
+pub fn all_actions(app: &AppHandle) -> Vec<(String, Option<String>)> {
+    let state = app.state::<OverlayState>();
+    let prefs = state.prefs.lock_or_recover();
+    DEFAULT_HOTKEYS
+        .iter()
+        .map(|(a, _)| (a.to_string(), prefs.hotkey_for(a).filter(|k| !k.is_empty())))
+        .collect()
 }
 
 /// What an action does, in words.
@@ -858,6 +921,13 @@ pub fn describe_action(action: &str) -> &'static str {
         "refinery" => "Read the refinery order on screen",
         "capture" => "Send a screenshot for training",
         "reading" => "Switch screen reading on or off",
+        "overlays" => "Hide or show all open overlay windows",
+        "overlay-scan" => "Open or close the scan window",
+        "overlay-refinery" => "Open or close the refinery order window",
+        "overlay-pools" => "Open or close the blueprint pools window",
+        "overlay-gathering" => "Open or close the gathering window",
+        "overlay-orders" => "Open or close the refinery orders window",
+        "overlay-points" => "Open or close the points window",
         _ => "StarBuddy",
     }
 }
@@ -992,6 +1062,13 @@ pub fn run_action(app: &AppHandle, action: &str) {
         "refinery" => crate::refinery::trigger(&app2),
         "capture" => crate::training::trigger(&app2),
         "reading" => crate::reading::trigger(&app2),
+        "overlays" => toggle_all(&app2),
+        other if other.starts_with("overlay-") => {
+            let name = &other["overlay-".len()..];
+            if let Err(e) = toggle(&app2, name) {
+                log::error!("overlay toggle failed: {e}");
+            }
+        }
         other => log::warn!("unhandled shortcut action {other:?}"),
     };
     if let Err(e) = app.run_on_main_thread(dispatch) {

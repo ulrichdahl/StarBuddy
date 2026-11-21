@@ -356,7 +356,14 @@
       "refinery": "raffinaderiordre",
       "capture": "træningsbillede",
       "reading": "skærmaflæsning",
-      "main": "StarBuddy"
+      "main": "StarBuddy",
+      "overlays": "alle overlays",
+      "overlay-scan": "scanningsvindue",
+      "overlay-refinery": "raffinaderiordre-vindue",
+      "overlay-pools": "blueprint-puljer-vindue",
+      "overlay-gathering": "indsamlingsvindue",
+      "overlay-orders": "raffinaderiordrer-vindue",
+      "overlay-points": "pointvindue"
     },
     "report": "Systemoplysninger",
     "reportCopy": "Kopiér",
@@ -578,7 +585,14 @@
       "reading": "Skærmaflæsning til / fra",
       "refinery": "Aflæs raffinaderiordre",
       "scan": "Live-scanning",
-      "capture": "Skærmbillede til træning"
+      "capture": "Skærmbillede til træning",
+      "overlays": "Alle overlays",
+      "overlay-scan": "Scanningsvindue",
+      "overlay-refinery": "Raffinaderiordre-vindue",
+      "overlay-pools": "Blueprint-puljer-vindue",
+      "overlay-gathering": "Indsamlingsvindue",
+      "overlay-orders": "Raffinaderiordrer-vindue",
+      "overlay-points": "Pointvindue"
     },
     "hkSub": {
       "main": "Den ene tast at huske",
@@ -586,7 +600,14 @@
       "reading": "Lader StarBuddy aflæse spillet",
       "refinery": "Ved raffinaderikiosken",
       "scan": "Aflæser scanningssignaturen",
-      "capture": "Hjælper med at forbedre aflæsningen"
+      "capture": "Hjælper med at forbedre aflæsningen",
+      "overlays": "Skjuler de åbne og viser dem igen",
+      "overlay-scan": "Åbn eller luk",
+      "overlay-refinery": "Åbn eller luk",
+      "overlay-pools": "Åbn eller luk",
+      "overlay-gathering": "Åbn eller luk",
+      "overlay-orders": "Åbn eller luk",
+      "overlay-points": "Åbn eller luk"
     },
     "change": "Skift",
     "groupWindows": "Vinduer",
@@ -610,7 +631,9 @@
     "hkCommands": "Vis kommandoerne",
     "presence": "Spilstatus til din org",
     "presenceShare": "Vis mine org-kammerater om jeg spiller, hvor, i hvilket skib og på hvilken shard",
-    "presenceHint": "Slået fra, indtil du slår det til. Kun medlemmer af din hoved-org ser det, og slået fra glemmer hjemmesiden det med det samme."
+    "presenceHint": "Slået fra, indtil du slår det til. Kun medlemmer af din hoved-org ser det, og slået fra glemmer hjemmesiden det med det samme.",
+    "groupOverlays": "Over spillet",
+    "clearKey": "Fjern"
   },
   "gathering": {
     "lead": "Hvad dine fastgjorte fremstillingsmål kræver, holdt op mod hvad du har i den rette kvalitet.",

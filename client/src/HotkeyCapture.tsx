@@ -77,6 +77,7 @@ export function HotkeyCapture({
   current,
   failed,
   onCapture,
+  onClear,
   bare = false,
 }: {
   action: string;
@@ -84,6 +85,8 @@ export function HotkeyCapture({
   current: string;
   failed?: string;
   onCapture: (action: string, hotkey: string) => void;
+  /** Take the key away. Without it there is no way back to "none". */
+  onClear?: (action: string) => void;
   /** Only the key and the button: the row around it already says what it is. */
   bare?: boolean;
 }) {
@@ -177,6 +180,21 @@ export function HotkeyCapture({
               ? t("overlay.hotkeyChange")
               : t("overlay.hotkeyUnset")}
       </button>
+      {/* Always there when the key can be taken away, hidden while there is
+          none, so the Change buttons line up from row to row. */}
+      {onClear && (
+        <button
+          type="button"
+          className="hotkey-clear"
+          aria-label={t("settings.clearKey")}
+          title={t("settings.clearKey")}
+          disabled={!current || listening}
+          style={{ visibility: current && !listening ? "visible" : "hidden" }}
+          onClick={() => onClear(action)}
+        >
+          ×
+        </button>
+      )}
       {listening && (
         <div className="hotkey-hold">
           <div className="hotkey-hold-track">

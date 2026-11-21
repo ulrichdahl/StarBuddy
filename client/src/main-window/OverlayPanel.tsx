@@ -9,6 +9,9 @@ import { KdeRuleRow } from "./KdeRuleRow";
 import { ScreenReadingPanel, ShareTrainingRow } from "./ScreenReadingPanel";
 import type { HotkeyInfo, Reading } from "./types";
 import { useTester } from "./useTester";
+
+/** The overlay windows with a key of their own to open and close them, none by default. */
+const OVERLAY_KEYS = ["scan", "refinery", "pools", "gathering", "orders", "points"].map((w) => `overlay-${w}`);
 import type { MainMode, MainState } from "./mainMode";
 
 /** Which of the panel's three parts a Settings tab shows. */
@@ -224,6 +227,8 @@ export function OverlayPanel({
       current={(hotkey?.desktop_owned ? hotkey.triggers[action] : undefined) ?? hotkey?.hotkeys[action] ?? ""}
       failed={hotkey?.failed?.[action] && t("overlay.hotkeyTaken", { detail: hotkey.failed[action] })}
       onCapture={(action, keys) => void saveHotkey(action, keys)}
+      // The desktop holds the keys where it delivers them; it clears them too.
+      onClear={hotkey?.desktop_owned ? undefined : (action) => void saveHotkey(action, "")}
       bare
     />
   );
@@ -245,7 +250,7 @@ export function OverlayPanel({
     </>
   );
 
-  const actions = hotkey ? Object.keys(hotkey.hotkeys) : [];
+  const actions = hotkey?.actions ?? [];
   const commands = actions.map((action) => `${hotkey?.action_command ?? ""}${action}`).join("\n");
 
   if (part === "reading") {
@@ -365,7 +370,12 @@ export function OverlayPanel({
       <section className="panel">
         <h2>{t("settings.groupWindows")}</h2>
         {row("main")}
+      </section>
+      <section className="panel">
+        <h2>{t("settings.groupOverlays")}</h2>
+        {row("overlays")}
         {row("status")}
+        {OVERLAY_KEYS.map(row)}
       </section>
       <section className="panel">
         <h2>{t("settings.groupCapture")}</h2>

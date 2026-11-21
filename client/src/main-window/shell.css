@@ -537,6 +537,8 @@ body {
 .sb .fansite p { margin: 0 0 4px; }
 .sb .fansite a img { display: block; }
 .sb-hk-ctl { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+/* Takes a hotkey away; as wide on every row so the Change buttons line up. */
+.sb .hotkey-clear { width: 28px; padding: 4px 0; text-align: center; font-size: 16px; line-height: 1; }
 
 /* A two- or three-way switch: Open / All. */
 .sb-seg { display: inline-flex; border: 1px solid var(--line2); }
