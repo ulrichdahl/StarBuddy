@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { serverApi } from "./api";
 import { gradeLabel, Pager, useSearch, useServerList } from "./pageParts";
+import { changed, PinIcon, PinToggle, usePins } from "./pins";
 
 /** GET /api/blueprints/catalog: one row per recipe, with who holds it. */
 interface CatalogRow {
@@ -49,22 +50,30 @@ export function Blueprints({ paired }: { paired: boolean }) {
     page,
   });
 
+  const pins = usePins(paired);
   const act = async (run: () => Promise<unknown>, done: string) => {
     setNotice(null);
     try {
       await run();
       setNotice(done);
       reload();
+      pins.reload();
     } catch (e) {
       setError(String(e));
     }
   };
   const toggleOwned = (row: CatalogRow) =>
-    act(() => serverApi("POST", "/api/blueprints-owned/toggle", { body: { blueprint_id: row.id } }), t(row.owned_by_me ? "blueprints.unmarked" : "blueprints.marked", { name: row.name }));
+    act(
+      () => serverApi("POST", "/api/blueprints-owned/toggle", { body: { blueprint_id: row.id } }).then(() => changed("/api/tracked-pools")),
+      t(row.owned_by_me ? "blueprints.unmarked" : "blueprints.marked", { name: row.name }));
   const pin = (row: CatalogRow) =>
-    act(() => serverApi("POST", "/api/craft-targets", { body: { blueprint_id: row.id, quantity: 1 } }), t("blueprints.pinned", { name: row.name }));
+    pins.targets.has(row.id)
+      ? act(() => pins.unpinTarget(row.id), t("blueprints.unpinned", { name: row.name }))
+      : act(() => pins.pinTarget(row.id), t("blueprints.pinned", { name: row.name }));
   const track = (pool: CatalogRow["pools"][number]) =>
-    act(() => serverApi("POST", "/api/tracked-pools", { body: { pool_key: pool.pool_key } }), t("blueprints.tracked", { pool: pool.pool_label }));
+    pins.pools.has(pool.pool_key)
+      ? act(() => pins.untrack(pool.pool_key), t("blueprints.untracked", { pool: pool.pool_label }))
+      : act(() => pins.track(pool.pool_key), t("blueprints.tracked", { pool: pool.pool_label }));
 
   if (!paired) return <p className="sb-card-sub">{t("pages.pairFirst")}</p>;
 
@@ -127,15 +136,20 @@ export function Blueprints({ paired }: { paired: boolean }) {
                     </td>
                     <td>
                       {pool && (
-                        <button type="button" className="sb-link" title={t("blueprints.track")} onClick={() => void track(pool)}>
-                          {pool.pool_label} <span className="mono sb-dim">{pool.owned_in_pool}/{pool.in_pool}</span>
+                        <button
+                          type="button"
+                          className="sb-link"
+                          title={pins.pools.has(pool.pool_key) ? t("blueprints.untrack") : t("blueprints.track")}
+                          aria-pressed={pins.pools.has(pool.pool_key)}
+                          onClick={() => void track(pool)}
+                        >
+                          {pins.pools.has(pool.pool_key) && <PinIcon filled />} {pool.pool_label}{" "}
+                          <span className="mono sb-dim">{pool.owned_in_pool}/{pool.in_pool}</span>
                         </button>
                       )}
                     </td>
                     <td className="num">
-                      <button type="button" className="sb-ghost" onClick={() => void pin(row)}>
-                        {t("blueprints.pin")}
-                      </button>
+                      <PinToggle pinned={pins.targets.has(row.id)} name={row.name} onToggle={() => void pin(row)} />
                     </td>
                   </tr>
                 );

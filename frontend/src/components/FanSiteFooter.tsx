@@ -55,7 +55,7 @@ export function FanSiteFooter() {
             i18nKey="footer.credit"
             components={{
               community: <Link href="https://uniteddanes.org" target="_blank" rel="noopener" color="primary" />,
-              author: <Link href="https://robertsspaceindustries.com/citizens/DK-Raven" target="_blank" rel="noopener" color="inherit" />,
+              author: <Link href="https://robertsspaceindustries.com/citizens/RavenMind" target="_blank" rel="noopener" color="inherit" />,
               claude: <Link href="https://claude.ai" target="_blank" rel="noopener" color="inherit" />,
             }}
           />

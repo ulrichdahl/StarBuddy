@@ -8,6 +8,10 @@ import { listenFailed } from "../listen";
 import { KdeRuleRow } from "./KdeRuleRow";
 import { ScreenReadingPanel, ShareTrainingRow } from "./ScreenReadingPanel";
 import type { HotkeyInfo, Reading } from "./types";
+import { useTester } from "./useTester";
+
+/** The overlay windows with a key of their own to open and close them, none by default. */
+const OVERLAY_KEYS = ["scan", "refinery", "pools", "gathering", "orders", "points"].map((w) => `overlay-${w}`);
 import type { MainMode, MainState } from "./mainMode";
 
 /** Which of the panel's three parts a Settings tab shows. */
@@ -85,7 +89,7 @@ function AreaRow({ purpose, enabled, onError }: { purpose: "refinery" | "scan"; 
   );
 }
 
-/** Whether org mates see this player's game status (presence.rs); on unless switched off. */
+/** Whether org mates see this player's game status (presence.rs); off until switched on. */
 export function PresencePanel() {
   const { t } = useTranslation();
   const [on, setOn] = useState<boolean | null>(null);
@@ -165,7 +169,11 @@ export function OverlayPanel({
   /** Whether the client is watching the game's window, and what it says about it. */
   const [reading, setReading] = useState<Reading | null>(null);
   const [hotkey, setHotkey] = useState<HotkeyInfo | null>(null);
+  // Reset asks twice: one click must not wipe every key the player set.
+  const [confirmReset, setConfirmReset] = useState(false);
   const [captureStatus, setCaptureStatus] = useState<{ phase: string; detail: string } | null>(null);
+  // Scan training is for testers only; nobody else sees its key or switch.
+  const tester = useTester();
   const [hotkeyError, setHotkeyError] = useState<string | null>(null);
   /** Everything about this machine a bug report needs, when asked for. */
   const [report, setReport] = useState<string | null>(null);
@@ -218,9 +226,14 @@ export function OverlayPanel({
     <HotkeyCapture
       action={action}
       label={label}
-      current={(hotkey?.desktop_owned ? hotkey.triggers[action] : undefined) ?? hotkey?.hotkeys[action] ?? ""}
+      // A key the desktop put on the action is the one that works, and is
+      // changed in the desktop's settings; the rest are StarBuddy's own.
+      current={hotkey?.triggers[action] || hotkey?.hotkeys[action] || ""}
+      locked={hotkey?.triggers[action] ? t("overlay.hotkeyInDesktop") : undefined}
       failed={hotkey?.failed?.[action] && t("overlay.hotkeyTaken", { detail: hotkey.failed[action] })}
       onCapture={(action, keys) => void saveHotkey(action, keys)}
+      // The desktop holds the keys where it delivers them; it clears them too.
+      onClear={(action) => void saveHotkey(action, "")}
       bare
     />
   );
@@ -242,7 +255,7 @@ export function OverlayPanel({
     </>
   );
 
-  const actions = hotkey ? Object.keys(hotkey.hotkeys) : [];
+  const actions = hotkey?.actions ?? [];
   const commands = actions.map((action) => `${hotkey?.action_command ?? ""}${action}`).join("\n");
 
   if (part === "reading") {
@@ -252,7 +265,7 @@ export function OverlayPanel({
         <ScreenReadingPanel reading={reading} onReading={setReading} onError={setOverlayError} />
         <AreaRow purpose="refinery" enabled={Boolean(reading?.on)} onError={setOverlayError} />
         {!reading?.on && <p className="hint">{t("settings.areaNeedsReading")}</p>}
-        <ShareTrainingRow onError={setOverlayError} />
+        {tester && <ShareTrainingRow onError={setOverlayError} />}
         {errors}
       </section>
     );
@@ -331,7 +344,7 @@ export function OverlayPanel({
   );
 
   // What stops a hotkey from working, and only that: the player has to act.
-  const failed = Object.keys(hotkey?.failed ?? {});
+  const failed = Object.keys(hotkey?.failed ?? {}).filter((a) => tester || a !== "capture");
   const unset = Boolean(hotkey?.desktop_offered && !hotkey.desktop_owned);
   const noGlobal = Boolean(hotkey && !hotkey.global_supported);
   const problem = failed.length > 0 || unset || noGlobal;
@@ -362,20 +375,55 @@ export function OverlayPanel({
       <section className="panel">
         <h2>{t("settings.groupWindows")}</h2>
         {row("main")}
+      </section>
+      <section className="panel">
+        <h2>{t("settings.groupOverlays")}</h2>
+        {row("overlays")}
         {row("status")}
+        {OVERLAY_KEYS.map(row)}
       </section>
       <section className="panel">
         <h2>{t("settings.groupCapture")}</h2>
         {row("reading")}
         {row("scan")}
         {row("refinery")}
-        {row("capture")}
+        {tester && row("capture")}
         {reading && !reading.on && <p className="hint">{t("settings.captureNeedsReading")}</p>}
-        {captureStatus && (
+        {tester && captureStatus && (
           <p className={captureStatus.phase === "error" ? "error" : "hint"}>
             {t(`overlay.capture.${captureStatus.phase}`, { detail: captureStatus.detail })}
           </p>
         )}
+      </section>
+      <section className="panel">
+        <div className="sb-hk">
+          <div className="sb-hk-what">
+            <span className="sb-hk-name">{t("settings.hkReset")}</span>
+            <span className="sb-hk-sub">
+              {hotkey?.desktop_owned ? t("settings.hkResetSubDesktop") : t("settings.hkResetSub")}
+            </span>
+          </div>
+          <div className="sb-hk-ctl">
+            {confirmReset && (
+              <button type="button" className="link-button" onClick={() => setConfirmReset(false)}>
+                {t("settings.hkResetCancel")}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                if (!confirmReset) return setConfirmReset(true);
+                setConfirmReset(false);
+                setHotkeyError(null);
+                invoke<HotkeyInfo>("overlay_reset_hotkeys")
+                  .then(setHotkey)
+                  .catch((e) => setHotkeyError(String(e)));
+              }}
+            >
+              {confirmReset ? t("settings.hkResetConfirm") : t("settings.hkResetButton")}
+            </button>
+          </div>
+        </div>
       </section>
       {!paired && <p className="hint">{t("overlay.pairHint")}</p>}
       {errors}

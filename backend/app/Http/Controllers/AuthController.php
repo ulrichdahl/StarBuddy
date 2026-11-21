@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
@@ -33,6 +34,11 @@ class AuthController extends Controller
             ->collect();
 
         if (! $guilds->contains(fn ($g) => (string) ($g['id'] ?? '') === $homeGuild)) {
+            Log::notice('Sign-in refused: not a member of the home guild', [
+                'discord_id' => $discordUser->getId(),
+                'discord_username' => $discordUser->getNickname() ?? $discordUser->getName(),
+            ]);
+
             return redirect('/?error=not_a_member');
         }
 
@@ -45,7 +51,17 @@ class AuthController extends Controller
             ],
         );
 
-        $this->syncOrgsFromRoles($user, $discordUser->token, $homeGuild);
+        // The member's roles in the home guild: they gate features and map
+        // onto orgs. Roles we cannot read (no guilds.members.read consent)
+        // leave what we knew unchanged.
+        $member = Http::withToken($discordUser->token)
+            ->acceptJson()
+            ->get("https://discord.com/api/users/@me/guilds/{$homeGuild}/member");
+        if ($member->successful()) {
+            $roles = array_map('strval', $member->json('roles', []));
+            $user->forceFill(['discord_role_ids' => $roles])->save();
+            $this->syncOrgsFromRoles($user, $roles);
+        }
 
         Auth::login($user, remember: true);
         $request->session()->regenerate();
@@ -63,24 +79,15 @@ class AuthController extends Controller
     }
 
     // Map the member's roles in the home guild onto orgs, per config
-    // role_org_map. Roles we cannot read (no guilds.members.read consent or
-    // missing scope) simply leave memberships unchanged.
-    private function syncOrgsFromRoles(User $user, string $token, string $homeGuild): void
+    // role_org_map.
+    private function syncOrgsFromRoles(User $user, array $roles): void
     {
         $map = config('starbuddy.role_org_map');
         if (empty($map)) {
             return;
         }
 
-        $member = Http::withToken($token)
-            ->acceptJson()
-            ->get("https://discord.com/api/users/@me/guilds/{$homeGuild}/member");
-
-        if (! $member->successful()) {
-            return;
-        }
-
-        foreach ($member->json('roles', []) as $roleId) {
+        foreach ($roles as $roleId) {
             if (isset($map[$roleId])) {
                 $org = Org::firstOrCreate(
                     ['name' => $map[$roleId]],

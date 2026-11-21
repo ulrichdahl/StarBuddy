@@ -7,17 +7,27 @@ try {
   localStorage.setItem("starbuddy.locale", "en");
 } catch {}
 let cb = 0;
+const callbacks = {};
+/** What the log watcher "heard": oldest first, as the events arrive. */
+const LOG = [
+  ["20:12", "mission_completed", "Recover Cargo — Pyro"],
+  ["20:31", "blueprint", "Custodian SMG"],
+  ["20:44", "refinery_completed", "ARC-L1 Wide Forest Station"],
+  ["20:58", "mission_completed", "Eliminate All — Region AB"],
+  ["21:06", "blueprint", "Arrowhead Sniper Rifle Battery (16 cap)"],
+  ["21:19", "refinery_completed", "Port Tressler"],
+];
 const h = 3600e3;
 const session = { environment: "PUB", branch: "sc-alpha-4.10.0", running: true, location: "Port Tressler", location_code: "RR_ARC_LEO", ship: "Drake Cutlass Black", player: "Kestrel", shard: "pub_euw1b_demo_0042" };
 const fake = {
-  app_version: { version: "1.0.0", build: null },
+  app_version: { version: "1.0.2", build: null },
   app_changes: [],
   debug_mode: false,
   game_session: session,
   get_connection: { paired: true, server_url: "https://starbuddy.uniteddanes.org", user_name: "Kestrel" },
   rsi_status_latest: { paired: true, error: null, fetched_at: Date.now(), status: { summary: "operational", systems: [
     { name: "Platform", status: "operational" }, { name: "Persistent Universe", status: "operational" }, { name: "Arena Commander", status: "operational" } ], fetched_at: Date.now(), status_url: "", active: [], recent: [] } },
-  check_for_update: { current: "1.0.0", latest: "1.0.0", update_available: false },
+  check_for_update: { current: "1.0.2", latest: "1.0.2", update_available: false },
   update_can_install: true,
   overlay_prefs: { open: true, mode: "floating", size: "full", opacity: 1, x: 0, y: 0, width: 440, height: 300 },
   overlay_hotkey: { hotkeys: { main: "Insert", status: "F6", scan: "Shift+F8", refinery: "F8", capture: "F9", reading: "F10" }, global_supported: true, toggle_command: "", failed: {}, live: [], windows: false, desktop_offered: false, desktop_owned: false, triggers: {}, action_command: "" },
@@ -44,7 +54,11 @@ const fake = {
         materials: [{ resource: "Laranite Ore", quality: 760, qty: 2140, yield_amount: 980, to_do: null, done: null, refine: true }] } ] },
 };
 window.__TAURI_INTERNALS__ = {
-  transformCallback: () => ++cb,
+  transformCallback: (f) => {
+    const id = ++cb;
+    callbacks[id] = f;
+    return id;
+  },
   unregisterCallback: () => {},
   convertFileSrc: (p) => p,
   invoke: async (cmd, args) => {
@@ -59,6 +73,14 @@ window.__TAURI_INTERNALS__ = {
       return text ? JSON.parse(text) : null;
     }
     if (cmd in fake) return fake[cmd];
+    // Home's "Recent from Game.log" shows what the watcher heard this session:
+    // a few lines of it, so the card is not an empty box on screen.
+    if (cmd === "plugin:event|listen" && args.event === "watcher-event") {
+      const handler = callbacks[args.handler];
+      setTimeout(() => LOG.forEach(([at, kind, detail], i) =>
+        handler({ event: "watcher-event", id: i, payload: { timestamp: `2026-11-21T${at}:00.000Z`, kind, detail, file: "Game.log", line: "" } })), 50);
+      return 1;
+    }
     if (cmd.startsWith("plugin:event")) return 1;
     if (cmd.startsWith("plugin:")) return null;
     throw "preview";

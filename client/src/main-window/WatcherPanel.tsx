@@ -35,7 +35,7 @@ export function useWatcher(liveDir: string | null, customDir: string): Watcher {
 
     const failed = listenFailed(setError);
     const subs = [
-      listen<LogEvent>("watcher-event", (e) => shown(e.payload) && setEvents((prev) => [e.payload, ...prev].slice(0, 25))).catch(failed),
+      listen<LogEvent>("watcher-event", (e) => shown(e.payload) && setEvents((prev) => [e.payload, ...prev].slice(0, 100))).catch(failed),
       listen<SyncSummary>("watcher-sync", (e) => {
         syncedRef.current += e.payload.accepted;
         setSynced(syncedRef.current);

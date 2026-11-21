@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { LOCALE_NAMES, SUPPORTED_LOCALES, setLocale, type Locale } from "./i18n";
 import { ChangesPanel } from "./main-window/ChangesPanel";
 import { EventsTable } from "./main-window/EventsTable";
+import { CreditsPanel } from "./main-window/CreditsPanel";
 import { Footer } from "./main-window/Footer";
 import { GameFolderPanel } from "./main-window/GameFolderPanel";
 import { IncidentBanner } from "./main-window/IncidentBanner";
@@ -149,6 +150,7 @@ function App() {
             </>
           ),
           diagnostics: <OverlayPanel paired={paired} part="diagnostics" debug={debug} heard={heard} />,
+          credits: <CreditsPanel />,
         }}
       />
     );

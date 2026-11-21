@@ -412,6 +412,22 @@ pub fn detect_game_log(app: tauri::AppHandle) -> Option<String> {
     best_automatic_channel().map(|c| c.path)
 }
 
+/// The build installed in a channel folder, as "<branch> <version>", e.g.
+/// "sc-alpha-4.10.0 4.10.201.48085".
+///
+/// The RSI Launcher writes `build_manifest.id` beside `Data.p4k` when it
+/// finishes patching, so this changes before the game is first started on the
+/// new build. Game.log only says which build it is once the game runs, and by
+/// then the game has already read its language file.
+pub fn installed_build(dir: &Path) -> Option<String> {
+    let text = std::fs::read_to_string(dir.join("build_manifest.id")).ok()?;
+    let manifest: serde_json::Value = serde_json::from_str(&text).ok()?;
+    let data = manifest.get("Data")?;
+    let branch = data.get("Branch")?.as_str()?;
+    let version = data.get("Version").and_then(|v| v.as_str()).unwrap_or("");
+    Some(format!("{branch} {version}").trim().to_string())
+}
+
 pub(crate) fn parse_line(line: &str, localization: &HashMap<String, String>, file: &str) -> Option<LogEvent> {
     let (kind, caps) = if let Some(c) = BLUEPRINT_RE.captures(line) {
         ("blueprint", c)
@@ -543,6 +559,20 @@ pub async fn scan_backlog(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn installed_build_reads_the_launcher_manifest() {
+        let dir = std::env::temp_dir().join(format!("sb-manifest-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        assert_eq!(installed_build(&dir), None);
+        std::fs::write(
+            dir.join("build_manifest.id"),
+            r#"{"Data":{"Branch":"sc-alpha-4.10.0","BuildId":"x","Version":"4.10.201.48085"}}"#,
+        )
+        .unwrap();
+        assert_eq!(installed_build(&dir).as_deref(), Some("sc-alpha-4.10.0 4.10.201.48085"));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
     use super::*;
 
     #[test]

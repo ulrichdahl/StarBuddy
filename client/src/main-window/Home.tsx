@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { asSeverity, localTime, onRsiStatus, type RsiStatusUpdate } from "../status";
 import type { Section } from "./Shell";
-import { kindLabel, type Reading } from "./types";
+import { kindLabel, type HotkeyInfo, type Reading } from "./types";
 import type { Watcher } from "./WatcherPanel";
 
 /** The few fields of a refinery read that Home shows. */
@@ -37,6 +37,36 @@ function Card({ label, children, className = "" }: { label: string; children: Re
   );
 }
 
+/**
+ * One of the four status boxes along the top of Home: a dot, a short label,
+ * the state and its switch on one line, and what it means under them.
+ */
+function StatusBox({
+  label,
+  dot,
+  state,
+  action,
+  children,
+}: {
+  label: string;
+  dot: string;
+  state: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="sb-status">
+      <div className="sb-status-line">
+        <span className={`sb-dot ${dot}`} />
+        <span className="sb-eyebrow">{label}</span>
+        <span className="sb-status-state">{state}</span>
+        {action}
+      </div>
+      <div className="sb-status-sub">{children}</div>
+    </section>
+  );
+}
+
 /** Servers: the RSI status the client already follows for the status overlay. */
 function ServersCard() {
   const { t, i18n } = useTranslation();
@@ -46,33 +76,31 @@ function ServersCard() {
   const worst = status?.active.map((i) => asSeverity(i.severity))[0];
   const dot = !status ? "off" : worst === "down" ? "bad" : worst ? "warn" : "";
   return (
-    <Card label={t("home.servers")}>
-      <div className="sb-card-big">
-        <span className={`sb-dot ${dot}`} />
-        {!status ? t("home.unknown") : worst ? t(`status.severity.${worst}`) : t("shell.allSystems")}
-      </div>
-      <div className="sb-card-sub">
-        {status?.fetched_at ? t("home.checkedAt", { time: localTime(status.fetched_at, i18n.language) }) : update?.error ?? ""}
-      </div>
-    </Card>
+    <StatusBox
+      label={t("home.short.servers")}
+      dot={dot}
+      state={!status ? t("home.unknown") : worst ? t(`status.severity.${worst}`) : t("home.allRunning")}
+    >
+      {status?.fetched_at ? t("home.checkedAt", { time: localTime(status.fetched_at, i18n.language) }) : update?.error ?? ""}
+    </StatusBox>
   );
 }
 
 function WatcherCard({ watcher, canStart }: { watcher: Watcher; canStart: boolean }) {
   const { t } = useTranslation();
   return (
-    <Card label={t("home.watcher")}>
-      <div className="sb-card-big">
-        <span className={`sb-dot ${watcher.watching ? "" : "off"}`} />
-        {watcher.watching ? t("home.watching") : t("home.notWatching")}
-      </div>
-      <div className="sb-card-sub">
-        {watcher.error ?? (watcher.watching ? t("home.synced", { count: watcher.synced }) : t("home.watcherHint"))}
-      </div>
-      <button type="button" className="sb-card-btn" disabled={!canStart && !watcher.watching} onClick={() => void watcher.toggle()}>
-        {watcher.watching ? t("watcher.stop") : t("watcher.start")}
-      </button>
-    </Card>
+    <StatusBox
+      label={t("home.short.watcher")}
+      dot={watcher.watching ? "" : "off"}
+      state={watcher.watching ? t("home.watching") : t("home.notWatching")}
+      action={
+        <button type="button" className="sb-status-btn" disabled={!canStart && !watcher.watching} onClick={() => void watcher.toggle()}>
+          {watcher.watching ? t("home.btn.stop") : t("home.btn.start")}
+        </button>
+      }
+    >
+      {watcher.error ?? (watcher.watching ? `${t("home.watcherHint")} ${t("home.synced", { count: watcher.synced })}` : t("home.watcherHint"))}
+    </StatusBox>
   );
 }
 
@@ -106,18 +134,63 @@ function ReadingCard({ onSection }: { onSection: (s: Section) => void }) {
   };
   const available = reading?.available !== false;
   return (
-    <Card label={t("home.reading")}>
-      <div className="sb-card-big">
-        <span className={`sb-dot ${reading?.on ? "" : "off"}`} />
-        {reading?.on ? t("home.readingOn") : t("home.readingOff")}
-      </div>
-      <div className="sb-card-sub">{error ?? reading?.error ?? (reading?.on ? reading.source ?? "" : t("home.readingHint"))}</div>
-      {available && (
-        <button type="button" className="sb-card-btn" disabled={busy || !reading} onClick={() => void toggle()}>
-          {reading?.on ? t("home.readingStop") : t("home.readingStart")}
+    <StatusBox
+      label={t("home.short.reading")}
+      dot={reading?.on ? "" : "off"}
+      state={reading?.on ? t("home.readingOn") : t("home.readingOff")}
+      action={
+        available && (
+          <button type="button" className="sb-status-btn" disabled={busy || !reading} onClick={() => void toggle()}>
+            {reading?.on ? t("home.btn.off") : t("home.btn.on")}
+          </button>
+        )
+      }
+    >
+      {error ??
+        reading?.error ??
+        (reading?.on && reading.source ? t("home.readingSource", { source: reading.source }) : t("home.readingHint"))}
+    </StatusBox>
+  );
+}
+
+/**
+ * Game status for the org: whether org mates see where this player is. Off
+ * until the player switches it on, here or under Settings › General.
+ */
+function PresenceCard() {
+  const { t } = useTranslation();
+  const [on, setOn] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    invoke<boolean>("presence_sharing_get").then(setOn).catch((e) => setError(String(e)));
+  }, []);
+  const toggle = async () => {
+    if (on === null) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await invoke("presence_sharing_set", { enabled: !on });
+      setOn(!on);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <StatusBox
+      label={t("home.short.presence")}
+      dot={on ? "" : "off"}
+      state={on ? t("home.presenceOn") : t("home.presenceOff")}
+      action={
+        <button type="button" className="sb-status-btn" disabled={busy || on === null} onClick={() => void toggle()}>
+          {on ? t("home.btn.stop") : t("home.btn.share")}
         </button>
-      )}
-    </Card>
+      }
+    >
+      {error ?? (on ? t("home.presenceHintOn") : t("home.presenceHintOff"))}
+    </StatusBox>
   );
 }
 
@@ -168,23 +241,48 @@ function RefineryCard({ onSection }: { onSection: (s: Section) => void }) {
 function EventsCard({ watcher }: { watcher: Watcher }) {
   const { t } = useTranslation();
   return (
-    <Card label={t("home.recent")} className="sb-card-list sb-grow">
+    <Card label={t("home.recent")} className="sb-card-list sb-card-fill">
       {watcher.events.length === 0 ? (
         <p className="sb-card-sub">{watcher.watching ? t("home.noEventsYet") : t("home.noEvents")}</p>
       ) : (
-        watcher.events.slice(0, 8).map((e, i) => (
-          <div key={`${e.timestamp}-${i}`} className="sb-row">
-            <span className="sb-row-time mono">{e.timestamp.slice(11, 16)}</span>
-            <span className="sb-row-kind">{kindLabel(t, e.kind)}</span>
-            <span className="sb-row-main">{e.detail}</span>
-          </div>
-        ))
+        // As tall as the window leaves room for, and scrolls past that.
+        <div className="sb-card-scroll">
+          {watcher.events.map((e, i) => (
+            <div key={`${e.timestamp}-${i}`} className="sb-row">
+              <span className="sb-row-time mono">{e.timestamp.slice(11, 16)}</span>
+              <span className="sb-row-kind">{kindLabel(t, e.kind)}</span>
+              <span className="sb-row-main">{e.detail}</span>
+            </div>
+          ))}
+        </div>
       )}
     </Card>
   );
 }
 
-/** The overlay windows, each switched on or off over the game from here. */
+/** The hotkey action that opens and closes each overlay window. */
+const KEY_ACTION: Record<Overlay, string> = {
+  status: "status",
+  scan: "overlay-scan",
+  refinery: "overlay-refinery",
+  pools: "overlay-pools",
+  gathering: "overlay-gathering",
+  orders: "overlay-orders",
+  points: "overlay-points",
+};
+
+/**
+ * The key that works for an action now, if any: the desktop's when it put one
+ * on it, otherwise StarBuddy's own once it is registered. A key that is set
+ * but refused or held elsewhere is not shown, since pressing it does nothing.
+ */
+function activeKey(info: HotkeyInfo | null, action: string): string | null {
+  if (!info) return null;
+  if (info.triggers[action]) return info.triggers[action];
+  return info.live.includes(action) ? info.hotkeys[action] ?? null : null;
+}
+
+/** The overlay windows, each switched on or off over the game from here, with its key. */
 function OverlaysCard() {
   const { t } = useTranslation();
   const [open, setOpen] = useState<Record<Overlay, boolean>>({
@@ -197,6 +295,14 @@ function OverlaysCard() {
     points: false,
   });
   const [error, setError] = useState<string | null>(null);
+  const [keys, setKeys] = useState<HotkeyInfo | null>(null);
+  useEffect(() => {
+    const readKeys = () => invoke<HotkeyInfo>("overlay_hotkey").then(setKeys).catch(() => {});
+    readKeys();
+    // The desktop answers about the keys in its own time.
+    const sub = listen("hotkeys-changed", readKeys).catch(() => null);
+    return () => void sub.then((un) => un?.());
+  }, []);
   useEffect(() => {
     for (const name of OVERLAYS) {
       invoke<{ open: boolean }>("overlay_prefs", { name })
@@ -220,12 +326,23 @@ function OverlaysCard() {
   };
   return (
     <Card label={t("home.overlays")}>
-      {OVERLAYS.map((name) => (
-        <label key={name} className="sb-check">
-          <input type="checkbox" checked={open[name]} onChange={() => void toggle(name)} />
-          {t(`home.overlay.${name}`)}
-        </label>
-      ))}
+      <div className="sb-check-grid">
+      {OVERLAYS.map((name) => {
+        const key = activeKey(keys, KEY_ACTION[name]);
+        return (
+          <label key={name} className="sb-check">
+            <input type="checkbox" checked={open[name]} onChange={() => void toggle(name)} />
+            {t(`home.overlay.${name}`)}
+            {key && <kbd className="sb-key">{key}</kbd>}
+          </label>
+        );
+      })}
+      </div>
+      {activeKey(keys, "overlays") && (
+        <div className="sb-card-sub sb-keyline">
+          {t("home.overlaysAll")} <kbd className="sb-key">{activeKey(keys, "overlays")}</kbd>
+        </div>
+      )}
       {error && <p className="error">{error}</p>}
     </Card>
   );
@@ -233,18 +350,20 @@ function OverlaysCard() {
 
 /**
  * Home: how the client is doing at a glance — servers, the log watcher and
- * screen reading — with the latest refinery read, what the log has seen, and
- * the overlay windows to pin over the game.
+ * screen reading — with the latest refinery read, what the log has seen,
+ * whether org mates see the player's game status, and the overlay windows to
+ * pin over the game.
  */
 export function Home({ watcher, canStart, onSection }: { watcher: Watcher; canStart: boolean; onSection: (s: Section) => void }) {
   return (
     <div className="sb-home">
-      <div className="sb-cards3">
+      <div className="sb-status4">
         <ServersCard />
         <WatcherCard watcher={watcher} canStart={canStart} />
         <ReadingCard onSection={onSection} />
+        <PresenceCard />
       </div>
-      <div className="sb-cols">
+      <div className="sb-cols sb-home-body">
         <div className="sb-col sb-col-wide">
           <RefineryCard onSection={onSection} />
           <EventsCard watcher={watcher} />

@@ -22,6 +22,7 @@ class ScreenshotSubmissionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['starbuddy.tester_role_id' => '']); // the tester gate is tested in TesterGateTest
         Storage::fake('local');
 
         $org = Org::create(['name' => 'Stellar Forge']);

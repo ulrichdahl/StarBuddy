@@ -5,6 +5,30 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## 1.0.2 — 2026-11-22
+
+**A compact Home, a hotkey for every window over the game, and the client tells you when a patched game is safe to start.**
+
+### New
+
+- **A hotkey for each window over the game,** and one key that hides and shows them all. None is set until you choose one under Settings › Hotkeys, where any key can now be removed, or all reset to the defaults.
+- **"Safe to start" after a patch.** When the launcher finishes patching, StarBuddy brings the UnitedDanes language file up to date and says so in the status window and as a notification, so you know when to press Launch.
+- **A new Home:** your four switches in one row along the top, each window's hotkey beside it, and a Game.log list that scrolls instead of growing the page.
+- **Pin and unpin blueprints straight from the Blueprints and Craft lists,** and the tracker windows update as soon as you do.
+- **Credits and licenses** in the client's settings and on the website's About page. You can also clear your own stock after a game wipe, under Profile › Your stock.
+
+### Changed
+
+- **Sharing your game status with your org is now opt-in.** Whether you play, where, in what ship and on which shard stays private until you switch it on, on Home or under Settings › General. This applies to everyone, including players who had it on before.
+- **Scan training is for testers only,** set by a Discord role on the server. Testers sign in on the website once after this update to see it.
+
+### Fixed
+
+- **Scanning works on a new install again.** The screen-reading models now come with StarBuddy; the place they used to download from has closed, so "Scan now" failed on any computer that did not have them yet.
+- **Windows over the game come back where you left them,** instead of every other time somewhere else.
+- **Keys you set in KDE's own shortcut settings no longer switch off StarBuddy's other hotkeys,** and the training capture key no longer takes F9 from players who are not testers.
+- **The Admin page shows only to officers of your main org,** and its clear acts on your main org. A player without an org gets a clear message instead of an error, and the sign-in page says why an account was refused.
+
 ## 1.0.1 — 2026-11-21
 
 **A short video on the sign-in page shows what StarBuddy does.**

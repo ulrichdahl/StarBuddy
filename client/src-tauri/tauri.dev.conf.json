@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "StarBuddy Dev",
+  "mainBinaryName": "starbuddy-dev",
+  "identifier": "io.github.ulrichdahl.starbuddy.dev",
+  "bundle": {
+    "windows": {
+      "wix": {
+        "upgradeCode": "9c5d28bc-a60f-50f2-a000-4ee53b6694c1"
+      }
+    }
+  }
+}

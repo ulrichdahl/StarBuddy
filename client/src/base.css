@@ -27,7 +27,7 @@ button {
   background: var(--bg);
   border: 1px solid var(--accent);
   color: var(--accent);
-  border-radius: 6px;
+  border-radius: 0;
   padding: 8px 14px;
   cursor: pointer;
 }

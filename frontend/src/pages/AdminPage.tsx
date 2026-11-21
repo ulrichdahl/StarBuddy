@@ -22,6 +22,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import { api, unwrapList } from '../lib/api'
 import { useMe } from '../lib/auth'
+import { officerOrgs } from '../lib/access'
 import type { BulkClearRequest, BulkClearResult, Location, OrgMember, ResourceType } from '../lib/types'
 import { PageHeader } from '../components/PageHeader'
 
@@ -67,8 +68,11 @@ export function AdminPage() {
 
   const categories = [...new Set(resourceTypes.map((rt) => rt.category))].sort()
 
-  const orgs = me?.orgs ?? []
+  // Only the orgs the player is an officer of; the main org first (the
+  // page is only reachable as an officer of the main org).
+  const orgs = me ? officerOrgs(me) : []
   const effectiveOrgId = orgId !== '' ? orgId : orgs[0]?.id
+  const orgName = orgs.find((o) => o.id === effectiveOrgId)?.name ?? ''
   const { data: members = [] } = useQuery({
     queryKey: ['org-members', effectiveOrgId],
     enabled: effectiveOrgId !== undefined,
@@ -144,7 +148,7 @@ export function AdminPage() {
           <Typography variant="h6">{t('admin.bulkClearTitle')}</Typography>
         </Stack>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          {t('admin.bulkClearDescription')}
+          {t('admin.bulkClearDescription', { org: orgName })}
         </Typography>
 
         <Stack spacing={2}>

@@ -24,6 +24,8 @@ export interface Me {
   main_org_id: number | null
   /** Active orgs, the main org first. */
   orgs: Org[]
+  /** Holds the tester role in the home Discord guild: scan training is shown. */
+  is_tester: boolean
 }
 
 export type OrgRole = 'member' | 'manager' | 'officer' | 'admin'
@@ -257,6 +259,17 @@ export interface BulkClearRequest {
   location_id?: number
   // Also clear members' private stashes (implied by `everything`).
   include_private?: boolean
+}
+
+/** DELETE /api/me/inventory: the player's own stock, private and org-visible alike. */
+export interface OwnClearRequest {
+  everything?: boolean
+  resource_categories?: string[]
+  items?: boolean
+  resource_type_id?: number
+  category?: string
+  item_class?: string
+  location_id?: number
 }
 
 export interface BulkClearResult {

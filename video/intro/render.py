@@ -19,8 +19,9 @@ for k in [k for k in shot if k.startswith("ov_")]:
 bg_space = backdrop("4.10.0-argo_mole-scan_mode--none-2.png", 22, 0.45)
 bg_game = backdrop("4.10.0-argo_mole-scan_mode--none-2.png", 3.5, 0.85)
 bg_refinery = backdrop("4.10.0-levski-refinery-order-setup.png", 3.5, 0.8)
-client_home = window(shot["client_home"], 1440)
-client_org = window(shot["client_org"], 1440)
+# 1200 of 1920: about the size the client sits on a real desktop.
+client_home = window(shot["client_home"], 1200)
+client_org = window(shot["client_org"], 1200)
 
 # Web pages: (shot, label, from-box, to-box); boxes are (x, y, width) on the 2x shot.
 WEB = {

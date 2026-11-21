@@ -59,6 +59,7 @@ pub fn unpair(app: tauri::AppHandle) -> Result<ConnectionView, String> {
     let path = settings_path(&app)?;
     let _ = fs::remove_file(path);
     rsi_status::refresh_now(&app);
+    crate::tester::set(&app, false);
     Ok(view(None))
 }
 
@@ -149,6 +150,7 @@ pub async fn pair_device(
     )
     .map_err(|e| e.to_string())?;
     rsi_status::refresh_now(&app);
+    crate::tester::refresh_soon(&app);
 
     Ok(view(Some(&settings)))
 }

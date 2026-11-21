@@ -342,7 +342,7 @@
     "hotkeyPress": "Hold the combination you want. Escape cancels.",
     "hotkeyHold": "{{keys}} — keep holding, {{seconds}}s",
     "hotkeyWindows": "If a hotkey does nothing on Windows, StarBuddy also watches the keyboard directly, so a combination another program already owns still reaches it. If nothing arrives at all, the line above says so — and the usual cause left is keyboard software that remaps these keys for the game.",
-    "hotkeyDesktop": "Your desktop delivers these hotkeys, so they work while the game has focus — and it has the last word on them: setting one here is a request, and the key you end up with is the one shown. They can also be changed under your desktop's own keyboard shortcut settings, listed as StarBuddy.",
+    "hotkeyDesktop": "Keys you give StarBuddy's actions in your desktop's keyboard shortcut settings (listed as StarBuddy) work while the game has focus, and are changed there. Actions without a key there use the key set here.",
     "hotkeyDesktopUnset": "Your desktop has taken these hotkeys over but has not put a key on any of them yet — until it does, they only work while a StarBuddy window has focus. Open your desktop's keyboard shortcut settings, find StarBuddy, and give each one a key. If it is not listed there, bind these commands to keys instead.",
     "hotkeyChange": "Click to change",
     "hotkeyNone": "none",
@@ -356,7 +356,14 @@
       "refinery": "refinery order",
       "capture": "training screenshot",
       "reading": "screen reading",
-      "main": "StarBuddy"
+      "main": "StarBuddy",
+      "overlays": "all overlays",
+      "overlay-scan": "scan window",
+      "overlay-refinery": "refinery order window",
+      "overlay-pools": "blueprint pools window",
+      "overlay-gathering": "gathering window",
+      "overlay-orders": "refinery orders window",
+      "overlay-points": "points window"
     },
     "report": "System info",
     "reportCopy": "Copy",
@@ -396,7 +403,20 @@
         "refinery": "Refinery",
         "travel": "Travel"
       }
-    }
+    },
+    "notice": {
+      "eyebrow": "StarBuddy",
+      "dismiss": "Got it",
+      "patched": {
+        "title": "Star Citizen {{environment}} is ready",
+        "short": "Language file updated: safe to start"
+      },
+      "patchedNoIni": {
+        "title": "Star Citizen {{environment}} is patched",
+        "short": "Language file not updated"
+      }
+    },
+    "hotkeyInDesktop": "Set in desktop settings"
   },
   "changes": {
     "sinceLive_one": "What’s new — {{count}} change since v{{version}}",
@@ -468,7 +488,14 @@
     "recent": "Recent from Game.log",
     "noEventsYet": "Nothing new in the log yet this session.",
     "noEvents": "Start the log watcher to see what the game logs.",
-    "overlays": "Over the game",
+    "presence": "Game status for your org",
+    "presenceOn": "Shared",
+    "presenceOff": "Not shared",
+    "presenceHintOn": "Your main org sees whether you play, where, in what ship and on which shard.",
+    "presenceHintOff": "Off until you switch it on. Then your main org sees whether you play, where, in what ship and on which shard.",
+    "presenceStart": "Share",
+    "presenceStop": "Stop sharing",
+    "overlays": "Windows over the game",
     "overlay": {
       "status": "Status",
       "scan": "Scan",
@@ -477,7 +504,23 @@
       "gathering": "Gathering",
       "orders": "Refinery orders",
       "points": "Your points"
-    }
+    },
+    "overlaysAll": "Hide / show all",
+    "short": {
+      "servers": "Servers",
+      "watcher": "Game.log",
+      "reading": "Screen",
+      "presence": "Game status"
+    },
+    "btn": {
+      "stop": "Stop",
+      "start": "Start",
+      "off": "Turn off",
+      "on": "Turn on",
+      "share": "Share"
+    },
+    "allRunning": "All running",
+    "readingSource": "Reading {{source}}. Refinery reads and scanning need it."
   },
   "refinery": {
     "lead": "Your refinery orders, read at the kiosk with the hotkey.",
@@ -549,7 +592,8 @@
       "game": "Game install",
       "reading": "Screen reading",
       "updates": "Updates",
-      "diagnostics": "Diagnostics"
+      "diagnostics": "Diagnostics",
+      "credits": "Credits and licenses"
     },
     "reportHint": "When something does not work, this report says what StarBuddy knows about your machine. Paste it with your question.",
     "openAs": "Open StarBuddy as",
@@ -571,7 +615,14 @@
       "reading": "Screen reading on / off",
       "refinery": "Read refinery order",
       "scan": "Live scanning",
-      "capture": "Screenshot for training"
+      "capture": "Screenshot for training",
+      "overlays": "All overlays",
+      "overlay-scan": "Scan window",
+      "overlay-refinery": "Refinery order window",
+      "overlay-pools": "Blueprint pools window",
+      "overlay-gathering": "Gathering window",
+      "overlay-orders": "Refinery orders window",
+      "overlay-points": "Points window"
     },
     "hkSub": {
       "main": "The one key to remember",
@@ -579,7 +630,14 @@
       "reading": "Lets StarBuddy read the game",
       "refinery": "At the refinery kiosk",
       "scan": "Reads the scan signature",
-      "capture": "Helps improve the reader"
+      "capture": "Helps improve the reader",
+      "overlays": "Hides the open ones, then shows them again",
+      "overlay-scan": "Open or close",
+      "overlay-refinery": "Open or close",
+      "overlay-pools": "Open or close",
+      "overlay-gathering": "Open or close",
+      "overlay-orders": "Open or close",
+      "overlay-points": "Open or close"
     },
     "change": "Change",
     "groupWindows": "Windows",
@@ -603,7 +661,15 @@
     "hkCommands": "Show the commands",
     "presence": "Game status for your org",
     "presenceShare": "Show my org mates whether I play, where, in what ship and on which shard",
-    "presenceHint": "Only members of your main org see it. Turned off, the website forgets it at once."
+    "presenceHint": "Off until you switch it on. Only members of your main org see it, and turned off, the website forgets it at once.",
+    "groupOverlays": "Over the game",
+    "clearKey": "Remove",
+    "hkReset": "Reset all bindings",
+    "hkResetSub": "Every key back to StarBuddy's defaults",
+    "hkResetSubDesktop": "Every key back to StarBuddy's defaults. Keys set in your desktop's shortcut settings stay; remove those there.",
+    "hkResetButton": "Reset",
+    "hkResetConfirm": "Yes, reset all",
+    "hkResetCancel": "Cancel"
   },
   "gathering": {
     "lead": "What your pinned craft targets need, against what you hold at the right quality.",
@@ -667,7 +733,12 @@
     "marked": "{{name}} marked as held.",
     "unmarked": "{{name}} no longer marked as held.",
     "pinned": "{{name}} pinned as a craft target.",
-    "tracked": "Now tracking {{pool}}."
+    "tracked": "Now tracking {{pool}}.",
+    "unpinned": "{{name}} is no longer a craft target.",
+    "untracked": "No longer tracking {{pool}}.",
+    "untrack": "Stop tracking this pool",
+    "pinLabel": "Pin {{name}} as a craft target",
+    "unpinLabel": "Pinned: unpin {{name}}"
   },
   "craft": {
     "craftable": "Craftable now",
@@ -716,7 +787,7 @@
     "lastSeen": "Last seen {{when}}",
     "unknown": "No game status",
     "sameShard": "On the same shard as you",
-    "presenceNote": "Game status comes from each member's StarBuddy client. Members can switch it off under Settings › General."
+    "presenceNote": "Game status comes from each member's StarBuddy client. Members turn it on from Home or Settings › General."
   },
   "udi": {
     "title": "UnitedDanes StarLabels and StarConfig",
@@ -740,5 +811,22 @@
     "upToDate": "Already up to date.",
     "note": "Takes effect the next time the game starts. Unlinking leaves the installed files in place.",
     "unlink": "Unlink"
+  },
+  "credits": {
+    "title": "StarBuddy",
+    "made": "A United Danes community project, built by RavenMind with Claude (Anthropic).",
+    "license": "StarBuddy is free software under the",
+    "source": "Source code on GitHub",
+    "trademark": "Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. This is an unofficial fan application, not affiliated with the Cloud Imperium group of companies.",
+    "bundled": "Included with StarBuddy",
+    "by": "by {{by}}",
+    "ocrNote": "Bundled unchanged; they read the scan signatures and refinery orders on your screen.",
+    "data": "Game data on the website comes from the Star Citizen Wiki, SC Trade Tools and RSI's status page; the website's About page credits them.",
+    "components": "Open-source components",
+    "componentsHint": "StarBuddy is built on these, each under its own license. Click one to see its source and full license text.",
+    "rust_one": "{{count}} Rust crate",
+    "rust_other": "{{count}} Rust crates",
+    "npm_one": "{{count}} JavaScript package",
+    "npm_other": "{{count}} JavaScript packages"
   }
 }

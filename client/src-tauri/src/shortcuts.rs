@@ -34,6 +34,15 @@ pub fn in_charge() -> bool {
     bound().lock().map(|b| b.values().any(|t| !t.is_empty())).unwrap_or(false)
 }
 
+/// The key the desktop put on an action, if it put one on it.
+///
+/// Per action, not all or nothing: KDE leaves every shortcut unset until the
+/// player assigns it there, and a player who assigns two of thirteen still
+/// wants the other eleven to work. Those stay with the X11 grab.
+pub fn desktop_key(action: &str) -> Option<String> {
+    bound().lock().ok()?.get(action).filter(|t| !t.is_empty()).cloned()
+}
+
 /// Whether the shortcuts are registered with the desktop at all, key or no key.
 /// They can only be given one in its settings while this is true.
 pub fn registered() -> bool {
@@ -98,16 +107,6 @@ mod portal {
         tauri::async_runtime::spawn(async move { run(app, receiver).await });
     }
 
-    /// The hotkeys changed: bind them again.
-    ///
-    /// A session's shortcuts are fixed once bound, so this ends the session and
-    /// opens another.
-    pub fn rebind() {
-        if let Some(sender) = rebind_channel().lock_or_recover().as_ref() {
-            let _ = sender.try_send(());
-        }
-    }
-
     async fn run(app: AppHandle, mut again: Receiver<()>) {
         loop {
             let session = match bind(&app).await {
@@ -142,12 +141,15 @@ mod portal {
         let session =
             proxy.create_session(CreateSessionOptions::default()).await.map_err(|e| e.to_string())?;
 
-        let wanted = crate::overlay::wanted_hotkeys(app);
+        // Every action, those without a key too: the desktop's own settings
+        // are where a key is given to them.
+        let wanted = crate::overlay::all_actions(app);
         let shortcuts: Vec<NewShortcut> = wanted
             .iter()
             .map(|(action, key)| {
+                let trigger = key.as_deref().map(as_trigger);
                 NewShortcut::new(action.clone(), crate::overlay::describe_action(action))
-                    .preferred_trigger(Some(as_trigger(key).as_str()))
+                    .preferred_trigger(trigger.as_deref())
             })
             .collect();
 
@@ -198,26 +200,21 @@ mod portal {
         let keyed = names.values().filter(|t| !t.is_empty()).count();
         log::info!("desktop holds {} hotkeys, {keyed} with a key: {names:?}", names.len());
         *bound().lock_or_recover() = names;
-        if keyed > 0 {
-            // The desktop delivers them now, so the X server need not: with
-            // both in place a key fires twice whenever StarBuddy has focus.
-            crate::overlay::drop_x11_hotkeys(app);
-        } else if let Err(e) = crate::overlay::register_hotkeys(app) {
-            // Nothing bound over there yet, so the grabs are all there is.
-            log::debug!("X11 hotkeys stay in place: {e}");
+        // The desktop delivers the actions it put a key on; the X11 grab keeps
+        // the rest, off every key the desktop holds.
+        if let Err(e) = crate::overlay::register_hotkeys(app) {
+            log::debug!("X11 hotkeys: {e}");
         }
         let _ = tauri::Emitter::emit(app, "hotkeys-changed", ());
     }
 }
 
 #[cfg(target_os = "linux")]
-pub use portal::{rebind, start};
+pub use portal::start;
 
 #[cfg(not(target_os = "linux"))]
 pub fn start(_app: &AppHandle) {}
 
-#[cfg(not(target_os = "linux"))]
-pub fn rebind() {}
 
 #[cfg(test)]
 mod tests {

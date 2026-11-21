@@ -522,7 +522,7 @@ impl Service {
             })
         };
         let loaded = Arc::new(
-            load().map_err(|e| format!("OCR models not ready ({e}) — press Scan now once to download them"))?,
+            load().map_err(|e| format!("OCR models could not be loaded ({e}). Reinstall StarBuddy."))?,
         );
         log::info!("OCR engines loaded");
         *engines = Some(loaded.clone());
@@ -1088,7 +1088,7 @@ mod tests {
     /// they have never been downloaded.
     #[test]
     fn a_single_line_is_read_without_the_detector() {
-        let models = dirs::data_dir().unwrap().join("io.github.ulrichdahl.starbuddy").join("ocr");
+        let models = crate::scan::test_models_dir();
         let Ok(digits) = crate::scan::digit_engine_from_dir(&models) else {
             eprintln!("no OCR models in {}, skipping", models.display());
             return;

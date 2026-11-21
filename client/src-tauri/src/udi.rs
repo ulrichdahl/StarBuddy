@@ -127,14 +127,19 @@ async fn token(app: &tauri::AppHandle, create: bool) -> Result<Option<String>, S
     Ok(found)
 }
 
-/// LIVE, HOTFIX → live; PTU, EPTU, TECH-PREVIEW → ptu.
+/// LIVE → live; every other environment (PTU, EPTU, HOTFIX, TECH-PREVIEW)
+/// → ptu. Only LIVE runs the build the live language file is made for.
 fn channel_of(live_dir: &Path) -> &'static str {
-    let name = live_dir.file_name().map(|n| n.to_string_lossy().to_ascii_uppercase()).unwrap_or_default();
-    if ["PTU", "EPTU", "TECH-PREVIEW"].contains(&name.as_str()) {
-        "ptu"
-    } else {
+    if environment_of(live_dir) == "LIVE" {
         "live"
+    } else {
+        "ptu"
     }
+}
+
+/// The game environment a channel folder is: "LIVE", "PTU", "HOTFIX"...
+fn environment_of(live_dir: &Path) -> String {
+    live_dir.file_name().map(|n| n.to_string_lossy().to_ascii_uppercase()).unwrap_or_default()
 }
 
 /// Every entry in `dir` named `name` in any casing. The game runs on Windows,
@@ -406,30 +411,112 @@ pub async fn udi_unlink(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// How long the game's files must have been left alone before a patch counts
+/// as finished. The launcher writes build_manifest.id before it is done with
+/// Data.p4k (about a minute before, on a 4.10 patch), and the files are not
+/// safe to touch, nor the game to start, until it is.
+const PATCH_SETTLED: Duration = Duration::from_secs(30);
+
+/// Seconds since a file was last written, or None when it cannot be told.
+fn age(path: &Path) -> Option<Duration> {
+    std::fs::metadata(path).and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok())
+}
+
+/// Wake the loop whenever the launcher writes build_manifest.id in `dir`.
+///
+/// The folder is watched rather than the file, because the launcher may
+/// replace the file rather than write into it. Kept alive by the caller; a
+/// folder that cannot be watched leaves the loop's own timer to notice.
+fn watch_manifest(dir: &Path, wake: std::sync::Arc<tokio::sync::Notify>) -> Option<notify::RecommendedWatcher> {
+    use notify::Watcher;
+    let mut watcher = notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
+        if let Ok(event) = event {
+            if event.paths.iter().any(|p| p.file_name().is_some_and(|n| n == "build_manifest.id")) {
+                wake.notify_one();
+            }
+        }
+    })
+    .map_err(|e| log::info!("build_manifest.id not watched: {e}"))
+    .ok()?;
+    watcher
+        .watch(dir, notify::RecursiveMode::NonRecursive)
+        .map_err(|e| log::info!("build_manifest.id not watched in {}: {e}", dir.display()))
+        .ok()?;
+    Some(watcher)
+}
+
 /// Keep installed files current: at start, when the game's build changes,
-/// and every few hours, never while the game runs. A new Send is installed
-/// too when the player chose automatic install. Only for folders StarBuddy
-/// has installed into before.
+/// and every few hours, never while the game runs. A new build is seen in the
+/// launcher's build_manifest.id the moment patching writes it (a file watch,
+/// with a timer behind it); once patching has settled the files are brought
+/// up to date and the status window says the game is safe to start. Game.log's
+/// branch is the fallback for a folder without a manifest.
 pub fn start(app: &tauri::AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
+        let wake = std::sync::Arc::new(tokio::sync::Notify::new());
+        let mut watched: Option<(String, notify::RecommendedWatcher)> = None;
         let mut last_check: Option<Instant> = None;
-        let mut last_branch: Option<String> = None;
+        let mut last_profile: Option<Instant> = None;
+        let mut last_build: Option<String> = None;
+        // A new build is in, but the launcher may still be writing it.
+        let mut patching = false;
         loop {
-            tokio::time::sleep(Duration::from_secs(60)).await;
+            // Woken at once by the watch; the timer is for a folder that
+            // cannot be watched, and for waiting out a patch.
+            let wait = if patching { Duration::from_secs(5) } else { Duration::from_secs(60) };
+            let _ = tokio::time::timeout(wait, wake.notified()).await;
+
             let prefs = load_client_prefs(&app);
             let Some(dir) = crate::game_dir::detect_game_log(app.clone()) else { continue };
-            if !prefs.udi.installed.contains_key(&dir) || !matches!(token(&app, false).await, Ok(Some(_))) {
+            if !prefs.udi.installed.contains_key(&dir) {
                 continue;
+            }
+            if watched.as_ref().map(|(d, _)| d) != Some(&dir) {
+                watched = watch_manifest(Path::new(&dir), wake.clone()).map(|w| (dir.clone(), w));
             }
             let session = app.try_state::<crate::game_session::SessionState>().map(|s| s.current()).unwrap_or_default();
             if session.running || crate::main_window::game_running() {
+                // Started before StarBuddy said it was ready: too late to tell,
+                // and the build is the one running now.
+                if std::mem::take(&mut patching) {
+                    last_build = crate::game_dir::installed_build(Path::new(&dir));
+                }
                 continue;
             }
-            let new_build = session.branch.is_some() && session.branch != last_branch;
+            let manifest = crate::game_dir::installed_build(Path::new(&dir));
+            let from_manifest = manifest.is_some();
+            let build = manifest.or(session.branch.clone());
+            let new_build = build.is_some() && build != last_build;
+            // A build that changed while StarBuddy ran, not the one found at
+            // start: that is a patch, and the player is told when it is ready.
+            if new_build && last_build.is_some() && from_manifest {
+                patching = true;
+            }
+            if patching {
+                let still_writing = ["Data.p4k", "build_manifest.id"]
+                    .iter()
+                    .any(|f| age(&Path::new(&dir).join(f)).is_some_and(|a| a < PATCH_SETTLED));
+                if still_writing {
+                    continue;
+                }
+            }
             let due = last_check.is_none_or(|t| t.elapsed() >= Duration::from_secs(3 * 3600));
+            let profile_due = last_profile.is_none_or(|t| t.elapsed() >= Duration::from_secs(600));
+            if !(new_build || due || (prefs.udi.auto_install && profile_due)) {
+                continue;
+            }
+            if !matches!(token(&app, false).await, Ok(Some(_))) {
+                if patching {
+                    patching = false;
+                    last_build = build.clone();
+                    tell_patched(&app, &dir, Err("not linked to UnitedDanes".into()));
+                }
+                continue;
+            }
             let mut new_send = false;
-            if prefs.udi.auto_install && last_check.is_none_or(|t| t.elapsed() >= Duration::from_secs(600)) {
+            if prefs.udi.auto_install && profile_due {
+                last_profile = Some(Instant::now());
                 if let Ok(Some(p)) = udi_profile(app.clone()).await {
                     new_send = prefs.udi.revision != Some(p.revision);
                 }
@@ -437,15 +524,50 @@ pub fn start(app: &tauri::AppHandle) {
             if !(new_build || due || new_send) {
                 continue;
             }
-            last_branch = session.branch.clone();
+            if new_build {
+                log::info!("game build {} found; checking the UnitedDanes files", build.as_deref().unwrap_or("?"));
+            }
+            last_build = build.clone();
             last_check = Some(Instant::now());
-            match install_into(&app, &dir, false).await {
+            let result = install_into(&app, &dir, false).await;
+            match &result {
                 Ok(r) if r.ini || r.cfg => log::info!("UnitedDanes files brought up to date (global.ini {}, user.cfg {})", r.ini, r.cfg),
                 Ok(_) => {}
                 Err(e) => log::info!("UnitedDanes files not checked: {e}"),
             }
+            if std::mem::take(&mut patching) {
+                tell_patched(&app, &dir, result.map(|_| ()));
+            }
         }
     });
+}
+
+/// Say in the status window, and as a system notification, that a new build
+/// is patched in and whether the language file is ready for it.
+///
+/// Named by environment (LIVE, PTU...), not version: the manifest's version is
+/// the launcher's, not what the game reports, and would only mislead.
+fn tell_patched(app: &tauri::AppHandle, dir: &str, result: Result<(), String>) {
+    let environment = environment_of(Path::new(dir));
+    let da = crate::notice::danish();
+    match result {
+        Ok(()) => {
+            let (title, body) = if da {
+                (format!("Star Citizen {environment} er klar"), "Sprogfilen er opdateret. Du kan starte spillet nu.".to_string())
+            } else {
+                (format!("Star Citizen {environment} is ready"), "The language file is up to date. You can start the game now.".to_string())
+            };
+            crate::notice::show(app, "ok", "patched", environment, None, &title, &body);
+        }
+        Err(e) => {
+            let (title, body) = if da {
+                (format!("Star Citizen {environment} er patchet"), format!("Sprogfilen blev ikke opdateret: {e}"))
+            } else {
+                (format!("Star Citizen {environment} is patched"), format!("The language file was not updated: {e}"))
+            };
+            crate::notice::show(app, "warn", "patchedNoIni", environment, Some(e), &title, &body);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -464,7 +586,9 @@ mod tests {
     #[test]
     fn channels_map_to_live_and_ptu() {
         assert_eq!(channel_of(Path::new("/x/StarCitizen/LIVE")), "live");
-        assert_eq!(channel_of(Path::new("/x/StarCitizen/HOTFIX")), "live");
+        assert_eq!(channel_of(Path::new("/x/StarCitizen/live")), "live");
+        assert_eq!(channel_of(Path::new("/x/StarCitizen/HOTFIX")), "ptu");
+        assert_eq!(channel_of(Path::new("/x/StarCitizen/EPTU")), "ptu");
         assert_eq!(channel_of(Path::new("/x/StarCitizen/PTU")), "ptu");
         assert_eq!(channel_of(Path::new("/x/StarCitizen/TECH-PREVIEW")), "ptu");
     }

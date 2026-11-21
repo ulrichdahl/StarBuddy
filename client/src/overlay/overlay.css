@@ -98,6 +98,19 @@ html.debug-bounds::after {
 @media (prefers-reduced-motion: reduce) {
   .ov.ov-urgent::before { animation: none; }
 }
+/* A notice the player must not miss (a patched game ready to start): a
+   larger box with a glow that breathes, on top of the pulsing accent bar. */
+.ov-box.ov-callout { padding: 14px 16px; font-size: 15px; font-weight: 600; color: #fff; animation: ov-glow 1.6s ease-in-out infinite; }
+.ov-box.ov-callout .big { font-size: 30px; }
+@keyframes ov-glow {
+  0%, 100% { box-shadow: 0 0 0 1px var(--acc), 0 0 18px 2px var(--acc); }
+  50% { box-shadow: 0 0 0 1px var(--acc), 0 0 4px 0 var(--acc); }
+}
+/* The notice's "Got it": half the stock button's padding, same text size. */
+.ov .ov-notice-btn { padding: 4px 7px; }
+@media (prefers-reduced-motion: reduce) {
+  .ov-box.ov-callout { animation: none; box-shadow: 0 0 0 1px var(--acc), 0 0 12px 1px var(--acc); }
+}
 
 /* title bar */
 .ov-tb {
@@ -170,7 +183,7 @@ html.debug-bounds::after {
   background: transparent;
   color: var(--steel);
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: 0;
 }
 .ov-ib svg { width: 17px; height: 17px; display: block; }
 .ov-ib:hover { color: var(--text); background: rgba(120, 160, 190, 0.12); border-color: var(--line); }
@@ -413,7 +426,7 @@ html.debug-bounds::after {
   gap: 0.25rem;
   align-items: center;
   padding: 0.75rem 1.25rem;
-  border-radius: 8px;
+  border-radius: 0;
   background: rgba(8, 16, 22, 0.9);
   border: 1px solid rgba(79, 201, 190, 0.4);
   color: #e4edf4;
@@ -447,7 +460,7 @@ html.debug-bounds::after {
   min-width: 0;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 4px;
+  border-radius: 0;
   padding: 0.25rem 0.4rem;
   color: inherit;
   font: inherit;
@@ -576,7 +589,7 @@ html.debug-bounds::after {
 .ov-actions button {
   flex: 1 1 auto;
   padding: 0.35rem 0.6rem;
-  border-radius: 5px;
+  border-radius: 0;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.06);
   color: inherit;
@@ -647,7 +660,7 @@ html.debug-bounds::after {
   width: 100%;
   padding: 0.1rem 0;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 4px;
+  border-radius: 0;
   background: rgba(255, 255, 255, 0.06);
   color: var(--muted);
   font: inherit;

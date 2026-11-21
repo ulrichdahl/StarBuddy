@@ -41,7 +41,9 @@
     "tagline": "Org materials and blueprint tracking for Star Citizen. Sign in with the Discord account linked to your org.",
     "signIn": "Sign in with Discord",
     "introCaption": "What StarBuddy does, in under two minutes",
-    "introLabel": "StarBuddy intro video"
+    "introLabel": "StarBuddy intro video",
+    "notAMember": "That Discord account is not a member of this StarBuddy's Discord server. Join the server, then sign in again.",
+    "failed": "Sign-in failed. Try again."
   },
   "footer": {
     "notice": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.",
@@ -49,7 +51,7 @@
     "freeSoftware": "StarBuddy is free software (AGPL-3.0) —",
     "source": "source on GitHub",
     "badgeAlt": "Star Citizen — Made by the Community",
-    "credit": "A <community>United Danes</community> community project — built by <author>DK-Raven</author> with <claude>Claude.ai</claude>.",
+    "credit": "A <community>United Danes</community> community project — built by <author>RavenMind</author> with <claude>Claude.ai</claude>.",
     "serverVersion": "Server v{{version}}"
   },
   "import": {
@@ -76,7 +78,7 @@
     "title": "Admin",
     "subtitle": "Org administration tools",
     "bulkClearTitle": "Bulk-clear inventory",
-    "bulkClearDescription": "Permanently removes matching material stacks (and, for a game wipe, items) from the org. This cannot be undone.",
+    "bulkClearDescription": "Permanently removes matching material stacks (and, for a game wipe, items) from the members of {{org}}. Nobody outside the org is affected. To clear only your own stock, use Profile › Your stock. This cannot be undone.",
     "clearBy": "Clear by",
     "byCategory": "By category",
     "byResourceType": "By resource type",
@@ -100,7 +102,7 @@
     "scopeAllLocations": "all locations",
     "everything": "Everything (game wipe)",
     "everythingHelp": "After a server wipe: removes the selected material categories (and, if ticked, items) for every org member, including private stashes. Blueprints, locations and refinery orders are kept.",
-    "includePrivate": "Also clear members' private stashes",
+    "includePrivate": "Also clear the org members' private stock",
     "clearedCounts": "Cleared {{materials}} material stacks and {{items}} item stacks.",
     "scopeEverything": "everything — all materials and items",
     "scopeWithPrivate": "including private stashes",
@@ -836,7 +838,27 @@
     "testersTitle": "Testers",
     "testersBody": "Members who run the dev builds, break things on purpose and tell us what happened — thank you.",
     "creditsTitle": "Credits",
-    "creditsBody": "A United Danes community project, built by DK-Raven with Claude (Anthropic). Design and code are on GitHub under AGPL-3.0; the Star Citizen Wiki, SC Trade Tools, ocrs and the signature-table authors make the data side possible.\nStar Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. This is an unofficial fan site."
+    "creditsBody": "A United Danes community project, built by RavenMind with Claude (Anthropic). Design and code are on GitHub under AGPL-3.0; the Star Citizen Wiki, SC Trade Tools, ocrs and the signature-table authors make the data side possible.\nStar Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC. This is an unofficial fan site.",
+    "licenses": {
+      "title": "Licenses",
+      "own": "StarBuddy is free software under the",
+      "source": "Source code on GitHub",
+      "creditsHeading": "Made with",
+      "by": "by {{by}}",
+      "notes": {
+        "ocr": "the desktop client bundles them unchanged to read scan signatures and refinery orders on your screen.",
+        "music": "music in the intro video.",
+        "voiceEn": "made the English narration of the intro video.",
+        "voiceDa": "made the Danish narration of the intro video, in a cloned voice.",
+        "font": "font on this website."
+      },
+      "componentsHeading": "Open-source packages",
+      "componentsHint": "The website is built on these, each under its own license. Click one to see its source and full license text.",
+      "npm_one": "{{count}} JavaScript package (website)",
+      "npm_other": "{{count}} JavaScript packages (website)",
+      "composer_one": "{{count}} PHP package (server)",
+      "composer_other": "{{count}} PHP packages (server)"
+    }
   },
   "bulk": {
     "amount": "Amount",
@@ -1020,6 +1042,13 @@
     "synced": "Client synced <t>{{time}}</t> · {{device}}",
     "stale": "Client last synced {{time}}",
     "notPaired": "Desktop client not paired"
+  },
+  "ownStock": {
+    "title": "Your stock",
+    "help": "After a game wipe, clear what the patch took from your own materials and items: private and org-visible stock alike. Nobody else's stock is touched.",
+    "open": "Clear my stock…",
+    "clear": "Clear my stock",
+    "confirmBody": "You are about to delete your own stacks: {{scope}}. Type <strong>{{word}}</strong> to confirm."
   },
   "profileDialog": {
     "title": "Profile & desktop client",

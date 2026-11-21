@@ -4,7 +4,8 @@
 //!
 //! A report goes when the session changes and every minute while the game
 //! runs; the server counts a player gone quiet for five minutes as not
-//! playing. Switched off, one report says so and nothing more is sent.
+//! playing. Off until the player switches it on; while off, one report says
+//! so (the server then forgets what it had) and nothing more is sent.
 
 use serde_json::{json, Value};
 use std::time::{Duration, Instant};
@@ -56,7 +57,7 @@ pub fn start(app: &tauri::AppHandle) {
         let mut said_off = false;
         loop {
             tokio::time::sleep(TICK).await;
-            if load_client_prefs(&app).presence_off {
+            if !load_client_prefs(&app).share_presence {
                 if !said_off && post(&app, &json!({ "share": false, "running": false })).await.is_ok() {
                     said_off = true;
                     last = None;
@@ -86,12 +87,12 @@ pub fn start(app: &tauri::AppHandle) {
 
 #[tauri::command]
 pub fn presence_sharing_get(app: tauri::AppHandle) -> bool {
-    !load_client_prefs(&app).presence_off
+    load_client_prefs(&app).share_presence
 }
 
 #[tauri::command]
 pub fn presence_sharing_set(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
     let mut prefs = load_client_prefs(&app);
-    prefs.presence_off = !enabled;
+    prefs.share_presence = enabled;
     save_client_prefs(&app, &prefs)
 }

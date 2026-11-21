@@ -240,7 +240,6 @@ pub async fn read_with(app: AppHandle, merge_with_last: bool) -> Result<Refinery
 }
 
 async fn read_inner(app: &AppHandle) -> Result<RefineryTerminal, String> {
-    status(app, "downloading", "checking OCR models");
     scan::ensure_models(app).await?;
     let region = current_region(app);
     status(app, "capturing", "grabbing the panel");
@@ -345,7 +344,7 @@ fn snap_qualities(app: &AppHandle, terminal: &mut RefineryTerminal) {
 }
 
 /// Send the crop the reader worked from to the training queue, when the
-/// player has opted in.
+/// player is a tester and has opted in.
 ///
 /// The point is the reads that go wrong: the frame plus what the parser made of
 /// it says whether the capture was unreadable or the parse was at fault, which
@@ -356,7 +355,8 @@ fn snap_qualities(app: &AppHandle, terminal: &mut RefineryTerminal) {
 /// picture of their screen without asking. The PNG encode and the upload run on
 /// their own task, so the read is handed back without waiting for either.
 fn send_for_training(app: &AppHandle, cap: Captured, order: &RefineryTerminal) {
-    if !crate::load_client_prefs(app).share_reads_for_training {
+    // The server takes training frames from testers only.
+    if !crate::tester::is_tester() || !crate::load_client_prefs(app).share_reads_for_training {
         return;
     }
     let materials: usize = order.orders.iter().map(|o| o.materials.len()).sum();
@@ -676,7 +676,7 @@ mod corpus {
     fn corpus_reads() {
         let Ok(root) = std::env::var("REFINERY_CORPUS") else { return };
         let root = std::path::Path::new(&root);
-        let models = dirs::data_dir().unwrap().join("io.github.ulrichdahl.starbuddy").join("ocr");
+        let models = crate::scan::test_models_dir();
         let engine = crate::scan::engine_from_dir(&models).expect("OCR models present");
 
         for line in std::fs::read_to_string(root.join("labels.jsonl")).unwrap().lines() {

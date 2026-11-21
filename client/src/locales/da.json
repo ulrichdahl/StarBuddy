@@ -342,7 +342,7 @@
     "hotkeyPress": "Hold den kombination du vil bruge. Escape annullerer.",
     "hotkeyHold": "{{keys}} — bliv ved, {{seconds}}s",
     "hotkeyWindows": "Hvis en genvejstast ikke gør noget på Windows, holder StarBuddy også øje med tastaturet direkte, så en kombination et andet program allerede ejer stadig når frem. Hvis intet når frem overhovedet, siger linjen ovenfor det — og den sædvanlige årsag tilbage er tastaturprogrammer, der ombinder tasterne til spillet.",
-    "hotkeyDesktop": "Dit skrivebord leverer disse genvejstaster, så de virker mens spillet har fokus — og det har sidste ord: at vælge en her er en anmodning, og tasten du ender med er den der vises. De kan også ændres i skrivebordets egne indstillinger for tastaturgenveje, opført som StarBuddy.",
+    "hotkeyDesktop": "Taster du giver StarBuddys handlinger i skrivebordets indstillinger for tastaturgenveje (opført som StarBuddy) virker mens spillet har fokus, og ændres der. Handlinger uden en tast der bruger tasten valgt her.",
     "hotkeyDesktopUnset": "Dit skrivebord har overtaget disse genvejstaster, men har endnu ikke sat en tast på nogen af dem — indtil det sker, virker de kun mens et StarBuddy-vindue har fokus. Åbn skrivebordets indstillinger for tastaturgenveje, find StarBuddy, og giv hver enkelt en tast. Er den ikke opført der, så bind disse kommandoer til taster i stedet.",
     "hotkeyChange": "Klik for at ændre",
     "hotkeyNone": "ingen",
@@ -356,7 +356,14 @@
       "refinery": "raffinaderiordre",
       "capture": "træningsbillede",
       "reading": "skærmaflæsning",
-      "main": "StarBuddy"
+      "main": "StarBuddy",
+      "overlays": "alle overlays",
+      "overlay-scan": "scanningsvindue",
+      "overlay-refinery": "raffinaderiordre-vindue",
+      "overlay-pools": "blueprint-puljer-vindue",
+      "overlay-gathering": "indsamlingsvindue",
+      "overlay-orders": "raffinaderiordrer-vindue",
+      "overlay-points": "pointvindue"
     },
     "report": "Systemoplysninger",
     "reportCopy": "Kopiér",
@@ -396,7 +403,20 @@
         "refinery": "Raffinaderi",
         "travel": "Rejser"
       }
-    }
+    },
+    "notice": {
+      "eyebrow": "StarBuddy",
+      "dismiss": "Forstået",
+      "patched": {
+        "title": "Star Citizen {{environment}} er klar",
+        "short": "Sprogfilen er opdateret: klar til start"
+      },
+      "patchedNoIni": {
+        "title": "Star Citizen {{environment}} er patchet",
+        "short": "Sprogfilen blev ikke opdateret"
+      }
+    },
+    "hotkeyInDesktop": "Sat i skrivebordets indstillinger"
   },
   "changes": {
     "sinceLive_one": "Nyheder — {{count}} ændring siden v{{version}}",
@@ -468,7 +488,14 @@
     "recent": "Seneste fra Game.log",
     "noEventsYet": "Intet nyt i loggen endnu i denne session.",
     "noEvents": "Start logovervågningen for at se, hvad spillet logger.",
-    "overlays": "Over spillet",
+    "presence": "Spilstatus til din org",
+    "presenceOn": "Deles",
+    "presenceOff": "Deles ikke",
+    "presenceHintOn": "Din hoved-org ser om du spiller, hvor, i hvilket skib og på hvilken shard.",
+    "presenceHintOff": "Slået fra, indtil du slår det til. Så ser din hoved-org om du spiller, hvor, i hvilket skib og på hvilken shard.",
+    "presenceStart": "Del",
+    "presenceStop": "Stop deling",
+    "overlays": "Vinduer over spillet",
     "overlay": {
       "status": "Status",
       "scan": "Scanning",
@@ -477,7 +504,23 @@
       "gathering": "Indsamling",
       "orders": "Raffinaderiordrer",
       "points": "Dine point"
-    }
+    },
+    "overlaysAll": "Skjul / vis alle",
+    "short": {
+      "servers": "Servere",
+      "watcher": "Game.log",
+      "reading": "Skærm",
+      "presence": "Spilstatus"
+    },
+    "btn": {
+      "stop": "Stop",
+      "start": "Start",
+      "off": "Slå fra",
+      "on": "Slå til",
+      "share": "Del"
+    },
+    "allRunning": "Alle kører",
+    "readingSource": "Læser {{source}}. Raffinaderiaflæsning og scanning bruger det."
   },
   "refinery": {
     "lead": "Dine raffinaderiordrer, aflæst ved kiosken med genvejstasten.",
@@ -549,7 +592,8 @@
       "game": "Spilinstallation",
       "reading": "Skærmaflæsning",
       "updates": "Opdateringer",
-      "diagnostics": "Fejlsøgning"
+      "diagnostics": "Fejlsøgning",
+      "credits": "Kreditering og licenser"
     },
     "reportHint": "Når noget ikke virker, fortæller denne rapport, hvad StarBuddy ved om din maskine. Sæt den ind sammen med dit spørgsmål.",
     "openAs": "Åbn StarBuddy som",
@@ -571,7 +615,14 @@
       "reading": "Skærmaflæsning til / fra",
       "refinery": "Aflæs raffinaderiordre",
       "scan": "Live-scanning",
-      "capture": "Skærmbillede til træning"
+      "capture": "Skærmbillede til træning",
+      "overlays": "Alle overlays",
+      "overlay-scan": "Scanningsvindue",
+      "overlay-refinery": "Raffinaderiordre-vindue",
+      "overlay-pools": "Blueprint-puljer-vindue",
+      "overlay-gathering": "Indsamlingsvindue",
+      "overlay-orders": "Raffinaderiordrer-vindue",
+      "overlay-points": "Pointvindue"
     },
     "hkSub": {
       "main": "Den ene tast at huske",
@@ -579,7 +630,14 @@
       "reading": "Lader StarBuddy aflæse spillet",
       "refinery": "Ved raffinaderikiosken",
       "scan": "Aflæser scanningssignaturen",
-      "capture": "Hjælper med at forbedre aflæsningen"
+      "capture": "Hjælper med at forbedre aflæsningen",
+      "overlays": "Skjuler de åbne og viser dem igen",
+      "overlay-scan": "Åbn eller luk",
+      "overlay-refinery": "Åbn eller luk",
+      "overlay-pools": "Åbn eller luk",
+      "overlay-gathering": "Åbn eller luk",
+      "overlay-orders": "Åbn eller luk",
+      "overlay-points": "Åbn eller luk"
     },
     "change": "Skift",
     "groupWindows": "Vinduer",
@@ -603,7 +661,15 @@
     "hkCommands": "Vis kommandoerne",
     "presence": "Spilstatus til din org",
     "presenceShare": "Vis mine org-kammerater om jeg spiller, hvor, i hvilket skib og på hvilken shard",
-    "presenceHint": "Kun medlemmer af din hoved-org ser det. Slået fra glemmer hjemmesiden det med det samme."
+    "presenceHint": "Slået fra, indtil du slår det til. Kun medlemmer af din hoved-org ser det, og slået fra glemmer hjemmesiden det med det samme.",
+    "groupOverlays": "Over spillet",
+    "clearKey": "Fjern",
+    "hkReset": "Nulstil alle genveje",
+    "hkResetSub": "Alle taster tilbage til StarBuddys standard",
+    "hkResetSubDesktop": "Alle taster tilbage til StarBuddys standard. Taster sat i skrivebordets genvejsindstillinger bliver; fjern dem der.",
+    "hkResetButton": "Nulstil",
+    "hkResetConfirm": "Ja, nulstil alle",
+    "hkResetCancel": "Annuller"
   },
   "gathering": {
     "lead": "Hvad dine fastgjorte fremstillingsmål kræver, holdt op mod hvad du har i den rette kvalitet.",
@@ -667,7 +733,12 @@
     "marked": "{{name}} markeret som din.",
     "unmarked": "{{name}} er ikke længere markeret som din.",
     "pinned": "{{name}} fastgjort som craft-mål.",
-    "tracked": "Følger nu {{pool}}."
+    "tracked": "Følger nu {{pool}}.",
+    "unpinned": "{{name}} er ikke længere et fremstillingsmål.",
+    "untracked": "Følger ikke længere {{pool}}.",
+    "untrack": "Stop med at følge denne pulje",
+    "pinLabel": "Fastgør {{name}} som fremstillingsmål",
+    "unpinLabel": "Fastgjort: frigør {{name}}"
   },
   "craft": {
     "craftable": "Kan craftes nu",
@@ -716,7 +787,7 @@
     "lastSeen": "Sidst set {{when}}",
     "unknown": "Ingen spilstatus",
     "sameShard": "På samme shard som dig",
-    "presenceNote": "Spilstatus kommer fra hvert medlems StarBuddy-klient. Medlemmer kan slå det fra under Indstillinger › Generelt."
+    "presenceNote": "Spilstatus kommer fra hvert medlems StarBuddy-klient. Medlemmer slår det til på Hjem eller under Indstillinger › Generelt."
   },
   "udi": {
     "title": "UnitedDanes StarLabels og StarConfig",
@@ -740,5 +811,22 @@
     "upToDate": "Allerede opdateret.",
     "note": "Virker næste gang spillet starter. Afkobling lader de installerede filer blive.",
     "unlink": "Afkobl"
+  },
+  "credits": {
+    "title": "StarBuddy",
+    "made": "Et United Danes-fællesskabsprojekt, bygget af RavenMind med Claude (Anthropic).",
+    "license": "StarBuddy er fri software under",
+    "source": "Kildekode på GitHub",
+    "trademark": "Star Citizen®, Roberts Space Industries® og Cloud Imperium® er registrerede varemærker tilhørende Cloud Imperium Rights LLC. Dette er en uofficiel fanapplikation uden tilknytning til Cloud Imperium-koncernen.",
+    "bundled": "Følger med StarBuddy",
+    "by": "af {{by}}",
+    "ocrNote": "Medfølger uændret; de aflæser scanningssignaturer og raffinaderiordrer på din skærm.",
+    "data": "Spildata på hjemmesiden kommer fra Star Citizen Wiki, SC Trade Tools og RSI's statusside; hjemmesidens Om-side krediterer dem.",
+    "components": "Open source-komponenter",
+    "componentsHint": "StarBuddy er bygget på disse, hver under sin egen licens. Klik på en for at se dens kildekode og fulde licenstekst.",
+    "rust_one": "{{count}} Rust-crate",
+    "rust_other": "{{count}} Rust-crates",
+    "npm_one": "{{count}} JavaScript-pakke",
+    "npm_other": "{{count}} JavaScript-pakker"
   }
 }

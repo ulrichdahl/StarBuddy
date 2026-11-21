@@ -1,10 +1,33 @@
 import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useTranslation } from "react-i18next";
 import { OverlayWindow } from "./OverlayWindow";
 import { BodyText, asSeverity, countdown, localTime, onRsiStatus, type RsiStatus } from "../status";
 import { usePageVisible } from "../visibility";
 import { useGameSession, whereabouts } from "../gameSession";
+
+/** A message the desktop shows here for a while instead of the server status (notice.rs). */
+interface Notice {
+  kind: "ok" | "warn";
+  code: "patched" | "patchedNoIni";
+  /** The game environment: "LIVE", "PTU"... */
+  environment: string;
+  detail: string | null;
+  id: number;
+}
+
+/** The notice showing now: asked for on mount, since the window may be opened for it. */
+function useNotice(): Notice | null {
+  const [notice, setNotice] = useState<Notice | null>(null);
+  useEffect(() => {
+    invoke<Notice | null>("status_notice").then(setNotice).catch(() => {});
+    const sub = listen<Notice | null>("status-notice", (e) => setNotice(e.payload)).catch(() => null);
+    return () => void sub.then((un) => un?.());
+  }, []);
+  return notice;
+}
 
 /** cstate system status → dot class. */
 const dotClass = (status: string) =>
@@ -24,6 +47,7 @@ export function StatusOverlay() {
   const [now, setNow] = useState(() => Date.now());
   // All clear, the box says where the player is rather than that nothing is wrong.
   const place = whereabouts(useGameSession());
+  const notice = useNotice();
 
   useEffect(
     () =>
@@ -54,6 +78,45 @@ export function StatusOverlay() {
   const open = (url: string) => void openUrl(url).catch(() => {});
   const statusUrl = status?.status_url ?? "https://status.robertsspaceindustries.com";
   const checked = status?.fetched_at ? t("overlay.status.checked", { time: localTime(status.fetched_at, i18n.language) }) : null;
+
+  // ── a notice: a new game build is patched in ──
+  // Ahead of everything else, and loud on purpose: the player is about to
+  // press Launch and this is what says whether to.
+  if (notice) {
+    const ok = notice.kind === "ok";
+    const dismiss = () => void invoke("status_notice_dismiss", { id: notice.id }).catch(() => {});
+    return (
+      <OverlayWindow
+        name="status"
+        displayName={t("overlay.status.windowName")}
+        accent={ok ? "ov-accent-ok" : "ov-accent-maintenance"}
+        urgent
+        eyebrow={t("overlay.notice.eyebrow")}
+        title={t(`overlay.notice.${notice.code}.title`, { environment: notice.environment })}
+        firstBox={
+          <div className="ov-box acc ov-callout" role="alert">
+            <span className="mono big">{ok ? "✓" : "!"}</span>
+            <span>{t(`overlay.notice.${notice.code}.short`)}</span>
+            <button type="button" className="push ov-notice-btn" onClick={dismiss}>
+              {t("overlay.notice.dismiss")}
+            </button>
+          </div>
+        }
+        strip={
+          <>
+            <span className="ov-stow ov-strip-item">{t(`overlay.notice.${notice.code}.short`)}</span>
+            {/* The strip has no footer, so the way to dismiss it lives here too. */}
+            <button type="button" className="ov-strip-item ov-notice-btn" onClick={dismiss}>
+              {t("overlay.notice.dismiss")}
+            </button>
+          </>
+        }
+      >
+        {/* Why the language file was not updated; the short line says that it was not. */}
+        {notice.detail && <p className="ov-p">{notice.detail}</p>}
+      </OverlayWindow>
+    );
+  }
 
   // ── not paired / not yet loaded ──
   if (paired === false || (!status && (error || paired === null))) {

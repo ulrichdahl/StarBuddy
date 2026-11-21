@@ -11,6 +11,7 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
+import { LicensesSection } from '../components/LicensesSection'
 import { PageHeader } from '../components/PageHeader'
 
 /** External services the backend, bot and desktop client talk to. Game data, shown as-is. */
@@ -111,7 +112,7 @@ export function AboutPage() {
         </Stack>
       </Paper>
 
-      <Paper sx={{ p: 3 }}>
+      <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" sx={{ mb: 1 }}>
           {t('about.creditsTitle')}
         </Typography>
@@ -119,6 +120,8 @@ export function AboutPage() {
           {t('about.creditsBody')}
         </Typography>
       </Paper>
+
+      <LicensesSection />
     </Box>
   )
 }

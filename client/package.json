@@ -1,10 +1,11 @@
 {
   "name": "client",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/third-party.mjs",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri"

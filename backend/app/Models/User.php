@@ -18,7 +18,10 @@ class User extends Authenticatable
     ];
 
     // The UDI link token is a bearer secret: only GET /api/me/udi-link hands it out.
-    protected $hidden = ['password', 'remember_token', 'udi_link_token'];
+    protected $hidden = ['password', 'remember_token', 'udi_link_token', 'discord_role_ids'];
+
+    // is_tester: whether the scan training screens are shown.
+    protected $appends = ['is_tester'];
 
     protected function casts(): array
     {
@@ -27,7 +30,24 @@ class User extends Authenticatable
             'password' => 'hashed',
             'udi_link_token' => 'encrypted',
             'udi_linked_at' => 'datetime',
+            'discord_role_ids' => 'array',
         ];
+    }
+
+    /**
+     * Whether the member holds the tester role in the home Discord guild, as
+     * of their last sign-in. With no tester role configured, everyone is.
+     */
+    public function isTester(): bool
+    {
+        $role = (string) config('starbuddy.tester_role_id');
+
+        return $role === '' || in_array($role, array_map('strval', $this->discord_role_ids ?? []), true);
+    }
+
+    protected function getIsTesterAttribute(): bool
+    {
+        return $this->isTester();
     }
 
     /**

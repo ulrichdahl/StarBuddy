@@ -100,7 +100,7 @@ StarBuddy never injects into the game, reads game memory, automates inputs, or s
 ## Credits
 
 StarBuddy is a [United Danes](https://uniteddanes.org) community project, built by
-[DK-Raven](https://robertsspaceindustries.com/citizens/DK-Raven) with [Claude.ai](https://claude.ai).
+[RavenMind](https://robertsspaceindustries.com/citizens/RavenMind) with [Claude.ai](https://claude.ai).
 
 ## Fan project notice
 

@@ -90,6 +90,8 @@ export type UpdateStatus = "idle" | "checking" | "upToDate" | "failed";
 export interface HotkeyInfo {
   /** action → shortcut, e.g. { status: "F6" } */
   hotkeys: Record<string, string>;
+  /** Every action, with a key or not, in the order they are listed. */
+  actions: string[];
   global_supported: boolean;
   toggle_command: string;
   /** action → why that shortcut is not registered, e.g. another app owns it. */
