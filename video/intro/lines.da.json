@@ -1,0 +1,13 @@
+{
+  "01_intro": "Det her er StarBuddy: en gratis makker til Star Citizen-organisationer. Den læser, hvad du laver i spillet, og samler det til ét fælles overblik for hele din org.",
+  "02_dashboard": "På hjemmesiden viser dashboardet, hvordan din org klarer sig mod de andre denne måned, i missioner, raffinering og rejser. Alle point kommer direkte fra spillets log, sendt af medlemmernes klienter.",
+  "03_members": "Se, hvem der har tjent hvad, mens dine trackere holder øje med blueprints, indsamling og raffineriordrer.",
+  "04_craft": "Craft viser, hvad org'en kan bygge med materialerne på lager. De bedste muligheder først, de nærmeste bagefter.",
+  "05_gathering": "Fastgør de blueprints, du arbejder hen imod, og Gathering laver dem om til en indkøbsliste. Kun lager i den rigtige kvalitet tæller.",
+  "06_blueprints": "Blueprints er en tjekliste i fabrikatorens egen rækkefølge, med de puljer, hver enkelt kan vindes fra.",
+  "07_refinery": "Og Refinery samler alle org'ens arbejdsordrer ét sted.",
+  "08_client": "Desktop-klienten bringer det hele ind i spillet. Brug den som et vindue, eller som et overlay, du åbner med Insert-tasten.",
+  "09_overlays": "Små vinduer ligger oven på spillet: blueprints, indsamling, raffineriordrer og dine point. Ved en raffineriterminal trykker du F8, og ordren bliver læst og gemt for dig.",
+  "10_org": "Org-siden viser, hvem der spiller lige nu, hvor de er, og hvad de flyver. En globus markerer alle på din shard.",
+  "11_outro": "StarBuddy er gratis og open source. Hent desktop-klienten på starbuddy punktum united danes punktum org, og flyv sammen."
+}
