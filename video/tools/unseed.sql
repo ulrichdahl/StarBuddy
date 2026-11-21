@@ -1,0 +1,16 @@
+begin;
+create temp table du as select id from users where discord_id like 'demo-%';
+delete from personal_access_tokens where tokenable_type like '%User' and tokenable_id in (select id from du);
+delete from sessions where user_id in (select id from du);
+delete from score_events where user_id in (select id from du);
+delete from user_presence where user_id in (select id from du);
+delete from resource_stacks where user_id in (select id from du);
+delete from item_stacks where user_id in (select id from du);
+delete from blueprint_owned where user_id in (select id from du);
+delete from craft_targets where user_id in (select id from du);
+delete from tracked_pools where user_id in (select id from du);
+delete from refinery_orders where user_id in (select id from du);
+delete from org_members where user_id in (select id from du);
+delete from users where id in (select id from du);
+delete from orgs where name in ('Nova Vanguard','Iron Meridian','Blackwater Salvage','Outer Rim Haulers','Halcyon Survey Corps') and id not in (select org_id from org_members);
+commit;

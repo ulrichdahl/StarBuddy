@@ -1,0 +1,7 @@
+# Generated: shots, cards, voice lines, videos, and seed.json (a dev session
+# cookie and device token).
+work/
+node_modules/
+# Voice recordings belong in ~/.cache/starbuddy-video/voices/, never here.
+*.wav
+__pycache__/

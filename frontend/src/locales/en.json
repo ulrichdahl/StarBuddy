@@ -39,7 +39,9 @@
   },
   "login": {
     "tagline": "Org materials and blueprint tracking for Star Citizen. Sign in with the Discord account linked to your org.",
-    "signIn": "Sign in with Discord"
+    "signIn": "Sign in with Discord",
+    "introCaption": "What StarBuddy does, in under two minutes",
+    "introLabel": "StarBuddy intro video"
   },
   "footer": {
     "notice": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.",
