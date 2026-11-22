@@ -49,7 +49,7 @@
     "failed": "Sign-in failed. Try again.",
     "toPair": "Sign in to connect your desktop client.",
     "joinDiscord": "Join the Discord server",
-    "joinServer": "Join {{name}} on Discord"
+    "joinServer": "Join {{name}} Discord server"
   },
   "footer": {
     "notice": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.",
