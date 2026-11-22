@@ -296,6 +296,7 @@ pub fn run() {
             diagnostics::open_log_dir,
             changes::app_changes,
             scan::scan_live_toggle,
+            scan::scan_start,
             scan::scan_live_running,
             scan::scan_region_get,
             scan::scan_region_set,

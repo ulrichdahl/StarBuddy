@@ -357,6 +357,23 @@ html.debug-bounds::after {
 .ov-btn:disabled { opacity: 0.4; cursor: default; }
 .ov-btn.on { background: rgba(47, 191, 164, 0.16); border-color: rgba(47, 191, 164, 0.6); color: var(--green); }
 
+/* Scan window setup card: capture is off, and the one step that turns it on. */
+.ov-setup { display: grid; gap: 8px; flex: 1; min-width: 0; }
+.ov-setup .ov-p { margin: 0; }
+.ov-setup-row { gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+.ov-setup .ov-setup-row { margin-top: 0; }
+.ov-select {
+  flex: 1 1 180px;
+  min-width: 0;
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  border: 1px solid var(--line2);
+}
+.ov-err { color: var(--red, #ff6b6b); font-size: 12px; }
+
 /* ── Region selector ──────────────────────────────────────────────────────
    A full-screen sheet over the live game. Only the dim is painted, so the
    chosen area stays the real game frame rather than a copy of it. */

@@ -242,7 +242,18 @@
         "legendary": "legendarisk"
       },
       "qualityBand": "Q {{from}}–{{to}}",
-      "pinShape": "nål {{shape}}"
+      "pinShape": "nål {{shape}}",
+      "setup": {
+        "title": "Skærmaflæsning er slået fra",
+        "start": "Start scanning",
+        "pickWindow": "Vælg spillets vindue, og start. StarBuddy husker det, så næste gang starter scanningen, når du åbner dette vindue.",
+        "restart": "Skærmaflæsning startede ikke på det vindue, du valgte sidst. Start igen, eller vælg spillets vindue i Indstillinger › Skærmaflæsning.",
+        "portal": "Start, og vælg spillets vindue i skrivebordets dialog. Valget huskes, så næste gang starter scanningen, når du åbner dette vindue.",
+        "unsupported": "Skærmaflæsning understøttes ikke på dette system endnu.",
+        "frame": "Intet scanningsområde indrammet: mærket søges midt på skærmen.",
+        "frameButton": "Indram område",
+        "border": "Windows tegner en optagekant om spillet. Indstillinger › Skærmaflæsning fortæller, hvordan den slås fra."
+      }
     },
     "liveScanStart": "Start live-scanning (F7)",
     "liveScanStop": "Stop live-scanning (F7)",

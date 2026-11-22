@@ -947,11 +947,52 @@ impl crate::analysis::Analyzer for Readout {
     }
 }
 
-/// Hotkey path: make sure the scan window is up, then toggle the live scan.
+/// Hotkey path: a hidden scan window is opened, which starts the scan by
+/// itself; on an open one the key switches the live scan off and on.
 pub fn trigger(app: &AppHandle) {
-    let _ = crate::overlay::show(app, SCAN);
+    if !crate::overlay::is_showing(app, SCAN) {
+        let _ = crate::overlay::show(app, SCAN);
+        return;
+    }
     let running = live_toggle(app);
     log::info!("live scan {}", if running { "started" } else { "stopped" });
+}
+
+/// The player opened the scan window: switch on screen reading if it is off,
+/// then the live scan. Opening the window is the ask, so neither switch has
+/// to be found first. What stops it is said in the window, through the
+/// `screen-reading` event its setup card listens to.
+pub fn auto_start(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        if !crate::reading::state(&app).on {
+            let reading = match crate::reading::start(app.clone(), None).await {
+                Ok(reading) => reading,
+                Err(e) => {
+                    log::info!("scan window: screen reading did not start: {e}");
+                    crate::reading::Reading { error: Some(e), ..crate::reading::state(&app) }
+                }
+            };
+            let _ = app.emit("screen-reading", &reading);
+            if !reading.on {
+                return;
+            }
+        }
+        live_start(&app);
+    });
+}
+
+/// Closing the scan window ends the live scan: nothing is shown, so nothing
+/// needs reading. Screen reading itself stays on for the refinery key.
+pub fn window_closed(app: &AppHandle) {
+    if live_running(app) {
+        live_toggle(app);
+    }
+}
+
+/// Start the live scan unless it already runs.
+pub fn live_start(app: &AppHandle) -> bool {
+    live_running(app) || live_toggle(app)
 }
 
 // ── Live scan: the badge, read whenever the area changes ───────────────────
@@ -1083,6 +1124,22 @@ impl crate::analysis::Analyzer for LiveBadge {
 #[tauri::command]
 pub fn scan_live_toggle(app: AppHandle) -> bool {
     live_toggle(&app)
+}
+
+/// The scan window's own start button: screen reading if it is off, with the
+/// window picked in the card on Windows, then the live scan.
+#[tauri::command]
+pub async fn scan_start(app: AppHandle, window: Option<String>) -> Result<bool, String> {
+    if !crate::reading::state(&app).on {
+        let reading = crate::reading::start(app.clone(), window).await;
+        let shown = match &reading {
+            Ok(r) => r.clone(),
+            Err(e) => crate::reading::Reading { error: Some(e.clone()), ..crate::reading::state(&app) },
+        };
+        let _ = app.emit("screen-reading", &shown);
+        reading?;
+    }
+    Ok(live_start(&app))
 }
 
 #[tauri::command]

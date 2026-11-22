@@ -242,7 +242,18 @@
         "legendary": "legendary"
       },
       "qualityBand": "Q {{from}}–{{to}}",
-      "pinShape": "pin {{shape}}"
+      "pinShape": "pin {{shape}}",
+      "setup": {
+        "title": "Screen capture is off",
+        "start": "Start scanning",
+        "pickWindow": "Choose the game's window and start. StarBuddy remembers it, so next time the scan starts when you open this window.",
+        "restart": "Screen capture did not start on the window you chose last time. Start again, or choose the game's window in Settings › Screen reading.",
+        "portal": "Start, then pick the game's window in your desktop's dialog. The choice is remembered, so next time the scan starts when you open this window.",
+        "unsupported": "Screen capture is not supported on this system yet.",
+        "frame": "No scan area framed: the badge is looked for mid-screen.",
+        "frameButton": "Frame area",
+        "border": "Windows is drawing a capture border round the game. Settings › Screen reading says how to turn it off."
+      }
     },
     "liveScanStart": "Start live scan (F7)",
     "liveScanStop": "Stop live scan (F7)",

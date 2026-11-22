@@ -53,7 +53,18 @@ const fake = {
   watcher_status: true,
   presence_sharing_get: true,
   training_sharing_get: false,
-  screen_reading: { on: true, available: true, source: "Star Citizen", error: null, picks_from_list: false, capture_border: false },
+  // ?capture=off (desktop dialog), win (Windows, no window chosen yet) or
+  // failed (the last window did not start): the scan window's setup card.
+  screen_reading: {
+    on: !q.get("capture"),
+    available: true,
+    source: q.get("capture") === "win" ? null : "Star Citizen",
+    error: q.get("capture") === "failed" ? "The window you chose is no longer open." : null,
+    picks_from_list: q.get("capture") === "win" || q.get("capture") === "failed",
+    capture_border: false,
+  },
+  screen_reading_windows: ["Star Citizen", "Firefox", "Konsole"],
+  region_current: q.get("framed") === "no" ? null : { x: 0.4, y: 0.26, w: 0.2, h: 0.14 },
   udi_status: { linked: true, auto_install: true, profile: { revision: 3, channel: "live", labels: true, config: true }, installed: { live: { game_version: "4.10.0", at: new Date(Date.now() - 2 * h).toISOString() } } },
   refinery_status: { phase: "done", detail: "" },
   refinery_last: { station: "ARC-L1 Wide Forest Station", ship: "Argo MOLE", capacity_percent: 64, captured_at: Date.now() - 40e3,
