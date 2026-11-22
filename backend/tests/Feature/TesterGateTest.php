@@ -97,4 +97,15 @@ class TesterGateTest extends TestCase
         $this->get('/api/auth/discord/callback?code=x&state=y')->assertRedirect('/?error=failed');
         $this->assertGuest();
     }
+
+    public function test_an_https_site_never_redirects_to_http(): void
+    {
+        // Behind the TLS proxy the request reaches PHP as http on port 443;
+        // the redirect must still be https, or the proxy answers 404.
+        config(['app.url' => 'https://starbuddy.example.org']);
+        (new \App\Providers\AppServiceProvider($this->app))->boot();
+
+        $this->get('http://starbuddy.example.org:443/api/auth/discord/callback?error=access_denied')
+            ->assertRedirect('https://starbuddy.example.org:443?error=failed');
+    }
 }

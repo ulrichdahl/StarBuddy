@@ -3,6 +3,17 @@
 # publish 443 to let Caddy manage certificates itself.
 # Baked into the web image (docker/web/Dockerfile) — after editing, rebuild:
 #   docker compose -f docker-compose.yml up -d --build web
+# The TLS-terminating proxy in front (Coolify's Traefik, nginx, …) sits on a
+# private Docker network. Trust its X-Forwarded-Proto/-Host/-Port, so Laravel
+# sees the request as https: without this, every redirect it builds (the end
+# of a Discord sign-in) points at http://YOUR-DOMAIN:443/, which the proxy
+# answers with a 404.
+{
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
 :80 {
 	encode gzip
 

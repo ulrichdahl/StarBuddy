@@ -5,6 +5,14 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## 1.0.6 — 2026-11-22
+
+**Signing in lands you on the website, whatever your browser.**
+
+### Fixed
+
+- **No more "404 page not found" after signing in with Discord.** The way back from Discord pointed at a broken address, which only some browsers corrected by themselves. It is right for every browser now.
+
 ## 1.0.5 — 2026-11-22
 
 **Signing in works for everyone, and a failed sign-in tells you to try again.**
