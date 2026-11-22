@@ -146,14 +146,32 @@ foreach ($nova as $k => $uid) {
             $mats[] = ['resource' => $ore, 'quality' => mt_rand(400, 960), 'yield_amount' => (int) round($qty * 0.42), 'qty' => $qty, 'refine' => true];
         }
         $done = $placed->addSeconds($dur) < $now;
-        DB::table('refinery_orders')->insert([
-            'user_id' => $uid, 'station' => $pick(['Levski', 'ARC-L1 Wide Forest Station', 'CRU-L1 Ambitious Dream Station', 'MIC-L1 Shallow Frontier Station']),
+        $station = $pick(['Levski', 'ARC-L1 Wide Forest Station', 'CRU-L1 Ambitious Dream Station', 'MIC-L1 Shallow Frontier Station']);
+        $placeId = $stations[$station] ?? null;
+        $orderId = DB::table('refinery_orders')->insertGetId([
+            'user_id' => $uid, 'station' => $station, 'location_id' => $placeId,
+            'collected_location_id' => $state === 'completed' ? $placeId : null,
             'method' => $pick($methods), 'materials' => json_encode($mats), 'placed_at' => $placed, 'eta' => $placed->addSeconds($dur),
             'completed_at' => $state === 'completed' ? $placed->addSeconds($dur) : null, 'collected_at' => $state === 'completed' ? $placed->addSeconds($dur + 3600) : null,
             'source' => 'ocr', 'work_order_number' => 10 + $j, 'state' => $state, 'unit' => 'cSCU', 'duration_seconds' => $dur,
             'cost' => mt_rand(800, 9000), 'yield_total' => array_sum(array_column($mats, 'yield_amount')), 'visibility' => 'org',
             'created_at' => $placed, 'updated_at' => $now,
         ]);
+        // The stacks the order is producing, as the website's store() makes
+        // them: one per refined line, tied to the order. Without them the
+        // order dialog says "No catalogue entry" for every line.
+        foreach ($mats as $m) {
+            $type = App\Support\RefineryYield::resolveType($m['resource']);
+            $qty = $type && $placeId ? App\Support\RefineryYield::toStackQuantity((float) $m['yield_amount'], 'cSCU', $type) : null;
+            if ($qty === null) {
+                continue;
+            }
+            DB::table('resource_stacks')->insert([
+                'user_id' => $uid, 'org_id' => $novaId, 'location_id' => $placeId, 'resource_type_id' => $type->id,
+                'quality' => $m['quality'], 'quantity' => $qty, 'visibility' => 'org', 'source' => 'ocr',
+                'refinery_order_id' => $orderId, 'created_at' => $placed, 'updated_at' => $now,
+            ]);
+        }
     }
 }
 
