@@ -347,7 +347,8 @@
     "topMembers": "Bedste medlemmer",
     "colPilot": "Pilot",
     "colPoints": "Point",
-    "welcomeNew": "Velkommen til StarBuddy, {{name}}"
+    "welcomeNew": "Velkommen til StarBuddy, {{name}}",
+    "soloHelp": "Du kan sagtens spille solo. Bliv medlem af en org for at dele lager og dyste."
   },
   "profile": {
     "title": "Star Citizen-handle",
@@ -1152,7 +1153,7 @@
   },
   "getStarted": {
     "title": "Kom i gang",
-    "intro": "Tre trin, så er StarBuddy klar. Hvert trin bliver krydset af af sig selv.",
+    "intro": "Skriv dit handle, så er StarBuddy klar. En org og desktop-klienten er valgfrie: spring dem over, hvis du spiller solo eller kun bruger hjemmesiden.",
     "howItWorks": "Sådan virker StarBuddy",
     "progress": "{{done}} af {{total}} klaret",
     "hide": "Skjul",
@@ -1160,7 +1161,8 @@
     "state": {
       "done": "Klaret",
       "waiting": "Venter",
-      "todo": "Mangler"
+      "todo": "Mangler",
+      "skipped": "Sprunget over"
     },
     "handle": {
       "title": "Dit Star Citizen-handle",
@@ -1169,7 +1171,7 @@
     },
     "org": {
       "title": "Bliv medlem af en org",
-      "help": "Din org deler materialer, genstande og blueprints, og dyster mod de andre orgs.",
+      "help": "Din org deler materialer, genstande og blueprints, og dyster mod de andre orgs. Spiller du solo, virker alt andet på samme måde.",
       "waiting": "Din anmodning venter på at en org-manager godkender den. Du kan bede om at komme med i en anden org imens."
     },
     "client": {
@@ -1177,6 +1179,9 @@
       "help": "Hjemmesiden virker fint alene. Klienten tilføjer blueprints og raffineringsordrer direkte fra spillet, skærmscanning og overlays i spillet.",
       "waiting": "Parret. Start StarBuddy på din pc: den vises som forbundet efter første synkronisering.",
       "stale": "Din klient har ikke synkroniseret i over en uge. Start StarBuddy på din pc, eller par den igen."
-    }
+    },
+    "skip": "Spring over",
+    "skipped": "Sprunget over.",
+    "undoSkip": "Fortryd"
   }
 }

@@ -350,7 +350,8 @@
     "topMembers": "Top members",
     "colPilot": "Pilot",
     "colPoints": "Points",
-    "welcomeNew": "Welcome to StarBuddy, {{name}}"
+    "welcomeNew": "Welcome to StarBuddy, {{name}}",
+    "soloHelp": "Playing solo works fine. Join an org to pool stock and compete."
   },
   "profile": {
     "title": "Star Citizen handle",
@@ -1155,7 +1156,7 @@
   },
   "getStarted": {
     "title": "Get started",
-    "intro": "Three steps and StarBuddy is ready. Each one ticks off by itself.",
+    "intro": "Set your handle and StarBuddy is ready. An org and the desktop client are optional: skip them if you play solo or use the website only.",
     "howItWorks": "How StarBuddy works",
     "progress": "{{done}} of {{total}} done",
     "hide": "Hide",
@@ -1163,7 +1164,8 @@
     "state": {
       "done": "Done",
       "waiting": "Waiting",
-      "todo": "To do"
+      "todo": "To do",
+      "skipped": "Skipped"
     },
     "handle": {
       "title": "Your Star Citizen handle",
@@ -1172,7 +1174,7 @@
     },
     "org": {
       "title": "Join an org",
-      "help": "Your org pools materials, items and blueprints, and competes with the other orgs.",
+      "help": "Your org pools materials, items and blueprints, and competes with the other orgs. Playing solo, everything else works the same.",
       "waiting": "Your request is waiting for an org manager to accept it. You can ask to join another org meanwhile."
     },
     "client": {
@@ -1180,6 +1182,9 @@
       "help": "The website works on its own. The client adds blueprints and refinery orders straight from the game, screen scanning and in-game overlays.",
       "waiting": "Paired. Start StarBuddy on your PC: it shows as connected after its first sync.",
       "stale": "Your client has not synced for over a week. Start StarBuddy on your PC, or pair it again."
-    }
+    },
+    "skip": "Skip",
+    "skipped": "Skipped.",
+    "undoSkip": "Undo"
   }
 }

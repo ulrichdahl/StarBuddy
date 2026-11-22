@@ -14,7 +14,7 @@ Hver StarBuddy hører til én Discord-server. Vil du køre en til din egen serve
 
 ## Guiden Kom i gang
 
-Første gang du logger ind, viser oversigten **Kom i gang**: dit handle, din org og desktop-klienten. Hvert trin bliver krydset af af sig selv, når det er klaret. Download-knappen tilbyder klienten til dit system. `Skjul` guiden, når du ikke har brug for den. Den bliver på oversigten, indtil du er med i en org, og forsvinder, når alle tre trin er klaret.
+Første gang du logger ind, viser oversigten **Kom i gang**: dit handle, din org og desktop-klienten. Hvert trin bliver krydset af af sig selv, når det er klaret. Download-knappen tilbyder klienten til dit system. Kun handlet er nødvendigt. En org og desktop-klienten er valgfrie: tryk `Spring over` ved et trin, du ikke vil have. `Skjul` guiden, når du ikke har brug for den. Den forsvinder, når alle trin er klaret eller sprunget over.
 
 ![Kom i gang på oversigten](screens/web-get-started.jpg)
 
@@ -24,7 +24,9 @@ Trinene herunder er de samme, gjort i hånden.
 
 Åbn dit navn øverst til højre og vælg `Profil & desktopklient`. Skriv dit handle fra spillet under **Identitet**. Dine org-kammerater ser det, og desktop-klienten bruger det til at vide, hvilke af spillets karakterer der er dine. Se [Profil og desktop-klient](profile).
 
-## 3. Meld dig ind i din org
+## 3. Meld dig ind i din org (valgfrit)
+
+StarBuddy virker også for en solospiller. Dine egne materialer, genstande, blueprints, raffinaderiordrer, indsamlingsliste og desktop-klienten virker alle uden en org. En org giver fælles lager, fremstilling med dine org-kammeraters materialer og placeringen mod de andre orgs.
 
 Vælg `Organisationer` i samme menu, find din org og tryk `Anmod om medlemskab`. En manager i org'en godkender dig. Indtil da er org'ens fælles lager og placering skjult. Se [Organisationer](organizations).
 

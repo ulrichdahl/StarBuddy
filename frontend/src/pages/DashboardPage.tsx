@@ -907,14 +907,28 @@ export function DashboardPage({ me }: { me: Me }) {
   const pageHeader = { display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 1.5, minHeight: 40, pb: 1.25, borderBottom: `1px solid ${hud.line}` } as const
 
   if (!org) {
-    // A first visit: the guide is the page.
+    // Solo: no standings to show, but the player's own trackers work the same.
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, alignItems: 'stretch' }}>
-        <Typography variant="h1" component="h2" sx={{ fontSize: { xs: '2rem', md: '2.625rem' } }}>
-          {t('dashboard.welcomeNew', { name: displayName(me) })}
-        </Typography>
-        {/* Without an org the dashboard has nothing else to show, so the guide can't be hidden here. */}
-        <GetStarted me={me} dismissible={false} />
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        <Box sx={{ ...pageHeader, alignItems: 'flex-end' }}>
+          <Typography variant="h2" component="h2" sx={{ m: 0, fontSize: 24 }}>
+            {t(me.handle ? 'dashboard.welcome' : 'dashboard.welcomeNew', { name: displayName(me) })}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', color: hud.textDim, fontSize: 13 }}>
+            {t('dashboard.soloHelp')}
+            <Button size="small" variant="outlined" color="primary" onClick={() => setOrgsOpen(true)}>
+              {t('dashboard.findOrg')}
+            </Button>
+          </Box>
+        </Box>
+        <GetStarted me={me} />
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 2, alignItems: 'start' }}>
+          <TrackedPools onOpenBlueprint={setBlueprintId} />
+          <Gathering />
+          <RefineryOrders />
+        </Box>
+        <OrganizationsDialog me={me} open={orgsOpen} onClose={() => setOrgsOpen(false)} />
+        <BlueprintInfoDialog blueprintId={blueprintId} onClose={() => setBlueprintId(null)} />
       </Box>
     )
   }

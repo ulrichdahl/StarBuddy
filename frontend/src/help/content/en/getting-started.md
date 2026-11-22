@@ -14,7 +14,7 @@ Each StarBuddy belongs to one Discord server. To run one for your own server, se
 
 ## The Get started guide
 
-The first time you sign in, the dashboard shows **Get started**: your handle, your org and the desktop client. Each step ticks off by itself when it is done. The download button offers the client for your system. `Hide` the guide when you don't need it. It stays on the dashboard until you join an org, and goes away once all three steps are done.
+The first time you sign in, the dashboard shows **Get started**: your handle, your org and the desktop client. Each step ticks off by itself when it is done. The download button offers the client for your system. Only the handle is needed. An org and the desktop client are optional: press `Skip` on a step you don't want. `Hide` the guide when you don't need it. It goes away once every step is done or skipped.
 
 ![Get started on the dashboard](screens/web-get-started.jpg)
 
@@ -24,7 +24,9 @@ The steps below are the same, done by hand.
 
 Open your name in the top right corner and choose `Profile & desktop client`. Type your in-game handle under **Identity**. Org mates see it, and the desktop client uses it to know which of the game's characters is yours. See [Profile and desktop client](profile).
 
-## 3. Join your org
+## 3. Join your org (optional)
+
+StarBuddy works for a solo player too. Your own materials, items, blueprints, refinery orders, gathering list and the desktop client all work without an org. An org adds shared stock, crafting with your org mates' materials, and the standings against other orgs.
 
 Choose `Organizations` in the same menu, find your org and press `Request to join`. A manager of the org accepts you. Until then the org's shared stock and standings stay hidden. See [Organizations](organizations).
 

@@ -10,6 +10,7 @@ import Typography from '@mui/material/Typography'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty'
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutlineOutlined'
 import { api, unwrapList } from '../lib/api'
 import { hasConnectedClient, useDevices } from '../lib/devices'
 import type { Me, OrgSummary } from '../lib/types'
@@ -20,6 +21,7 @@ import { HudBadge, HudPanel } from './hud'
 import { OrganizationsDialog } from './OrganizationsDialog'
 
 const hiddenKey = (me: Me) => `starbuddy.getStarted.hidden.${me.id}`
+const skippedKey = (me: Me) => `starbuddy.getStarted.skipped.${me.id}`
 
 function readHidden(me: Me) {
   try {
@@ -29,12 +31,33 @@ function readHidden(me: Me) {
   }
 }
 
-type StepState = 'done' | 'waiting' | 'todo'
+function readSkipped(me: Me): OptionalStep[] {
+  try {
+    const list: unknown = JSON.parse(localStorage.getItem(skippedKey(me)) ?? '[]')
+    return Array.isArray(list) ? list.filter((s): s is OptionalStep => s === 'org' || s === 'client') : []
+  } catch {
+    return []
+  }
+}
 
-function Step({ n, state, title, help, optional, children }: { n: number; state: StepState; title: string; help: string; optional?: boolean; children?: ReactNode }) {
+/** An org and the client are optional: StarBuddy works for a solo player on the website alone. */
+type OptionalStep = 'org' | 'client'
+
+type StepState = 'done' | 'waiting' | 'todo' | 'skipped'
+
+function Step({ n, state, title, help, optional, onSkip, children }: { n: number; state: StepState; title: string; help: string; optional?: boolean; onSkip?: (skip: boolean) => void; children?: ReactNode }) {
   const { t } = useTranslation()
+  const settled = state === 'done' || state === 'skipped'
   const icon =
-    state === 'done' ? <CheckCircleIcon sx={{ color: hud.teal }} /> : state === 'waiting' ? <HourglassEmptyIcon sx={{ color: hud.amber }} /> : <RadioButtonUncheckedIcon sx={{ color: hud.textFaint }} />
+    state === 'done' ? (
+      <CheckCircleIcon sx={{ color: hud.teal }} />
+    ) : state === 'skipped' ? (
+      <RemoveCircleOutlineIcon sx={{ color: hud.textFaint }} />
+    ) : state === 'waiting' ? (
+      <HourglassEmptyIcon sx={{ color: hud.amber }} />
+    ) : (
+      <RadioButtonUncheckedIcon sx={{ color: hud.textFaint }} />
+    )
   return (
     <Box component="li" sx={{ display: 'flex', gap: 1.75, py: 1.75, borderTop: `1px solid ${hud.lineSoft}`, '&:first-of-type': { borderTop: 0, pt: 0.5 } }}>
       <Box sx={{ pt: 0.25 }} aria-hidden>
@@ -43,22 +66,41 @@ function Step({ n, state, title, help, optional, children }: { n: number; state:
       <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Typography component="h3" sx={{ m: 0, fontFamily: fonts.display, fontWeight: 600, fontSize: 18, letterSpacing: '0.04em', color: state === 'done' ? hud.textMuted : hud.text }}>
+            <Typography component="h3" sx={{ m: 0, fontFamily: fonts.display, fontWeight: 600, fontSize: 18, letterSpacing: '0.04em', color: settled ? hud.textMuted : hud.text }}>
               <Box component="span" sx={{ fontFamily: fonts.mono, color: hud.textFaint, mr: 1 }}>
                 {String(n).padStart(2, '0')}
               </Box>
               {title}
             </Typography>
-            {optional && state !== 'done' && <HudBadge colour={hud.textDim}>{t('getStarted.optional')}</HudBadge>}
+            {optional && !settled && <HudBadge colour={hud.textDim}>{t('getStarted.optional')}</HudBadge>}
             <Box component="span" sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
               {t(`getStarted.state.${state}`)}
             </Box>
           </Box>
           <Typography variant="body2" sx={{ color: hud.textDim, mt: 0.5, lineHeight: 1.55 }}>
-            {help}
+            {state === 'skipped' ? t('getStarted.skipped') : help}
+            {state === 'skipped' && onSkip && (
+              <>
+                {' '}
+                <Link component="button" type="button" onClick={() => onSkip(false)} sx={{ verticalAlign: 'baseline', fontSize: 'inherit' }}>
+                  {t('getStarted.undoSkip')}
+                </Link>
+              </>
+            )}
           </Typography>
         </Box>
-        {state !== 'done' && children}
+        {!settled && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
+            {children}
+            {onSkip && (
+              <Box>
+                <Button size="small" color="inherit" onClick={() => onSkip(true)} sx={{ color: hud.textDim }}>
+                  {t(`getStarted.skip`)}
+                </Button>
+              </Box>
+            )}
+          </Box>
+        )}
       </Box>
     </Box>
   )
@@ -100,13 +142,16 @@ function HandleForm() {
 
 /**
  * The first-login guide on the dashboard: the steps that make StarBuddy
- * useful, ticked off from what the account already has. It goes away once
- * every step is done, or when the player hides it.
+ * useful, ticked off from what the account already has. Only the handle is
+ * needed; an org and the client can be skipped, as a solo player on the
+ * website alone gets the whole of StarBuddy for themselves. It goes away
+ * once every step is done or skipped, or when the player hides it.
  */
-export function GetStarted({ me, dismissible = true }: { me: Me; dismissible?: boolean }) {
+export function GetStarted({ me }: { me: Me }) {
   const { t } = useTranslation()
   const help = useHelp()
   const [hidden, setHidden] = useState(() => readHidden(me))
+  const [skipped, setSkipped] = useState(() => readSkipped(me))
   const [orgsOpen, setOrgsOpen] = useState(false)
   const { data: devices, isLoading: devicesLoading } = useDevices()
   const { data: orgs } = useQuery({
@@ -116,11 +161,21 @@ export function GetStarted({ me, dismissible = true }: { me: Me; dismissible?: b
   })
 
   const handle: StepState = me.handle ? 'done' : 'todo'
-  const org: StepState = me.orgs.length > 0 ? 'done' : orgs?.some((o) => o.membership?.status === 'pending') ? 'waiting' : 'todo'
-  const client: StepState = hasConnectedClient(devices) ? 'done' : devices && devices.length > 0 ? 'waiting' : 'todo'
-  const done = [handle, org, client].filter((s) => s === 'done').length
+  const org: StepState = me.orgs.length > 0 ? 'done' : skipped.includes('org') ? 'skipped' : orgs?.some((o) => o.membership?.status === 'pending') ? 'waiting' : 'todo'
+  const client: StepState = hasConnectedClient(devices) ? 'done' : skipped.includes('client') ? 'skipped' : devices && devices.length > 0 ? 'waiting' : 'todo'
+  const done = [handle, org, client].filter((s) => s === 'done' || s === 'skipped').length
 
-  if ((hidden && dismissible) || devicesLoading || done === 3) return null
+  if (hidden || devicesLoading || done === 3) return null
+
+  const skip = (step: OptionalStep) => (on: boolean) => {
+    const next = on ? [...skipped.filter((s) => s !== step), step] : skipped.filter((s) => s !== step)
+    try {
+      localStorage.setItem(skippedKey(me), JSON.stringify(next))
+    } catch {
+      // Private window: skipped for this visit only.
+    }
+    setSkipped(next)
+  }
 
   const hide = () => {
     try {
@@ -142,11 +197,9 @@ export function GetStarted({ me, dismissible = true }: { me: Me; dismissible?: b
           <Box component="span" sx={{ fontFamily: fonts.mono, fontSize: 13, color: hud.textMuted }}>
             {t('getStarted.progress', { done, total: 3 })}
           </Box>
-          {dismissible && (
-            <Button size="small" color="inherit" onClick={hide}>
-              {t('getStarted.hide')}
-            </Button>
-          )}
+          <Button size="small" color="inherit" onClick={hide}>
+            {t('getStarted.hide')}
+          </Button>
         </Box>
       }
     >
@@ -162,14 +215,14 @@ export function GetStarted({ me, dismissible = true }: { me: Me; dismissible?: b
         <Step n={1} state={handle} title={t('getStarted.handle.title')} help={t('getStarted.handle.help')}>
           <HandleForm />
         </Step>
-        <Step n={2} state={org} title={t('getStarted.org.title')} help={t(org === 'waiting' ? 'getStarted.org.waiting' : 'getStarted.org.help')}>
+        <Step n={2} state={org} optional onSkip={skip('org')} title={t('getStarted.org.title')} help={t(org === 'waiting' ? 'getStarted.org.waiting' : 'getStarted.org.help')}>
           <Box>
             <Button variant={org === 'waiting' ? 'outlined' : 'contained'} onClick={() => setOrgsOpen(true)}>
               {t('dashboard.findOrg')}
             </Button>
           </Box>
         </Step>
-        <Step n={3} state={client} optional title={t('getStarted.client.title')} help={t(client === 'todo' ? 'getStarted.client.help' : devices?.some((d) => d.last_used_at) ? 'getStarted.client.stale' : 'getStarted.client.waiting')}>
+        <Step n={3} state={client} optional onSkip={skip('client')} title={t('getStarted.client.title')} help={t(client === 'todo' ? 'getStarted.client.help' : devices?.some((d) => d.last_used_at) ? 'getStarted.client.stale' : 'getStarted.client.waiting')}>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, gap: 1.5 }}>
             <DownloadStep />
             <PairStep />
