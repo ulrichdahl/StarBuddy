@@ -11,7 +11,20 @@
     "pairingCodePlaceholder": "Parringskode",
     "pair": "Par",
     "pairing": "Parrer…",
-    "urlPlaceholder": "https://starbuddy.example.org"
+    "urlPlaceholder": "https://starbuddy.example.org",
+    "urlLabel": "Serveradresse",
+    "browser": {
+      "hint": "Log ind på StarBuddy-hjemmesiden i din browser, og godkend denne computer. Intet at skrive.",
+      "signIn": "Log ind med browser",
+      "approve": "Godkend i din browser. Tjek, at siden viser denne kode.",
+      "openAgain": "Åbn siden igen",
+      "cancel": "Annullér",
+      "useCode": "Indtast en parringskode i stedet",
+      "useBrowser": "Log ind med browseren i stedet",
+      "denied": "Login blev afvist på hjemmesiden.",
+      "expired": "Koden udløb efter 10 minutter. Log ind igen.",
+      "failed": "Login blev ikke færdigt. Prøv igen."
+    }
   },
   "scan": {
     "title": "Star Citizen-installation",

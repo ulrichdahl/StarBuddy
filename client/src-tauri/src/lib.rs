@@ -146,6 +146,7 @@ pub fn run() {
                 .with_handler(|app, shortcut, event| overlay::on_shortcut(app, shortcut, event.state()))
                 .build(),
         )
+        .manage(pairing::BrowserFlow::default())
         .manage(watcher::WatcherState::default())
         .manage(game_session::SessionState::default())
         .manage(udi::UdiState::default())
@@ -232,6 +233,8 @@ pub fn run() {
             game_dir::scan_backlog,
             pairing::get_connection,
             pairing::pair_device,
+            pairing::pair_browser_start,
+            pairing::pair_browser_cancel,
             pairing::unpair,
             pairing::sync_events,
             pairing::fetch_status,

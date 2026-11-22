@@ -853,3 +853,31 @@ body {
 .sb .sb-bp-filters .sb-bp-markall { height: 32px; box-sizing: border-box; }
 .sb .sb-bp-filters .sb-bp-markall { padding-top: 0; padding-bottom: 0; }
 .sb .sb-bp-filters .sb-bp-own button { height: 100%; }
+
+/* ── Sign in with the browser ───────────────────────────────────────────── */
+.sb-pair-wait { display: grid; gap: 10px; justify-items: start; }
+.sb-pair-wait p { margin: 0; }
+.sb-pair-code {
+  font-size: 30px;
+  letter-spacing: 0.18em;
+  color: #fff;
+  padding: 8px 16px;
+  border: 1px solid rgba(60, 201, 240, 0.5);
+  background: rgba(60, 201, 240, 0.08);
+}
+.sb button.sb-btn-quiet { border-color: var(--line2); background: transparent; color: var(--muted); }
+.sb button.sb-link-btn {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 12.5px;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.sb button.sb-link-btn:hover:not(:disabled) { background: none; color: var(--text); }

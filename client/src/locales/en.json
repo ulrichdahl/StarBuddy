@@ -11,7 +11,20 @@
     "pairingCodePlaceholder": "Pairing code",
     "pair": "Pair",
     "pairing": "Pairing…",
-    "urlPlaceholder": "https://starbuddy.example.org"
+    "urlPlaceholder": "https://starbuddy.example.org",
+    "urlLabel": "Server address",
+    "browser": {
+      "hint": "Sign in on the StarBuddy website in your browser and approve this computer. Nothing to type.",
+      "signIn": "Sign in with browser",
+      "approve": "Approve in your browser. Check that the page shows this code.",
+      "openAgain": "Open the page again",
+      "cancel": "Cancel",
+      "useCode": "Enter a pairing code instead",
+      "useBrowser": "Sign in with the browser instead",
+      "denied": "The sign-in was denied on the website.",
+      "expired": "The code ran out after 10 minutes. Sign in again.",
+      "failed": "The sign-in did not finish. Try again."
+    }
   },
   "scan": {
     "title": "Star Citizen installation",
