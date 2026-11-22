@@ -8,7 +8,7 @@ The Blueprints page lists every blueprint in the game, with who in your org owns
 
 The desktop client adds blueprints by itself when the game logs that you received one. To add the ones you already had:
 
-- **Checklist view:** switch off `Owned only`, walk your fabricator list in the game and tick along. Every tick saves at once. `Space` ticks the highlighted row, `↑` `↓` move.
+- **Checklist view:** walk your fabricator list in the game and tick along. Every tick saves at once. `Space` ticks the highlighted row, `↑` `↓` move.
 - **Quick add:** type a name, pick it, press `Enter`. The field keeps focus for the next one. `✕` on a chip undoes.
 - `Mark all shown as owned` ticks every blueprint the filters show.
 
@@ -16,7 +16,18 @@ Default blueprints are owned by everyone.
 
 ## Find blueprints
 
-Filter by name, type and grade. `Only unowned by me` and `Unowned by anyone` show what is missing. The **Matrix** view shows the org's members as columns.
+Filter by name, type and grade, and by who owns it with four toggles:
+
+| Toggle | Shows |
+| --- | --- |
+| Person with a tick | Only owned by me |
+| Group with a tick | Owned in the org, me included |
+| Person struck through | Not owned by me |
+| Group struck through | Not owned by anyone in the org |
+
+A toggle that contradicts another switches it off. "Owned in the org" and "Not owned by me" together show what the org has and you do not. The client's Blueprints page has the same toggles.
+
+The **Matrix** view shows the org's members as columns.
 
 ## Blueprint details
 

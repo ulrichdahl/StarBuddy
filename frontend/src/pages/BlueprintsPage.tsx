@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
@@ -6,12 +6,10 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
-import FormControlLabel from '@mui/material/FormControlLabel'
 import LinearProgress from '@mui/material/LinearProgress'
 import MenuItem from '@mui/material/MenuItem'
 import Paper from '@mui/material/Paper'
 import Snackbar from '@mui/material/Snackbar'
-import Switch from '@mui/material/Switch'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
@@ -31,13 +29,14 @@ import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck'
 import SearchIcon from '@mui/icons-material/Search'
 import { api, unwrapList } from '../lib/api'
 import { useMe } from '../lib/auth'
-import type { Blueprint, BlueprintInfo, CatalogResponse, CatalogRow } from '../lib/types'
+import type { Blueprint, BlueprintInfo, CatalogResponse, CatalogRow, PoolProgress } from '../lib/types'
 import { PageHeader } from '../components/PageHeader'
 import { OwnersCell } from '../components/OwnersCell'
 import { ListPager } from '../components/ListPager'
 import { BlueprintInfoDialog } from '../components/BlueprintInfoDialog'
 import { gradeLabel } from './CraftPage'
 import { usePinnedBlueprints } from '../lib/craftTargets'
+import { hud } from '../theme'
 import { PinMark } from '../components/PinMark'
 
 type View = 'checklist' | 'matrix'
@@ -48,6 +47,7 @@ interface Filters {
   category: string
   grade: string
   /** Owned by anyone in the org (or a default blueprint) — the page's default view. */
+  ownedByMe: boolean
   owned: boolean
   unownedByMe: boolean
   unowned: boolean
@@ -58,13 +58,17 @@ const CATALOG_KEY = 'blueprints-catalog'
 /** Type column: the kiosk/type label, with the size for ship parts ("Cooler · S2"). */
 const typeText = (row: CatalogRow) => `${row.type_display ?? row.category_label}${row.size !== null ? ` · S${row.size}` : ''}`
 
+/** "Faction · Pool", the way the client names a pool too; the pool alone when nobody hands it out. Game data, shown as-is. */
+const poolName = (pool: PoolProgress) => [(pool.factions ?? []).join(', '), pool.pool_label].filter(Boolean).join(' · ')
+
 /**
  * The reward pool a recipe comes out of, and how far through it the player is,
  * as two cells.
  *
  * The smallest pool only: a recipe is rarely in more than two, the small one
  * is the better chance of it, and a second line of pool names would cost the
- * column more than it is worth. The dialog lists them all.
+ * column more than it is worth. "+N more" names the others on hover, and the
+ * dialog lists them all.
  */
 function PoolCells({ row }: { row: CatalogRow }) {
   const { t } = useTranslation()
@@ -81,6 +85,12 @@ function PoolCells({ row }: { row: CatalogRow }) {
   return (
     <>
       <TableCell sx={{ whiteSpace: 'nowrap' }}>
+        {/* Who hands it out, on a line of its own so the column stays narrow. */}
+        {(pool.factions ?? []).length > 0 && (
+          <Typography variant="caption" component="div" color="text.secondary" sx={{ lineHeight: 1.3, whiteSpace: 'normal' }}>
+            {pool.factions!.join(', ')}
+          </Typography>
+        )}
         {/* A pool no live mission hands out: the recipe is in the game files
             and nowhere on the contract board. */}
         {!pool.awardable && (
@@ -100,9 +110,11 @@ function PoolCells({ row }: { row: CatalogRow }) {
           {pool.pool_label}
         </Typography>
         {row.pools.length > 1 && (
-          <Typography variant="caption" component="span" color="text.secondary" sx={{ ml: 0.75 }}>
-            {t('blueprints.poolMore', { count: row.pools.length - 1 })}
-          </Typography>
+          <Tooltip title={<Box sx={{ whiteSpace: 'pre-line' }}>{row.pools.slice(1).map(poolName).join('\n')}</Box>}>
+            <Typography variant="caption" component="span" color="text.secondary" sx={{ ml: 0.75, cursor: 'help' }}>
+              {t('blueprints.poolMore', { count: row.pools.length - 1 })}
+            </Typography>
+          </Tooltip>
         )}
       </TableCell>
       <TableCell
@@ -226,21 +238,78 @@ function FilterBar({
           </MenuItem>
         ))}
       </TextField>
-      <FormControlLabel
-        control={<Switch checked={filters.owned} onChange={(e) => onChange({ owned: e.target.checked, ...(e.target.checked ? { unownedByMe: false, unowned: false } : {}) })} />}
-        label={t('blueprints.ownedOnly')}
-      />
-      {!matrix && (
-        <FormControlLabel
-          control={<Switch checked={filters.unownedByMe} onChange={(e) => onChange({ unownedByMe: e.target.checked, ...(e.target.checked ? { owned: false } : {}) })} />}
-          label={t('blueprints.onlyUnownedByMe')}
-        />
-      )}
-      <FormControlLabel
-        control={<Switch checked={filters.unowned} onChange={(e) => onChange({ unowned: e.target.checked, ...(e.target.checked ? { owned: false } : {}) })} />}
-        label={t('blueprints.unownedByAnyone')}
-      />
+      <OwnershipToggles filters={filters} matrix={matrix} onChange={onChange} />
     </Paper>
+  )
+}
+
+type OwnKey = 'ownedByMe' | 'owned' | 'unownedByMe' | 'unowned'
+
+const svgIcon = (d: ReactNode) => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {d}
+  </svg>
+)
+// The desktop client's glyphs, so a filter looks the same in both: a person
+// or a group, ticked (owned) or struck through (not).
+const PERSON = (
+  <>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20c.7-3.6 3.3-5.5 6.5-5.5 1.3 0 2.5.3 3.5.9" />
+  </>
+)
+const PEOPLE = (
+  <>
+    <circle cx="8" cy="8" r="3" />
+    <path d="M2 19c.6-3 2.8-4.5 6-4.5 1.2 0 2.3.2 3.2.7" />
+    <path d="M14 5a3 3 0 0 1 0 6" />
+  </>
+)
+const TICK = <path d="M14.5 17.5l2.5 2.5 5-5.5" />
+const CROSS = <path d="M15.5 14.5l6 6M21.5 14.5l-6 6" />
+
+const OWN_TOGGLES: { key: OwnKey; icon: ReactNode; label: string; good: boolean; off: OwnKey[]; checklistOnly?: boolean }[] = [
+  { key: 'ownedByMe', icon: svgIcon(<>{PERSON}{TICK}</>), label: 'blueprints.own.mine', good: true, off: ['unownedByMe', 'unowned'], checklistOnly: true },
+  { key: 'owned', icon: svgIcon(<>{PEOPLE}{TICK}</>), label: 'blueprints.own.owned', good: true, off: ['unowned'] },
+  { key: 'unownedByMe', icon: svgIcon(<>{PERSON}{CROSS}</>), label: 'blueprints.own.unownedByMe', good: false, off: ['ownedByMe'], checklistOnly: true },
+  { key: 'unowned', icon: svgIcon(<>{PEOPLE}{CROSS}</>), label: 'blueprints.own.unowned', good: false, off: ['ownedByMe', 'owned'] },
+]
+
+/**
+ * Who owns it, as four toggles: by me, in the org, not by me, by nobody in
+ * the org. Turning one on turns off those it contradicts; "the org has it,
+ * I do not" stays possible.
+ */
+function OwnershipToggles({ filters, matrix, onChange }: { filters: Filters; matrix: boolean; onChange: (patch: Partial<Filters>) => void }) {
+  const { t } = useTranslation()
+  return (
+    <Box role="group" aria-label={t('blueprints.own.label')} sx={{ display: 'flex', gap: 0.75 }}>
+      {OWN_TOGGLES.filter((o) => !(matrix && o.checklistOnly)).map((o) => {
+        const on = filters[o.key]
+        return (
+          <Tooltip key={o.key} title={t(o.label)}>
+            <ToggleButton
+              value={o.key}
+              selected={on}
+              aria-label={t(o.label)}
+              onChange={() => onChange({ [o.key]: !on, ...(on ? {} : Object.fromEntries(o.off.map((k) => [k, false]))) })}
+              sx={{
+                width: 40,
+                height: 40,
+                color: hud.textDim,
+                '&.Mui-selected, &.Mui-selected:hover': {
+                  color: o.good ? 'success.main' : hud.danger,
+                  bgcolor: o.good ? 'rgba(102,187,106,0.12)' : 'rgba(242,118,107,0.12)',
+                  borderColor: o.good ? 'success.main' : hud.danger,
+                },
+              }}
+            >
+              {o.icon}
+            </ToggleButton>
+          </Tooltip>
+        )
+      })}
+    </Box>
   )
 }
 
@@ -585,7 +654,7 @@ function MatrixView({
 export function BlueprintsPage() {
   const { t } = useTranslation()
   const [view, setView] = useState<View>('checklist')
-  const [filters, setFilters] = useState<Filters>({ search: '', category: '', grade: '', owned: true, unownedByMe: false, unowned: false })
+  const [filters, setFilters] = useState<Filters>({ search: '', category: '', grade: '', ownedByMe: false, owned: false, unownedByMe: false, unowned: false })
   const [sort, setSort] = useState<SortField>('kiosk')
   const [dir, setDir] = useState<'asc' | 'desc'>('asc')
   const [page, setPage] = useState(0)
@@ -599,6 +668,7 @@ export function BlueprintsPage() {
       category: filters.category || undefined,
       grade: filters.grade || undefined,
       owned: filters.owned ? 1 : undefined,
+      owned_by_me: view === 'checklist' && filters.ownedByMe ? 1 : undefined,
       unowned_by_me: view === 'checklist' && filters.unownedByMe ? 1 : undefined,
       unowned: filters.unowned ? 1 : undefined,
       sort: sort === 'kiosk' ? undefined : sort,
@@ -606,7 +676,7 @@ export function BlueprintsPage() {
       per_page: perPage,
       page: page + 1,
     }),
-    [search, filters.category, filters.grade, filters.owned, filters.unownedByMe, filters.unowned, view, sort, dir, perPage, page],
+    [search, filters.category, filters.grade, filters.ownedByMe, filters.owned, filters.unownedByMe, filters.unowned, view, sort, dir, perPage, page],
   )
   // Any change other than the page itself restarts from the first page.
   const filterKey = JSON.stringify({ ...params, page: undefined })

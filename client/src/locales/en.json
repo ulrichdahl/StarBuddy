@@ -713,9 +713,10 @@
     "gradeOption": "Grade {{grade}}",
     "showLabel": "Show",
     "toggle": {
-      "owned": "Owned only",
-      "unownedByMe": "Only unowned by me",
-      "unowned": "Unowned by anyone"
+      "mine": "Only owned by me",
+      "owned": "Owned in the org, me included",
+      "unownedByMe": "Not owned by me",
+      "unowned": "Not owned by anyone in the org"
     },
     "markAllShown": "Mark all shown as owned ({{count}})",
     "markedAll_one": "{{count}} blueprint marked as owned.",
@@ -745,7 +746,8 @@
     "unpinned": "{{name}} is no longer a craft target.",
     "tracked": "Now tracking {{pool}}.",
     "untracked": "No longer tracking {{pool}}.",
-    "none": "No blueprints match these filters."
+    "none": "No blueprints match these filters.",
+    "pickPool": "Track a pool: in {{count}} reward pools"
   },
   "craft": {
     "craftable": "Craftable now",

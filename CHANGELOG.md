@@ -5,6 +5,20 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## 1.0.4 — 2026-11-22
+
+**Pick the reward pool you want, and filter blueprints by who owns them at a glance.**
+
+### New
+
+- **Choose which reward pool to track.** A blueprint that drops from several pools now lists them all, as "Faction · Pool" with how far through each you are, and you track the ones you want.
+- **Four ownership filters as icons,** on Blueprints in the client and on the website: owned by me, owned in the org, not owned by me, and not owned by anyone in the org. Hover one for its name.
+
+### Changed
+
+- **The website's Blueprints checklist starts with every filter off,** like the client, so the blueprints you still need to tick are shown straight away.
+- **The website's reward pools say who hands them out,** and its help explains that the desktop client is optional and what it adds.
+
 ## 1.0.3 — 2026-11-22
 
 **Blueprints that follow the fabricator, a Home that shows your refinery orders, and help one click away.**

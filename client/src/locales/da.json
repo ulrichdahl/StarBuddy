@@ -713,8 +713,9 @@
     "gradeOption": "Grade {{grade}}",
     "showLabel": "Vis",
     "toggle": {
-      "owned": "Kun ejede",
-      "unownedByMe": "Kun dem jeg ikke ejer",
+      "mine": "Kun ejet af mig",
+      "owned": "Ejet i org'en, mig medregnet",
+      "unownedByMe": "Ikke ejet af mig",
       "unowned": "Ingen i org'en ejer"
     },
     "markAllShown": "Markér alle viste som ejet ({{count}})",
@@ -745,7 +746,8 @@
     "unpinned": "{{name}} er ikke længere et fremstillingsmål.",
     "tracked": "Følger nu {{pool}}.",
     "untracked": "Følger ikke længere {{pool}}.",
-    "none": "Ingen blueprints matcher filtrene."
+    "none": "Ingen blueprints matcher filtrene.",
+    "pickPool": "Følg en pulje: i {{count}} belønningspuljer"
   },
   "craft": {
     "craftable": "Kan craftes nu",

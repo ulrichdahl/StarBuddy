@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { serverApi } from "./api";
 import { gradeLabel, Pager, useSearch, useServerList } from "./pageParts";
-import { changed, PinToggle, TrackToggle, usePins } from "./pins";
+import { changed, EyeIcon, PinToggle, TrackToggle, usePins } from "./pins";
 
 /** GET /api/blueprints/catalog: one row per recipe, with who holds it. */
 interface CatalogRow {
@@ -17,7 +18,17 @@ interface CatalogRow {
   /** The other members who hold it. */
   owners: string[];
   /** Smallest first: the best chance of the recipe. */
-  pools: { pool_key: string; pool_label: string; awardable: boolean; in_pool: number; owned_in_pool: number; owned_percent: number }[];
+  pools: Pool[];
+}
+interface Pool {
+  pool_key: string;
+  pool_label: string;
+  /** Who hands it out; older servers leave it out. */
+  factions?: string[];
+  awardable: boolean;
+  in_pool: number;
+  owned_in_pool: number;
+  owned_percent: number;
 }
 interface Catalog {
   data: CatalogRow[];
@@ -27,23 +38,34 @@ interface Catalog {
   categories: { key: string; label: string; subs: { key: string; label: string }[] }[];
 }
 
-/** The website's three switches; "owned" turns the other two off, and they it. */
+/** Four ownership filters: by me or by the org, owned or not. */
 interface Toggles {
+  mine: boolean;
   owned: boolean;
   unownedByMe: boolean;
   unowned: boolean;
 }
+type ToggleKey = keyof Toggles;
+const TOGGLES: ToggleKey[] = ["mine", "owned", "unownedByMe", "unowned"];
+/** What switching one on switches off: the filters that would contradict it. */
+const CONFLICTS: Record<ToggleKey, ToggleKey[]> = {
+  mine: ["unownedByMe", "unowned"],
+  owned: ["unowned"],
+  unownedByMe: ["mine"],
+  unowned: ["mine", "owned"],
+};
 
 const STORE_KEY = "starbuddy.blueprintFilters";
 
 function loadToggles(): Toggles {
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY) ?? "null");
-    if (saved && typeof saved === "object") return { owned: !!saved.owned, unownedByMe: !!saved.unownedByMe, unowned: !!saved.unowned };
+    if (saved && typeof saved === "object")
+      return { mine: !!saved.mine, owned: !!saved.owned, unownedByMe: !!saved.unownedByMe, unowned: !!saved.unowned };
   } catch {
     // Unreadable: start with everything shown.
   }
-  return { owned: false, unownedByMe: false, unowned: false };
+  return { mine: false, owned: false, unownedByMe: false, unowned: false };
 }
 
 /** "Magazine · S2": the type without the group the heading already names. */
@@ -74,11 +96,9 @@ export function Blueprints({ paired }: { paired: boolean }) {
   useEffect(() => setPage(1), [search, category, grade, toggles]);
   useEffect(() => setFocus(0), [search, category, grade, toggles, page]);
 
-  const setToggle = (key: keyof Toggles, on: boolean) => {
-    const next: Toggles =
-      key === "owned"
-        ? { owned: on, unownedByMe: on ? false : toggles.unownedByMe, unowned: on ? false : toggles.unowned }
-        : { ...toggles, [key]: on, owned: on ? false : toggles.owned };
+  const setToggle = (key: ToggleKey, on: boolean) => {
+    const next: Toggles = { ...toggles, [key]: on };
+    if (on) for (const k of CONFLICTS[key]) next[k] = false;
     setToggles(next);
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify(next));
@@ -91,6 +111,7 @@ export function Blueprints({ paired }: { paired: boolean }) {
     search: search || undefined,
     category: category || undefined,
     grade: grade || undefined,
+    owned_by_me: toggles.mine ? 1 : undefined,
     owned: toggles.owned ? 1 : undefined,
     unowned_by_me: toggles.unownedByMe ? 1 : undefined,
     unowned: toggles.unowned ? 1 : undefined,
@@ -129,7 +150,7 @@ export function Blueprints({ paired }: { paired: boolean }) {
     pins.targets.has(row.id)
       ? act(() => pins.unpinTarget(row.id), t("blueprints.unpinned", { name: row.name }))
       : act(() => pins.pinTarget(row.id), t("blueprints.pinned", { name: row.name }));
-  const track = (pool: CatalogRow["pools"][number]) =>
+  const track = (pool: Pool) =>
     pins.pools.has(pool.pool_key)
       ? act(() => pins.untrack(pool.pool_key), t("blueprints.untracked", { pool: pool.pool_label }))
       : act(() => pins.track(pool.pool_key), t("blueprints.tracked", { pool: pool.pool_label }));
@@ -178,10 +199,18 @@ export function Blueprints({ paired }: { paired: boolean }) {
             </option>
           ))}
         </select>
-        <div className="sb-seg" role="group" aria-label={t("blueprints.showLabel")}>
-          {(["owned", "unownedByMe", "unowned"] as const).map((k) => (
-            <button key={k} type="button" className={toggles[k] ? "on" : ""} aria-pressed={toggles[k]} onClick={() => setToggle(k, !toggles[k])}>
-              {t(`blueprints.toggle.${k}`)}
+        <div className="sb-seg sb-bp-own" role="group" aria-label={t("blueprints.showLabel")}>
+          {TOGGLES.map((k) => (
+            <button
+              key={k}
+              type="button"
+              className={`${k === "mine" || k === "owned" ? "yes" : "no"}${toggles[k] ? " on" : ""}`}
+              aria-pressed={toggles[k]}
+              aria-label={t(`blueprints.toggle.${k}`)}
+              title={t(`blueprints.toggle.${k}`)}
+              onClick={() => setToggle(k, !toggles[k])}
+            >
+              {OWN_ICONS[k]}
             </button>
           ))}
         </div>
@@ -261,7 +290,10 @@ export function Blueprints({ paired }: { paired: boolean }) {
                       )}
                     </span>
                     <span className="sb-bp-act">
-                      {pool && <TrackToggle tracked={pins.pools.has(pool.pool_key)} pool={pool.pool_label} onToggle={() => void track(pool)} />}
+                      {row.pools.length === 1 && pool && (
+                        <TrackToggle tracked={pins.pools.has(pool.pool_key)} pool={pool.pool_label} onToggle={() => void track(pool)} />
+                      )}
+                      {row.pools.length > 1 && <PoolPicker pools={row.pools} tracked={pins.pools} onToggle={(p) => void track(p)} />}
                       <PinToggle pinned={pins.targets.has(row.id)} name={row.name} onToggle={() => void pin(row)} />
                     </span>
                   </div>
@@ -273,6 +305,65 @@ export function Blueprints({ paired }: { paired: boolean }) {
         {data && <Pager page={data.current_page} last={data.last_page} total={data.total} onPage={setPage} />}
       </section>
     </div>
+  );
+}
+
+/** "Faction · Pool": who hands it out, then the pool's own name. */
+const poolName = (p: Pool) => (p.factions && p.factions.length > 0 ? `${p.factions.join(", ")} · ${p.pool_label}` : p.pool_label);
+
+/**
+ * The eye for a recipe in several reward pools: it opens the list of them,
+ * each with how far through it you are, and each tracked or not on its own.
+ * Lit when any of them is tracked.
+ */
+function PoolPicker({ pools, tracked, onToggle }: { pools: Pool[]; tracked: Set<string>; onToggle: (p: Pool) => void }) {
+  const { t } = useTranslation();
+  // Fixed to the window, beside the eye, and drawn in the window's root: the
+  // card it sits in has cut corners, which clip what hangs out of it. It opens
+  // upward when the eye is low in the window.
+  const [open, setOpen] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
+  const toggle = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (open) return setOpen(null);
+    const r = e.currentTarget.getBoundingClientRect();
+    const right = window.innerWidth - r.right;
+    setOpen(r.bottom > window.innerHeight * 0.6 ? { bottom: window.innerHeight - r.top + 4, right } : { top: r.bottom + 4, right });
+  };
+  const any = pools.some((p) => tracked.has(p.pool_key));
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: globalThis.KeyboardEvent) => e.key === "Escape" && setOpen(null);
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [open]);
+  const label = t("blueprints.pickPool", { count: pools.length });
+  return (
+    <span className="sb-bp-picker">
+      <button type="button" className={`sb-pin${any ? " on" : ""}`} aria-haspopup="menu" aria-expanded={open !== null} aria-label={label} title={label} onClick={toggle}>
+        <EyeIcon filled={any} />
+        <span className="sb-bp-n">{pools.length}</span>
+      </button>
+      {open &&
+        createPortal(
+          <>
+            <span className="sb-trk-scrim" onClick={() => setOpen(null)} />
+            <span className="sb-bp-menu" role="menu" style={open}>
+              {pools.map((p) => {
+                const on = tracked.has(p.pool_key);
+                return (
+                  <button key={p.pool_key} type="button" role="menuitemcheckbox" aria-checked={on} className={on ? "on" : undefined} onClick={() => onToggle(p)}>
+                    <EyeIcon filled={on} />
+                    <span className={`sb-bp-menu-name${p.awardable ? "" : " sb-dim"}`}>{poolName(p)}</span>
+                    <span className="mono sb-dim">
+                      {p.owned_in_pool}/{p.in_pool}
+                    </span>
+                  </button>
+                );
+              })}
+            </span>
+          </>,
+          document.querySelector(".sb") ?? document.body,
+        )}
+    </span>
   );
 }
 
@@ -289,6 +380,28 @@ const ME = svg(
     <path d="M14.5 17l2.5 2.5 4.5-5" />
   </>,
 );
+/** The ownership filters: two icons each, who (you or the org) and whether (owned or not). */
+const PERSON = svg(
+  <>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4.5 21c.8-4.2 3.8-6.5 7.5-6.5s6.7 2.3 7.5 6.5" />
+  </>,
+);
+const PEOPLE = svg(
+  <>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20c.7-3.6 3.3-5.5 6.5-5.5s5.8 1.9 6.5 5.5" />
+    <path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.2c2 .7 3.2 2.6 3.6 5.8" />
+  </>,
+);
+const TICK = svg(<path d="M5 12.5l4.5 4.5L19 7.5" />);
+const CROSS = svg(<path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />);
+const OWN_ICONS: Record<ToggleKey, React.ReactNode> = {
+  mine: <>{PERSON}{TICK}</>,
+  owned: <>{PEOPLE}{TICK}</>,
+  unownedByMe: <>{PERSON}{CROSS}</>,
+  unowned: <>{PEOPLE}{CROSS}</>,
+};
 /** Others in the org hold it. */
 const GROUP = svg(
   <>

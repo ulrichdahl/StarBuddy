@@ -36,7 +36,7 @@ class BlueprintController extends Controller
      * Every blueprint in kiosk order with who owns it — the checklist and
      * the matrix are two views of this. Filters: search, category
      * ("armor" or "armor/helmets"), grade, owned (by anyone in the org, or
-     * default), unowned_by_me, unowned (by anyone in the org). Sort: kiosk (default), name, type, grade, owners; dir.
+     * default), owned_by_me, unowned_by_me, unowned (by anyone in the org). Sort: kiosk (default), name, type, grade, owners; dir.
      * Pagination: per_page (10–200), page.
      */
     public function catalog(Request $request)
@@ -92,6 +92,7 @@ class BlueprintController extends Controller
                 ];
             })
             ->when($request->boolean('owned'), fn ($c) => $c->filter(fn ($r) => $r['owner_ids']->isNotEmpty() || $r['is_default']))
+            ->when($request->boolean('owned_by_me'), fn ($c) => $c->filter(fn ($r) => $r['owned_by_me']))
             ->when($request->boolean('unowned_by_me'), fn ($c) => $c->reject(fn ($r) => $r['owned_by_me']))
             ->when($request->boolean('unowned'), fn ($c) => $c->filter(fn ($r) => $r['owner_ids']->isEmpty() && ! $r['is_default']))
             ->values();
@@ -185,7 +186,7 @@ class BlueprintController extends Controller
      */
     private function poolProgress(User $me): array
     {
-        $entries = BlueprintPoolEntry::with('pool:id,key,record,awardable')->get();
+        $entries = BlueprintPoolEntry::with('pool:id,key,record,awardable,sources')->get();
         $mine = BlueprintOwned::where('user_id', $me->id)->pluck('blueprint_id')
             ->merge(Blueprint::where('is_default', true)->pluck('id'))
             ->filter()->unique()->all();
@@ -201,6 +202,9 @@ class BlueprintController extends Controller
             $progress[$poolId] = [
                 'pool_key' => $pool->key,
                 'pool_label' => $pool->label(),
+                // Who hands the pool out, for "Faction · Pool" where a recipe
+                // sits in several pools.
+                'factions' => collect($pool->sources ?? [])->pluck('contractor')->filter()->unique()->values()->all(),
                 'awardable' => (bool) $pool->awardable,
                 'in_pool' => $members->count(),
                 'owned_in_pool' => $held,
