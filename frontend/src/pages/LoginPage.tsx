@@ -2,9 +2,11 @@ import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
+import Link from '@mui/material/Link'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import LoginIcon from '@mui/icons-material/Login'
+import HelpOutlineIcon from '@mui/icons-material/HelpOutlineOutlined'
 import { FanSiteFooter } from '../components/FanSiteFooter'
 import { Wordmark } from '../components/BrandMark'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
@@ -86,6 +88,16 @@ export function LoginPage() {
         >
           {t('login.signIn')}
         </Button>
+        <Button variant="outlined" size="large" fullWidth startIcon={<HelpOutlineIcon />} href="/help/getting-started" sx={{ mt: 1.5 }}>
+          {t('help.loginLink')}
+        </Button>
+        <Typography variant="caption" component="p" color="text.secondary" sx={{ mt: 1 }}>
+          {t('help.loginHint')}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+          {t('help.ownServer')}{' '}
+          <Link href="/help/your-own-server">{t('help.ownServerLink')}</Link>
+        </Typography>
         <Box sx={{ mt: 2 }}>
           <LanguageSwitcher />
         </Box>

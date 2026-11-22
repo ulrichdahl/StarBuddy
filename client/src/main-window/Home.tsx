@@ -4,29 +4,13 @@ import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { asSeverity, localTime, onRsiStatus, type RsiStatusUpdate } from "../status";
 import type { Section } from "./Shell";
+import { TRACKER_HOOKS, TRACKER_KINDS, type TrackerKind } from "../overlay/trackers";
 import { kindLabel, type HotkeyInfo, type Reading } from "./types";
 import type { Watcher } from "./WatcherPanel";
-
-/** The few fields of a refinery read that Home shows. */
-interface LastRead {
-  station: string | null;
-  captured_at: number;
-  orders: {
-    state: "setup" | "processing" | "completed";
-    duration_seconds: number | null;
-    materials: { resource: string; refine: boolean }[];
-  }[];
-}
 
 /** The overlay windows the player can pin over the game, with their hotkey actions. */
 const OVERLAYS = ["status", "scan", "refinery", "pools", "gathering", "orders", "points"] as const;
 type Overlay = (typeof OVERLAYS)[number];
-
-const hm = (seconds: number) => {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.round((seconds % 3600) / 60);
-  return h ? `${h} h ${m} min` : `${m} min`;
-};
 
 function Card({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
   return (
@@ -194,47 +178,93 @@ function PresenceCard() {
   );
 }
 
-/** The latest refinery read: the station and each order on it. */
-function RefineryCard({ onSection }: { onSection: (s: Section) => void }) {
-  const { t, i18n } = useTranslation();
-  const [last, setLast] = useState<LastRead | null>(null);
-  useEffect(() => {
-    invoke<LastRead | null>("refinery_last").then((r) => r && setLast(r)).catch(() => {});
-    const sub = listen<LastRead>("refinery-order", (e) => setLast(e.payload)).catch(() => null);
-    return () => void sub.then((un) => un?.());
-  }, []);
+const TRACKER_KEY = "starbuddy.homeTracker";
+
+/** The tracker Home last showed; the refinery orders until one is picked. */
+function useHomeTracker(): [TrackerKind, (k: TrackerKind) => void] {
+  const [kind, setKind] = useState<TrackerKind>(() => {
+    try {
+      const saved = localStorage.getItem(TRACKER_KEY);
+      return (TRACKER_KINDS as readonly string[]).includes(saved ?? "") ? (saved as TrackerKind) : "orders";
+    } catch {
+      return "orders";
+    }
+  });
+  const choose = (k: TrackerKind) => {
+    setKind(k);
+    try {
+      localStorage.setItem(TRACKER_KEY, k);
+    } catch {
+      // Storage refused: the choice holds for this session.
+    }
+  };
+  return [kind, choose];
+}
+
+/** One tracker's content as its window shows it. Keyed by kind, so its hook never changes. */
+function TrackerMirror({ kind }: { kind: TrackerKind }) {
+  const { t } = useTranslation();
+  const view = TRACKER_HOOKS[kind]();
+  if (!view.loaded) return <p className="sb-card-sub">{view.error ? t("overlay.tracker.unreachable") : t("overlay.status.loading")}</p>;
   return (
-    <Card label={t("home.refinery")} className="sb-card-list">
-      <button type="button" className="sb-link sb-card-corner" onClick={() => onSection("refinery")}>
-        {t("home.openRefinery")}
-      </button>
-      {!last || last.orders.length === 0 ? (
-        <p className="sb-card-sub">{t("home.noRefinery")}</p>
-      ) : (
-        <>
-          <div className="sb-card-sub">
-            {t("home.readAt", {
-              station: last.station ?? t("home.unknownStation"),
-              time: new Date(last.captured_at).toLocaleString(i18n.language, { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" }),
-            })}
-          </div>
-          {last.orders.map((o, i) => (
-            <div key={i} className="sb-row">
-              <span className="sb-row-main">
-                {o.materials.filter((m) => m.refine).map((m) => m.resource).join(", ") || t("home.noMaterials")}
-              </span>
-              <span className="sb-row-side mono">
-                {o.state === "completed"
-                  ? t("home.ready")
-                  : o.duration_seconds !== null
-                    ? hm(o.duration_seconds)
-                    : t(`overlay.refinery.state.${o.state}`)}
-              </span>
+    <>
+      {kind !== "orders" && view.summary && <p className="sb-card-sub">{view.summary}</p>}
+      <div className="sb-trk-body">{view.body}</div>
+    </>
+  );
+}
+
+/**
+ * One of the tracker windows, mirrored: the card's label picks which, and the
+ * card shows what that window shows, from the same data.
+ */
+function TrackerCard() {
+  const { t } = useTranslation();
+  const [kind, setKind] = useHomeTracker();
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [open]);
+  return (
+    <section className="sb-card sb-card-list sb-trk-card">
+      <div className="sb-trk-hd">
+        <button type="button" className="sb-trk-pick" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
+          {t(`home.overlay.${kind}`)}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+        <button type="button" className="sb-link" onClick={() => void invoke("overlay_show", { name: kind }).catch(() => {})}>
+          {t("home.trackerOpen")}
+        </button>
+        {open && (
+          <>
+            <div className="sb-trk-scrim" onClick={() => setOpen(false)} />
+            <div className="sb-trk-menu" role="menu">
+              {TRACKER_KINDS.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={k === kind}
+                  className={k === kind ? "on" : undefined}
+                  onClick={() => {
+                    setKind(k);
+                    setOpen(false);
+                  }}
+                >
+                  {t(`home.overlay.${k}`)}
+                </button>
+              ))}
             </div>
-          ))}
-        </>
-      )}
-    </Card>
+          </>
+        )}
+      </div>
+      <TrackerMirror key={kind} kind={kind} />
+    </section>
   );
 }
 
@@ -365,7 +395,7 @@ export function Home({ watcher, canStart, onSection }: { watcher: Watcher; canSt
       </div>
       <div className="sb-cols sb-home-body">
         <div className="sb-col sb-col-wide">
-          <RefineryCard onSection={onSection} />
+          <TrackerCard />
           <EventsCard watcher={watcher} />
         </div>
         <div className="sb-col">

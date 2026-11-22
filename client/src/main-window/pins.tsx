@@ -75,3 +75,24 @@ export function PinToggle({ pinned, name, onToggle }: { pinned: boolean; name: s
     </button>
   );
 }
+
+/** An eye, for a reward pool being tracked: filled when tracked. A pin is a craft target. */
+export function EyeIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round">
+      <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" fill={filled ? "currentColor" : "none"} fillOpacity={filled ? 0.25 : 0} />
+      <circle cx="12" cy="12" r="3" fill={filled ? "currentColor" : "none"} />
+    </svg>
+  );
+}
+
+/** Track or stop tracking a reward pool, as the website's "Track this pool". */
+export function TrackToggle({ tracked, pool, onToggle }: { tracked: boolean; pool: string; onToggle: () => void }) {
+  const { t } = useTranslation();
+  const label = tracked ? t("blueprints.untrack", { pool }) : t("blueprints.trackLabel", { pool });
+  return (
+    <button type="button" className={`sb-pin${tracked ? " on" : ""}`} aria-pressed={tracked} aria-label={label} title={label} onClick={onToggle}>
+      <EyeIcon filled={tracked} />
+    </button>
+  );
+}

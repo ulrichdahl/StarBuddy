@@ -383,7 +383,8 @@
       "gathering": {
         "title": "Gathering",
         "still": "{{still}} of {{of}} materials still to gather",
-        "none": "No craft targets pinned."
+        "none": "No craft targets pinned.",
+        "pieces": "{{count}} pcs"
       },
       "orders": {
         "title": "Refinery orders",
@@ -460,7 +461,8 @@
     "ship": "Ship",
     "gameRunning": "The game is running",
     "gameNotRunning": "The game is not running; this is the last session",
-    "quit": "Quit StarBuddy"
+    "quit": "Quit StarBuddy",
+    "help": "Help for this page"
   },
   "home": {
     "servers": "Servers",
@@ -478,12 +480,6 @@
     "readingHint": "Needed for refinery reads and scanning.",
     "readingStart": "Turn on",
     "readingStop": "Turn off",
-    "refinery": "Refinery",
-    "openRefinery": "Open",
-    "noRefinery": "No order read yet. Press F8 at a refinery kiosk to read one.",
-    "readAt": "Read at {{station}} · {{time}}",
-    "unknownStation": "an unknown station",
-    "noMaterials": "Nothing set to refine",
     "ready": "Ready",
     "recent": "Recent from Game.log",
     "noEventsYet": "Nothing new in the log yet this session.",
@@ -520,7 +516,8 @@
       "share": "Share"
     },
     "allRunning": "All running",
-    "readingSource": "Reading {{source}}. Refinery reads and scanning need it."
+    "readingSource": "Reading {{source}}. Refinery reads and scanning need it.",
+    "trackerOpen": "Open window"
   },
   "refinery": {
     "lead": "Your refinery orders, read at the kiosk with the hotkey.",
@@ -710,35 +707,45 @@
     "total_other": "{{count}} in all"
   },
   "blueprints": {
-    "category": "Category",
-    "allCategories": "All categories",
-    "show": {
-      "all": "All",
-      "mine": "Held",
-      "missing": "Missing"
+    "searchPlaceholder": "Blueprint name…",
+    "allTypes": "All types",
+    "allGrades": "All grades",
+    "gradeOption": "Grade {{grade}}",
+    "showLabel": "Show",
+    "toggle": {
+      "owned": "Owned only",
+      "unownedByMe": "Only unowned by me",
+      "unowned": "Unowned by anyone"
     },
-    "none": "No blueprints match.",
+    "markAllShown": "Mark all shown as owned ({{count}})",
+    "markedAll_one": "{{count}} blueprint marked as owned.",
+    "markedAll_other": "{{count}} blueprints marked as owned.",
+    "listLabel": "Blueprints. Up and down move, Space ticks the highlighted one.",
     "col": {
-      "name": "Name",
+      "owned": "Owned",
+      "name": "Blueprint",
       "type": "Type",
       "grade": "Grade",
-      "held": "Held",
-      "pool": "Drops from"
+      "typeGrade": "Type · Grade",
+      "pool": "Reward pool",
+      "poolDone": "Pool done",
+      "owners": "Owners"
     },
-    "default": "Default",
-    "orgHolds_one": "{{count}} in the org",
-    "orgHolds_other": "{{count}} in the org",
-    "track": "Track this pool",
-    "pin": "Pin",
-    "marked": "{{name}} marked as held.",
-    "unmarked": "{{name}} no longer marked as held.",
-    "pinned": "{{name}} pinned as a craft target.",
-    "tracked": "Now tracking {{pool}}.",
+    "tickLabel": "Owned: {{name}}",
+    "poolMore": "+{{count}} more",
+    "default": "Default blueprint — everyone has it",
+    "youHave": "You have this blueprint",
+    "trackLabel": "Track this pool: {{pool}}",
+    "untrack": "Stop tracking {{pool}}",
+    "pinLabel": "Pin {{name}} as craft target",
+    "unpinLabel": "Unpin craft target: {{name}}",
+    "marked": "{{name}} marked as owned.",
+    "unmarked": "{{name}} marked as not owned.",
+    "pinned": "{{name}} pinned as craft target.",
     "unpinned": "{{name}} is no longer a craft target.",
+    "tracked": "Now tracking {{pool}}.",
     "untracked": "No longer tracking {{pool}}.",
-    "untrack": "Stop tracking this pool",
-    "pinLabel": "Pin {{name}} as a craft target",
-    "unpinLabel": "Pinned: unpin {{name}}"
+    "none": "No blueprints match these filters."
   },
   "craft": {
     "craftable": "Craftable now",

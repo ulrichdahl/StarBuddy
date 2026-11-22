@@ -1,6 +1,6 @@
 {
   "name": "starbuddy-bot",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "description": "Discord bot for StarBuddy — self-hostable Star Citizen org resource tracker",
   "type": "module",

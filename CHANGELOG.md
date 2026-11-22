@@ -5,6 +5,27 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## 1.0.3 — 2026-11-22
+
+**Blueprints that follow the fabricator, a Home that shows your refinery orders, and help one click away.**
+
+### New
+
+- **Blueprints in the fabricator's order,** grouped and filtered like the website, one line per recipe. Keep the client open beside the fabricator and tick down the list with the arrow keys and Space.
+- **Home shows one tracker of your choice:** refinery orders, blueprint pools, gathering or your points, exactly as its window shows it. Pick it from the card's title.
+- **Refinery orders at a glance.** Each order fills up as it refines and turns green when it is ready, with its station, time left, ores and yield. The window's small size keeps just the station and time.
+- **Help for every page.** A ? beside the page name opens its help on the website, in your language. The help also explains the website and how to get StarBuddy for your own Discord server.
+
+### Changed
+
+- **One icon for each thing, on the website and in the client:** a pin makes a blueprint a craft target, an eye tracks a reward pool.
+
+### Fixed
+
+- **Home no longer says no refinery order has been read** while one is waiting at the station. It now shows your orders from the website, not only the last one read this session.
+- **On KDE, only StarBuddy's windows stay above the game.** Konsole, Firefox or anything else with "StarBuddy" in its title no longer does too.
+- **Danish spelling and spacing:** the refinery window says Raffinaderi, its total yield is no longer run together with its label, and pieces are "stk.".
+
 ## 1.0.2 — 2026-11-22
 
 **A compact Home, a hotkey for every window over the game, and the client tells you when a patched game is safe to start.**

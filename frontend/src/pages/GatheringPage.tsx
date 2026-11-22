@@ -23,11 +23,11 @@ import { fonts, hud } from '../theme'
 type Scope = 'mine' | 'org'
 
 function useAmount() {
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation()
   return (value: number, unit: GatheringLine['unit']) =>
     unit === 'mscu'
       ? `${(value / 1000).toLocaleString(i18n.language, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SCU`
-      : `${value.toLocaleString(i18n.language)} pcs`
+      : t('craft.amountPcs', { amount: value.toLocaleString(i18n.language) })
 }
 
 function TargetCard({ target, scope, onOpen }: { target: CraftTarget; scope: Scope; onOpen: () => void }) {

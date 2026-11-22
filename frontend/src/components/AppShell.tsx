@@ -37,6 +37,8 @@ import { ProfileDialog } from './ProfileDialog'
 import { canSee } from '../lib/access'
 import { StatusAlertBanner } from './StatusAlertBanner'
 import { UserMenu } from './UserMenu'
+import { HelpButton, HelpProvider } from '../help/HelpContext'
+import { useHelp } from '../help/useHelp'
 
 const DRAWER_WIDTH = 232
 /// Wide enough for the icon and its focus ring, and nothing else. A portrait
@@ -245,8 +247,21 @@ interface AppShellProps {
  * grouped navigation. The navigation is permanent on md-and-up (folding to
  * icons below lg) and an overlay drawer on a phone.
  */
-export function AppShell({ me }: AppShellProps) {
+export function AppShell(props: AppShellProps) {
+  return (
+    <HelpProvider>
+      <Shell {...props} />
+    </HelpProvider>
+  )
+}
+
+/** The help panel's width, kept clear on a wide screen so the page is not hidden under it. */
+const HELP_WIDTH = 520
+
+function Shell({ me }: AppShellProps) {
   const { t } = useTranslation()
+  const help = useHelp()
+  const wideForHelp = useMediaQuery('(min-width:1400px)')
   const theme = useTheme()
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'))
   // Below 1200 the navigation shrinks to icons on its own — 1080 wide is a
@@ -314,6 +329,7 @@ export function AppShell({ me }: AppShellProps) {
                 </Box>
               </ButtonBase>
             </Tooltip>
+            <HelpButton />
             <LanguageSwitcher signedIn />
             <Box aria-hidden sx={{ width: '1px', height: 28, bgcolor: hud.lineStrong, mx: 1 }} />
             <ButtonBase
@@ -394,7 +410,16 @@ export function AppShell({ me }: AppShellProps) {
 
       <Box
         component="main"
-        sx={{ flexGrow: 1, px: { xs: 2, md: 4 }, pt: { xs: 2, md: 3.5 }, minWidth: 0, display: 'flex', flexDirection: 'column' }}
+        sx={{
+          flexGrow: 1,
+          px: { xs: 2, md: 4 },
+          pt: { xs: 2, md: 3.5 },
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          mr: help?.topic != null && wideForHelp ? `${HELP_WIDTH}px` : 0,
+          transition: theme.transitions.create('margin', { duration: theme.transitions.duration.shorter }),
+        }}
       >
         <Toolbar sx={{ minHeight: { xs: 64 } }} />
         <Box sx={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
