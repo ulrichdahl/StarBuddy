@@ -221,13 +221,21 @@ pub async fn pair_browser_start(app: tauri::AppHandle, server_url: String) -> Re
         interval: u64,
     }
     let auth: Authorize = resp.json().await.map_err(|e| e.to_string())?;
-    // The page the player approves on must be the server's own.
-    if !auth.verification_uri_complete.starts_with(&format!("{base}/")) {
-        return Err("The server sent a sign-in page on another site.".into());
+    // The page the player approves on is built here, on the address the
+    // player gave, rather than taken from the answer: a server names itself
+    // by its own configured address, which behind a proxy or on a dev box is
+    // not the one this machine reaches it by, and the browser must never be
+    // sent to another site. The short code is letters, digits and a dash.
+    if auth.user_code.is_empty() || !auth.user_code.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+        return Err("The server sent a sign-in code that could not be read.".into());
+    }
+    let page = format!("{base}/pair?code={}", auth.user_code);
+    if !auth.verification_uri_complete.ends_with(&format!("/pair?code={}", auth.user_code)) {
+        log::info!("browser sign-in: the server names its page differently; using {base}/pair");
     }
 
     let flow = app.state::<BrowserFlow>().0.fetch_add(1, Ordering::SeqCst) + 1;
-    if let Err(e) = app.opener().open_url(&auth.verification_uri_complete, None::<&str>) {
+    if let Err(e) = app.opener().open_url(&page, None::<&str>) {
         // The window shows the address too, so the player can open it by hand.
         log::warn!("browser sign-in: the browser did not open: {e}");
     }
@@ -235,7 +243,7 @@ pub async fn pair_browser_start(app: tauri::AppHandle, server_url: String) -> Re
 
     let start = BrowserStart {
         user_code: auth.user_code,
-        verification_uri_complete: auth.verification_uri_complete,
+        verification_uri_complete: page,
         expires_in: auth.expires_in,
     };
     let app2 = app.clone();
