@@ -22,7 +22,7 @@ Når spillet ikke kører, åbner StarBuddy altid som vindue.
 | Raffinaderiordre | Ordren, der blev læst ved terminalen | åbner med `F8` |
 | Blueprint-puljer | De puljer, du følger, og hvad der mangler i hver | ingen |
 | Indsamling | Din indkøbsliste | ingen |
-| Raffinaderiordrer | Dine åbne ordrer, og hvornår den næste er klar | ingen |
+| Raffinaderiordrer | Dine åbne ordrer, de færdige først med grøn ramme. Hver fyldes op, mens den raffineres, med station, tid tilbage, malm og samlet udbytte | ingen |
 | Dine point | Dine point denne måned og din orgs placering | ingen |
 
 Åbn og luk dem fra **Vinduer over spillet** på Hjem, eller giv hvert sin tast i `Indstillinger` › `Genvejstaster`. Én tast mere kan skjule alle åbne vinduer og vise dem igen.

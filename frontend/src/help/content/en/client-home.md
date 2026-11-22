@@ -13,7 +13,7 @@ Home is what the client opens on. It shows at a glance whether everything is run
 
 ## Below the boxes
 
-- **Refinery:** the last refinery order the client read, with the time left. `Open` shows it in full.
+- **Tracker:** one of the windows over the game, shown here. Its label is a picker: `Refinery orders`, `Blueprint pools`, `Gathering` or `Your points`. The client remembers your choice, and starts on refinery orders. `Open window` shows that window over the game.
 - **Recent from Game.log:** what the game logged this session: blueprints, missions, refinery jobs and travel.
 - **Windows over the game:** every overlay window. Tick one to open it over the game, untick it to close it. See [Windows over the game](client-overlays).
 

@@ -13,7 +13,7 @@ Hjem er det, klienten åbner på. Den viser med det samme, om alt kører.
 
 ## Under boksene
 
-- **Raffinaderi:** den seneste raffinaderiordre, klienten har læst, med tiden tilbage. `Åbn` viser den helt.
+- **Tracker:** et af vinduerne over spillet, vist her. Overskriften er en vælger: `Raffinaderiordrer`, `Blueprint-puljer`, `Indsamling` eller `Dine point`. Klienten husker dit valg og starter med raffinaderiordrer. `Åbn vindue` viser vinduet over spillet.
 - **Seneste fra Game.log:** hvad spillet har logget i denne session: blueprints, missioner, raffinaderijob og rejser.
 - **Vinduer over spillet:** alle overlay-vinduerne. Sæt flueben ved et for at åbne det over spillet, og fjern fluebenet for at lukke det. Se [Vinduer over spillet](client-overlays).
 

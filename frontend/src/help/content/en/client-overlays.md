@@ -22,7 +22,7 @@ While the game is not running, StarBuddy always opens as a window.
 | Refinery order | The order read at the terminal | opens with `F8` |
 | Blueprint pools | The pools you track and what is left in each | none |
 | Gathering | Your shopping list | none |
-| Refinery orders | Your open orders and when the next is ready | none |
+| Refinery orders | Your open orders, ready ones first and framed green. Each fills up as it refines, with the station, time left, ores and total yield | none |
 | Your points | Your points this month and your org's rank | none |
 
 Open and close them from **Windows over the game** on Home, or give each one a key in `Settings` › `Hotkeys`. One more key can hide every open window and show them again.
