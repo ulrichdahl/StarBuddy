@@ -5,6 +5,15 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## 1.0.5 — 2026-11-22
+
+**Signing in works for everyone, and a failed sign-in tells you to try again.**
+
+### Fixed
+
+- **Members of many Discord servers can sign in.** StarBuddy now asks your org's server directly whether you are a member, instead of reading a list that Discord cuts off at 200 servers.
+- **A cancelled or interrupted sign-in returns to the login page** with "Sign-in failed. Try again." instead of an error page. That covers pressing Cancel at Discord, an old tab or the Back button, and blocked cookies.
+
 ## 1.0.4 — 2026-11-22
 
 **Pick the reward pool you want, and filter blueprints by who owns them at a glance.**
