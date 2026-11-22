@@ -26,7 +26,9 @@ Klik på en blueprint for at åbne dens detaljer.
 
 - **Hvem har den:** de medlemmer af org'en, der ejer den.
 - **Hvor den falder:** de belønningspuljer, der giver den, med færrest manglende først, og de missioner og events, der giver fra hver pulje. Skift mellem dine og org'ens fremskridt.
-- `Følg denne pulje` sætter puljen på din oversigt og i klientens vindue for blueprint-puljer.
+- `Følg denne pulje`, med øjet, sætter puljen på din oversigt og i klientens vindue for blueprint-puljer. Et øje ved en pulje betyder, at du følger den.
 - **Skal bruges til at fremstille:** opskriften, holdt op mod dit lager og org'ens bedste.
-- `Fastgør som fremstillingsmål` sender materialerne til [Indsamling](gathering).
+- `Fastgør som fremstillingsmål`, med nålen, sender materialerne til [Indsamling](gathering). En nål ved en blueprints navn betyder, at den er et fremstillingsmål.
+
+Overalt i StarBuddy betyder øjet en pulje, du følger, og nålen et fremstillingsmål.
 - **Statistik:** genstandens værdier, og hvor langt fremstilling kan flytte dem.

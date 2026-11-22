@@ -18,6 +18,7 @@ import CheckIcon from '@mui/icons-material/Check'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import CloseIcon from '@mui/icons-material/Close'
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined'
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import { api } from '../lib/api'
 import { useMe } from '../lib/auth'
 import type { BlueprintInfo, BlueprintPool, PoolMember } from '../lib/types'
@@ -178,7 +179,7 @@ function PoolRow({
         <Box component="span" sx={{ fontSize: 13, color: hud.textDim, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           · {pool.pool_label}
         </Box>
-        {pool.tracked && <PushPinOutlinedIcon sx={{ fontSize: 15, color: hud.teal }} aria-label={t('blueprints.info.tracking')} />}
+        {pool.tracked && <VisibilityOutlinedIcon sx={{ fontSize: 15, color: hud.teal }} aria-label={t('blueprints.info.tracking')} />}
         <Box component="span" sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1.25, flexShrink: 0 }}>
           <Box sx={{ width: 80, height: 4, bgcolor: '#1c262d' }} aria-hidden>
             <Box sx={{ height: '100%', width: `${pool.in_pool ? (got / pool.in_pool) * 100 : 0}%`, bgcolor: done ? hud.teal : '#5b7080' }} />
@@ -285,7 +286,7 @@ function PoolRow({
               <Button
                 variant={pool.tracked ? 'contained' : 'outlined'}
                 color="primary"
-                startIcon={<PushPinOutlinedIcon />}
+                startIcon={<VisibilityOutlinedIcon />}
                 onClick={() => track.mutate()}
                 disabled={track.isPending}
                 aria-label={pool.tracked ? t('blueprints.info.untrack', { pool: pool.pool_label }) : undefined}

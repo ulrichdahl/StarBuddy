@@ -11,7 +11,7 @@ import Skeleton from '@mui/material/Skeleton'
 import Typography from '@mui/material/Typography'
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
-import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined'
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import { api, unwrapList } from '../lib/api'
 import { useCraftTargets } from '../lib/craftTargets'
 import { displayName } from '../lib/people'
@@ -675,7 +675,7 @@ function TrackedPools({ onOpenBlueprint }: { onOpenBlueprint: (id: number) => vo
                   <Button
                     variant="contained"
                     color="primary"
-                    startIcon={<PushPinOutlinedIcon />}
+                    startIcon={<VisibilityOutlinedIcon />}
                     onClick={() => untrack.mutate(p.pool_key)}
                     disabled={untrack.isPending}
                     aria-label={t('blueprints.info.untrack', { pool: p.pool_label })}

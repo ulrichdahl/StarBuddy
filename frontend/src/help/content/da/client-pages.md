@@ -5,7 +5,7 @@ Klientens sider viser de samme data som hjemmesiden, så du kan slå ting op ude
 ![Fremstil i klienten](screens/client-craft.jpg)
 
 - **Fremstil:** hvad du kan fremstille nu ud fra dine blueprints og det, du har. `Craft` noterer en fremstilling, som på hjemmesidens side [Fremstil](craft), og `Fortryd` tager den tilbage.
-- **Blueprints:** alle blueprints, ejede eller manglende, med den belønningspulje, de falder fra. Markér en som ejet, `Fastgør` den som fremstillingsmål, eller følg dens pulje. Se [Blueprints](blueprints).
+- **Blueprints:** den samme tjekliste som på hjemmesiden, i samme rækkefølge og med de samme filtre og `Markér alle viste som ejet`. Hver række viser sin belønningspulje, og hvor meget af puljen du har. Yderst til højre følger øjet puljen, og nålen gør blueprinten til et fremstillingsmål. `↑` `↓` og `Mellemrum` sætter flueben, mens du går fabrikatoren igennem i spillet. Se [Blueprints](blueprints).
 - **Indsamling:** din indkøbsliste til de fastgjorte fremstillingsmål. Send den til Discord herfra. Se [Indsamling](gathering).
 - **Raffinaderi:** dine raffinaderiordrer med tiden tilbage. `Hent` en ordre, der er klar, og sig, hvor den kom hen. Se [Raffinering](refinery).
 - **Mit lager:** dine genstande, og de genstande, org'en deler.

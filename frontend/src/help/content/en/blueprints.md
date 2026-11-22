@@ -26,7 +26,9 @@ Click a blueprint to open its details.
 
 - **Who has it:** org members who own it.
 - **Where it drops:** the reward pools that hand it out, fewest missing first, with the missions and events that award each pool. Switch between your progress and the org's.
-- `Track this pool` puts the pool on your dashboard, and in the client's blueprint pools window.
+- `Track this pool`, with the eye, puts the pool on your dashboard and in the client's blueprint pools window. An eye beside a pool means you track it.
 - **Needed to craft:** the recipe, checked against your stock and the org's best.
-- `Pin as craft target` sends its materials to [Gathering](gathering).
+- `Pin as craft target`, with the pin, sends its materials to [Gathering](gathering). A pin beside a blueprint's name means it is a craft target.
+
+Everywhere in StarBuddy, the eye means a tracked reward pool and the pin means a craft target.
 - **Stats:** the item's stats, and how far crafting can move them.
