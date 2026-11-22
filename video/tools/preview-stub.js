@@ -4,7 +4,7 @@ const q = new URLSearchParams(location.search);
 try {
   localStorage.setItem("starbuddy.settingsTab", q.get("t") || "general");
   localStorage.setItem("starbuddy.section", q.get("s") || "home");
-  localStorage.setItem("starbuddy.locale", "en");
+  localStorage.setItem("starbuddy.locale", q.get("lang") || "en");
 } catch {}
 let cb = 0;
 const callbacks = {};

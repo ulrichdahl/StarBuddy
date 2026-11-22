@@ -2,6 +2,9 @@
 
     python3 video/intro/render.py preview
     python3 video/intro/render.py final en:emma da:roest
+
+Each language is drawn with its own UI shots and labels when they exist
+(work/hi-da/, work/cards-da/), else with the English ones.
 """
 import json, os, sys
 
@@ -11,17 +14,24 @@ from compose import *  # noqa: E402,F403
 HERE = os.path.dirname(os.path.abspath(__file__))
 KEYS = list(json.load(open(os.path.join(HERE, "lines.en.json"))))
 
-shot = images(os.path.join(WORK, "hi"))      # tools/capture.cjs
-card = images(os.path.join(WORK, "cards"))   # tools/cards.cjs
-for k in [k for k in shot if k.startswith("ov_")]:
-    shot[k] = overlay_1x(shot[k], max_height=545 if k == "ov_refinery" else None)  # refinery: the setup order only
+def assets(lang):
+    """Shots and cards in one UI language: English from hi/ and cards/, others
+    from hi-<lang>/ and cards-<lang>/ (capture.cjs and cards.cjs --lang=<lang>)."""
+    own = lambda d: os.path.join(WORK, f"{d}-{lang}") if lang != "en" and os.path.isdir(os.path.join(WORK, f"{d}-{lang}")) else os.path.join(WORK, d)
+    shot = images(own("hi"))
+    card = images(own("cards"))
+    for k in [k for k in shot if k.startswith("ov_")]:
+        shot[k] = overlay_1x(shot[k], max_height=545 if k == "ov_refinery" else None)  # refinery: the setup order only
+    # 1200 of 1920: about the size the client sits on a real desktop.
+    shot["client_home_w"] = window(shot["client_home"], 1200)
+    shot["client_org_w"] = window(shot["client_org"], 1200)
+    return shot, card
+
+ASSETS = {}
 
 bg_space = backdrop("4.10.0-argo_mole-scan_mode--none-2.png", 22, 0.45)
 bg_game = backdrop("4.10.0-argo_mole-scan_mode--none-2.png", 3.5, 0.85)
 bg_refinery = backdrop("4.10.0-levski-refinery-order-setup.png", 3.5, 0.8)
-# 1200 of 1920: about the size the client sits on a real desktop.
-client_home = window(shot["client_home"], 1200)
-client_org = window(shot["client_org"], 1200)
 
 # Web pages: (shot, label, from-box, to-box); boxes are (x, y, width) on the 2x shot.
 WEB = {
@@ -37,7 +47,10 @@ def centred(f, im, lt):
     a = ease(lt / 0.8)
     put(f, im, ((1920 - im.width) / 2, (1080 - im.height) / 2 + 30 * (1 - a)), a)
 
-def scene(key, lt, d):
+def scene(key, lt, d, lang="en"):
+    if lang not in ASSETS:
+        ASSETS[lang] = assets(lang)
+    shot, card = ASSETS[lang]
     k = lt / d
     if key in WEB:
         name, lab, a, b = WEB[key]
@@ -53,7 +66,7 @@ def scene(key, lt, d):
         return f
     if key in ("08_client", "10_org"):
         f = pan(bg_space, (0, 0, 1920), (40, 22, 1840), k)
-        centred(f, client_home if key == "08_client" else client_org, lt)
+        centred(f, shot["client_home_w" if key == "08_client" else "client_org_w"], lt)
         label(f, card["l-client" if key == "08_client" else "l-org"], lt)
         return f
     if key == "09_overlays":

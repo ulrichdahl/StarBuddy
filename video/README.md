@@ -22,7 +22,7 @@ Run everything from the repo root, with the dev stack running (`localhost:8090`)
 
 1. **Fake data.** Run `video/tools/demo-data.sh seed`. It backs up the dev DB first, then adds 5 orgs and 30 pilots. You are "Kestrel" in "Nova Vanguard". It writes `video/work/seed.json`, which holds a dev session cookie and device token, so it is git-ignored.
 2. **Client preview.** Run `npm --prefix client run build`, then `node video/tools/preview-server.cjs &`. This serves the desktop client on port 8767 with a Tauri stub (`tools/preview-stub.js`). The stub says where the player is and what the refinery terminal showed. Server calls go to the dev site as Kestrel.
-3. **Screenshots.** `node video/tools/capture.cjs` writes 2x shots of the website pages, the client pages and the overlays to `video/work/hi/`.
+3. **Screenshots.** `node video/tools/capture.cjs` writes 2x shots of the website pages, the client pages and the overlays to `video/work/hi/`. For the Danish video, run `node video/tools/capture.cjs --lang=da` and `node video/tools/cards.cjs --lang=da` as well. They write Danish shots and labels to `video/work/hi-da/` and `video/work/cards-da/`, and the render draws the Danish version with them.
 4. **Cards.** `node video/tools/cards.cjs` writes the title cards and scene labels from `tools/cards.html` to `video/work/cards/`. To add a label, add an element with an id.
 5. **Draft.** `python3 video/intro/render.py preview` makes a silent 10 fps draft timed from word counts.
 6. **Narration.** Each command writes one wav per line to `video/work/<video>/voice/<name>/`. Add line keys at the end to redo only those lines.
@@ -43,6 +43,8 @@ Recordings stay in `~/.cache/starbuddy-video/voices/` and never go into the repo
 2. Clean it with `video/tools/clean-voice.sh ~/.cache/starbuddy-video/voices/me-en.wav`. Speech should be about 20 dB louder than the pauses.
 3. For English, the model also needs the exact text you read, in `voices/me-en.txt`. Then run `tts_en.py intro en-me clone:me-en-clean.wav:me-en.txt`.
 4. For Danish, run `tts_da.py intro da-me me-da-clean.wav`.
+
+To read the narration yourself instead, run `python3 video/tools/record.py intro da da-real`. It shows one line at a time, records between two Enter presses, cleans the take and plays it back so you can keep it or redo it. Cleaning uses the `deep-filter` binary from the [DeepFilterNet releases](https://github.com/Rikorose/DeepFilterNet/releases) (MIT/Apache-2.0) in `~/.cache/starbuddy-video/bin/`, and falls back to ffmpeg's denoiser without it. Speak up: a raw peak around -6 dB leaves far less hiss to remove than -27 dB. Kept lines go to `video/work/intro/voice/da-real/`, so `render.py final en:en-me da:da-real` uses them. Add line keys to redo only those lines, and `--target <mic id>` to pick a microphone.
 
 Sample texts that cover most sounds:
 

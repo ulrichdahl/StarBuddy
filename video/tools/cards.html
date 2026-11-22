@@ -25,23 +25,28 @@
 <body>
   <div class="card" id="intro">
     <div class="lockup"><img src="../../branding/starbuddy-mark.svg"><div class="word">STAR<b>·</b>BUDDY</div></div>
-    <div class="tag">Your org's companion for Star Citizen</div>
+    <div class="tag" data-da="Din orgs makker i Star Citizen">Your org's companion for Star Citizen</div>
   </div>
   <div class="card" id="outro">
     <div class="lockup"><img src="../../branding/starbuddy-mark.svg"><div class="word">STAR<b>·</b>BUDDY</div></div>
     <div class="url">starbuddy.uniteddanes.org</div>
-    <div class="small">Free &amp; open source · Windows &amp; Linux</div>
+    <div class="small" data-da="Gratis &amp; open source · Windows &amp; Linux">Free &amp; open source · Windows &amp; Linux</div>
   </div>
   <div id="labels" style="padding: 20px; display: flex; flex-direction: column; gap: 20px; align-items: flex-start;">
-    <div class="label" id="l-dashboard"><span>Website</span>Dashboard</div>
-    <div class="label" id="l-craft"><span>Website</span>Craft</div>
-    <div class="label" id="l-gathering"><span>Website</span>Gathering</div>
-    <div class="label" id="l-blueprints"><span>Website</span>Blueprints</div>
-    <div class="label" id="l-refinery"><span>Website</span>Refinery</div>
-    <div class="label client" id="l-client"><span>Desktop client</span>Home</div>
-    <div class="label client" id="l-overlays"><span>Desktop client</span>Over the game</div>
-    <div class="label client" id="l-f8"><span>Desktop client</span>Refinery read · F8</div>
-    <div class="label client" id="l-org"><span>Desktop client</span>Org</div>
+    <div class="label" id="l-dashboard" data-da="<span>Hjemmeside</span>Oversigt"><span>Website</span>Dashboard</div>
+    <div class="label" id="l-craft" data-da="<span>Hjemmeside</span>Fremstil"><span>Website</span>Craft</div>
+    <div class="label" id="l-gathering" data-da="<span>Hjemmeside</span>Indsamling"><span>Website</span>Gathering</div>
+    <div class="label" id="l-blueprints" data-da="<span>Hjemmeside</span>Blueprints"><span>Website</span>Blueprints</div>
+    <div class="label" id="l-refinery" data-da="<span>Hjemmeside</span>Raffinering"><span>Website</span>Refinery</div>
+    <div class="label client" id="l-client" data-da="<span>Desktopklient</span>Hjem"><span>Desktop client</span>Home</div>
+    <div class="label client" id="l-overlays" data-da="<span>Desktopklient</span>Vinduer over spillet"><span>Desktop client</span>Over the game</div>
+    <div class="label client" id="l-f8" data-da="<span>Desktopklient</span>Raffineriordre læst · F8"><span>Desktop client</span>Refinery read · F8</div>
+    <div class="label client" id="l-org" data-da="<span>Desktopklient</span>Org"><span>Desktop client</span>Org</div>
   </div>
+  <script>
+    // ?lang=da: each element with data-da takes that text instead (cards.cjs --lang=da).
+    const lang = new URLSearchParams(location.search).get('lang');
+    if (lang) document.querySelectorAll(`[data-${lang}]`).forEach((e) => { e.innerHTML = e.dataset[lang]; });
+  </script>
 </body>
 </html>
