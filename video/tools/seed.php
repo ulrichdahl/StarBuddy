@@ -133,7 +133,7 @@ foreach ($pools as $pid) {
 }
 
 // Refinery orders: a few running, one ready, two collected.
-$ores = ['Quantainium Ore', 'Laranite Ore', 'Agricium Ore', 'Bexalite Ore', 'Gold Ore', 'Taranite Ore', 'Copper Ore', 'Titanium Ore'];
+$ores = ['Quantainium (Ore)', 'Laranite (Ore)', 'Agricium (Ore)', 'Bexalite (Ore)', 'Gold (Ore)', 'Taranite (Ore)', 'Copper (Ore)', 'Titanium (Ore)'];  // catalogue names
 $methods = ['Dinyx Solventation', 'Pyrometric Chromalysis', 'Ferron Exchange', 'Cormack Method', 'Thermonatic Deposition'];
 $plan = [[-1, 4 * 3600, 'processing'], [-3, 7 * 3600, 'processing'], [-2, 11 * 3600, 'processing'], [-9, 5 * 3600, 'processing'], [-30, 2 * 3600, 'completed'], [-50, 3 * 3600, 'completed']];
 foreach ($nova as $k => $uid) {
