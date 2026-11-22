@@ -24,7 +24,23 @@ If the reader misses the panel, frame it: `Settings` › `Screen reading` › **
 
 ![The scan window](screens/client-scan.png)
 
-Press `F7` to start the live scan. While it runs, the client watches the signature badge near the middle of the screen and reads it about once a second. Ping a rock in scan mode and the scan window names the mineral, or the cluster, with its share, resistance and quality band. Press `F7` again to stop.
+Press `F7`, or switch on the scan window under overlays. Opening the scan window starts everything: it switches screen reading on if it is off, then the live scan. While it runs, the client watches the signature badge near the middle of the screen and reads it about once a second. Ping a rock in scan mode and the scan window names the mineral, or the cluster, with its share, resistance and quality band.
+
+On an open scan window, `F7` turns the live scan off and on, like the `Live: on` button in the window. Closing the window ends the live scan. Screen reading stays on, because `F8` uses it too.
+
+### When the scan cannot start
+
+![The scan window when screen capture is off](screens/client-scan-setup.png)
+
+If screen capture cannot start, the scan window shows **Screen capture is off** and the one step that fixes it:
+
+- **Windows, first time:** choose the game's window in the list and press `Start scanning`. The choice is remembered, so the next time the scan starts as soon as the window opens.
+- **Windows, the last window failed** (the game was closed, for example): press `Start scanning` again, or choose the window in `Settings` › `Screen reading`. The reason is shown in red.
+- **Linux:** press `Start scanning`, then pick the game's window in your desktop's dialog. The choice is remembered.
+
+A scan window left open when the client quit comes back at start-up, but waits for `Start scanning`.
+
+If no scan area is framed, the window says the badge is looked for mid-screen. `Frame area` lets you drag across the badge's spot, which reads more reliably.
 
 Ground deposits and debris carry only their size in the signature: the mineral follows from where you are.
 

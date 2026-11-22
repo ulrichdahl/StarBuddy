@@ -24,7 +24,23 @@ Hvis aflæsningen ikke finder panelet, så indram det: `Indstillinger` › `Skæ
 
 ![Scanningsvinduet](screens/client-scan.png)
 
-Tryk `F7` for at starte live-scanningen. Mens den kører, holder klienten øje med signatur-mærket nær midten af skærmen og læser det cirka én gang i sekundet. Ping en sten i scanningstilstand, så viser scanningsvinduet mineralet, eller klyngen, med andel, modstand og kvalitetsbånd. Tryk `F7` igen for at stoppe.
+Tryk `F7`, eller slå scanningsvinduet til under overlays. Når scanningsvinduet åbner, starter det hele: det slår skærmaflæsning til, hvis den er slået fra, og derefter live-scanningen. Mens den kører, holder klienten øje med signatur-mærket nær midten af skærmen og læser det cirka én gang i sekundet. Ping en sten i scanningstilstand, så viser scanningsvinduet mineralet, eller klyngen, med andel, modstand og kvalitetsbånd.
+
+Når scanningsvinduet er åbent, slår `F7` live-scanningen fra og til, ligesom knappen `Live: til` i vinduet. Lukker du vinduet, stopper live-scanningen. Skærmaflæsning bliver ved med at være slået til, fordi `F8` også bruger den.
+
+### Når scanningen ikke kan starte
+
+![Scanningsvinduet, når skærmaflæsning er slået fra](screens/client-scan-setup.png)
+
+Kan skærmaflæsning ikke starte, viser scanningsvinduet **Skærmaflæsning er slået fra** og det ene trin, der løser det:
+
+- **Windows, første gang:** vælg spillets vindue på listen og tryk `Start scanning`. Valget huskes, så næste gang starter scanningen, så snart vinduet åbner.
+- **Windows, sidste vindue fejlede** (spillet var f.eks. lukket): tryk `Start scanning` igen, eller vælg vinduet i `Indstillinger` › `Skærmaflæsning`. Årsagen står med rødt.
+- **Linux:** tryk `Start scanning`, og vælg spillets vindue i skrivebordets dialog. Valget huskes.
+
+Et scanningsvindue, der stod åbent, da klienten lukkede, kommer igen ved opstart, men venter på `Start scanning`.
+
+Er der ikke indrammet et scanningsområde, siger vinduet, at mærket søges midt på skærmen. Med `Indram område` trækker du hen over mærkets plads, så aflæsningen bliver mere sikker.
 
 Forekomster på jorden og vragrester viser kun deres størrelse i signaturen: mineralet afhænger af, hvor du er.
 
