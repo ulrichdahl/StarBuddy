@@ -48,7 +48,8 @@
     "notAMember": "Den Discord-konto er ikke medlem af denne StarBuddys Discord-server. Bliv medlem af serveren, og log ind igen.",
     "failed": "Login mislykkedes. Prøv igen.",
     "toPair": "Log ind for at forbinde din desktop-klient.",
-    "joinDiscord": "Bliv medlem af Discord-serveren"
+    "joinDiscord": "Bliv medlem af Discord-serveren",
+    "joinServer": "Bliv medlem af {{name}} på Discord"
   },
   "footer": {
     "notice": "Dette er en uofficiel Star Citizen-fanside uden tilknytning til Cloud Imperium-koncernen. Alt indhold på siden, som ikke er skabt af dens vært eller brugere, tilhører de respektive rettighedshavere.",

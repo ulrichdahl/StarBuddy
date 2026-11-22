@@ -151,9 +151,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // What the sign-in page needs to know about this instance — public.
-Route::get('instance', fn () => [
-    'discord_invite' => preg_match('#^https://(discord\.gg|discord\.com/invite)/#', (string) config('starbuddy.discord_invite')) ? config('starbuddy.discord_invite') : null,
-])->middleware('throttle:60,1');
+Route::get('instance', \App\Http\Controllers\InstanceController::class)->middleware('throttle:60,1');
 
 // Deployed version for footers and support requests — public, no auth needed.
 Route::get('version', fn () => ['name' => 'StarBuddy', 'version' => config('starbuddy.version')])->middleware('throttle:60,1');

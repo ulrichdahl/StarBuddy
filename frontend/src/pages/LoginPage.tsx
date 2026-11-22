@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../lib/api'
 import Box from '@mui/material/Box'
 import Alert from '@mui/material/Alert'
+import Avatar from '@mui/material/Avatar'
 import Button from '@mui/material/Button'
 import Link from '@mui/material/Link'
 import Paper from '@mui/material/Paper'
@@ -26,7 +27,7 @@ export function LoginPage() {
   const toPair = window.location.pathname === '/pair'
   const { data: instance } = useQuery({
     queryKey: ['instance'],
-    queryFn: async () => (await api.get<{ discord_invite: string | null }>('/api/instance')).data,
+    queryFn: async () => (await api.get<{ discord_invite: string | null; discord_server: { name: string; icon_url: string | null } | null }>('/api/instance')).data,
     staleTime: Infinity,
   })
   return (
@@ -88,8 +89,21 @@ export function LoginPage() {
           </Alert>
         )}
         {error === 'not_a_member' && instance?.discord_invite && (
-          <Button variant="outlined" size="large" fullWidth href={instance.discord_invite} target="_blank" rel="noopener" sx={{ mb: 1.5 }}>
-            {t('login.joinDiscord')}
+          <Button
+            variant="outlined"
+            size="large"
+            fullWidth
+            href={instance.discord_invite}
+            target="_blank"
+            rel="noopener"
+            startIcon={
+              instance.discord_server?.icon_url ? (
+                <Avatar src={instance.discord_server.icon_url} alt="" sx={{ width: 28, height: 28 }} />
+              ) : undefined
+            }
+            sx={{ mb: 1.5, py: 1, textTransform: 'none', letterSpacing: 0.2 }}
+          >
+            {instance.discord_server ? t('login.joinServer', { name: instance.discord_server.name }) : t('login.joinDiscord')}
           </Button>
         )}
         {toPair && !error && (
