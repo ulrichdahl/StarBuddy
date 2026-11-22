@@ -31,7 +31,7 @@ import PlaylistAddCheckIcon from '@mui/icons-material/PlaylistAddCheck'
 import SearchIcon from '@mui/icons-material/Search'
 import { api, unwrapList } from '../lib/api'
 import { useMe } from '../lib/auth'
-import type { Blueprint, BlueprintInfo, CatalogResponse, CatalogRow } from '../lib/types'
+import type { Blueprint, BlueprintInfo, CatalogResponse, CatalogRow, PoolProgress } from '../lib/types'
 import { PageHeader } from '../components/PageHeader'
 import { OwnersCell } from '../components/OwnersCell'
 import { ListPager } from '../components/ListPager'
@@ -58,13 +58,17 @@ const CATALOG_KEY = 'blueprints-catalog'
 /** Type column: the kiosk/type label, with the size for ship parts ("Cooler · S2"). */
 const typeText = (row: CatalogRow) => `${row.type_display ?? row.category_label}${row.size !== null ? ` · S${row.size}` : ''}`
 
+/** "Faction · Pool", the way the client names a pool too; the pool alone when nobody hands it out. Game data, shown as-is. */
+const poolName = (pool: PoolProgress) => [(pool.factions ?? []).join(', '), pool.pool_label].filter(Boolean).join(' · ')
+
 /**
  * The reward pool a recipe comes out of, and how far through it the player is,
  * as two cells.
  *
  * The smallest pool only: a recipe is rarely in more than two, the small one
  * is the better chance of it, and a second line of pool names would cost the
- * column more than it is worth. The dialog lists them all.
+ * column more than it is worth. "+N more" names the others on hover, and the
+ * dialog lists them all.
  */
 function PoolCells({ row }: { row: CatalogRow }) {
   const { t } = useTranslation()
@@ -81,6 +85,12 @@ function PoolCells({ row }: { row: CatalogRow }) {
   return (
     <>
       <TableCell sx={{ whiteSpace: 'nowrap' }}>
+        {/* Who hands it out, on a line of its own so the column stays narrow. */}
+        {(pool.factions ?? []).length > 0 && (
+          <Typography variant="caption" component="div" color="text.secondary" sx={{ lineHeight: 1.3, whiteSpace: 'normal' }}>
+            {pool.factions!.join(', ')}
+          </Typography>
+        )}
         {/* A pool no live mission hands out: the recipe is in the game files
             and nowhere on the contract board. */}
         {!pool.awardable && (
@@ -100,9 +110,11 @@ function PoolCells({ row }: { row: CatalogRow }) {
           {pool.pool_label}
         </Typography>
         {row.pools.length > 1 && (
-          <Typography variant="caption" component="span" color="text.secondary" sx={{ ml: 0.75 }}>
-            {t('blueprints.poolMore', { count: row.pools.length - 1 })}
-          </Typography>
+          <Tooltip title={<Box sx={{ whiteSpace: 'pre-line' }}>{row.pools.slice(1).map(poolName).join('\n')}</Box>}>
+            <Typography variant="caption" component="span" color="text.secondary" sx={{ ml: 0.75, cursor: 'help' }}>
+              {t('blueprints.poolMore', { count: row.pools.length - 1 })}
+            </Typography>
+          </Tooltip>
         )}
       </TableCell>
       <TableCell

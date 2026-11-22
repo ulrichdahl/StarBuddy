@@ -185,7 +185,7 @@ class BlueprintController extends Controller
      */
     private function poolProgress(User $me): array
     {
-        $entries = BlueprintPoolEntry::with('pool:id,key,record,awardable')->get();
+        $entries = BlueprintPoolEntry::with('pool:id,key,record,awardable,sources')->get();
         $mine = BlueprintOwned::where('user_id', $me->id)->pluck('blueprint_id')
             ->merge(Blueprint::where('is_default', true)->pluck('id'))
             ->filter()->unique()->all();
@@ -201,6 +201,9 @@ class BlueprintController extends Controller
             $progress[$poolId] = [
                 'pool_key' => $pool->key,
                 'pool_label' => $pool->label(),
+                // Who hands the pool out, for "Faction · Pool" where a recipe
+                // sits in several pools.
+                'factions' => collect($pool->sources ?? [])->pluck('contractor')->filter()->unique()->values()->all(),
                 'awardable' => (bool) $pool->awardable,
                 'in_pool' => $members->count(),
                 'owned_in_pool' => $held,

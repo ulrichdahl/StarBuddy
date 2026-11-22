@@ -303,6 +303,8 @@ export interface CatalogRow {
 export interface PoolProgress {
   pool_key: string
   pool_label: string
+  /** Who hands the pool out (contractors), unique; empty for an event pool. Optional: older servers omit it. */
+  factions?: string[]
   awardable: boolean
   in_pool: number
   owned_in_pool: number

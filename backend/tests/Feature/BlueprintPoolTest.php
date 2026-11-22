@@ -125,7 +125,12 @@ class BlueprintPoolTest extends TestCase
             'blueprint_name' => $mine->name, 'source' => 'manual',
         ]);
 
-        $big = BlueprintPool::create(['key' => 'bp_missionreward_big', 'sources' => []]);
+        $big = BlueprintPool::create(['key' => 'bp_missionreward_big', 'sources' => [
+            ['kind' => 'contract', 'contractor' => 'Vaughn', 'chance' => 1.0, 'missions' => []],
+            ['kind' => 'contract', 'contractor' => 'Vaughn', 'chance' => 0.5, 'missions' => []],
+            ['kind' => 'contract', 'contractor' => 'Foxwell Enforcement', 'chance' => 1.0, 'missions' => []],
+            ['kind' => 'event', 'event' => 'ORS', 'min_points' => 43200],
+        ]]);
         foreach ([$mine, $wanted] as $bp) {
             BlueprintPoolEntry::create([
                 'blueprint_pool_id' => $big->id, 'blueprint_id' => $bp->id,
@@ -149,6 +154,9 @@ class BlueprintPoolTest extends TestCase
         $this->assertSame(0, $rows['Still Wanted']['pools'][0]['owned_in_pool']);
         $this->assertSame('bp_missionreward_big', $rows['Still Wanted']['pools'][1]['pool_key']);
         $this->assertSame(50, $rows['Still Wanted']['pools'][1]['owned_percent']);
+        // Who hands each pool out, once each; an event has no contractor.
+        $this->assertSame(['Vaughn', 'Foxwell Enforcement'], $rows['Still Wanted']['pools'][1]['factions']);
+        $this->assertSame([], $rows['Still Wanted']['pools'][0]['factions']);
         // The one the player holds counts towards the same pool's progress.
         $this->assertSame('bp_missionreward_big', $rows['Already Mine']['pools'][0]['pool_key']);
         $this->assertSame(1, $rows['Already Mine']['pools'][0]['owned_in_pool']);
