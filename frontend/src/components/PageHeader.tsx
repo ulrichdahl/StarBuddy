@@ -1,6 +1,7 @@
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import type { ReactNode } from 'react'
+import { HelpButton } from '../help/HelpContext'
 
 interface PageHeaderProps {
   title: string
@@ -14,9 +15,12 @@ export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 3, flexWrap: 'wrap' }}>
       <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-        <Typography variant="h4" component="h2">
-          {title}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Typography variant="h4" component="h2">
+            {title}
+          </Typography>
+          <HelpButton size="small" />
+        </Box>
         {subtitle && (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             {subtitle}

@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "prebuild": "node scripts/third-party.mjs"
+    "prebuild": "node scripts/third-party.mjs && node scripts/help-check.mjs",
+    "help:check": "node scripts/help-check.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -24,7 +25,9 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-i18next": "^17.0.12",
-    "react-router-dom": "^7.18.2"
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.18.2",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@types/node": "^26.6.4",

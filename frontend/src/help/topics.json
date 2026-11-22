@@ -1,0 +1,37 @@
+{
+  "topics": [
+    { "id": "getting-started", "group": "start" },
+    { "id": "profile", "group": "start" },
+    { "id": "organizations", "group": "start" },
+    { "id": "dashboard", "group": "website" },
+    { "id": "materials", "group": "website" },
+    { "id": "items", "group": "website" },
+    { "id": "blueprints", "group": "website" },
+    { "id": "craft", "group": "website" },
+    { "id": "gathering", "group": "website" },
+    { "id": "refinery", "group": "website" },
+    { "id": "import", "group": "website" },
+    { "id": "admin", "group": "website" },
+    { "id": "training", "group": "website" },
+    { "id": "client-setup", "group": "client" },
+    { "id": "client-home", "group": "client" },
+    { "id": "client-overlays", "group": "client" },
+    { "id": "client-screen-reading", "group": "client" },
+    { "id": "client-pages", "group": "client" },
+    { "id": "client-settings", "group": "client" },
+    { "id": "troubleshooting", "group": "more" }
+  ],
+  "routes": {
+    "/": "dashboard",
+    "/craft": "craft",
+    "/gathering": "gathering",
+    "/resources": "materials",
+    "/items": "items",
+    "/blueprints": "blueprints",
+    "/refinery": "refinery",
+    "/import": "import",
+    "/admin": "admin",
+    "/training": "training",
+    "/about": "getting-started"
+  }
+}

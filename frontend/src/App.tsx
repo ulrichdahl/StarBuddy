@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
 import { useMe } from './lib/auth'
@@ -21,6 +21,9 @@ import { TrainingPage } from './pages/TrainingPage'
 import { canSee } from './lib/access'
 import { AboutPage } from './pages/AboutPage'
 
+// The public help: its own chunk, reachable without signing in.
+const HelpSite = lazy(() => import('./help/HelpSite').then((m) => ({ default: m.HelpSite })))
+
 /**
  * Profile locale wins once it exists; on first login (locale null) the
  * browser's language is stored so it follows the member to other devices.
@@ -41,6 +44,15 @@ function useLocaleSync(me: Me | null) {
 export default function App() {
   const { me, isLoading } = useMe()
   useLocaleSync(me)
+  const { pathname } = useLocation()
+
+  if (pathname === '/help' || pathname.startsWith('/help/')) {
+    return (
+      <Suspense fallback={null}>
+        <HelpSite signedIn={!!me} />
+      </Suspense>
+    )
+  }
 
   if (isLoading) {
     return (

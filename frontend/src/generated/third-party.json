@@ -253,6 +253,42 @@
    "url": "https://www.npmjs.com/package/@tanstack/react-query"
   },
   {
+   "name": "@types/debug",
+   "version": "4.1.13",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/@types/debug"
+  },
+  {
+   "name": "@types/estree",
+   "version": "1.0.10",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/@types/estree"
+  },
+  {
+   "name": "@types/estree-jsx",
+   "version": "1.0.5",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/@types/estree-jsx"
+  },
+  {
+   "name": "@types/hast",
+   "version": "3.0.5",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/@types/hast"
+  },
+  {
+   "name": "@types/mdast",
+   "version": "4.0.4",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/@types/mdast"
+  },
+  {
+   "name": "@types/ms",
+   "version": "2.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/@types/ms"
+  },
+  {
    "name": "@types/parse-json",
    "version": "4.0.2",
    "license": "MIT",
@@ -275,6 +311,18 @@
    "version": "4.4.12",
    "license": "MIT",
    "url": "https://www.npmjs.com/package/@types/react-transition-group"
+  },
+  {
+   "name": "@types/unist",
+   "version": "2.0.11",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/@types/unist"
+  },
+  {
+   "name": "@types/unist",
+   "version": "3.0.3",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/@types/unist"
   },
   {
    "name": "@typescript/typescript-aix-ppc64",
@@ -397,6 +445,12 @@
    "url": "https://www.npmjs.com/package/@typescript/typescript-win32-x64"
   },
   {
+   "name": "@ungap/structured-clone",
+   "version": "1.4.0",
+   "license": "ISC",
+   "url": "https://www.npmjs.com/package/@ungap/structured-clone"
+  },
+  {
    "name": "agent-base",
    "version": "6.0.2",
    "license": "MIT",
@@ -421,6 +475,12 @@
    "url": "https://www.npmjs.com/package/babel-plugin-macros"
   },
   {
+   "name": "bail",
+   "version": "2.0.2",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/bail"
+  },
+  {
    "name": "call-bind-apply-helpers",
    "version": "1.0.2",
    "license": "MIT",
@@ -433,6 +493,36 @@
    "url": "https://www.npmjs.com/package/callsites"
   },
   {
+   "name": "ccount",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/ccount"
+  },
+  {
+   "name": "character-entities",
+   "version": "2.0.2",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/character-entities"
+  },
+  {
+   "name": "character-entities-html4",
+   "version": "2.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/character-entities-html4"
+  },
+  {
+   "name": "character-entities-legacy",
+   "version": "3.0.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/character-entities-legacy"
+  },
+  {
+   "name": "character-reference-invalid",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/character-reference-invalid"
+  },
+  {
    "name": "clsx",
    "version": "2.1.1",
    "license": "MIT",
@@ -443,6 +533,12 @@
    "version": "1.0.8",
    "license": "MIT",
    "url": "https://www.npmjs.com/package/combined-stream"
+  },
+  {
+   "name": "comma-separated-tokens",
+   "version": "2.0.3",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/comma-separated-tokens"
   },
   {
    "name": "convert-source-map",
@@ -475,10 +571,28 @@
    "url": "https://www.npmjs.com/package/debug"
   },
   {
+   "name": "decode-named-character-reference",
+   "version": "1.3.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/decode-named-character-reference"
+  },
+  {
    "name": "delayed-stream",
    "version": "1.0.0",
    "license": "MIT",
    "url": "https://www.npmjs.com/package/delayed-stream"
+  },
+  {
+   "name": "dequal",
+   "version": "2.0.3",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/dequal"
+  },
+  {
+   "name": "devlop",
+   "version": "1.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/devlop"
   },
   {
    "name": "dom-helpers",
@@ -527,6 +641,24 @@
    "version": "4.0.0",
    "license": "MIT",
    "url": "https://www.npmjs.com/package/escape-string-regexp"
+  },
+  {
+   "name": "escape-string-regexp",
+   "version": "5.0.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/escape-string-regexp"
+  },
+  {
+   "name": "estree-util-is-identifier-name",
+   "version": "3.0.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/estree-util-is-identifier-name"
+  },
+  {
+   "name": "extend",
+   "version": "3.0.2",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/extend"
   },
   {
    "name": "find-root",
@@ -589,6 +721,18 @@
    "url": "https://www.npmjs.com/package/hasown"
   },
   {
+   "name": "hast-util-to-jsx-runtime",
+   "version": "2.3.7",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/hast-util-to-jsx-runtime"
+  },
+  {
+   "name": "hast-util-whitespace",
+   "version": "3.0.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/hast-util-whitespace"
+  },
+  {
    "name": "hoist-non-react-statics",
    "version": "3.3.2",
    "license": "BSD-3-Clause",
@@ -599,6 +743,12 @@
    "version": "4.0.1",
    "license": "MIT",
    "url": "https://www.npmjs.com/package/html-parse-stringify"
+  },
+  {
+   "name": "html-url-attributes",
+   "version": "3.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/html-url-attributes"
   },
   {
    "name": "https-proxy-agent",
@@ -619,6 +769,24 @@
    "url": "https://www.npmjs.com/package/import-fresh"
   },
   {
+   "name": "inline-style-parser",
+   "version": "0.2.9",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/inline-style-parser"
+  },
+  {
+   "name": "is-alphabetical",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/is-alphabetical"
+  },
+  {
+   "name": "is-alphanumerical",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/is-alphanumerical"
+  },
+  {
    "name": "is-arrayish",
    "version": "0.2.1",
    "license": "MIT",
@@ -629,6 +797,24 @@
    "version": "2.17.0",
    "license": "MIT",
    "url": "https://www.npmjs.com/package/is-core-module"
+  },
+  {
+   "name": "is-decimal",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/is-decimal"
+  },
+  {
+   "name": "is-hexadecimal",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/is-hexadecimal"
+  },
+  {
+   "name": "is-plain-obj",
+   "version": "4.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/is-plain-obj"
   },
   {
    "name": "js-tokens",
@@ -655,16 +841,292 @@
    "url": "https://www.npmjs.com/package/lines-and-columns"
   },
   {
+   "name": "longest-streak",
+   "version": "3.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/longest-streak"
+  },
+  {
    "name": "loose-envify",
    "version": "1.4.0",
    "license": "MIT",
    "url": "https://www.npmjs.com/package/loose-envify"
   },
   {
+   "name": "markdown-table",
+   "version": "3.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/markdown-table"
+  },
+  {
    "name": "math-intrinsics",
    "version": "1.1.0",
    "license": "MIT",
    "url": "https://www.npmjs.com/package/math-intrinsics"
+  },
+  {
+   "name": "mdast-util-find-and-replace",
+   "version": "3.0.5",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-find-and-replace"
+  },
+  {
+   "name": "mdast-util-from-markdown",
+   "version": "2.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-from-markdown"
+  },
+  {
+   "name": "mdast-util-gfm",
+   "version": "3.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-gfm"
+  },
+  {
+   "name": "mdast-util-gfm-autolink-literal",
+   "version": "2.1.2",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-gfm-autolink-literal"
+  },
+  {
+   "name": "mdast-util-gfm-footnote",
+   "version": "2.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-gfm-footnote"
+  },
+  {
+   "name": "mdast-util-gfm-strikethrough",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-gfm-strikethrough"
+  },
+  {
+   "name": "mdast-util-gfm-table",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-gfm-table"
+  },
+  {
+   "name": "mdast-util-gfm-task-list-item",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-gfm-task-list-item"
+  },
+  {
+   "name": "mdast-util-mdx-expression",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-mdx-expression"
+  },
+  {
+   "name": "mdast-util-mdx-jsx",
+   "version": "3.2.2",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-mdx-jsx"
+  },
+  {
+   "name": "mdast-util-mdxjs-esm",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-mdxjs-esm"
+  },
+  {
+   "name": "mdast-util-phrasing",
+   "version": "4.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-phrasing"
+  },
+  {
+   "name": "mdast-util-to-hast",
+   "version": "13.2.2",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-to-hast"
+  },
+  {
+   "name": "mdast-util-to-markdown",
+   "version": "2.2.4",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-to-markdown"
+  },
+  {
+   "name": "mdast-util-to-string",
+   "version": "4.0.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/mdast-util-to-string"
+  },
+  {
+   "name": "micromark",
+   "version": "4.0.3",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark"
+  },
+  {
+   "name": "micromark-core-commonmark",
+   "version": "2.0.4",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-core-commonmark"
+  },
+  {
+   "name": "micromark-extension-gfm",
+   "version": "3.0.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-extension-gfm"
+  },
+  {
+   "name": "micromark-extension-gfm-autolink-literal",
+   "version": "2.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-extension-gfm-autolink-literal"
+  },
+  {
+   "name": "micromark-extension-gfm-footnote",
+   "version": "2.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-extension-gfm-footnote"
+  },
+  {
+   "name": "micromark-extension-gfm-strikethrough",
+   "version": "2.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-extension-gfm-strikethrough"
+  },
+  {
+   "name": "micromark-extension-gfm-table",
+   "version": "2.1.2",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-extension-gfm-table"
+  },
+  {
+   "name": "micromark-extension-gfm-tagfilter",
+   "version": "2.0.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-extension-gfm-tagfilter"
+  },
+  {
+   "name": "micromark-extension-gfm-task-list-item",
+   "version": "2.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-extension-gfm-task-list-item"
+  },
+  {
+   "name": "micromark-factory-destination",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-factory-destination"
+  },
+  {
+   "name": "micromark-factory-label",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-factory-label"
+  },
+  {
+   "name": "micromark-factory-space",
+   "version": "2.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-factory-space"
+  },
+  {
+   "name": "micromark-factory-title",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-factory-title"
+  },
+  {
+   "name": "micromark-factory-whitespace",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-factory-whitespace"
+  },
+  {
+   "name": "micromark-util-character",
+   "version": "2.1.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-character"
+  },
+  {
+   "name": "micromark-util-chunked",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-chunked"
+  },
+  {
+   "name": "micromark-util-classify-character",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-classify-character"
+  },
+  {
+   "name": "micromark-util-combine-extensions",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-combine-extensions"
+  },
+  {
+   "name": "micromark-util-decode-numeric-character-reference",
+   "version": "2.0.2",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-decode-numeric-character-reference"
+  },
+  {
+   "name": "micromark-util-decode-string",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-decode-string"
+  },
+  {
+   "name": "micromark-util-edit-map",
+   "version": "1.0.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-edit-map"
+  },
+  {
+   "name": "micromark-util-encode",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-encode"
+  },
+  {
+   "name": "micromark-util-html-tag-name",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-html-tag-name"
+  },
+  {
+   "name": "micromark-util-normalize-identifier",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-normalize-identifier"
+  },
+  {
+   "name": "micromark-util-resolve-all",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-resolve-all"
+  },
+  {
+   "name": "micromark-util-sanitize-uri",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-sanitize-uri"
+  },
+  {
+   "name": "micromark-util-subtokenize",
+   "version": "2.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-subtokenize"
+  },
+  {
+   "name": "micromark-util-symbol",
+   "version": "2.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-symbol"
+  },
+  {
+   "name": "micromark-util-types",
+   "version": "2.0.3",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/micromark-util-types"
   },
   {
    "name": "mime-db",
@@ -697,6 +1159,12 @@
    "url": "https://www.npmjs.com/package/parent-module"
   },
   {
+   "name": "parse-entities",
+   "version": "4.0.2",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/parse-entities"
+  },
+  {
    "name": "parse-json",
    "version": "5.2.0",
    "license": "MIT",
@@ -725,6 +1193,12 @@
    "version": "15.8.1",
    "license": "MIT",
    "url": "https://www.npmjs.com/package/prop-types"
+  },
+  {
+   "name": "property-information",
+   "version": "7.2.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/property-information"
   },
   {
    "name": "proxy-from-env",
@@ -763,6 +1237,12 @@
    "url": "https://www.npmjs.com/package/react-is"
   },
   {
+   "name": "react-markdown",
+   "version": "10.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/react-markdown"
+  },
+  {
    "name": "react-router",
    "version": "7.18.4",
    "license": "MIT",
@@ -779,6 +1259,30 @@
    "version": "4.4.5",
    "license": "BSD-3-Clause",
    "url": "https://www.npmjs.com/package/react-transition-group"
+  },
+  {
+   "name": "remark-gfm",
+   "version": "4.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/remark-gfm"
+  },
+  {
+   "name": "remark-parse",
+   "version": "11.0.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/remark-parse"
+  },
+  {
+   "name": "remark-rehype",
+   "version": "11.1.2",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/remark-rehype"
+  },
+  {
+   "name": "remark-stringify",
+   "version": "11.0.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/remark-stringify"
   },
   {
    "name": "resolve",
@@ -811,6 +1315,24 @@
    "url": "https://www.npmjs.com/package/source-map"
   },
   {
+   "name": "space-separated-tokens",
+   "version": "2.0.2",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/space-separated-tokens"
+  },
+  {
+   "name": "stringify-entities",
+   "version": "4.0.5",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/stringify-entities"
+  },
+  {
+   "name": "style-to-object",
+   "version": "2.0.2",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/style-to-object"
+  },
+  {
    "name": "stylis",
    "version": "4.2.0",
    "license": "MIT",
@@ -823,10 +1345,58 @@
    "url": "https://www.npmjs.com/package/supports-preserve-symlinks-flag"
   },
   {
+   "name": "trim-lines",
+   "version": "3.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/trim-lines"
+  },
+  {
+   "name": "trough",
+   "version": "2.2.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/trough"
+  },
+  {
    "name": "typescript",
    "version": "7.0.2",
    "license": "Apache-2.0",
    "url": "https://www.npmjs.com/package/typescript"
+  },
+  {
+   "name": "unified",
+   "version": "11.0.5",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/unified"
+  },
+  {
+   "name": "unist-util-is",
+   "version": "6.0.1",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/unist-util-is"
+  },
+  {
+   "name": "unist-util-position",
+   "version": "5.0.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/unist-util-position"
+  },
+  {
+   "name": "unist-util-stringify-position",
+   "version": "4.0.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/unist-util-stringify-position"
+  },
+  {
+   "name": "unist-util-visit",
+   "version": "5.2.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/unist-util-visit"
+  },
+  {
+   "name": "unist-util-visit-parents",
+   "version": "6.1.0",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/unist-util-visit-parents"
   },
   {
    "name": "use-sync-external-store",
@@ -835,10 +1405,28 @@
    "url": "https://www.npmjs.com/package/use-sync-external-store"
   },
   {
+   "name": "vfile",
+   "version": "6.0.3",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/vfile"
+  },
+  {
+   "name": "vfile-message",
+   "version": "4.0.4",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/vfile-message"
+  },
+  {
    "name": "yaml",
    "version": "1.10.3",
    "license": "ISC",
    "url": "https://www.npmjs.com/package/yaml"
+  },
+  {
+   "name": "zwitch",
+   "version": "2.0.4",
+   "license": "MIT",
+   "url": "https://www.npmjs.com/package/zwitch"
   }
  ],
  "composer": [

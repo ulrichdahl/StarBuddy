@@ -1105,5 +1105,21 @@
     "unlinkConfirm": "Fjern forbindelsen til UDI? Dine indstillinger dér slettes. Filer der allerede er installeret bliver liggende.",
     "openError": "Kunne ikke åbne opsætningen. Prøv igen.",
     "unlinkError": "UDI kunne ikke nås, så forbindelsen er bevaret. Prøv igen senere."
+  },
+  "help": {
+    "title": "Hjælp",
+    "forThisPage": "Hjælp til denne side (?)",
+    "openFull": "Åbn i en ny fane",
+    "contents": "Indhold",
+    "moreTopics": "Mere hjælp",
+    "openApp": "Åbn StarBuddy",
+    "loginLink": "Sådan virker StarBuddy",
+    "loginHint": "Hjælp og vejledninger til hjemmesiden og desktop-klienten. Du behøver ikke logge ind.",
+    "groups": {
+      "start": "Kom i gang",
+      "website": "Hjemmesiden",
+      "client": "Desktop-klienten",
+      "more": "Mere"
+    }
   }
 }

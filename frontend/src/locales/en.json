@@ -1108,5 +1108,21 @@
     "unlinkConfirm": "Unlink from UDI? Your settings stored there are deleted. Files already installed stay.",
     "openError": "Could not open the setup. Try again.",
     "unlinkError": "UDI could not be reached, so the link is kept. Try again later."
+  },
+  "help": {
+    "title": "Help",
+    "forThisPage": "Help for this page (?)",
+    "openFull": "Open in a new tab",
+    "contents": "Contents",
+    "moreTopics": "More help",
+    "openApp": "Open StarBuddy",
+    "loginLink": "How StarBuddy works",
+    "loginHint": "Help and guides for the website and the desktop client. No sign-in needed.",
+    "groups": {
+      "start": "Getting started",
+      "website": "The website",
+      "client": "Desktop client",
+      "more": "More"
+    }
   }
 }
