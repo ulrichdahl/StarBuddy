@@ -846,3 +846,10 @@ body {
 .sb .sb-bp-own button:hover:not(:disabled), .sb .sb-bp-own button.on { opacity: 1; }
 .sb .sb-bp-own button.yes.on { background: color-mix(in srgb, var(--green) 20%, transparent); }
 .sb .sb-bp-own button.no.on { background: color-mix(in srgb, var(--red) 20%, transparent); }
+/* One height for the whole filter row: inputs, selects, toggles and the button. */
+.sb .sb-bp-filters .sb-search,
+.sb .sb-bp-filters select,
+.sb .sb-bp-filters .sb-bp-own,
+.sb .sb-bp-filters .sb-bp-markall { height: 32px; box-sizing: border-box; }
+.sb .sb-bp-filters .sb-bp-markall { padding-top: 0; padding-bottom: 0; }
+.sb .sb-bp-filters .sb-bp-own button { height: 100%; }
