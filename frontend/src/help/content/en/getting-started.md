@@ -28,9 +28,20 @@ Choose `Organizations` in the same menu, find your org and press `Request to joi
 
 Each stack is **private** (only you) or **org-visible** (your org can see it and craft with it). You choose per stack and can change it later.
 
-## 5. Install the desktop client (optional, recommended)
+## 5. The desktop client: optional
 
-The client sends your new blueprints, finished missions and refinery jobs to StarBuddy while you play, reads refinery orders and mining scans off the screen, and shows small windows over the game. See [Install and pair the client](client-setup).
+You do not need the desktop client. Everything on the website works without it: you can type in your materials, items, blueprints and refinery orders, see what the org can craft, and keep your shopping list.
+
+Without the client you miss what only it can do, because it runs beside the game:
+
+- **Points for your org.** Points come only from the game's own log, which the client sends. Without it, your missions, refinery jobs and travel score nothing.
+- **Blueprints added by themselves** when the game says you got one, and the ones you already had, read from old logs.
+- **Refinery orders read off the screen** with `F8`, instead of typed in.
+- **Mining scans read** with `F7`: what a rock holds.
+- **Windows over the game:** server status, your refinery orders, shopping list and points, without leaving the game.
+- **Game status for your org:** whether you play, where and in which ship, if you choose to share it.
+
+See [Install and pair the client](client-setup).
 
 ## Getting around
 

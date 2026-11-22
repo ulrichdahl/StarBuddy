@@ -499,12 +499,10 @@
   },
   "blueprints": {
     "title": "Blueprints",
-    "subtitle": "Blueprints ejet på tværs af org'en, i fabrikatorens rækkefølge — slå “Kun ejede” fra for at sætte hak ved nye",
+    "subtitle": "Alle blueprints i fabrikatorens rækkefølge, med hvem i org'en der ejer dem — knapperne filtrerer efter ejer",
     "searchPlaceholder": "Blueprint-navn…",
     "grade": "Grade",
     "allGrades": "Alle grades",
-    "onlyUnownedByMe": "Kun dem jeg ikke ejer",
-    "unownedByAnyone": "Ingen i org'en ejer",
     "view": {
       "aria": "Visning",
       "checklist": "Tjekliste",
@@ -534,7 +532,6 @@
       "you": "Dig",
       "ownedBy": "Ejes af {{member}}"
     },
-    "ownedOnly": "Kun ejede",
     "info": {
       "ownersTitle": "Hvem har det",
       "openHint": "Klik på et navn for detaljer",
@@ -593,7 +590,14 @@
     "colPool": "Belønningspulje",
     "poolProgressShort": "{{owned}}/{{count}} · {{percent}}%",
     "poolMore": "+{{count}} mere",
-    "colPoolDone": "Pulje klaret"
+    "colPoolDone": "Pulje klaret",
+    "own": {
+      "label": "Hvem ejer den",
+      "mine": "Kun ejet af mig",
+      "owned": "Ejet i org'en, mig medregnet",
+      "unownedByMe": "Ikke ejet af mig",
+      "unowned": "Ingen i org'en ejer"
+    }
   },
   "refinery": {
     "title": "Raffinering",

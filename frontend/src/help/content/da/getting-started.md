@@ -28,9 +28,20 @@ Vælg `Organisationer` i samme menu, find din org og tryk `Anmod om medlemskab`.
 
 Hver stak er **privat** (kun dig) eller **org-synlig** (din org kan se den og fremstille med den). Du vælger for hver stak og kan ændre det senere.
 
-## 5. Installér desktop-klienten (valgfrit, anbefales)
+## 5. Desktop-klienten: valgfri
 
-Klienten sender dine nye blueprints, færdige missioner og raffinaderijob til StarBuddy, mens du spiller, læser raffinaderiordrer og minescanninger fra skærmen og viser små vinduer over spillet. Se [Installér og par klienten](client-setup).
+Du behøver ikke desktop-klienten. Alt på hjemmesiden virker uden den: du kan skrive dine materialer, genstande, blueprints og raffinaderiordrer ind, se hvad org'en kan fremstille, og føre din indkøbsliste.
+
+Uden klienten går du glip af det, kun den kan, fordi den kører ved siden af spillet:
+
+- **Point til din org.** Point kommer kun fra spillets egen log, og den sender klienten. Uden den giver dine missioner, raffinaderijob og rejser ingen point.
+- **Blueprints, der tilføjes af sig selv**, når spillet siger, at du har fået en, og dem du allerede havde, læst fra gamle logs.
+- **Raffinaderiordrer læst fra skærmen** med `F8` i stedet for tastet ind.
+- **Minescanninger læst** med `F7`: hvad en sten indeholder.
+- **Vinduer over spillet:** serverstatus, dine raffinaderiordrer, indkøbsliste og point, uden at forlade spillet.
+- **Spilstatus til din org:** om du spiller, hvor og i hvilket skib, hvis du vælger at dele det.
+
+Se [Installér og par klienten](client-setup).
 
 ## Sådan finder du rundt
 

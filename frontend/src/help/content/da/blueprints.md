@@ -8,7 +8,7 @@ Siden Blueprints viser alle blueprints i spillet, hvem i din org der ejer dem, o
 
 Desktop-klienten tilføjer selv blueprints, når spillet logger, at du har fået en. Sådan tilføjer du dem, du allerede havde:
 
-- **Tjekliste:** slå `Kun ejede` fra, gå din fabrikator-liste igennem i spillet og sæt flueben undervejs. Hvert flueben gemmes med det samme. `Mellemrum` sætter flueben ved den markerede række, `↑` `↓` flytter.
+- **Tjekliste:** gå din fabrikator-liste igennem i spillet og sæt flueben undervejs. Hvert flueben gemmes med det samme. `Mellemrum` sætter flueben ved den markerede række, `↑` `↓` flytter.
 - **Hurtig tilføjelse:** skriv et navn, vælg det og tryk `Enter`. Feltet beholder fokus til den næste. `✕` på en chip fortryder.
 - `Markér alle viste som ejet` sætter flueben ved alle de blueprints, filtrene viser.
 
@@ -16,7 +16,18 @@ Standard-blueprints ejes af alle.
 
 ## Find blueprints
 
-Filtrér på navn, type og grad. `Kun dem jeg ikke ejer` og `Ingen i org'en ejer` viser, hvad der mangler. Visningen **Matrix** viser org'ens medlemmer som kolonner.
+Filtrér på navn, type og grad, og på hvem der ejer den, med fire knapper:
+
+| Knap | Viser |
+| --- | --- |
+| Person med flueben | Kun ejet af mig |
+| Gruppe med flueben | Ejet i org'en, mig medregnet |
+| Person, streget over | Ikke ejet af mig |
+| Gruppe, streget over | Ingen i org'en ejer |
+
+En knap, der modsiger en anden, slår den fra. "Ejet i org'en" og "Ikke ejet af mig" sammen viser, hvad org'en har, og du mangler. Klientens side Blueprints har de samme knapper.
+
+Visningen **Matrix** viser org'ens medlemmer som kolonner.
 
 ## En blueprints detaljer
 
