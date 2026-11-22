@@ -713,8 +713,9 @@
     "gradeOption": "Grade {{grade}}",
     "showLabel": "Vis",
     "toggle": {
-      "owned": "Kun ejede",
-      "unownedByMe": "Kun dem jeg ikke ejer",
+      "mine": "Kun ejet af mig",
+      "owned": "Ejet i org'en, mig medregnet",
+      "unownedByMe": "Ikke ejet af mig",
       "unowned": "Ingen i org'en ejer"
     },
     "markAllShown": "Markér alle viste som ejet ({{count}})",

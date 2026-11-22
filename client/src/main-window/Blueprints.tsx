@@ -38,23 +38,34 @@ interface Catalog {
   categories: { key: string; label: string; subs: { key: string; label: string }[] }[];
 }
 
-/** The website's three switches; "owned" turns the other two off, and they it. */
+/** Four ownership filters: by me or by the org, owned or not. */
 interface Toggles {
+  mine: boolean;
   owned: boolean;
   unownedByMe: boolean;
   unowned: boolean;
 }
+type ToggleKey = keyof Toggles;
+const TOGGLES: ToggleKey[] = ["mine", "owned", "unownedByMe", "unowned"];
+/** What switching one on switches off: the filters that would contradict it. */
+const CONFLICTS: Record<ToggleKey, ToggleKey[]> = {
+  mine: ["unownedByMe", "unowned"],
+  owned: ["unowned"],
+  unownedByMe: ["mine"],
+  unowned: ["mine", "owned"],
+};
 
 const STORE_KEY = "starbuddy.blueprintFilters";
 
 function loadToggles(): Toggles {
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY) ?? "null");
-    if (saved && typeof saved === "object") return { owned: !!saved.owned, unownedByMe: !!saved.unownedByMe, unowned: !!saved.unowned };
+    if (saved && typeof saved === "object")
+      return { mine: !!saved.mine, owned: !!saved.owned, unownedByMe: !!saved.unownedByMe, unowned: !!saved.unowned };
   } catch {
     // Unreadable: start with everything shown.
   }
-  return { owned: false, unownedByMe: false, unowned: false };
+  return { mine: false, owned: false, unownedByMe: false, unowned: false };
 }
 
 /** "Magazine · S2": the type without the group the heading already names. */
@@ -85,11 +96,9 @@ export function Blueprints({ paired }: { paired: boolean }) {
   useEffect(() => setPage(1), [search, category, grade, toggles]);
   useEffect(() => setFocus(0), [search, category, grade, toggles, page]);
 
-  const setToggle = (key: keyof Toggles, on: boolean) => {
-    const next: Toggles =
-      key === "owned"
-        ? { owned: on, unownedByMe: on ? false : toggles.unownedByMe, unowned: on ? false : toggles.unowned }
-        : { ...toggles, [key]: on, owned: on ? false : toggles.owned };
+  const setToggle = (key: ToggleKey, on: boolean) => {
+    const next: Toggles = { ...toggles, [key]: on };
+    if (on) for (const k of CONFLICTS[key]) next[k] = false;
     setToggles(next);
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify(next));
@@ -102,6 +111,7 @@ export function Blueprints({ paired }: { paired: boolean }) {
     search: search || undefined,
     category: category || undefined,
     grade: grade || undefined,
+    owned_by_me: toggles.mine ? 1 : undefined,
     owned: toggles.owned ? 1 : undefined,
     unowned_by_me: toggles.unownedByMe ? 1 : undefined,
     unowned: toggles.unowned ? 1 : undefined,
@@ -189,10 +199,18 @@ export function Blueprints({ paired }: { paired: boolean }) {
             </option>
           ))}
         </select>
-        <div className="sb-seg" role="group" aria-label={t("blueprints.showLabel")}>
-          {(["owned", "unownedByMe", "unowned"] as const).map((k) => (
-            <button key={k} type="button" className={toggles[k] ? "on" : ""} aria-pressed={toggles[k]} onClick={() => setToggle(k, !toggles[k])}>
-              {t(`blueprints.toggle.${k}`)}
+        <div className="sb-seg sb-bp-own" role="group" aria-label={t("blueprints.showLabel")}>
+          {TOGGLES.map((k) => (
+            <button
+              key={k}
+              type="button"
+              className={`${k === "mine" || k === "owned" ? "yes" : "no"}${toggles[k] ? " on" : ""}`}
+              aria-pressed={toggles[k]}
+              aria-label={t(`blueprints.toggle.${k}`)}
+              title={t(`blueprints.toggle.${k}`)}
+              onClick={() => setToggle(k, !toggles[k])}
+            >
+              {OWN_ICONS[k]}
             </button>
           ))}
         </div>
@@ -362,6 +380,28 @@ const ME = svg(
     <path d="M14.5 17l2.5 2.5 4.5-5" />
   </>,
 );
+/** The ownership filters: two icons each, who (you or the org) and whether (owned or not). */
+const PERSON = svg(
+  <>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4.5 21c.8-4.2 3.8-6.5 7.5-6.5s6.7 2.3 7.5 6.5" />
+  </>,
+);
+const PEOPLE = svg(
+  <>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20c.7-3.6 3.3-5.5 6.5-5.5s5.8 1.9 6.5 5.5" />
+    <path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.2c2 .7 3.2 2.6 3.6 5.8" />
+  </>,
+);
+const TICK = svg(<path d="M5 12.5l4.5 4.5L19 7.5" />);
+const CROSS = svg(<path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />);
+const OWN_ICONS: Record<ToggleKey, React.ReactNode> = {
+  mine: <>{PERSON}{TICK}</>,
+  owned: <>{PEOPLE}{TICK}</>,
+  unownedByMe: <>{PERSON}{CROSS}</>,
+  unowned: <>{PEOPLE}{CROSS}</>,
+};
 /** Others in the org hold it. */
 const GROUP = svg(
   <>

@@ -836,3 +836,13 @@ body {
 .sb .sb-bp-menu button:hover { background: rgba(120, 160, 190, 0.12); }
 .sb .sb-bp-menu button.on { color: var(--cyan); }
 .sb-bp-menu-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Ownership filters as four icon toggles: green for owned, red for not;
+   faded while off, lit with a tint of their colour while on. */
+.sb .sb-bp-own button { padding: 0 9px; display: inline-flex; align-items: center; gap: 2px; opacity: 0.55; }
+.sb .sb-bp-own button svg { width: 17px; height: 17px; }
+.sb .sb-bp-own button svg + svg { width: 14px; height: 14px; stroke-width: 2.6; }
+.sb .sb-bp-own button.yes { color: var(--green); }
+.sb .sb-bp-own button.no { color: var(--red); }
+.sb .sb-bp-own button:hover:not(:disabled), .sb .sb-bp-own button.on { opacity: 1; }
+.sb .sb-bp-own button.yes.on { background: color-mix(in srgb, var(--green) 20%, transparent); }
+.sb .sb-bp-own button.no.on { background: color-mix(in srgb, var(--red) 20%, transparent); }
