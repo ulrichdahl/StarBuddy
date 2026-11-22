@@ -150,6 +150,9 @@ Route::middleware('auth:sanctum')->group(function () {
 // Deployed version for footers and support requests — public, no auth needed.
 Route::get('version', fn () => ['name' => 'StarBuddy', 'version' => config('starbuddy.version')])->middleware('throttle:60,1');
 
+// The latest desktop client installers, for a direct download per platform — public.
+Route::get('client/latest', \App\Http\Controllers\ClientReleaseController::class)->middleware('throttle:60,1');
+
 // The desktop client exchanges a short-lived pairing code for its device token.
 Route::post('devices/pair', [DeviceController::class, 'pair'])->middleware('throttle:10,1');
 

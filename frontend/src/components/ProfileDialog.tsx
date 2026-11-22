@@ -7,30 +7,20 @@ import Button from '@mui/material/Button'
 import Dialog from '@mui/material/Dialog'
 import IconButton from '@mui/material/IconButton'
 import InputBase from '@mui/material/InputBase'
-import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import CloseIcon from '@mui/icons-material/Close'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import DesktopWindowsOutlinedIcon from '@mui/icons-material/DesktopWindowsOutlined'
-import DownloadIcon from '@mui/icons-material/Download'
-import LinkIcon from '@mui/icons-material/Link'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { api } from '../lib/api'
 import { deviceState, latestSync, useDevices, type DeviceState } from '../lib/devices'
 import type { Me } from '../lib/types'
-import { useNow } from '../lib/useNow'
 import { fonts, hud } from '../theme'
 import { HudAvatar, HudBadge, HudPanel, Mono, OrgTag, StatusDot } from './hud'
 import { OwnStockSection } from './OwnStockSection'
-
-const RELEASES = 'https://github.com/ulrichdahl/StarBuddy/releases'
-
-interface PairingCode {
-  code: string
-  expires_at: string
-}
+import { DownloadStep, PairStep } from './ClientSetup'
 
 const labelSx = {
   fontFamily: fonts.display,
@@ -40,8 +30,6 @@ const labelSx = {
   textTransform: 'uppercase',
   color: hud.textDim,
 } as const
-
-const stepSx = { ...labelSx, fontWeight: 700, color: hud.teal, letterSpacing: '0.18em' } as const
 
 const STATE_COLOUR: Record<DeviceState, string> = { active: hud.teal, stale: hud.amber, never: hud.textFaint }
 
@@ -134,72 +122,6 @@ function IdentitySection({ me }: { me: Me }) {
   )
 }
 
-function PairStep() {
-  const { t } = useTranslation()
-  const queryClient = useQueryClient()
-  const [code, setCode] = useState<PairingCode | null>(null)
-  const now = useNow()
-  const generate = useMutation({
-    mutationFn: async () => (await api.post<PairingCode>('/api/devices/pairing-code')).data,
-    onSuccess: (data) => {
-      setCode(data)
-      // The app shows up in the device list once it has paired.
-      void queryClient.invalidateQueries({ queryKey: ['devices'] })
-    },
-  })
-  const left = code ? Math.max(0, new Date(code.expires_at).getTime() - now) : 0
-  const live = code !== null && left > 0
-  const clock = `${String(Math.floor(left / 60000)).padStart(2, '0')}:${String(Math.floor((left % 60000) / 1000)).padStart(2, '0')}`
-
-  return (
-    <Box sx={{ border: `1px solid ${hud.line}`, bgcolor: '#0f161b', p: 1.75, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-      <Box component="span" sx={stepSx}>
-        02 · {t('pair.pair')}
-      </Box>
-      {live ? (
-        <>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              height: 52,
-              px: 1.75,
-              border: `1px dashed ${hud.teal}`,
-              bgcolor: 'rgba(79,209,197,0.06)',
-            }}
-          >
-            <Box component="span" sx={{ fontFamily: fonts.mono, fontSize: 22, letterSpacing: '0.18em', color: hud.teal }}>
-              {code.code}
-            </Box>
-            <Box component="span" sx={{ fontFamily: fonts.mono, fontSize: 12, color: hud.amber }} aria-live="off">
-              {clock}
-            </Box>
-          </Box>
-          <Typography variant="body2" sx={{ fontSize: 12.5, color: hud.textDim }}>
-            {t('pair.waiting')}
-          </Typography>
-        </>
-      ) : (
-        <>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<LinkIcon />}
-            onClick={() => generate.mutate()}
-            disabled={generate.isPending}
-          >
-            {generate.isPending ? t('pair.generating') : code ? t('pair.generateNew') : t('pair.generate')}
-          </Button>
-          <Typography variant="body2" sx={{ fontSize: 12.5, color: hud.textDim }}>
-            {code ? t('pair.expired') : t('pair.enterWithin')}
-          </Typography>
-        </>
-      )}
-    </Box>
-  )
-}
-
 function DesktopClientSection() {
   const { t } = useTranslation()
   const stamp = useStamp()
@@ -210,21 +132,6 @@ function DesktopClientSection() {
     mutationFn: async (id: number) => api.delete(`/api/devices/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['devices'] }),
   })
-
-  const download = (label: string) => (
-    <Button
-      variant="outlined"
-      color="inherit"
-      component="a"
-      href={`${RELEASES}/latest`}
-      target="_blank"
-      rel="noopener"
-      startIcon={<DownloadIcon sx={{ color: hud.teal }} />}
-      sx={{ justifyContent: 'flex-start', fontFamily: fonts.body, fontWeight: 500, fontSize: 13, letterSpacing: 0, textTransform: 'none' }}
-    >
-      {label}
-    </Button>
-  )
 
   return (
     <HudPanel
@@ -253,16 +160,7 @@ function DesktopClientSection() {
       </Typography>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 1.5 }}>
-        <Box sx={{ border: `1px solid ${hud.line}`, bgcolor: '#0f161b', p: 1.75, display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-          <Box component="span" sx={stepSx}>
-            01 · {t('pair.install')}
-          </Box>
-          {download(t('pair.linux'))}
-          {download(t('pair.windows'))}
-          <Link href={`${RELEASES}/tag/dev`} target="_blank" rel="noopener" sx={{ fontSize: 12.5 }}>
-            {t('pair.devBuilds')}
-          </Link>
-        </Box>
+        <DownloadStep />
         <PairStep />
       </Box>
 

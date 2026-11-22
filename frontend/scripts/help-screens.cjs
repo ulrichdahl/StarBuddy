@@ -35,7 +35,9 @@ const settle = (p, ms = 2500) => p.waitForTimeout(ms);
 const jpg = (p, file, opts = {}) => p.screenshot({ path: file, type: 'jpeg', quality: 82, ...opts });
 
 async function web(browser, lang, out) {
-  const opts = { colorScheme: 'dark', locale: lang === 'da' ? 'da-DK' : 'en-GB', timezoneId: 'Europe/Copenhagen', viewport: { width: 1600, height: 900 } };
+  // A Windows browser, like most players': the client download offers the Windows installer.
+  const windows = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
+  const opts = { colorScheme: 'dark', locale: lang === 'da' ? 'da-DK' : 'en-GB', timezoneId: 'Europe/Copenhagen', viewport: { width: 1600, height: 900 }, userAgent: windows };
 
   // The sign-in page, as a stranger sees it: the language comes from the browser.
   const guest = await browser.newContext(opts);
@@ -51,8 +53,25 @@ async function web(browser, lang, out) {
   sql(`update users set locale = '${lang}' where ${DEMO}`);
   const role = process.env.STARBUDDY_TESTER_ROLE_ID || execSync('docker exec starbuddy-app-1 printenv STARBUDDY_TESTER_ROLE_ID || true').toString().trim();
   if (role) sql(`update users set discord_role_ids = '[\\"${role}\\"]' where ${DEMO} and handle = 'Kestrel'`);
+  // The first-login guide, as a new member sees it: no handle, no
+  // org, no client. The demo pilot's answers are swapped for a newcomer's.
+  const fresh = await browser.newContext(opts);
+  await fresh.addCookies([{ name: seed.cookie, value: seed.value, domain: 'localhost', path: '/' }]);
+  const f = await fresh.newPage();
+  await f.route('**/api/me', async (r) => {
+    const res = await r.fetch();
+    await r.fulfill({ response: res, json: { ...(await res.json()), handle: null, orgs: [], main_org_id: null } });
+  });
+  await f.route('**/api/devices', (r) => r.fulfill({ json: [] }));
+  await f.goto(WEB + '/');
+  await settle(f, 3500);
+  await jpg(f, `${out}/web-get-started.jpg`);
+  await fresh.close();
+
   const ctx = await browser.newContext(opts);
   await ctx.addCookies([{ name: seed.cookie, value: seed.value, domain: 'localhost', path: '/' }]);
+  // The rest shows the pages themselves: the guide is hidden.
+  await ctx.addInitScript((id) => localStorage.setItem(`starbuddy.getStarted.hidden.${id}`, '1'), seed.me);
   const p = await ctx.newPage();
   p.on('pageerror', (e) => console.log('pageerror', p.url(), e.message));
   const page = async (route, name) => {

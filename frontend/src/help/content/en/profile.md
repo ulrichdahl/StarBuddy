@@ -11,7 +11,7 @@ Open your name in the top right corner and choose `Profile & desktop client`. Th
 
 ## Desktop client
 
-1. Download the client for Windows or Linux from here.
+1. Download the client. The button picks the file for your system, and the other files are listed under it.
 2. Press `Generate pairing code`.
 3. In the client, open `Settings` › `General`, enter this website's address and the code, and press `Pair`. The code works once, for 10 minutes.
 

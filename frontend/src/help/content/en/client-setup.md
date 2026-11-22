@@ -8,7 +8,9 @@ The StarBuddy desktop client runs beside Star Citizen on Windows and Linux. It:
 
 ## 1. Install
 
-Sign in to the website, open your name in the top right corner and choose `Profile & desktop client`. Download the **Windows installer**, or for Linux the **AppImage**, **deb** or **rpm**. Install and start it.
+Sign in to the website. Use **Get started** on the dashboard, or open your name in the top right corner and choose `Profile & desktop client`. The download button picks the file for your system: `Download for Windows`, or for Linux the AppImage (deb or rpm on distributions that use them). The other files are listed under it. Install and start it.
+
+The `Desktop client` button in the top bar has an orange dot until a client of yours is connected.
 
 The client checks for updates by itself and offers to install them. See [Settings](client-settings).
 

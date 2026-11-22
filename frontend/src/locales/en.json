@@ -35,7 +35,8 @@
     "searchShortcut": "Press / to search",
     "gathering": "Gathering",
     "desktopClient": "Desktop client",
-    "desktopClientHelp": "Download the StarBuddy desktop client and pair it"
+    "desktopClientHelp": "Download the StarBuddy desktop client and pair it",
+    "noClientConnected": "No desktop client connected yet. Download it and pair it here."
   },
   "login": {
     "tagline": "Org materials and blueprint tracking for Star Citizen. Sign in with the Discord account linked to your org.",
@@ -348,7 +349,8 @@
     "contributorsHelp": "Pilots who scored this period / members",
     "topMembers": "Top members",
     "colPilot": "Pilot",
-    "colPoints": "Points"
+    "colPoints": "Points",
+    "welcomeNew": "Welcome to StarBuddy, {{name}}"
   },
   "profile": {
     "title": "Star Citizen handle",
@@ -382,7 +384,27 @@
     "active": "Active",
     "stale": "Stale",
     "never": "Never used",
-    "remove": "Remove {{name}}"
+    "remove": "Remove {{name}}",
+    "get": {
+      "windows": "Download for Windows",
+      "appimage": "Download for Linux (AppImage)",
+      "deb": "Download for Linux (.deb)",
+      "rpm": "Download for Linux (.rpm)",
+      "windows_msi": "Download for Windows (.msi)"
+    },
+    "file": {
+      "windows": "Windows",
+      "windows_msi": "Windows .msi",
+      "appimage": "Linux AppImage",
+      "deb": ".deb",
+      "rpm": ".rpm"
+    },
+    "otherDownloads": "Other downloads:",
+    "allDownloads": "Downloads:",
+    "onMac": "The client runs on Windows and Linux, where Star Citizen runs. Open this page on your gaming PC, or pick a file below.",
+    "onOther": "Install the client on the PC you play Star Citizen on. Open this page there, or pick a file below.",
+    "paired": "Paired with {{name}}.",
+    "version": "Version"
   },
   "org": {
     "title": "Organizations",
@@ -1130,5 +1152,34 @@
     },
     "ownServer": "Do you want this for your Discord server too?",
     "ownServerLink": "Here is how."
+  },
+  "getStarted": {
+    "title": "Get started",
+    "intro": "Three steps and StarBuddy is ready. Each one ticks off by itself.",
+    "howItWorks": "How StarBuddy works",
+    "progress": "{{done}} of {{total}} done",
+    "hide": "Hide",
+    "optional": "Optional",
+    "state": {
+      "done": "Done",
+      "waiting": "Waiting",
+      "todo": "To do"
+    },
+    "handle": {
+      "title": "Your Star Citizen handle",
+      "help": "Org mates see you by it, and CSV imports find you by it.",
+      "placeholder": "Your in-game handle"
+    },
+    "org": {
+      "title": "Join an org",
+      "help": "Your org pools materials, items and blueprints, and competes with the other orgs.",
+      "waiting": "Your request is waiting for an org manager to accept it. You can ask to join another org meanwhile."
+    },
+    "client": {
+      "title": "Connect the desktop client",
+      "help": "The website works on its own. The client adds blueprints and refinery orders straight from the game, screen scanning and in-game overlays.",
+      "waiting": "Paired. Start StarBuddy on your PC: it shows as connected after its first sync.",
+      "stale": "Your client has not synced for over a week. Start StarBuddy on your PC, or pair it again."
+    }
   }
 }

@@ -26,9 +26,16 @@ export function latestSync(devices: Device[] | undefined): Device | undefined {
     .sort((a, b) => (b.last_used_at ?? '').localeCompare(a.last_used_at ?? ''))[0]
 }
 
-export function useDevices() {
+/** A client counts as connected once it has synced within the stale window. */
+export function hasConnectedClient(devices: Device[] | undefined, now = Date.now()): boolean {
+  return (devices ?? []).some((d) => deviceState(d, now) === 'active')
+}
+
+/** `poll`: ask again every few seconds, while a pairing code waits to be used. */
+export function useDevices({ poll = false }: { poll?: boolean } = {}) {
   return useQuery({
     queryKey: ['devices'],
     queryFn: async () => (await api.get<Device[]>('/api/devices')).data,
+    refetchInterval: poll ? 4000 : false,
   })
 }

@@ -32,6 +32,7 @@ import { HudBadge, HudPanel, Mono, OrgTag, PersonAvatar } from '../components/hu
 import { OrganizationsDialog } from '../components/OrganizationsDialog'
 import { BlueprintInfoDialog } from '../components/BlueprintInfoDialog'
 import { OrgMembersDialog } from '../components/OrgMembersDialog'
+import { GetStarted } from '../components/GetStarted'
 import { fonts, hud } from '../theme'
 
 type Tab = 'overall' | CompetitionMetric
@@ -906,24 +907,21 @@ export function DashboardPage({ me }: { me: Me }) {
   const pageHeader = { display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 1.5, minHeight: 40, pb: 1.25, borderBottom: `1px solid ${hud.line}` } as const
 
   if (!org) {
+    // A first visit: the guide is the page.
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'flex-start' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, alignItems: 'stretch' }}>
         <Typography variant="h1" component="h2" sx={{ fontSize: { xs: '2rem', md: '2.625rem' } }}>
-          {t('dashboard.welcome', { name: displayName(me) })}
+          {t('dashboard.welcomeNew', { name: displayName(me) })}
         </Typography>
-        <Typography variant="body2" sx={{ color: hud.textDim }}>
-          {t('dashboard.noOrgHelp')}
-        </Typography>
-        <Button variant="outlined" color="primary" onClick={() => setOrgsOpen(true)}>
-          {t('dashboard.findOrg')}
-        </Button>
-        <OrganizationsDialog me={me} open={orgsOpen} onClose={() => setOrgsOpen(false)} />
+        {/* Without an org the dashboard has nothing else to show, so the guide can't be hidden here. */}
+        <GetStarted me={me} dismissible={false} />
       </Box>
     )
   }
 
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, alignItems: 'flex-start' }}>
+      <GetStarted me={me} />
       <Box sx={{ flex: '2 1 720px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Box sx={pageHeader}>
           <Box>

@@ -12,6 +12,14 @@ StarBuddy gemmer dit Discord-id, dit navn og din avatar, og intet andet fra Disc
 
 Hver StarBuddy hører til én Discord-server. Vil du køre en til din egen server, så se [StarBuddy til din Discord-server](your-own-server).
 
+## Guiden Kom i gang
+
+Første gang du logger ind, viser oversigten **Kom i gang**: dit handle, din org og desktop-klienten. Hvert trin bliver krydset af af sig selv, når det er klaret. Download-knappen tilbyder klienten til dit system. `Skjul` guiden, når du ikke har brug for den. Den bliver på oversigten, indtil du er med i en org, og forsvinder, når alle tre trin er klaret.
+
+![Kom i gang på oversigten](screens/web-get-started.jpg)
+
+Trinene herunder er de samme, gjort i hånden.
+
 ## 2. Skriv dit Star Citizen-handle
 
 Åbn dit navn øverst til højre og vælg `Profil & desktopklient`. Skriv dit handle fra spillet under **Identitet**. Dine org-kammerater ser det, og desktop-klienten bruger det til at vide, hvilke af spillets karakterer der er dine. Se [Profil og desktop-klient](profile).

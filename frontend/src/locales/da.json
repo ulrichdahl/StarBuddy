@@ -35,7 +35,8 @@
     "searchShortcut": "Tryk / for at søge",
     "gathering": "Indsamling",
     "desktopClient": "Desktopklient",
-    "desktopClientHelp": "Hent StarBuddy-desktopklienten og par den"
+    "desktopClientHelp": "Hent StarBuddy-desktopklienten og par den",
+    "noClientConnected": "Ingen desktop-klient forbundet endnu. Download den og par den her."
   },
   "login": {
     "tagline": "Materiale- og blueprint-styring for din org i Star Citizen. Log ind med den Discord-konto, der er knyttet til din org.",
@@ -345,7 +346,8 @@
     "contributorsHelp": "Piloter der har scoret i perioden / medlemmer",
     "topMembers": "Bedste medlemmer",
     "colPilot": "Pilot",
-    "colPoints": "Point"
+    "colPoints": "Point",
+    "welcomeNew": "Velkommen til StarBuddy, {{name}}"
   },
   "profile": {
     "title": "Star Citizen-handle",
@@ -379,7 +381,27 @@
     "active": "Aktiv",
     "stale": "Forældet",
     "never": "Aldrig brugt",
-    "remove": "Fjern {{name}}"
+    "remove": "Fjern {{name}}",
+    "get": {
+      "windows": "Download til Windows",
+      "appimage": "Download til Linux (AppImage)",
+      "deb": "Download til Linux (.deb)",
+      "rpm": "Download til Linux (.rpm)",
+      "windows_msi": "Download til Windows (.msi)"
+    },
+    "file": {
+      "windows": "Windows",
+      "windows_msi": "Windows .msi",
+      "appimage": "Linux AppImage",
+      "deb": ".deb",
+      "rpm": ".rpm"
+    },
+    "otherDownloads": "Andre downloads:",
+    "allDownloads": "Downloads:",
+    "onMac": "Klienten kører på Windows og Linux, hvor Star Citizen kører. Åbn siden på din gaming-pc, eller vælg en fil herunder.",
+    "onOther": "Installér klienten på den pc, du spiller Star Citizen på. Åbn siden der, eller vælg en fil herunder.",
+    "paired": "Parret med {{name}}.",
+    "version": "Version"
   },
   "org": {
     "title": "Organisationer",
@@ -1127,5 +1149,34 @@
     },
     "ownServer": "Vil du også have det til din Discord-server?",
     "ownServerLink": "Sådan gør du."
+  },
+  "getStarted": {
+    "title": "Kom i gang",
+    "intro": "Tre trin, så er StarBuddy klar. Hvert trin bliver krydset af af sig selv.",
+    "howItWorks": "Sådan virker StarBuddy",
+    "progress": "{{done}} af {{total}} klaret",
+    "hide": "Skjul",
+    "optional": "Valgfrit",
+    "state": {
+      "done": "Klaret",
+      "waiting": "Venter",
+      "todo": "Mangler"
+    },
+    "handle": {
+      "title": "Dit Star Citizen-handle",
+      "help": "Org-kammerater ser dig under det, og CSV-import genkender dig på det.",
+      "placeholder": "Dit handle i spillet"
+    },
+    "org": {
+      "title": "Bliv medlem af en org",
+      "help": "Din org deler materialer, genstande og blueprints, og dyster mod de andre orgs.",
+      "waiting": "Din anmodning venter på at en org-manager godkender den. Du kan bede om at komme med i en anden org imens."
+    },
+    "client": {
+      "title": "Forbind desktop-klienten",
+      "help": "Hjemmesiden virker fint alene. Klienten tilføjer blueprints og raffineringsordrer direkte fra spillet, skærmscanning og overlays i spillet.",
+      "waiting": "Parret. Start StarBuddy på din pc: den vises som forbundet efter første synkronisering.",
+      "stale": "Din klient har ikke synkroniseret i over en uge. Start StarBuddy på din pc, eller par den igen."
+    }
   }
 }

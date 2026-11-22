@@ -11,7 +11,7 @@
 
 ## Desktop-klient
 
-1. Download klienten til Windows eller Linux herfra.
+1. Download klienten. Knappen vælger filen til dit system, og de andre filer står under den.
 2. Tryk `Generér parringskode`.
 3. Åbn `Indstillinger` › `Generelt` i klienten, skriv hjemmesidens adresse og koden, og tryk `Par`. Koden virker én gang, i 10 minutter.
 

@@ -35,6 +35,7 @@ import { LanguageSwitcher } from './LanguageSwitcher'
 import { OrganizationsDialog } from './OrganizationsDialog'
 import { ProfileDialog } from './ProfileDialog'
 import { canSee } from '../lib/access'
+import { hasConnectedClient, useDevices } from '../lib/devices'
 import { StatusAlertBanner } from './StatusAlertBanner'
 import { UserMenu } from './UserMenu'
 import { HelpButton, HelpProvider } from '../help/HelpContext'
@@ -260,6 +261,9 @@ const HELP_WIDTH = 520
 
 function Shell({ me }: AppShellProps) {
   const { t } = useTranslation()
+  const { data: devices } = useDevices()
+  // undefined while loading, so the dot never flashes.
+  const clientConnected = devices ? hasConnectedClient(devices) : undefined
   const help = useHelp()
   const wideForHelp = useMediaQuery('(min-width:1400px)')
   const theme = useTheme()
@@ -302,13 +306,13 @@ function Shell({ me }: AppShellProps) {
           </Box>
           <ItemSearch />
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
-            <Tooltip title={t('nav.desktopClientHelp')}>
+            <Tooltip title={clientConnected === false ? t('nav.noClientConnected') : t('nav.desktopClientHelp')}>
               <ButtonBase
                 onClick={() => {
                   setProfileFocus('client')
                   setProfileOpen(true)
                 }}
-                aria-label={t('nav.desktopClient')}
+                aria-label={clientConnected === false ? `${t('nav.desktopClient')}: ${t('nav.noClientConnected')}` : t('nav.desktopClient')}
                 sx={{
                   height: 44,
                   px: 1.25,
@@ -323,7 +327,12 @@ function Shell({ me }: AppShellProps) {
                   '& svg': { color: hud.teal, fontSize: 20 },
                 }}
               >
-                <DownloadIcon />
+                <Box component="span" sx={{ position: 'relative', display: 'inline-flex' }}>
+                  <DownloadIcon />
+                  {clientConnected === false && (
+                    <Box component="span" aria-hidden sx={{ position: 'absolute', top: -2, right: -3, width: 8, height: 8, borderRadius: '50%', bgcolor: hud.amber }} />
+                  )}
+                </Box>
                 <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
                   {t('nav.desktopClient')}
                 </Box>

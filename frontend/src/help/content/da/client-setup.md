@@ -8,7 +8,9 @@ StarBuddys desktop-klient kører ved siden af Star Citizen på Windows og Linux.
 
 ## 1. Installér
 
-Log ind på hjemmesiden, åbn dit navn øverst til højre og vælg `Profil & desktopklient`. Download **Windows-installeren**, eller til Linux **AppImage**, **deb** eller **rpm**. Installér og start den.
+Log ind på hjemmesiden. Brug **Kom i gang** på oversigten, eller åbn dit navn øverst til højre og vælg `Profil & desktopklient`. Download-knappen vælger filen til dit system: `Download til Windows`, eller til Linux AppImage (deb eller rpm på distributioner, der bruger dem). De andre filer står under den. Installér og start den.
+
+Knappen `Desktopklient` i topbjælken har en orange prik, indtil en af dine klienter er forbundet.
 
 Klienten søger selv efter opdateringer og tilbyder at installere dem. Se [Indstillinger](client-settings).
 

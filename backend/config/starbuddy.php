@@ -58,4 +58,9 @@ return [
     // Where the player's browser opens the setup page. Differs from udi_url
     // only in local dev, where the server reaches UDI through the Docker host.
     'udi_public_url' => rtrim(env('STARBUDDY_UDI_PUBLIC_URL') ?: env('STARBUDDY_UDI_URL', 'https://uniteddanes.org'), '/'),
+
+    // GitHub repository (owner/name) whose latest release holds the desktop
+    // client installers. The website links straight to the file for the
+    // visitor's platform. A self-hosted instance with its own builds sets this.
+    'client_repo' => env('STARBUDDY_CLIENT_REPO', 'ulrichdahl/StarBuddy'),
 ];
