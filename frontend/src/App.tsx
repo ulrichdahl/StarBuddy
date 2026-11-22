@@ -43,10 +43,14 @@ function useLocaleSync(me: Me | null) {
 
 export default function App() {
   const { me, isLoading } = useMe()
-  useLocaleSync(me)
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
+  const inHelp = pathname === '/help' || pathname.startsWith('/help/')
+  // A help link that names its language (the desktop client's ?lang=) wins
+  // over the profile's.
+  const helpLang = inHelp ? new URLSearchParams(search).get('lang') : null
+  useLocaleSync(isLocale(helpLang) ? null : me)
 
-  if (pathname === '/help' || pathname.startsWith('/help/')) {
+  if (inHelp) {
     return (
       <Suspense fallback={null}>
         <HelpSite signedIn={!!me} />

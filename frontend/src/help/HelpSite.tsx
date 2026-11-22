@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { isLocale } from '../i18n'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import AppBar from '@mui/material/AppBar'
@@ -31,7 +32,7 @@ const NAV_WIDTH = 280
  */
 export function HelpSite({ signedIn }: { signedIn: boolean }) {
   const { t, i18n } = useTranslation()
-  const { pathname, hash } = useLocation()
+  const { pathname, hash, search } = useLocation()
   const navigate = useNavigate()
   const theme = useTheme()
   const wide = useMediaQuery(theme.breakpoints.up('md'))
@@ -45,6 +46,15 @@ export function HelpSite({ signedIn }: { signedIn: boolean }) {
   const previous = HELP_TOPICS[index - 1]
   const next = HELP_TOPICS[index + 1]
 
+  // ?lang=da from the desktop client: the help in the client's language, for
+  // this visit only.
+  const askedLang = new URLSearchParams(search).get('lang')
+  useEffect(() => {
+    if (isLocale(askedLang) && i18n.language !== askedLang) {
+      void i18n.changeLanguage(askedLang)
+      document.documentElement.lang = askedLang
+    }
+  }, [askedLang, i18n])
   useEffect(() => {
     document.title = doc ? `${doc.title} · ${t('help.title')} · StarBuddy` : 'StarBuddy'
   }, [doc, t])
