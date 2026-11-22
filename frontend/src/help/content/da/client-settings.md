@@ -4,7 +4,7 @@
 
 | Fane | Hvad der er |
 | --- | --- |
-| Generelt | Åbn StarBuddy som overlay eller vindue, server og parring, deling af spilstatus, og sproget |
+| Generelt | Åbn StarBuddy som overlay eller vindue, server og log ind, `Kør opsætning igen`, deling af spilstatus, og sproget |
 | Genvejstaster | Alle genvejstaster, og `Nulstil alle genveje`. Se [Vinduer over spillet](client-overlays) |
 | Spilinstallation | Hvor spillet ligger, `Scan loghistorik` og logovervågningen. Se [Installér og par](client-setup) |
 | Skærmaflæsning | Skærmaflæsning til eller fra, raffinaderiordre-området og deling af aflæsninger til træning. Se [Skærmaflæsning](client-screen-reading) |

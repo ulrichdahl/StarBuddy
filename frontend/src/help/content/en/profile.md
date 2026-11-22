@@ -12,8 +12,9 @@ Open your name in the top right corner and choose `Profile & desktop client`. Th
 ## Desktop client
 
 1. Download the client. The button picks the file for your system, and the other files are listed under it.
-2. Press `Generate pairing code`.
-3. In the client, open `Settings` › `General`, enter this website's address and the code, and press `Pair`. The code works once, for 10 minutes.
+2. Connect it: press `Sign in with browser` in the client, and `Connect` on the page that opens.
+
+Or with a pairing code: press `Generate pairing code` here, then in the client choose `Enter a pairing code instead`, enter this website's address and the code, and press `Pair`. The code works once, for 10 minutes.
 
 **Paired devices** lists every client paired to your account, with when it last synced. Remove one you no longer use. See [Install and pair the client](client-setup).
 

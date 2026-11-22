@@ -14,15 +14,27 @@ The `Desktop client` button in the top bar has an orange dot until a client of y
 
 The client checks for updates by itself and offers to install them. See [Settings](client-settings).
 
-## 2. Pair it with the website
+## The first start
+
+![The setup on the first start](screens/client-setup.jpg)
+
+The first time you start it, the client walks you through four steps, one card at a time: `Sign in`, `Find Game.log`, `Choose the game window` and `Try a hotkey`. Each one can be skipped, and `Skip setup. Everything is in Settings.` leaves straight away. The last card shows what is set up and what you skipped. An org is optional: StarBuddy works for a solo player too.
+
+Run it again any time from `Settings` › `General` › **Setup** › `Run setup again`.
+
+## 2. Sign in
+
+![Signing in with the browser](screens/client-sign-in-browser.jpg)
+
+1. In the setup, or under `Settings` › `General` › **Server**, check the address (it is filled in) and press `Sign in with browser`.
+2. Your browser opens the website. Sign in with Discord if it asks.
+3. Check that the page shows the same code as the client, and press `Connect`.
+
+The client then shows **Paired as** with your name. The code works for 10 minutes. `Open the page again` opens it once more if you closed it. Unpair under **Server**, or remove the device from the website.
+
+**With a pairing code instead:** press `Enter a pairing code instead` in the client. On the website, press `Generate pairing code` in `Profile & desktop client`, then type the address and the code in the client and press `Pair`.
 
 ![Settings › General in the client](screens/client-settings-general.jpg)
-
-1. On the website, in `Profile & desktop client`, press `Generate pairing code`.
-2. In the client, open `Settings` › `General`.
-3. Under **Server**, type the website's address (`https://…`) and the code, and press `Pair`.
-
-The code works once, for 10 minutes. The client then shows **Paired as** with your name. Unpair it here, or remove the device from the website.
 
 ## 3. Point it at the game
 

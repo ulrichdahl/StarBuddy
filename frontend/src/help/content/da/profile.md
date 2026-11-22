@@ -12,8 +12,9 @@
 ## Desktop-klient
 
 1. Download klienten. Knappen vælger filen til dit system, og de andre filer står under den.
-2. Tryk `Generér parringskode`.
-3. Åbn `Indstillinger` › `Generelt` i klienten, skriv hjemmesidens adresse og koden, og tryk `Par`. Koden virker én gang, i 10 minutter.
+2. Forbind den: tryk `Log ind med browser` i klienten og `Forbind` på siden, der åbner.
+
+Eller med en parringskode: tryk `Generér parringskode` her, vælg så `Indtast en parringskode i stedet` i klienten, skriv hjemmesidens adresse og koden, og tryk `Par`. Koden virker én gang, i 10 minutter.
 
 **Parrede enheder** viser alle klienter, der er parret med din konto, og hvornår de sidst synkroniserede. Fjern en, du ikke bruger længere. Se [Installér og par klienten](client-setup).
 

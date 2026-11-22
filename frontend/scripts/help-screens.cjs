@@ -152,6 +152,21 @@ async function client(browser, lang, out) {
   for (const tab of ['general', 'hotkeys', 'game', 'reading']) await shot(`s=settings&t=${tab}`, `client-settings-${tab}`);
   await ctx.close();
 
+  // An unpaired client: the first-run setup, then the browser sign-in waiting
+  // for approval (the stub's code is KQ7M-4XRT).
+  const fresh = await browser.newContext({ ...opts, viewport: { width: 1280, height: 800 } });
+  const f = await fresh.newPage();
+  await f.goto(`${CLIENT}/?lang=${lang}&paired=no`);
+  await settle(f);
+  await jpg(f, `${out}/client-setup.jpg`);
+  await f.getByRole('button', { name: /^(Skip setup|Spring opsætningen over)/ }).click();
+  await f.goto(`${CLIENT}/?lang=${lang}&paired=no&s=settings&t=general`);
+  await settle(f);
+  await f.getByRole('button', { name: /^(Sign in with browser|Log ind med browser)$/ }).click();
+  await settle(f, 1500);
+  await jpg(f, `${out}/client-sign-in-browser.jpg`);
+  await fresh.close();
+
   // Single overlay windows, on a transparent background.
   const o = await (await browser.newContext({ ...opts, viewport: { width: 460, height: 760 } })).newPage();
   // capture=win: the scan window's setup card, as on Windows before a game window is chosen.

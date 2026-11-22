@@ -4,7 +4,7 @@ Open `Settings` in the client's menu.
 
 | Tab | What is there |
 | --- | --- |
-| General | Open StarBuddy as overlay or window, the server and pairing, game status sharing, and the language |
+| General | Open StarBuddy as overlay or window, the server and signing in, `Run setup again`, game status sharing, and the language |
 | Hotkeys | Every hotkey, and `Reset all bindings`. See [Windows over the game](client-overlays) |
 | Game install | Where the game is, `Scan log history` and the log watcher. See [Install and pair](client-setup) |
 | Screen reading | Screen reading on or off, the refinery order area, and sharing reads for training. See [Screen reading](client-screen-reading) |
