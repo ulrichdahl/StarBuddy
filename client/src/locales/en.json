@@ -745,7 +745,8 @@
     "unpinned": "{{name}} is no longer a craft target.",
     "tracked": "Now tracking {{pool}}.",
     "untracked": "No longer tracking {{pool}}.",
-    "none": "No blueprints match these filters."
+    "none": "No blueprints match these filters.",
+    "pickPool": "Track a pool: in {{count}} reward pools"
   },
   "craft": {
     "craftable": "Craftable now",

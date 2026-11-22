@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { serverApi } from "./api";
 import { gradeLabel, Pager, useSearch, useServerList } from "./pageParts";
-import { changed, PinToggle, TrackToggle, usePins } from "./pins";
+import { changed, EyeIcon, PinToggle, TrackToggle, usePins } from "./pins";
 
 /** GET /api/blueprints/catalog: one row per recipe, with who holds it. */
 interface CatalogRow {
@@ -17,7 +18,17 @@ interface CatalogRow {
   /** The other members who hold it. */
   owners: string[];
   /** Smallest first: the best chance of the recipe. */
-  pools: { pool_key: string; pool_label: string; awardable: boolean; in_pool: number; owned_in_pool: number; owned_percent: number }[];
+  pools: Pool[];
+}
+interface Pool {
+  pool_key: string;
+  pool_label: string;
+  /** Who hands it out; older servers leave it out. */
+  factions?: string[];
+  awardable: boolean;
+  in_pool: number;
+  owned_in_pool: number;
+  owned_percent: number;
 }
 interface Catalog {
   data: CatalogRow[];
@@ -129,7 +140,7 @@ export function Blueprints({ paired }: { paired: boolean }) {
     pins.targets.has(row.id)
       ? act(() => pins.unpinTarget(row.id), t("blueprints.unpinned", { name: row.name }))
       : act(() => pins.pinTarget(row.id), t("blueprints.pinned", { name: row.name }));
-  const track = (pool: CatalogRow["pools"][number]) =>
+  const track = (pool: Pool) =>
     pins.pools.has(pool.pool_key)
       ? act(() => pins.untrack(pool.pool_key), t("blueprints.untracked", { pool: pool.pool_label }))
       : act(() => pins.track(pool.pool_key), t("blueprints.tracked", { pool: pool.pool_label }));
@@ -261,7 +272,10 @@ export function Blueprints({ paired }: { paired: boolean }) {
                       )}
                     </span>
                     <span className="sb-bp-act">
-                      {pool && <TrackToggle tracked={pins.pools.has(pool.pool_key)} pool={pool.pool_label} onToggle={() => void track(pool)} />}
+                      {row.pools.length === 1 && pool && (
+                        <TrackToggle tracked={pins.pools.has(pool.pool_key)} pool={pool.pool_label} onToggle={() => void track(pool)} />
+                      )}
+                      {row.pools.length > 1 && <PoolPicker pools={row.pools} tracked={pins.pools} onToggle={(p) => void track(p)} />}
                       <PinToggle pinned={pins.targets.has(row.id)} name={row.name} onToggle={() => void pin(row)} />
                     </span>
                   </div>
@@ -273,6 +287,65 @@ export function Blueprints({ paired }: { paired: boolean }) {
         {data && <Pager page={data.current_page} last={data.last_page} total={data.total} onPage={setPage} />}
       </section>
     </div>
+  );
+}
+
+/** "Faction · Pool": who hands it out, then the pool's own name. */
+const poolName = (p: Pool) => (p.factions && p.factions.length > 0 ? `${p.factions.join(", ")} · ${p.pool_label}` : p.pool_label);
+
+/**
+ * The eye for a recipe in several reward pools: it opens the list of them,
+ * each with how far through it you are, and each tracked or not on its own.
+ * Lit when any of them is tracked.
+ */
+function PoolPicker({ pools, tracked, onToggle }: { pools: Pool[]; tracked: Set<string>; onToggle: (p: Pool) => void }) {
+  const { t } = useTranslation();
+  // Fixed to the window, beside the eye, and drawn in the window's root: the
+  // card it sits in has cut corners, which clip what hangs out of it. It opens
+  // upward when the eye is low in the window.
+  const [open, setOpen] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
+  const toggle = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (open) return setOpen(null);
+    const r = e.currentTarget.getBoundingClientRect();
+    const right = window.innerWidth - r.right;
+    setOpen(r.bottom > window.innerHeight * 0.6 ? { bottom: window.innerHeight - r.top + 4, right } : { top: r.bottom + 4, right });
+  };
+  const any = pools.some((p) => tracked.has(p.pool_key));
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: globalThis.KeyboardEvent) => e.key === "Escape" && setOpen(null);
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [open]);
+  const label = t("blueprints.pickPool", { count: pools.length });
+  return (
+    <span className="sb-bp-picker">
+      <button type="button" className={`sb-pin${any ? " on" : ""}`} aria-haspopup="menu" aria-expanded={open !== null} aria-label={label} title={label} onClick={toggle}>
+        <EyeIcon filled={any} />
+        <span className="sb-bp-n">{pools.length}</span>
+      </button>
+      {open &&
+        createPortal(
+          <>
+            <span className="sb-trk-scrim" onClick={() => setOpen(null)} />
+            <span className="sb-bp-menu" role="menu" style={open}>
+              {pools.map((p) => {
+                const on = tracked.has(p.pool_key);
+                return (
+                  <button key={p.pool_key} type="button" role="menuitemcheckbox" aria-checked={on} className={on ? "on" : undefined} onClick={() => onToggle(p)}>
+                    <EyeIcon filled={on} />
+                    <span className={`sb-bp-menu-name${p.awardable ? "" : " sb-dim"}`}>{poolName(p)}</span>
+                    <span className="mono sb-dim">
+                      {p.owned_in_pool}/{p.in_pool}
+                    </span>
+                  </button>
+                );
+              })}
+            </span>
+          </>,
+          document.querySelector(".sb") ?? document.body,
+        )}
+    </span>
   );
 }
 

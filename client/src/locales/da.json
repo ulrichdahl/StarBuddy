@@ -745,7 +745,8 @@
     "unpinned": "{{name}} er ikke længere et fremstillingsmål.",
     "tracked": "Følger nu {{pool}}.",
     "untracked": "Følger ikke længere {{pool}}.",
-    "none": "Ingen blueprints matcher filtrene."
+    "none": "Ingen blueprints matcher filtrene.",
+    "pickPool": "Følg en pulje: i {{count}} belønningspuljer"
   },
   "craft": {
     "craftable": "Kan craftes nu",

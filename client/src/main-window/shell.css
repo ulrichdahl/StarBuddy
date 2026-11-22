@@ -801,3 +801,38 @@ body {
   .sb-bp-row { grid-template-columns: 44px minmax(0, 2.2fr) minmax(0, 104px) minmax(0, 1fr) 44px 54px 56px; }
   .sb-bp-bar { display: none; }
 }
+/* The eye on a recipe in several pools: a count beside it, and the list it opens. */
+.sb-bp-picker { position: relative; display: inline-flex; }
+.sb .sb-bp-picker > .sb-pin { display: inline-flex; align-items: center; gap: 1px; }
+.sb-bp-n { font-family: var(--mono); font-size: 10px; line-height: 1; }
+.sb-bp-menu {
+  position: fixed;
+  z-index: 21;
+  min-width: 320px;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+  background: #101a26;
+  border: 1px solid color-mix(in srgb, var(--acc) 55%, transparent);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+.sb .sb-bp-menu button {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: none;
+  border: 0;
+  text-align: left;
+  color: var(--text);
+  font-family: var(--body);
+  font-weight: 400;
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.sb .sb-bp-menu button:hover { background: rgba(120, 160, 190, 0.12); }
+.sb .sb-bp-menu button.on { color: var(--cyan); }
+.sb-bp-menu-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
