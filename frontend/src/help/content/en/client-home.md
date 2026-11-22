@@ -20,3 +20,5 @@ Home is what the client opens on. It shows at a glance whether everything is run
 ## The menu
 
 On the left: Home, Craft, Blueprints, Gathering, Refinery, My stash, Org, Tools and Settings. See [The client's pages](client-pages).
+
+The `?` next to a page's name opens its help in your browser, in the client's language.

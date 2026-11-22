@@ -20,3 +20,5 @@ Hjem er det, klienten åbner på. Den viser med det samme, om alt kører.
 ## Menuen
 
 Til venstre: Hjem, Fremstil, Blueprints, Indsamling, Raffinaderi, Mit lager, Org, Værktøjer og Indstillinger. Se [Klientens sider](client-pages).
+
+`?` ved siden af en sides navn åbner hjælpen til den i din browser, på klientens sprog.
