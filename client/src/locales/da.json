@@ -282,7 +282,7 @@
         "scan": "Træk hen over scanningens signaturmærke"
       },
       "need": {
-        "refinery": "Tag titellinjen med: stationens navn læses fra linjen \"… REFINEMENT CENTER\".",
+        "refinery": "Fra titlen WORK ORDER ned til TOTAL COST og PROCESSING TIME, med hele materialetabellen indenfor. Stationens navn læses selv fra toppen af skærmen.",
         "scan": "Tag kun selve mærket med — jo tættere område, jo mere pålidelig aflæsning."
       },
       "hint": "Escape beholder det område, du havde før.",
@@ -345,7 +345,19 @@
       "notRefined": "Bliver ikke raffineret (intet udbytte)",
       "total": "I alt",
       "addRow": "Tilføj en materialerække",
-      "removeRow": "Fjern denne række"
+      "removeRow": "Fjern denne række",
+      "area": {
+        "found": "Fandt arbejdsordren på skærmen. Brug dette område til de næste aflæsninger? De bliver hurtigere og mere pålidelige.",
+        "moved": "Arbejdsordren er ikke længere inden for dit indrammede område. Brug, hvor den er nu?",
+        "use": "Brug dette område",
+        "no": "Nej tak",
+        "guide": "Indram arbejdsordren: fra titlen WORK ORDER ned til TOTAL COST og PROCESSING TIME, med hele materialetabellen indenfor.",
+        "missing": {
+          "title": "Der blev ikke fundet et arbejdsordre-panel på skærmen.",
+          "bottom": "Bunden af arbejdsordren (TOTAL COST, PROCESSING TIME) var ikke på skærmen. Rul panelet eller gå tættere på, og aflæs igen.",
+          "materials": "Arbejdsordren blev fundet, men ingen materialerækker kunne læses."
+        }
+      }
     },
     "capture": {
       "capturing": "Tager billede af spilvinduet…",

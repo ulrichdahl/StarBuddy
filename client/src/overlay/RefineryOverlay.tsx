@@ -87,6 +87,13 @@ function qualityTier(quality: number | null): string | null {
  * orders at once, so each is saved on its own. Nothing reaches the server until
  * Save is pressed.
  */
+/** Where a read of the whole screen found the panel, offered as the refinery area. */
+interface AreaOffer {
+  area: { x: number; y: number; w: number; h: number } | null;
+  missing: "title" | "bottom" | "materials" | null;
+  moved: boolean;
+}
+
 export function RefineryOverlay() {
   const { t } = useTranslation();
   const [terminal, setTerminal] = useState<RefineryTerminal | null>(null);
@@ -108,6 +115,10 @@ export function RefineryOverlay() {
   const [draftDuration, setDraftDuration] = useState<{ order: number; text: string } | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showLines, setShowLines] = useState(false);
+  // Where the panel is: whether an area is framed, and what the last read of
+  // the whole screen found out about the panel's place.
+  const [framed, setFramed] = useState(true);
+  const [offer, setOffer] = useState<AreaOffer | null>(null);
 
   /** Change the saved set, in the ref the save's reply reads and on screen. */
   const updateSaved = (next: (seen: number[]) => number[]) => {
@@ -131,8 +142,16 @@ export function RefineryOverlay() {
     // the first phases are sent before there is anything here to hear them.
     // Ask, or a read already running looks like nothing happening.
     invoke<RefineryStatus>("refinery_status").then(setStatus).catch(() => {});
+    invoke<AreaOffer | null>("refinery_area_offer").then(setOffer).catch(() => {});
+    const checkFramed = () =>
+      invoke<unknown>("region_current", { purpose: "refinery" })
+        .then((r) => setFramed(r !== null))
+        .catch(() => {});
+    void checkFramed();
     const subs = [
       listen<RefineryStatus>("refinery-status", (e) => setStatus(e.payload)).catch(failed),
+      listen<AreaOffer | null>("refinery-area", (e) => setOffer(e.payload)).catch(failed),
+      listen<string>("region-changed", (e) => e.payload === "refinery" && void checkFramed()).catch(failed),
       listen<RefineryTerminal>("refinery-order", (e) => {
         setTerminal(e.payload);
         // A fresh read describes a different screen; earlier saves no longer
@@ -530,6 +549,31 @@ export function RefineryOverlay() {
     terminal.missing.length > 0 ||
     terminal.orders.length === 0;
 
+  // The panel's area: offered when a whole-screen read found it, and how to
+  // frame it by hand when it did not.
+  const useArea = () => void invoke("refinery_use_area").catch((e: unknown) => setStatus({ phase: "error", detail: String(e) }));
+  const dismissArea = () => void invoke("refinery_dismiss_area").catch(() => {});
+  const areaBox =
+    offer?.area ? (
+      <div className="ov-box ov-area">
+        <p className="ov-p">{t(offer.moved ? "overlay.refinery.area.moved" : "overlay.refinery.area.found")}</p>
+        <div className="ov-actions">
+          <button className="ov-primary" onClick={useArea}>
+            {t("overlay.refinery.area.use")}
+          </button>
+          <button onClick={dismissArea}>{t("overlay.refinery.area.no")}</button>
+        </div>
+      </div>
+    ) : !framed && offer?.missing ? (
+      <div className="ov-box ov-area">
+        <p className="ov-p">{t(`overlay.refinery.area.missing.${offer.missing}`)}</p>
+        <p className="ov-p ov-dim">{t("overlay.refinery.area.guide")}</p>
+        <div className="ov-actions">
+          <button onClick={pickArea}>{t("overlay.refinery.pickArea")}</button>
+        </div>
+      </div>
+    ) : null;
+
   const firstBox = !hasFirstBox ? null : (
     <div className="ov-box">
       {phaseText && <div className="ov-phase">{phaseText}</div>}
@@ -571,6 +615,7 @@ export function RefineryOverlay() {
         </span>
       }
     >
+      {areaBox}
       {terminal?.orders.map((order, index) => orderBox(order, index, false))}
 
       {terminal && (

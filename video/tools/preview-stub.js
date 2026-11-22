@@ -69,6 +69,10 @@ const fake = {
   },
   screen_reading_windows: ["Star Citizen", "Firefox", "Konsole"],
   region_current: q.get("framed") === "no" ? null : { x: 0.4, y: 0.26, w: 0.2, h: 0.14 },
+  // ?area=found|moved: the refinery window offers the panel's area; title|bottom|materials (with framed=no): the guide.
+  refinery_area_offer: !q.get("area") ? null
+    : ["found", "moved"].includes(q.get("area")) ? { area: { x: 0.3, y: 0.2, w: 0.4, h: 0.6 }, missing: null, moved: q.get("area") === "moved" }
+    : { area: null, missing: q.get("area"), moved: false },
   udi_status: { linked: true, auto_install: true, profile: { revision: 3, channel: "live", labels: true, config: true }, installed: { live: { game_version: "4.10.0", at: new Date(Date.now() - 2 * h).toISOString() } } },
   refinery_status: { phase: "done", detail: "" },
   refinery_last: { station: "ARC-L1 Wide Forest Station", ship: "Argo MOLE", capacity_percent: 64, captured_at: Date.now() - 40e3,

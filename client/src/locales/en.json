@@ -282,7 +282,7 @@
         "scan": "Drag across the scan signature badge"
       },
       "need": {
-        "refinery": "Include the title bar: the station name is read from the \"… REFINEMENT CENTER\" line.",
+        "refinery": "From the WORK ORDER title down to TOTAL COST and PROCESSING TIME, with the whole materials table inside. The station name is read from the top of the screen by itself.",
         "scan": "Frame the badge only — the tighter the area, the more reliable the read."
       },
       "hint": "Escape keeps the area you had before.",
@@ -345,7 +345,19 @@
       "notRefined": "Not being refined (no yield)",
       "total": "Total",
       "addRow": "Add a material row",
-      "removeRow": "Remove this row"
+      "removeRow": "Remove this row",
+      "area": {
+        "found": "Found the work order on screen. Use this area for the next reads? They will be faster and more reliable.",
+        "moved": "The work order is no longer inside your framed area. Use where it is now?",
+        "use": "Use this area",
+        "no": "No thanks",
+        "guide": "Frame the work order: from the WORK ORDER title down to TOTAL COST and PROCESSING TIME, with the whole materials table inside.",
+        "missing": {
+          "title": "No work order panel was found on screen.",
+          "bottom": "The bottom of the work order (TOTAL COST, PROCESSING TIME) was not on screen. Scroll the panel or move closer, and read again.",
+          "materials": "The work order was found, but no material rows could be read."
+        }
+      }
     },
     "capture": {
       "capturing": "Capturing the game window…",

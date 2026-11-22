@@ -701,3 +701,8 @@ html.debug-bounds::after {
 }
 
 /* ── Dashboard trackers: trackers.css, shared with the Home card ── */
+
+/* Refinery window: the panel's area offered, or how to frame it. */
+.ov-area .ov-p { margin: 0 0 8px; }
+.ov-area .ov-dim { color: var(--muted); }
+.ov-area .ov-actions { margin-top: 2px; }

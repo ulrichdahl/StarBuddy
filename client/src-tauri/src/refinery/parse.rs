@@ -906,6 +906,56 @@ fn panels<'a>(lines: &'a [OcrLine], anchors: &[Anchor<'a>]) -> Vec<Vec<&'a OcrLi
         .collect()
 }
 
+/// What a whole-screen read could not find when looking for the work order
+/// panels' area: the panel title at the top, or the row that ends it.
+#[derive(Debug, PartialEq)]
+pub enum AreaMissing {
+    Title,
+    Bottom,
+}
+
+/// Where the work order panels sit in a read of the whole screen, as a pixel
+/// box `(x, y, w, h)` in the read's own coordinates.
+///
+/// Found from the panel's own text, not its outline: the holographic frame is
+/// faint, translucent and changes with the station's lighting, while the OCR
+/// boxes say exactly where the text is. The box runs from each panel's
+/// "WORK ORDER" title down to the lowest TOTAL COST / PROCESSING TIME / TIME
+/// REMAINING row, across every line of the panels in between. The panels
+/// stand side by side at one height, so one panel that shows its bottom row
+/// is enough for all of them. The station panel on the left is not part of
+/// it: a framed read takes the station's name from a strip at the top.
+pub fn panel_area(lines: &[OcrLine]) -> Result<(i32, i32, i32, i32), AreaMissing> {
+    let anchors = anchors(lines);
+    if anchors.is_empty() {
+        return Err(AreaMissing::Title);
+    }
+    let panels = panels(lines, &anchors);
+    const BOTTOM: [&str; 3] = ["TOTAL COST", "PROCESSING TIME", "TIME REMAINING"];
+    let bottom = panels
+        .iter()
+        .flatten()
+        .filter(|l| BOTTOM.iter().any(|label| reads_as(l, label)))
+        .map(|l| l.y + l.h + l.h.max(6))
+        .max()
+        .ok_or(AreaMissing::Bottom)?;
+
+    let (mut x0, mut y0, mut x1, mut y1) = (i32::MAX, i32::MAX, i32::MIN, i32::MIN);
+    for (panel, anchor) in panels.iter().zip(&anchors) {
+        let slack = anchor.line.h.max(6);
+        // A station prints a small "WORK ORDER" heading a line above the
+        // state row; three lines' room keeps it in.
+        let top = anchor.line.y.min(anchor.title.y) - slack * 3;
+        for l in panel.iter().filter(|l| l.y >= top && l.y + l.h <= bottom + slack) {
+            x0 = x0.min(l.x);
+            y0 = y0.min(l.y);
+            x1 = x1.max(l.x + l.w);
+            y1 = y1.max(l.y + l.h);
+        }
+    }
+    Ok((x0, y0, x1 - x0, y1 - y0))
+}
+
 /// The unit a table counts in, from a heading like "MATERIALS YIELDED (CSCU)".
 fn unit_in(lines: &[&OcrLine]) -> String {
     for line in lines {
@@ -1949,5 +1999,41 @@ mod tests {
         let terminal = parse(&[line("some unrelated text on the panel", 0, 0, 100, 8)]);
         assert!(terminal.missing.contains(&"station".to_string()));
         assert!(terminal.missing.contains(&"orders".to_string()));
+    }
+
+    #[test]
+    fn the_panel_area_runs_from_the_title_to_the_last_row() {
+        let mut lines = levski_station_panel();
+        let station_right = lines.iter().map(|l| l.x + l.w).max().unwrap();
+        lines.extend(levski_setup());
+        let (x, y, w, h) = panel_area(&lines).expect("the setup panel is found");
+        let title = lines.iter().find(|l| reads_as(l, "WORK ORDER") && !reads_as(l, "SETUP")).unwrap();
+        let bottom = lines.iter().filter(|l| reads_as(l, "PROCESSING TIME") || reads_as(l, "TOTAL COST")).map(|l| l.y + l.h).max().unwrap();
+        assert!(y <= title.y, "the title is inside");
+        assert!(y + h >= bottom, "the last row is inside");
+        assert!(w > 0 && h > 0);
+        // The station panel stays out unless it overlaps the order's column.
+        assert!(x + w > station_right);
+    }
+
+    #[test]
+    fn a_panel_with_no_end_row_is_not_framed() {
+        let lines: Vec<OcrLine> = levski_setup()
+            .into_iter()
+            .filter(|l| !["TOTAL COST", "PROCESSING TIME", "TIME REMAINING"].iter().any(|b| reads_as(l, b)))
+            .collect();
+        assert_eq!(panel_area(&lines), Err(AreaMissing::Bottom));
+        assert_eq!(panel_area(&[line("LEVSKI", 10, 10, 80, 14)]), Err(AreaMissing::Title));
+    }
+
+    #[test]
+    fn side_by_side_panels_share_one_area() {
+        let lines = levski_completed_pair();
+        if let Ok((x, _, w, _)) = panel_area(&lines) {
+            let titles: Vec<&OcrLine> = lines.iter().filter(|l| reads_as(l, "WORK ORDER")).collect();
+            for t in titles {
+                assert!(t.x >= x && t.x + t.w <= x + w, "every panel's title is inside");
+            }
+        }
     }
 }
