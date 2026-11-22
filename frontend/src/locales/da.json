@@ -1120,6 +1120,8 @@
       "website": "Hjemmesiden",
       "client": "Desktop-klienten",
       "more": "Mere"
-    }
+    },
+    "ownServer": "Vil du også have det til din Discord-server?",
+    "ownServerLink": "Sådan gør du."
   }
 }

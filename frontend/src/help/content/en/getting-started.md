@@ -10,6 +10,8 @@ Press `Sign in with Discord` and accept. StarBuddy only lets in members of its c
 
 StarBuddy stores your Discord id, name and avatar, and nothing else from Discord.
 
+Each StarBuddy belongs to one Discord server. To run one for your own server, see [StarBuddy for your Discord server](your-own-server).
+
 ## 2. Set your Star Citizen handle
 
 Open your name in the top right corner and choose `Profile & desktop client`. Type your in-game handle under **Identity**. Org mates see it, and the desktop client uses it to know which of the game's characters is yours. See [Profile and desktop client](profile).

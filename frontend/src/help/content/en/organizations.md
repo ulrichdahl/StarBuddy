@@ -32,4 +32,4 @@ Press `Leave`. If you are the org's last manager, you pick a member to take over
 
 ## New orgs
 
-Orgs are set up by the people who run this StarBuddy. Ask in the community's Discord.
+An admin of the community's Discord server creates orgs with `/starbuddy org create` in Discord, and appoints their first manager with `/starbuddy org manager`. Ask in the Discord if your org is missing.

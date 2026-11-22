@@ -1123,6 +1123,8 @@
       "website": "The website",
       "client": "Desktop client",
       "more": "More"
-    }
+    },
+    "ownServer": "Do you want this for your Discord server too?",
+    "ownServerLink": "Here is how."
   }
 }

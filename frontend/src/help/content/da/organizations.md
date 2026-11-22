@@ -32,4 +32,4 @@ Tryk `Forlad`. Er du org'ens sidste manager, vælger du først et medlem, der ta
 
 ## Nye org'er
 
-Org'er bliver sat op af dem, der driver denne StarBuddy. Spørg på fællesskabets Discord.
+En administrator på fællesskabets Discord-server opretter org'er med `/starbuddy org create` i Discord og udnævner deres første manager med `/starbuddy org manager`. Spørg på Discord, hvis din org mangler.

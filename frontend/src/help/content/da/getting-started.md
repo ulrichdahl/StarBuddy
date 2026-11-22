@@ -10,6 +10,8 @@ Tryk `Log ind med Discord` og godkend. StarBuddy lukker kun medlemmer af fælles
 
 StarBuddy gemmer dit Discord-id, dit navn og din avatar, og intet andet fra Discord.
 
+Hver StarBuddy hører til én Discord-server. Vil du køre en til din egen server, så se [StarBuddy til din Discord-server](your-own-server).
+
 ## 2. Skriv dit Star Citizen-handle
 
 Åbn dit navn øverst til højre og vælg `Profil & desktopklient`. Skriv dit handle fra spillet under **Identitet**. Dine org-kammerater ser det, og desktop-klienten bruger det til at vide, hvilke af spillets karakterer der er dine. Se [Profil og desktop-klient](profile).
