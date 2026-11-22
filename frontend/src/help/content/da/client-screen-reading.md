@@ -18,7 +18,19 @@ På Windows viser en gul ramme om spillet, at vinduet bliver optaget. Windows 11
 4. Tjek det, der er markeret til tjek, og ret det i vinduet.
 5. Tryk `Gem ordre`. Den står nu på din side [Raffinering](refinery) på hjemmesiden.
 
-Hvis aflæsningen ikke finder panelet, så indram det: `Indstillinger` › `Skærmaflæsning` › **Raffinaderiordre-område** › `Indram område`, og træk hen over panelet med titellinjen.
+### Arbejdsordrens område
+
+![Raffinaderivinduet tilbyder det område, det fandt](screens/client-refinery-area.png)
+
+Du behøver ikke indramme panelet selv. Første gang du trykker `F8`, læser klienten hele skærmen og finder arbejdsordren på dens tekst. Raffinaderivinduet spørger så, om det område skal bruges til de næste aflæsninger, som bliver hurtigere og mere sikre: tryk `Brug dette område` eller `Nej tak`. Stationens navn læses selv fra toppen af skærmen.
+
+Er panelet ikke helt på skærmen, gemmes intet, og vinduet siger, hvad der manglede, f.eks. bunden med **TOTAL COST** og **PROCESSING TIME**. Rul panelet eller gå tættere på, og tryk `F8` igen.
+
+![Raffinaderivinduet, når panelets bund manglede](screens/client-refinery-guide.png)
+
+Vil du indramme det i hånden, så tryk `Vælg område` dér, eller gå til `Indstillinger` › `Skærmaflæsning` › **Raffinaderiordre-område** › `Indram område`. Træk fra titlen **WORK ORDER** ned til **TOTAL COST** og **PROCESSING TIME**, med hele materialetabellen indenfor.
+
+Flytter panelet sig senere ud af dit område, f.eks. efter et skift af opløsning, finder klienten det én gang på hele skærmen og spørger, om det skal bruges, hvor det er nu.
 
 ## Læs minescanninger
 

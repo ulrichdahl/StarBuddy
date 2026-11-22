@@ -170,7 +170,8 @@ async function client(browser, lang, out) {
   // Single overlay windows, on a transparent background.
   const o = await (await browser.newContext({ ...opts, viewport: { width: 460, height: 760 } })).newPage();
   // capture=win: the scan window's setup card, as on Windows before a game window is chosen.
-  for (const [w, name] of [['scan', 'client-scan'], ['scan&capture=win', 'client-scan-setup'], ['refinery', 'client-refinery-order']]) {
+  // area=found / area=bottom: the refinery window offering the area it found, and guiding when it found none.
+  for (const [w, name] of [['scan', 'client-scan'], ['scan&capture=win', 'client-scan-setup'], ['refinery', 'client-refinery-order'], ['refinery&area=found&framed=no', 'client-refinery-area'], ['refinery&area=bottom&framed=no', 'client-refinery-guide']]) {
     await o.goto(`${CLIENT}/?lang=${lang}&window=${w}`);
     await settle(o);
     // Cut the transparent space below the window.
