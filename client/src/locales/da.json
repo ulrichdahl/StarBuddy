@@ -383,7 +383,8 @@
       "gathering": {
         "title": "Indsamling",
         "still": "{{still}} af {{of}} materialer mangler",
-        "none": "Ingen craft-mål fastgjort."
+        "none": "Ingen craft-mål fastgjort.",
+        "pieces": "{{count}} stk."
       },
       "orders": {
         "title": "Raffinaderiordrer",
@@ -479,12 +480,6 @@
     "readingHint": "Kræves til raffinaderiaflæsning og scanning.",
     "readingStart": "Slå til",
     "readingStop": "Slå fra",
-    "refinery": "Raffinaderi",
-    "openRefinery": "Åbn",
-    "noRefinery": "Ingen ordre aflæst endnu. Tryk F8 ved en raffinaderikiosk for at aflæse en.",
-    "readAt": "Aflæst ved {{station}} · {{time}}",
-    "unknownStation": "en ukendt station",
-    "noMaterials": "Intet valgt til raffinering",
     "ready": "Klar",
     "recent": "Seneste fra Game.log",
     "noEventsYet": "Intet nyt i loggen endnu i denne session.",
@@ -521,7 +516,8 @@
       "share": "Del"
     },
     "allRunning": "Alle kører",
-    "readingSource": "Læser {{source}}. Raffinaderiaflæsning og scanning bruger det."
+    "readingSource": "Læser {{source}}. Raffinaderiaflæsning og scanning bruger det.",
+    "trackerOpen": "Åbn vindue"
   },
   "refinery": {
     "lead": "Dine raffinaderiordrer, aflæst ved kiosken med genvejstasten.",

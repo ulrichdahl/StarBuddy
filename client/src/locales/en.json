@@ -383,7 +383,8 @@
       "gathering": {
         "title": "Gathering",
         "still": "{{still}} of {{of}} materials still to gather",
-        "none": "No craft targets pinned."
+        "none": "No craft targets pinned.",
+        "pieces": "{{count}} pcs"
       },
       "orders": {
         "title": "Refinery orders",
@@ -479,12 +480,6 @@
     "readingHint": "Needed for refinery reads and scanning.",
     "readingStart": "Turn on",
     "readingStop": "Turn off",
-    "refinery": "Refinery",
-    "openRefinery": "Open",
-    "noRefinery": "No order read yet. Press F8 at a refinery kiosk to read one.",
-    "readAt": "Read at {{station}} · {{time}}",
-    "unknownStation": "an unknown station",
-    "noMaterials": "Nothing set to refine",
     "ready": "Ready",
     "recent": "Recent from Game.log",
     "noEventsYet": "Nothing new in the log yet this session.",
@@ -521,7 +516,8 @@
       "share": "Share"
     },
     "allRunning": "All running",
-    "readingSource": "Reading {{source}}. Refinery reads and scanning need it."
+    "readingSource": "Reading {{source}}. Refinery reads and scanning need it.",
+    "trackerOpen": "Open window"
   },
   "refinery": {
     "lead": "Your refinery orders, read at the kiosk with the hotkey.",

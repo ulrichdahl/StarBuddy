@@ -46,7 +46,7 @@ const fake = {
     { name: "Platform", status: "operational" }, { name: "Persistent Universe", status: "operational" }, { name: "Arena Commander", status: "operational" } ], fetched_at: Date.now(), status_url: "", active: [], recent: [] } },
   check_for_update: { current: "1.0.2", latest: "1.0.2", update_available: false },
   update_can_install: true,
-  overlay_prefs: { open: true, mode: "floating", size: "full", opacity: 1, x: 0, y: 0, width: 440, height: 300 },
+  overlay_prefs: { open: true, mode: "floating", size: q.get("size") || "full", opacity: 1, x: 0, y: 0, width: 440, height: 300 },
   overlay_hotkey: { hotkeys: { main: "Insert", status: "F6", scan: "Shift+F8", refinery: "F8", capture: "F9", reading: "F10" }, global_supported: true, toggle_command: "", failed: {}, live: [], windows: false, desktop_offered: false, desktop_owned: false, triggers: {}, action_command: "" },
   main_mode_get: { mode: q.get("mode") || "window", showing_as: "window", game_running: true },
   tool_links_get: [{ name: "Nova Vanguard Discord", url: "https://discord.gg/example" }],
