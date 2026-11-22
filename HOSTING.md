@@ -124,6 +124,14 @@ ping to that channel whenever a member's refinery work order completes (live
 events only — a first-run history import never floods it). The bot needs
 *View Channel* and *Send Messages* there.
 
+Recommended: `STARBUDDY_DISCORD_INVITE=https://discord.gg/<code>`. Someone
+refused at sign-in for not being a member of your server gets a button to
+join it. Make the invite in Discord with *Expire after: Never*.
+
+The bot sends direct messages for org requests: a manager gets one when a
+player asks to join their org, and the player gets one when accepted. Members
+who block DMs from server members simply don't get them.
+
 Optional: `STARBUDDY_GATHERING_CHANNEL_ID=<channel id>` lets members post their
 Gathering shopping list (what their pinned craft targets still need) to that
 channel. Same bot permissions. Empty hides the button.

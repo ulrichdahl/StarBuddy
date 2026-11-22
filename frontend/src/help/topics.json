@@ -96,6 +96,7 @@
     "/import": "import",
     "/admin": "admin",
     "/training": "training",
-    "/about": "getting-started"
+    "/about": "getting-started",
+    "/pair": "client-setup"
   }
 }

@@ -887,6 +887,8 @@ export function DashboardPage({ me }: { me: Me }) {
   const [orgsOpen, setOrgsOpen] = useState(false)
   const [blueprintId, setBlueprintId] = useState<number | null>(null)
   const [tab, setTab] = useState<Tab>('overall')
+  const [reviewing, setReviewing] = useState(false)
+  const queryClient = useQueryClient()
   const org = me.orgs[0]
 
   const competition = useQuery({
@@ -956,6 +958,30 @@ export function DashboardPage({ me }: { me: Me }) {
           <PeriodToggle value={period} onChange={setPeriod} />
         </Box>
 
+        {!!summary?.pending_count && (
+          <Alert
+            severity="warning"
+            action={
+              <Button color="inherit" size="small" onClick={() => setReviewing(true)}>
+                {t('dashboard.review')}
+              </Button>
+            }
+          >
+            {t('dashboard.pendingRequests', { count: summary.pending_count, org: org.name })}
+          </Alert>
+        )}
+        {reviewing && (
+          <OrgMembersDialog
+            orgId={org.id}
+            orgName={org.name}
+            selfId={me.id}
+            open
+            onClose={() => {
+              setReviewing(false)
+              void queryClient.invalidateQueries({ queryKey: ['orgs'] })
+            }}
+          />
+        )}
         {competition.isError && <Alert severity="error">{t('dashboard.loadError')}</Alert>}
         {competition.isLoading && (
           <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 1.5 }}>

@@ -63,4 +63,9 @@ return [
     // client installers. The website links straight to the file for the
     // visitor's platform. A self-hosted instance with its own builds sets this.
     'client_repo' => env('STARBUDDY_CLIENT_REPO', 'ulrichdahl/StarBuddy'),
+
+    // Invite link to the home Discord server (https://discord.gg/…). The
+    // sign-in page offers it to someone refused for not being a member.
+    // Empty = no link.
+    'discord_invite' => env('STARBUDDY_DISCORD_INVITE', ''),
 ];

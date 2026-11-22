@@ -11,7 +11,9 @@
     "undo": "Undo",
     "clear": "Clear",
     "back": "Back",
-    "done": "Done"
+    "done": "Done",
+    "noMatches": "Nothing matches these filters.",
+    "emptyImport": "Import a CSV"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -44,7 +46,9 @@
     "introCaption": "What StarBuddy does, in under two minutes",
     "introLabel": "StarBuddy intro video",
     "notAMember": "That Discord account is not a member of this StarBuddy's Discord server. Join the server, then sign in again.",
-    "failed": "Sign-in failed. Try again."
+    "failed": "Sign-in failed. Try again.",
+    "toPair": "Sign in to connect your desktop client.",
+    "joinDiscord": "Join the Discord server"
   },
   "footer": {
     "notice": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.",
@@ -351,7 +355,10 @@
     "colPilot": "Pilot",
     "colPoints": "Points",
     "welcomeNew": "Welcome to StarBuddy, {{name}}",
-    "soloHelp": "Playing solo works fine. Join an org to pool stock and compete."
+    "soloHelp": "Playing solo works fine. Join an org to pool stock and compete.",
+    "review": "Review",
+    "pendingRequests_one": "{{count}} player is waiting to join {{org}}.",
+    "pendingRequests_other": "{{count}} players are waiting to join {{org}}."
   },
   "profile": {
     "title": "Star Citizen handle",
@@ -488,7 +495,7 @@
     "undoing": "Undoing…",
     "undoConfirm": "Undo craft?",
     "undoTooltip": "Undo this craft — remove the item and restore the materials",
-    "empty": "No item stacks yet.",
+    "empty": "Add the items you hold: weapons, armour, components. The Craft page counts them, and org mates can see the ones you make org-visible.",
     "filters": {
       "search": "Search item",
       "all": "All"
@@ -521,7 +528,9 @@
       "title": "Add multiple items",
       "help": "One line per stack. Location applies to the whole batch; visibility is per line and a new line inherits the one above. Quality is optional — for crafted or bought gear.",
       "add": "Add items"
-    }
+    },
+    "emptyTitle": "No items yet",
+    "emptyAdd": "Add items"
   },
   "blueprints": {
     "title": "Blueprints",
@@ -623,7 +632,10 @@
       "owned": "Owned in the org, me included",
       "unownedByMe": "Not owned by me",
       "unowned": "Not owned by anyone in the org"
-    }
+    },
+    "emptyMineTitle": "No blueprints ticked yet",
+    "emptyMine": "Show all blueprints and tick the ones you own. The desktop client also adds the blueprints you earn, straight from the game.",
+    "showAll": "Show all blueprints"
   },
   "refinery": {
     "title": "Refinery",
@@ -702,7 +714,10 @@
       "deleteHelp": "The refinery never ran this job",
       "deleteHelpCollected": "The materials it produced stay in your inventory",
       "deleteFailed": "Could not delete that order."
-    }
+    },
+    "emptyTitle": "No refinery orders yet",
+    "emptyHow": "With the desktop client, open the work order at a refinery terminal and press F8: it reads the order for you. Or add one by hand.",
+    "emptyAdd": "Add an order"
   },
   "materials": {
     "title": "Materials",
@@ -719,7 +734,7 @@
     },
     "tableLabel": "Material stacks",
     "loadError": "Failed to load material stacks.",
-    "empty": "No stacks yet — add your first one with the quick-entry form.",
+    "empty": "Add the materials you hold, a batch at a time with their location and quality. Keep each stack private, or make it org-visible to craft with your org mates.",
     "editStack": "Edit stack",
     "ownedBy": "{{handle}}'s stack — only they can edit it",
     "filters": {
@@ -782,7 +797,9 @@
       "add": "Add materials"
     },
     "refining": "(refining)",
-    "refiningAt": "Refining at {{station}} — collect it on the Refinery page"
+    "refiningAt": "Refining at {{station}} — collect it on the Refinery page",
+    "emptyTitle": "No materials yet",
+    "emptyAdd": "Add materials"
   },
   "locations": {
     "label": "Location",
@@ -1186,5 +1203,19 @@
     "skip": "Skip",
     "skipped": "Skipped.",
     "undoSkip": "Undo"
+  },
+  "pairPage": {
+    "title": "Connect the desktop client",
+    "question": "Connect “{{name}}” to your account?",
+    "explain": "The StarBuddy desktop client asked to sign in as you. It will sync your Game.log and screen reads to your account.",
+    "checkCode": "Check that the client shows the same code:",
+    "approve": "Connect",
+    "deny": "Deny",
+    "approved": "“{{name}}” is connected. Go back to the client: it signs in by itself in a few seconds.",
+    "denied": "Denied. The client was not connected.",
+    "unknown": "This code is unknown or has expired. Press “Sign in with browser” in the desktop client again.",
+    "loadError": "Could not load the request. Try again.",
+    "decideError": "That did not go through. Try again.",
+    "toDashboard": "Go to the dashboard"
   }
 }

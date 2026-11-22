@@ -118,6 +118,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('devices/pairing-code', [DeviceController::class, 'pairingCode']);
     Route::get('devices', [DeviceController::class, 'index']);
     Route::delete('devices/{tokenId}', [DeviceController::class, 'destroy']);
+    // "Sign in with browser": the member approves a desktop client on /pair.
+    Route::get('devices/authorize/{userCode}', [\App\Http\Controllers\DeviceAuthorizationController::class, 'show'])->middleware('throttle:30,1');
+    Route::post('devices/authorize/{userCode}', [\App\Http\Controllers\DeviceAuthorizationController::class, 'decide'])->middleware('throttle:30,1');
 
     // Game.log event ingestion from paired desktop clients (idempotent)
     Route::post('presence', [\App\Http\Controllers\PresenceController::class, 'store'])->middleware('throttle:20,1');
@@ -147,6 +150,11 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
+// What the sign-in page needs to know about this instance — public.
+Route::get('instance', fn () => [
+    'discord_invite' => preg_match('#^https://(discord\.gg|discord\.com/invite)/#', (string) config('starbuddy.discord_invite')) ? config('starbuddy.discord_invite') : null,
+])->middleware('throttle:60,1');
+
 // Deployed version for footers and support requests — public, no auth needed.
 Route::get('version', fn () => ['name' => 'StarBuddy', 'version' => config('starbuddy.version')])->middleware('throttle:60,1');
 
@@ -155,6 +163,9 @@ Route::get('client/latest', \App\Http\Controllers\ClientReleaseController::class
 
 // The desktop client exchanges a short-lived pairing code for its device token.
 Route::post('devices/pair', [DeviceController::class, 'pair'])->middleware('throttle:10,1');
+// "Sign in with browser" (device flow): the client starts, then polls for its token.
+Route::post('devices/authorize', [\App\Http\Controllers\DeviceAuthorizationController::class, 'start'])->middleware('throttle:10,1');
+Route::post('devices/token', [\App\Http\Controllers\DeviceAuthorizationController::class, 'token'])->middleware('throttle:40,1');
 
 // Internal service API for the Discord bot (token-authenticated, not exposed publicly).
 Route::prefix('bot')->middleware('bot')->group(function () {

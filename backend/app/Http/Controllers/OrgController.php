@@ -46,6 +46,10 @@ class OrgController extends Controller
                     ->distinct()
                     ->count('blueprint_name'),
                 'membership' => $mine[$org->id] ?? null, // {role, status} or null
+                // Requests waiting for a manager: only managers see the number.
+                'pending_count' => $this->manages($mine[$org->id] ?? null)
+                    ? $org->memberships()->wherePivot('status', 'pending')->count()
+                    : null,
             ];
         });
     }
@@ -56,6 +60,7 @@ class OrgController extends Controller
         abort_if($existing !== null, 409, 'You already have a membership or pending request.');
 
         $org->memberships()->attach($request->user()->id, ['role' => 'member', 'status' => 'pending']);
+        \App\Support\OrgRequestNotice::requested($org, $request->user());
 
         return response()->json(['status' => 'pending'], 201);
     }
@@ -160,7 +165,11 @@ class OrgController extends Controller
     public function accept(Request $request, Org $org, User $user)
     {
         $this->authorizeManager($request->user(), $org);
+        $wasPending = $org->memberships()->where('users.id', $user->id)->wherePivot('status', 'pending')->exists();
         $org->memberships()->updateExistingPivot($user->id, ['status' => 'active']);
+        if ($wasPending) {
+            \App\Support\OrgRequestNotice::accepted($org, $user);
+        }
         // A first org becomes the main one; a later one waits to be picked.
         $user->ensureMainOrg();
 
@@ -192,6 +201,12 @@ class OrgController extends Controller
     }
 
     private const MANAGER_ROLES = ['manager', 'admin'];
+
+    /** @param  array{role: string, status: string}|null  $membership */
+    private function manages(?array $membership): bool
+    {
+        return $membership !== null && $membership['status'] === 'active' && in_array($membership['role'], self::MANAGER_ROLES, true);
+    }
 
     private function authorizeManager(User $actor, Org $org): void
     {

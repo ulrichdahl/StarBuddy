@@ -1,4 +1,6 @@
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { api } from '../lib/api'
 import Box from '@mui/material/Box'
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
@@ -21,6 +23,12 @@ export function LoginPage() {
   const intro = i18n.language === 'da' ? 'da' : 'en'
   // Set by the sign-in callback when it refuses the account.
   const error = new URLSearchParams(window.location.search).get('error')
+  const toPair = window.location.pathname === '/pair'
+  const { data: instance } = useQuery({
+    queryKey: ['instance'],
+    queryFn: async () => (await api.get<{ discord_invite: string | null }>('/api/instance')).data,
+    staleTime: Infinity,
+  })
   return (
     <Box
       sx={{
@@ -77,6 +85,16 @@ export function LoginPage() {
         {error && (
           <Alert severity="error" sx={{ mb: 2, textAlign: 'left' }}>
             {t(error === 'not_a_member' ? 'login.notAMember' : 'login.failed')}
+          </Alert>
+        )}
+        {error === 'not_a_member' && instance?.discord_invite && (
+          <Button variant="outlined" size="large" fullWidth href={instance.discord_invite} target="_blank" rel="noopener" sx={{ mb: 1.5 }}>
+            {t('login.joinDiscord')}
+          </Button>
+        )}
+        {toPair && !error && (
+          <Alert severity="info" sx={{ mb: 2, textAlign: 'left' }}>
+            {t('login.toPair')}
           </Alert>
         )}
         <Button

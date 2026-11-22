@@ -18,4 +18,13 @@ class HealthTest extends TestCase
         config(['starbuddy.version' => '0.1.7+3 (abc1234)']);
         $this->getJson('/api/version')->assertOk()->assertJson(['name' => 'StarBuddy', 'version' => '0.1.7+3 (abc1234)']);
     }
+
+    public function test_instance_offers_the_discord_invite(): void
+    {
+        config(['starbuddy.discord_invite' => 'https://discord.gg/abc123']);
+        $this->getJson('/api/instance')->assertOk()->assertExactJson(['discord_invite' => 'https://discord.gg/abc123']);
+
+        config(['starbuddy.discord_invite' => 'javascript:alert(1)']);
+        $this->getJson('/api/instance')->assertOk()->assertExactJson(['discord_invite' => null]);
+    }
 }

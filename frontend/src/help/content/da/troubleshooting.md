@@ -2,7 +2,7 @@
 
 ## Log ind
 
-**"Den Discord-konto er ikke medlem af denne StarBuddys Discord-server."** Meld dig ind på fællesskabets Discord-server med den konto, og log ind igen. Har du flere Discord-konti, så tjek, hvilken browseren er logget ind med.
+**"Den Discord-konto er ikke medlem af denne StarBuddys Discord-server."** Meld dig ind på fællesskabets Discord-server med den konto (log ind-siden viser knappen `Bliv medlem af Discord-serveren`, når serveren har et invitationslink sat op), og log ind igen. Har du flere Discord-konti, så tjek, hvilken browseren er logget ind med.
 
 **Jeg kan ikke se min orgs lager.** Din anmodning kan stadig afvente godkendelse. Åbn `Organisationer` og tjek. En manager skal godkende den.
 

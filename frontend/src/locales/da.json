@@ -11,7 +11,9 @@
     "undo": "Fortryd",
     "clear": "Ryd",
     "back": "Tilbage",
-    "done": "Færdig"
+    "done": "Færdig",
+    "noMatches": "Intet matcher filtrene.",
+    "emptyImport": "Importér en CSV"
   },
   "nav": {
     "dashboard": "Oversigt",
@@ -44,7 +46,9 @@
     "introCaption": "Hvad StarBuddy kan, på under to minutter",
     "introLabel": "StarBuddy introvideo",
     "notAMember": "Den Discord-konto er ikke medlem af denne StarBuddys Discord-server. Bliv medlem af serveren, og log ind igen.",
-    "failed": "Login mislykkedes. Prøv igen."
+    "failed": "Login mislykkedes. Prøv igen.",
+    "toPair": "Log ind for at forbinde din desktop-klient.",
+    "joinDiscord": "Bliv medlem af Discord-serveren"
   },
   "footer": {
     "notice": "Dette er en uofficiel Star Citizen-fanside uden tilknytning til Cloud Imperium-koncernen. Alt indhold på siden, som ikke er skabt af dens vært eller brugere, tilhører de respektive rettighedshavere.",
@@ -348,7 +352,10 @@
     "colPilot": "Pilot",
     "colPoints": "Point",
     "welcomeNew": "Velkommen til StarBuddy, {{name}}",
-    "soloHelp": "Du kan sagtens spille solo. Bliv medlem af en org for at dele lager og dyste."
+    "soloHelp": "Du kan sagtens spille solo. Bliv medlem af en org for at dele lager og dyste.",
+    "review": "Se dem",
+    "pendingRequests_one": "{{count}} spiller venter på at blive medlem af {{org}}.",
+    "pendingRequests_other": "{{count}} spillere venter på at blive medlem af {{org}}."
   },
   "profile": {
     "title": "Star Citizen-handle",
@@ -485,7 +492,7 @@
     "undoing": "Fortryder…",
     "undoConfirm": "Fortryd craft?",
     "undoTooltip": "Fortryd dette craft — fjern itemet og gendan materialerne",
-    "empty": "Ingen item-stakke endnu.",
+    "empty": "Tilføj de genstande, du har: våben, rustning, komponenter. Fremstil-siden tæller dem, og org-kammerater kan se dem, du gør org-synlige.",
     "filters": {
       "search": "Søg genstand",
       "all": "Alle"
@@ -518,7 +525,9 @@
       "title": "Tilføj flere genstande",
       "help": "Én linje pr. stak. Lokation gælder hele holdet; synlighed er pr. linje, og en ny linje arver den fra linjen ovenfor. Kvalitet er valgfri — til craftet eller købt udstyr.",
       "add": "Tilføj genstande"
-    }
+    },
+    "emptyTitle": "Ingen genstande endnu",
+    "emptyAdd": "Tilføj genstande"
   },
   "blueprints": {
     "title": "Blueprints",
@@ -620,7 +629,10 @@
       "owned": "Ejet i org'en, mig medregnet",
       "unownedByMe": "Ikke ejet af mig",
       "unowned": "Ingen i org'en ejer"
-    }
+    },
+    "emptyMineTitle": "Ingen blueprints afkrydset endnu",
+    "emptyMine": "Vis alle blueprints, og sæt kryds ved dem, du ejer. Desktop-klienten tilføjer også de blueprints, du optjener, direkte fra spillet.",
+    "showAll": "Vis alle blueprints"
   },
   "refinery": {
     "title": "Raffinering",
@@ -699,7 +711,10 @@
       "deleteHelp": "Raffinaderiet har aldrig kørt dette job",
       "deleteHelpCollected": "Materialerne den gav bliver i dit lager",
       "deleteFailed": "Kunne ikke slette ordren."
-    }
+    },
+    "emptyTitle": "Ingen raffinaderiordrer endnu",
+    "emptyHow": "Med desktop-klienten: åbn arbejdsordren ved en raffinaderiterminal og tryk F8, så læser den ordren for dig. Eller tilføj en i hånden.",
+    "emptyAdd": "Tilføj en ordre"
   },
   "materials": {
     "title": "Materialer",
@@ -716,7 +731,7 @@
     },
     "tableLabel": "Materialestakke",
     "loadError": "Kunne ikke hente materialestakke.",
-    "empty": "Ingen stakke endnu — tilføj din første med hurtigindtastningen.",
+    "empty": "Tilføj de materialer, du har, en portion ad gangen med sted og kvalitet. Hold hver stak privat, eller gør den org-synlig for at fremstille sammen med dine org-kammerater.",
     "editStack": "Rediger stak",
     "ownedBy": "{{handle}}s stak — kun ejeren kan redigere den",
     "filters": {
@@ -779,7 +794,9 @@
       "add": "Tilføj materialer"
     },
     "refining": "(raffinerer)",
-    "refiningAt": "Raffineres på {{station}} — hent den på Rafinaderi-siden"
+    "refiningAt": "Raffineres på {{station}} — hent den på Rafinaderi-siden",
+    "emptyTitle": "Ingen materialer endnu",
+    "emptyAdd": "Tilføj materialer"
   },
   "locations": {
     "label": "Lokation",
@@ -1183,5 +1200,19 @@
     "skip": "Spring over",
     "skipped": "Sprunget over.",
     "undoSkip": "Fortryd"
+  },
+  "pairPage": {
+    "title": "Forbind desktop-klienten",
+    "question": "Forbind “{{name}}” med din konto?",
+    "explain": "StarBuddy-desktop-klienten bad om at logge ind som dig. Den synkroniserer din Game.log og skærmaflæsninger til din konto.",
+    "checkCode": "Tjek, at klienten viser samme kode:",
+    "approve": "Forbind",
+    "deny": "Afvis",
+    "approved": "“{{name}}” er forbundet. Gå tilbage til klienten: den logger selv ind om få sekunder.",
+    "denied": "Afvist. Klienten blev ikke forbundet.",
+    "unknown": "Koden er ukendt eller udløbet. Tryk “Log ind med browser” i desktop-klienten igen.",
+    "loadError": "Kunne ikke hente anmodningen. Prøv igen.",
+    "decideError": "Det gik ikke igennem. Prøv igen.",
+    "toDashboard": "Gå til oversigten"
   }
 }

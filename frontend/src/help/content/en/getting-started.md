@@ -6,7 +6,7 @@ StarBuddy keeps track of what you and your org have in Star Citizen: the materia
 
 ## 1. Sign in with Discord
 
-Press `Sign in with Discord` and accept. StarBuddy only lets in members of its community's Discord server. If the sign-in page says your account is not a member, join the Discord server first, then sign in again.
+Press `Sign in with Discord` and accept. StarBuddy only lets in members of its community's Discord server. If the sign-in page says your account is not a member, join the Discord server first (`Join the Discord server`, when offered), then sign in again.
 
 StarBuddy stores your Discord id, name and avatar, and nothing else from Discord.
 

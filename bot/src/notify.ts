@@ -3,7 +3,10 @@ import type { APIEmbed, Client } from "discord.js";
 import { config } from "./config.js";
 
 interface NotifyPayload {
-  channel_id: string;
+  /** A channel to post in, or… */
+  channel_id?: string;
+  /** …a member to send a direct message to. */
+  user_id?: string;
   embed: APIEmbed;
   /** Plain text above the embed — the only place a mention actually pings. */
   content?: string | null;
@@ -13,7 +16,7 @@ function isNotifyPayload(value: unknown): value is NotifyPayload {
   if (typeof value !== "object" || value === null) return false;
   const record = value as Record<string, unknown>;
   return (
-    typeof record["channel_id"] === "string" &&
+    (typeof record["channel_id"] === "string" || typeof record["user_id"] === "string") &&
     typeof record["embed"] === "object" &&
     record["embed"] !== null &&
     (record["content"] === undefined || record["content"] === null || typeof record["content"] === "string")
@@ -22,7 +25,9 @@ function isNotifyPayload(value: unknown): value is NotifyPayload {
 
 /**
  * Tiny webhook server the Laravel queue posts notifications to:
- * POST /notify { channel_id, embed, content? } with the shared bearer token.
+ * POST /notify { channel_id | user_id, embed, content? } with the shared
+ * bearer token. user_id sends a direct message; a member who blocks DMs
+ * gets nothing, answered as 200 { delivered: false } so it is not retried.
  * GET /health answers 200 once the Discord gateway session is ready
  * (503 before) — the container healthcheck in docker-compose.yml polls it.
  */
@@ -59,12 +64,29 @@ export function startNotifyServer(client: Client): Server {
           return;
         }
         if (!isNotifyPayload(payload)) {
-          respond(422, { error: "Expected { channel_id: string, embed: object }" });
+          respond(422, { error: "Expected { channel_id or user_id: string, embed: object }" });
+          return;
+        }
+
+        if (payload.user_id !== undefined) {
+          try {
+            const user = await client.users.fetch(payload.user_id);
+            await user.send({ content: payload.content ?? undefined, embeds: [payload.embed], allowedMentions: { parse: [] } });
+            respond(200, { ok: true, delivered: true });
+          } catch (error) {
+            // 50007: cannot send messages to this user (DMs closed).
+            if ((error as { code?: number }).code === 50007) {
+              respond(200, { ok: true, delivered: false });
+              return;
+            }
+            console.error("Failed to deliver direct message:", error);
+            respond(502, { error: "Failed to deliver direct message" });
+          }
           return;
         }
 
         try {
-          const channel = await client.channels.fetch(payload.channel_id);
+          const channel = await client.channels.fetch(payload.channel_id as string);
           if (!channel?.isSendable()) {
             respond(404, { error: "Channel not found or not sendable" });
             return;

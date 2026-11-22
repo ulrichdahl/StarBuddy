@@ -38,6 +38,7 @@ import { gradeLabel } from './CraftPage'
 import { usePinnedBlueprints } from '../lib/craftTargets'
 import { hud } from '../theme'
 import { PinMark } from '../components/PinMark'
+import { EmptyRow } from '../components/EmptyState'
 
 type View = 'checklist' | 'matrix'
 type SortField = 'kiosk' | 'name' | 'type' | 'grade' | 'poolName' | 'pool' | 'owners'
@@ -348,6 +349,7 @@ function ChecklistView({
   onSort,
   toggle,
   onInfo,
+  onShowAll,
 }: {
   data: CatalogResponse | undefined
   sort: SortField
@@ -355,6 +357,8 @@ function ChecklistView({
   onSort: (f: SortField) => void
   toggle: (row: CatalogRow) => void
   onInfo: (id: number) => void
+  /** Set when only "mine" filters the list: an empty list then means none ticked yet. */
+  onShowAll?: () => void
 }) {
   const pinned = usePinnedBlueprints()
   const { t } = useTranslation()
@@ -454,13 +458,20 @@ function ChecklistView({
               )
             })}
             {data && rows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7}>
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                    {t('blueprints.emptyFiltered')}
-                  </Typography>
-                </TableCell>
-              </TableRow>
+              onShowAll ? (
+                <EmptyRow
+                  colSpan={7}
+                  title={t('blueprints.emptyMineTitle')}
+                  text={t('blueprints.emptyMine')}
+                  actions={
+                    <Button variant="contained" onClick={onShowAll}>
+                      {t('blueprints.showAll')}
+                    </Button>
+                  }
+                />
+              ) : (
+                <EmptyRow colSpan={7} text={t('blueprints.emptyFiltered')} />
+              )
             )}
           </TableBody>
         </Table>
@@ -728,7 +739,15 @@ export function BlueprintsPage() {
         {isError && <Alert severity="error">{t('blueprints.loadFailed')}</Alert>}
         {toggleError && <Alert severity="error">{t('blueprints.toggleFailed')}</Alert>}
         {view === 'checklist' ? (
-          <ChecklistView data={data} sort={sort} dir={dir} onSort={onSort} toggle={toggle} onInfo={setInfoId} />
+          <ChecklistView
+            data={data}
+            sort={sort}
+            dir={dir}
+            onSort={onSort}
+            toggle={toggle}
+            onInfo={setInfoId}
+            onShowAll={filters.ownedByMe && !filters.search && !filters.category && !filters.grade && !filters.owned ? () => setFilters((f) => ({ ...f, ownedByMe: false })) : undefined}
+          />
         ) : (
           <MatrixView data={data} sort={sort} dir={dir} onSort={onSort} toggle={toggle} onInfo={setInfoId} />
         )}
