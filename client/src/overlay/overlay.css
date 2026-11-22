@@ -622,6 +622,12 @@ html.debug-bounds::after {
   opacity: 0.6;
   font-size: 0.82em;
 }
+/* A label and its value on one line (the refinery order's total yield). */
+.ov-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
 .ov-link {
   background: none;
   border: 0;

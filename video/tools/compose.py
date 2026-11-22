@@ -175,9 +175,14 @@ def run(name, keys, scene_frame, langs, long_keys=()):
     dirs = [os.path.join(here, "voice", v) for _, v in picks]
     scenes, total = timeline(keys, dirs, estimate, long_keys)
     json.dump(scenes, open(os.path.join(here, "timing.json"), "w"), indent=1)
-    silent = os.path.join(here, "silent.mp4")
-    render(scenes, total, scene_frame, silent)
-    tracks = []
+    # One picture per language: scene_frame(key, lt, d, lang) draws that
+    # language's UI. The multi-track file carries the first language's picture.
+    tracks, silents = [], {}
+    for lang, v in picks:
+        if lang not in silents:
+            silents[lang] = os.path.join(here, f"silent-{lang}.mp4")
+            print("picture", lang)
+            render(scenes, total, lambda k, lt, d, lang=lang: scene_frame(k, lt, d, lang), silents[lang])
     for (lang, v), d in zip(picks, dirs):
         a = os.path.join(here, f"{lang}-{v}.m4a")
         print("track", lang, v)
@@ -185,8 +190,12 @@ def run(name, keys, scene_frame, langs, long_keys=()):
         tracks.append((lang, a))
     tag = "-".join(f"{l}_{v}" for l, v in picks)
     out = os.path.join(here, f"starbuddy-{name}-{tag}.mp4")
-    mux(silent, tracks, out)
+    mux(silents[picks[0][0]], tracks, out)
     for i, (lang, v) in enumerate(picks):
-        web_version(out, i, os.path.join(here, f"starbuddy-{name}.{lang}.web.mp4"))
-    os.remove(silent)
+        own = os.path.join(here, f"{lang}-own.mp4")
+        mux(silents[lang], [tracks[i]], own)
+        web_version(own, 0, os.path.join(here, f"starbuddy-{name}.{lang}.web.mp4"))
+        os.remove(own)
+    for f in silents.values():
+        os.remove(f)
     print("done", out)
