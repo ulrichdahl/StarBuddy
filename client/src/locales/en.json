@@ -861,5 +861,44 @@
     "rust_other": "{{count}} Rust crates",
     "npm_one": "{{count}} JavaScript package",
     "npm_other": "{{count}} JavaScript packages"
+  },
+  "setup": {
+    "panelTitle": "Setup",
+    "panelHint": "The short guided setup from the first start: sign in, Game.log, game window, a hotkey.",
+    "reopen": "Run setup again",
+    "progress": "Step {{at}} of {{of}}",
+    "back": "Back",
+    "next": "Next",
+    "skip": "Skip",
+    "skipAll": "Skip setup. Everything is in Settings.",
+    "server": {
+      "title": "Sign in",
+      "lead": "Connect StarBuddy to the website to see your blueprints, refinery orders and craft targets here. You can play solo; an org is optional."
+    },
+    "log": {
+      "title": "Find Game.log",
+      "lead": "StarBuddy reads the game's log as you play: missions, blueprints, travel and refinery jobs.",
+      "notFound": "No installation found. Choose your StarCitizen folder."
+    },
+    "window": {
+      "title": "Choose the game window",
+      "lead": "The scan window and the refinery key read the game's window. Frames are read and dropped; nothing leaves this machine.",
+      "windows": "Start the game first so its window is in the list. Or skip and do it later from the scan window.",
+      "portal": "Your desktop asks which window to share. Pick the game; the choice is remembered."
+    },
+    "hotkey": {
+      "title": "Try a hotkey",
+      "lead": "This key shows and hides the status window. Hotkeys work while the game has focus too.",
+      "press": "Press",
+      "heard": "Heard it. Hotkeys work.",
+      "blocked": "Your desktop holds the hotkeys. Settings › Hotkeys shows how to bind them.",
+      "noKey": "No key is set for the status window. Choose one in Settings › Hotkeys."
+    },
+    "end": {
+      "title": "All set",
+      "later": "set it up later in Settings",
+      "solo": "StarBuddy works solo. Join an org on the website when you want to share with others.",
+      "go": "Open StarBuddy"
+    }
   }
 }

@@ -861,5 +861,44 @@
     "rust_other": "{{count}} Rust-crates",
     "npm_one": "{{count}} JavaScript-pakke",
     "npm_other": "{{count}} JavaScript-pakker"
+  },
+  "setup": {
+    "panelTitle": "Opsætning",
+    "panelHint": "Den korte guidede opsætning fra første start: log ind, Game.log, spillets vindue, en genvejstast.",
+    "reopen": "Kør opsætning igen",
+    "progress": "Trin {{at}} af {{of}}",
+    "back": "Tilbage",
+    "next": "Næste",
+    "skip": "Spring over",
+    "skipAll": "Spring opsætningen over. Alt findes i Indstillinger.",
+    "server": {
+      "title": "Log ind",
+      "lead": "Forbind StarBuddy med hjemmesiden for at se dine blueprints, raffinaderi-ordrer og fremstillingsmål her. Du kan spille solo; en org er valgfri."
+    },
+    "log": {
+      "title": "Find Game.log",
+      "lead": "StarBuddy læser spillets log, mens du spiller: missioner, blueprints, rejser og raffinaderi-jobs.",
+      "notFound": "Ingen installation fundet. Vælg din StarCitizen-mappe."
+    },
+    "window": {
+      "title": "Vælg spillets vindue",
+      "lead": "Scanningsvinduet og raffinaderi-tasten læser spillets vindue. Billederne læses og smides væk; intet forlader denne maskine.",
+      "windows": "Start spillet først, så dets vindue er på listen. Eller spring over, og gør det senere fra scanningsvinduet.",
+      "portal": "Dit skrivebord spørger, hvilket vindue der skal deles. Vælg spillet; valget huskes."
+    },
+    "hotkey": {
+      "title": "Prøv en genvejstast",
+      "lead": "Denne tast viser og skjuler statusvinduet. Genvejstaster virker også, mens spillet har fokus.",
+      "press": "Tryk på",
+      "heard": "Hørt. Genvejstaster virker.",
+      "blocked": "Dit skrivebord styrer genvejstasterne. Indstillinger › Genvejstaster viser, hvordan de bindes.",
+      "noKey": "Der er ingen tast til statusvinduet. Vælg en i Indstillinger › Genvejstaster."
+    },
+    "end": {
+      "title": "Klar",
+      "later": "sæt det op senere i Indstillinger",
+      "solo": "StarBuddy virker solo. Meld dig ind i en org på hjemmesiden, når du vil dele med andre.",
+      "go": "Åbn StarBuddy"
+    }
   }
 }
