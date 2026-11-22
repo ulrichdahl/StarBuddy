@@ -41,7 +41,7 @@
     "noClientConnected": "No desktop client connected yet. Download it and pair it here."
   },
   "login": {
-    "tagline": "Org materials and blueprint tracking for Star Citizen. Sign in with the Discord account linked to your org.",
+    "tagline": "Materials, blueprints and refinery tracking for Star Citizen, solo or with your org.",
     "signIn": "Sign in with Discord",
     "introCaption": "What StarBuddy does, in under two minutes",
     "introLabel": "StarBuddy intro video",
@@ -49,7 +49,8 @@
     "failed": "Sign-in failed. Try again.",
     "toPair": "Sign in to connect your desktop client.",
     "joinDiscord": "Join the Discord server",
-    "joinServer": "Join {{name}} Discord server"
+    "joinServer": "Join {{name}} Discord server",
+    "membersOnly": "Only for members of the {{name}} Discord server."
   },
   "footer": {
     "notice": "This is an unofficial Star Citizen fan site, not affiliated with the Cloud Imperium group of companies. All content on this site not authored by its host or users are property of their respective owners.",

@@ -43,6 +43,8 @@ async function web(browser, lang, out) {
   const guest = await browser.newContext(opts);
   const g = await guest.newPage();
   await g.addInitScript((l) => localStorage.setItem('starbuddy.locale', l), lang);
+  // The dev stack's own Discord server stays out of the public help.
+  await g.route('**/api/instance', (r) => r.fulfill({ json: { discord_invite: null, discord_server: { name: 'United Danes', icon_url: null } } }));
   await g.goto(WEB + '/');
   await settle(g);
   await jpg(g, `${out}/web-login.jpg`);

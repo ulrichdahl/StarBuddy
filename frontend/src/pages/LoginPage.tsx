@@ -83,6 +83,14 @@ export function LoginPage() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
           {t('login.tagline')}
         </Typography>
+        {instance?.discord_server && error !== 'not_a_member' && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5, p: 1.5, border: 1, borderColor: 'divider', borderRadius: 1, textAlign: 'left' }}>
+            {instance.discord_server.icon_url && <Avatar src={instance.discord_server.icon_url} alt="" sx={{ width: 40, height: 40 }} />}
+            <Typography variant="body2" color="text.secondary">
+              {t('login.membersOnly', { name: instance.discord_server.name })}
+            </Typography>
+          </Box>
+        )}
         {error && (
           <Alert severity="error" sx={{ mb: 2, textAlign: 'left' }}>
             {t(error === 'not_a_member' ? 'login.notAMember' : 'login.failed')}

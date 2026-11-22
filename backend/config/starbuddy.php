@@ -68,4 +68,8 @@ return [
     // sign-in page offers it to someone refused for not being a member.
     // Empty = no link.
     'discord_invite' => env('STARBUDDY_DISCORD_INVITE', ''),
+
+    // The bot's token, read here only to look up the home server's name and
+    // icon for the sign-in page. Never sent to the browser.
+    'discord_bot_token' => env('DISCORD_BOT_TOKEN'),
 ];

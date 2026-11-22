@@ -8,33 +8,59 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * What the sign-in page needs to know about this instance. Public. The
- * Discord server's name and icon come from Discord's public invite lookup
- * (no token needed) and are cached for a day.
+ * home Discord server's name and icon come from Discord: through the bot
+ * when it is set up, else from the public invite lookup. Cached for a day.
  */
 class InstanceController extends Controller
 {
     public function __invoke()
     {
         $invite = (string) config('starbuddy.discord_invite');
-        if (! preg_match('#^https://(?:discord\.gg|discord\.com/invite)/([A-Za-z0-9-]+)/?$#', $invite, $m)) {
-            return ['discord_invite' => null, 'discord_server' => null];
-        }
+        $code = preg_match('#^https://(?:discord\.gg|discord\.com/invite)/([A-Za-z0-9-]+)/?$#', $invite, $m) ? $m[1] : null;
 
-        return ['discord_invite' => $invite, 'discord_server' => $this->server($m[1])];
+        return [
+            'discord_invite' => $code ? $invite : null,
+            'discord_server' => $this->fromBot() ?? ($code ? $this->fromInvite($code) : null),
+        ];
     }
 
     /** @return array{name: string, icon_url: ?string}|null */
-    private function server(string $code): ?array
+    private function fromBot(): ?array
     {
-        $cached = Cache::get("discord-invite:{$code}");
+        $token = config('starbuddy.discord_bot_token');
+        $guild = config('starbuddy.home_guild_id');
+        if (! $token || ! $guild) {
+            return null;
+        }
+
+        return $this->cached("discord-guild:{$guild}", fn () => Http::acceptJson()->timeout(6)
+            ->withHeaders(['Authorization' => "Bot {$token}"])
+            ->get("https://discord.com/api/v10/guilds/{$guild}")
+            ->json());
+    }
+
+    /** @return array{name: string, icon_url: ?string}|null */
+    private function fromInvite(string $code): ?array
+    {
+        return $this->cached("discord-invite:{$code}", fn () => Http::acceptJson()->timeout(6)
+            ->get("https://discord.com/api/v10/invites/{$code}")
+            ->json('guild'));
+    }
+
+    /**
+     * @param  callable(): mixed  $lookup  returns Discord's guild object
+     * @return array{name: string, icon_url: ?string}|null
+     */
+    private function cached(string $key, callable $lookup): ?array
+    {
+        $cached = Cache::get($key);
         if ($cached !== null) {
             return $cached ?: null;
         }
 
         $server = null;
         try {
-            $response = Http::acceptJson()->timeout(6)->get("https://discord.com/api/v10/invites/{$code}");
-            $guild = $response->ok() ? $response->json('guild') : null;
+            $guild = $lookup();
             if (is_array($guild) && isset($guild['id'], $guild['name'])) {
                 $icon = $guild['icon'] ?? null;
                 $server = [
@@ -44,14 +70,14 @@ class InstanceController extends Controller
                         : null,
                 ];
             } else {
-                Log::warning('Discord invite lookup failed', ['status' => $response->status()]);
+                Log::warning('Discord server lookup failed', ['key' => $key]);
             }
         } catch (\Throwable $e) {
-            Log::warning('Discord invite lookup failed', ['error' => $e->getMessage()]);
+            Log::warning('Discord server lookup failed', ['key' => $key, 'error' => $e->getMessage()]);
         }
 
         // A failed lookup (false) is retried sooner than a good one is refreshed.
-        Cache::put("discord-invite:{$code}", $server ?? false, $server ? now()->addDay() : now()->addMinutes(10));
+        Cache::put($key, $server ?? false, $server ? now()->addDay() : now()->addMinutes(10));
 
         return $server;
     }

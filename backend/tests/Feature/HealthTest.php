@@ -26,7 +26,7 @@ class HealthTest extends TestCase
             'code' => 'abc123',
             'guild' => ['id' => '42', 'name' => 'United Danes', 'icon' => 'f00d'],
         ])]);
-        config(['starbuddy.discord_invite' => 'https://discord.gg/abc123']);
+        config(['starbuddy.discord_invite' => 'https://discord.gg/abc123', 'starbuddy.discord_bot_token' => null]);
         $this->getJson('/api/instance')->assertOk()->assertExactJson([
             'discord_invite' => 'https://discord.gg/abc123',
             'discord_server' => ['name' => 'United Danes', 'icon_url' => 'https://cdn.discordapp.com/icons/42/f00d.png?size=128'],
@@ -37,7 +37,7 @@ class HealthTest extends TestCase
 
     public function test_instance_without_a_valid_invite(): void
     {
-        config(['starbuddy.discord_invite' => 'javascript:alert(1)']);
+        config(['starbuddy.discord_invite' => 'javascript:alert(1)', 'starbuddy.discord_bot_token' => null]);
         $this->getJson('/api/instance')->assertOk()->assertExactJson(['discord_invite' => null, 'discord_server' => null]);
     }
 
@@ -45,7 +45,21 @@ class HealthTest extends TestCase
     {
         \Illuminate\Support\Facades\Cache::flush();
         \Illuminate\Support\Facades\Http::fake(['*' => \Illuminate\Support\Facades\Http::response('', 404)]);
-        config(['starbuddy.discord_invite' => 'https://discord.com/invite/gone']);
+        config(['starbuddy.discord_invite' => 'https://discord.com/invite/gone', 'starbuddy.discord_bot_token' => null]);
         $this->getJson('/api/instance')->assertOk()->assertExactJson(['discord_invite' => 'https://discord.com/invite/gone', 'discord_server' => null]);
+    }
+
+    public function test_instance_names_the_home_server_through_the_bot_without_an_invite(): void
+    {
+        \Illuminate\Support\Facades\Cache::flush();
+        \Illuminate\Support\Facades\Http::fake(['discord.com/api/v10/guilds/42' => \Illuminate\Support\Facades\Http::response(['id' => '42', 'name' => 'United Danes', 'icon' => 'a_beef'])]);
+        config(['starbuddy.discord_invite' => '', 'starbuddy.discord_bot_token' => 'bot-secret', 'starbuddy.home_guild_id' => '42']);
+
+        $this->getJson('/api/instance')->assertOk()->assertExactJson([
+            'discord_invite' => null,
+            'discord_server' => ['name' => 'United Danes', 'icon_url' => 'https://cdn.discordapp.com/icons/42/a_beef.gif?size=128'],
+        ]);
+        \Illuminate\Support\Facades\Http::assertSent(fn ($r) => $r->hasHeader('Authorization', 'Bot bot-secret'));
+        $this->assertStringNotContainsString('bot-secret', $this->getJson('/api/instance')->getContent());
     }
 }

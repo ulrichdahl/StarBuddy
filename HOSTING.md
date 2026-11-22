@@ -128,6 +128,11 @@ Recommended: `STARBUDDY_DISCORD_INVITE=https://discord.gg/<code>`. Someone
 refused at sign-in for not being a member of your server gets a button to
 join it. Make the invite in Discord with *Expire after: Never*.
 
+The sign-in page names your Discord server and shows its icon ("Only for
+members of … Discord server"). The backend reads both through the bot
+(`DISCORD_BOT_TOKEN`, `STARBUDDY_HOME_GUILD_ID`), or from the invite when the
+bot isn't set up.
+
 The bot sends direct messages for org requests: a manager gets one when a
 player asks to join their org, and the player gets one when accepted. Members
 who block DMs from server members simply don't get them.

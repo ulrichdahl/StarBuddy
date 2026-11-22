@@ -41,7 +41,7 @@
     "noClientConnected": "Ingen desktop-klient forbundet endnu. Download den og par den her."
   },
   "login": {
-    "tagline": "Materiale- og blueprint-styring for din org i Star Citizen. Log ind med den Discord-konto, der er knyttet til din org.",
+    "tagline": "Materialer, blueprints og raffinering i Star Citizen, alene eller med din org.",
     "signIn": "Log ind med Discord",
     "introCaption": "Hvad StarBuddy kan, på under to minutter",
     "introLabel": "StarBuddy introvideo",
@@ -49,7 +49,8 @@
     "failed": "Login mislykkedes. Prøv igen.",
     "toPair": "Log ind for at forbinde din desktop-klient.",
     "joinDiscord": "Bliv medlem af Discord-serveren",
-    "joinServer": "Bliv medlem af {{name}} Discord-server"
+    "joinServer": "Bliv medlem af {{name}} Discord-server",
+    "membersOnly": "Kun for medlemmer af {{name}} Discord-server."
   },
   "footer": {
     "notice": "Dette er en uofficiel Star Citizen-fanside uden tilknytning til Cloud Imperium-koncernen. Alt indhold på siden, som ikke er skabt af dens vært eller brugere, tilhører de respektive rettighedshavere.",
