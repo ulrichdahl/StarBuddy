@@ -6,7 +6,7 @@ StarBuddy holder styr på, hvad du og din org har i Star Citizen: de materialer 
 
 ## 1. Log ind med Discord
 
-Tryk `Log ind med Discord` og godkend. StarBuddy lukker kun medlemmer af fællesskabets Discord-server ind. Hvis log ind-siden siger, at din konto ikke er medlem, så meld dig ind på Discord-serveren først (`Bliv medlem af Discord-serveren`, når den vises) og log ind igen.
+Tryk `Log ind med Discord` og godkend. StarBuddy lukker kun medlemmer af fællesskabets Discord-server ind. Hvis log ind-siden siger, at din konto ikke er medlem, så meld dig ind på Discord-serveren først (siden viser en knap til det, når serveren har et invitationslink sat op) og log ind igen.
 
 StarBuddy gemmer dit Discord-id, dit navn og din avatar, og intet andet fra Discord.
 
