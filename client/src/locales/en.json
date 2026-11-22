@@ -460,7 +460,8 @@
     "ship": "Ship",
     "gameRunning": "The game is running",
     "gameNotRunning": "The game is not running; this is the last session",
-    "quit": "Quit StarBuddy"
+    "quit": "Quit StarBuddy",
+    "help": "Help for this page"
   },
   "home": {
     "servers": "Servers",

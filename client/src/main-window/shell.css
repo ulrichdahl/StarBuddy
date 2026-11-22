@@ -498,6 +498,8 @@ body {
 }
 .sb .sb-hd-x:hover:not(:disabled) { color: var(--text); background: rgba(120, 160, 190, 0.12); border-color: var(--line); }
 .sb-hd-x svg { width: 17px; height: 17px; }
+/* Beside the section's name, a step in from the rule before it. */
+.sb .sb-help { width: 28px; height: 28px; margin-left: -6px; }
 .sb-ft {
   height: 34px;
   flex: none;

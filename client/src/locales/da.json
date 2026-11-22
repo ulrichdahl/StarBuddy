@@ -460,7 +460,8 @@
     "ship": "Skib",
     "gameRunning": "Spillet kører",
     "gameNotRunning": "Spillet kører ikke; dette er sidste session",
-    "quit": "Luk StarBuddy"
+    "quit": "Luk StarBuddy",
+    "help": "Hjælp til denne side"
   },
   "home": {
     "servers": "Servere",
