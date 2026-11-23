@@ -1229,5 +1229,18 @@
     "subtitle": "Hent klienten, forbind den med din konto, og kobl de skibsnavne og spilindstillinger til, som den installerer.",
     "setUp": "Hent klienten",
     "noDevices": "Ingen klient er parret endnu. Installér den, og tryk “Log ind med browser” i klienten."
+  },
+  "yourData": {
+    "title": "Dine data",
+    "help": "Hent alt, hvad StarBuddy gemmer om dig, som én fil, eller slet din konto.",
+    "export": "Hent mine data",
+    "exportError": "Kunne ikke lave filen. Prøv igen.",
+    "delete": "Slet min konto…",
+    "deleteTitle": "Slet din konto?",
+    "deleteWhat": "Din konto forsvinder sammen med dit lager, dine blueprints, raffinaderiordrer, din indsamlingsliste, dine point, skærmbilleder, parrede klienter og org-medlemskaber. Dine StarLabels- og StarConfig-indstillinger på uniteddanes.org slettes også. Filer, der er installeret i din spilmappe, bliver liggende. Logger du ind med Discord igen senere, får du en ny, tom konto.",
+    "deleteConfirm": "Det kan ikke fortrydes. Skriv <strong>{{word}}</strong> for at bekræfte.",
+    "deleteFinal": "Slet min konto",
+    "deleting": "Sletter…",
+    "deleteError": "Kontoen kunne ikke slettes. Prøv igen."
   }
 }

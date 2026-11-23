@@ -35,6 +35,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('me/udi-link', [\App\Http\Controllers\UdiLinkController::class, 'destroy']);
     Route::put('me/main-org', [\App\Http\Controllers\OrgController::class, 'setMain']);
     Route::patch('me', [\App\Http\Controllers\ProfileController::class, 'update']);
+    // The member's own data, as one file, or the whole account gone.
+    Route::get('me/export', [\App\Http\Controllers\AccountController::class, 'export'])->middleware('throttle:6,1');
+    Route::delete('me', [\App\Http\Controllers\AccountController::class, 'destroy'])->middleware('throttle:6,1');
 
     Route::get('dashboard', DashboardController::class);
     Route::get('dashboard/competition', \App\Http\Controllers\CompetitionController::class);

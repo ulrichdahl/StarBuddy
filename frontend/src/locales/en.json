@@ -1232,5 +1232,18 @@
     "subtitle": "Download the client, connect it to your account, and link the ship names and game settings it installs.",
     "setUp": "Get the client",
     "noDevices": "No client is paired yet. Install it, then press “Sign in with browser” in the client."
+  },
+  "yourData": {
+    "title": "Your data",
+    "help": "Download everything StarBuddy keeps about you as one file, or delete your account.",
+    "export": "Download my data",
+    "exportError": "Could not make the download. Try again.",
+    "delete": "Delete my account…",
+    "deleteTitle": "Delete your account?",
+    "deleteWhat": "Your account goes, with your stock, blueprints, refinery orders, gathering list, points, screenshots, paired clients and org memberships. Your StarLabels and StarConfig settings at uniteddanes.org are deleted too. Files installed in your game folder stay. Signing in with Discord again later starts a new, empty account.",
+    "deleteConfirm": "This cannot be undone. Type <strong>{{word}}</strong> to confirm.",
+    "deleteFinal": "Delete my account",
+    "deleting": "Deleting…",
+    "deleteError": "Your account could not be deleted. Try again."
   }
 }

@@ -22,3 +22,8 @@ After a game wipe, clear what the patch took from your own stock:
 3. Type `CLEAR` and confirm.
 
 This removes your private and org-visible stacks alike, and never anyone else's. It cannot be undone.
+
+## Your data
+
+- `Download my data` saves everything StarBuddy keeps about you as one JSON file: your account, stock, blueprints, refinery orders, gathering list, points, game events, org memberships, paired clients and sign-ins. Secrets, such as the link to uniteddanes.org, are left out.
+- `Delete my account…` deletes your account and everything that is yours: stock, blueprints, refinery orders, gathering list, points, screenshots, paired clients and org memberships. Your StarLabels and StarConfig settings at uniteddanes.org go too, and the files installed in your game folder stay. Type `DELETE` to confirm. It cannot be undone. If you sign in with Discord again later, you start a new, empty account.

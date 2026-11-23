@@ -16,6 +16,7 @@ import type { Me } from '../lib/types'
 import { fonts, hud } from '../theme'
 import { HudAvatar, HudPanel, OrgTag } from './hud'
 import { OwnStockSection } from './OwnStockSection'
+import { YourDataSection } from './YourDataSection'
 
 const labelSx = {
   fontFamily: fonts.display,
@@ -132,6 +133,7 @@ export function ProfileDialog({ me, open, onClose }: { me: Me; open: boolean; on
       <Box sx={{ p: 2.75, display: 'flex', flexDirection: 'column', gap: 2.25, overflowY: 'auto' }}>
         <IdentitySection me={me} />
         <OwnStockSection />
+        <YourDataSection />
       </Box>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', py: 1.75, px: 2.75, borderTop: `1px solid ${hud.lineSoft}`, bgcolor: hud.well }}>
         <Button variant="outlined" color="inherit" onClick={onClose} sx={{ height: 44, px: 2.75 }}>
