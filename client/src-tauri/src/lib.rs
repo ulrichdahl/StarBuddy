@@ -152,6 +152,7 @@ pub fn run() {
         .manage(udi::UdiState::default())
         .manage(rsi_status::RsiStatusState::default())
         .setup(|app| {
+            pairing::init(app.handle());
             let handle = app.handle().clone();
             log::info!(
                 "StarBuddy client v{} {} starting ({} {})",

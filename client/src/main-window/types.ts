@@ -43,6 +43,8 @@ export interface ConnectionView {
   paired: boolean;
   server_url: string;
   user_name: string;
+  /** The server refused this device's token (account deleted, device removed): sign in again. */
+  rejected: boolean;
 }
 
 export interface SyncSummary {

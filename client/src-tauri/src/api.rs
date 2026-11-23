@@ -60,6 +60,7 @@ pub async fn server_api(
         request = request.json(&body);
     }
     let resp = request.send().await.map_err(|e| format!("Could not reach server: {e}"))?;
+    crate::pairing::note(resp.status());
     if !resp.status().is_success() {
         return Err(error_body(resp).await);
     }

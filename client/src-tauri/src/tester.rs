@@ -50,6 +50,9 @@ pub async fn refresh(app: &AppHandle) {
         .header("Accept", "application/json")
         .send()
         .await;
+    if let Ok(resp) = &resp {
+        crate::pairing::note(resp.status());
+    }
     match resp {
         Ok(resp) if resp.status().is_success() => match resp.json::<serde_json::Value>().await {
             Ok(me) => set(app, me.get("is_tester").and_then(|v| v.as_bool()).unwrap_or(false)),

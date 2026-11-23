@@ -42,9 +42,12 @@ const fake = {
   debug_mode: false,
   game_session: session,
   // ?paired=no: the Server panel's sign-in; &pair=wait: waiting for approval in the browser.
+  // ?paired=rejected: the server refused the device token (account deleted).
   get_connection: q.get("paired") === "no"
-    ? { paired: false, server_url: "", user_name: "" }
-    : { paired: true, server_url: "https://starbuddy.uniteddanes.org", user_name: "Kestrel" },
+    ? { paired: false, server_url: "", user_name: "", rejected: false }
+    : q.get("paired") === "rejected"
+      ? { paired: false, server_url: "https://starbuddy.uniteddanes.org", user_name: "Kestrel", rejected: true }
+      : { paired: true, server_url: "https://starbuddy.uniteddanes.org", user_name: "Kestrel", rejected: false },
   pair_browser_start: { user_code: "KQ7M-4XRT", verification_uri_complete: "https://starbuddy.uniteddanes.org/pair?code=KQ7M-4XRT", expires_in: 600 },
   rsi_status_latest: { paired: true, error: null, fetched_at: Date.now(), status: { summary: "operational", systems: [
     { name: "Platform", status: "operational" }, { name: "Persistent Universe", status: "operational" }, { name: "Arena Commander", status: "operational" } ], fetched_at: Date.now(), status_url: "", active: [], recent: [] } },

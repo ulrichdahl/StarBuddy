@@ -7,6 +7,8 @@
     "title": "Server",
     "pairedAs": "Parret som",
     "unpair": "Ophæv parring",
+    "rejected": "StarBuddy-hjemmesiden accepterer ikke længere denne computer: kontoen er slettet, eller enheden er fjernet der. Log ind igen for at bruge hjemmesidens sider.",
+    "signInAgain": "Log ind igen",
     "hint": "Log ind på dit communitys StarBuddy-hjemmeside, tryk Brug en parringskode i stedet på hjemmesidens side Desktopklient, og indtast koden her.",
     "pairingCodePlaceholder": "Parringskode",
     "pair": "Par",

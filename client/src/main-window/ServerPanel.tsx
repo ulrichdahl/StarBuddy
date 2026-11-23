@@ -133,6 +133,7 @@ export function ServerPanel({
     </div>
   ) : (
     <>
+      {connection?.rejected && <p className="error">{t("server.rejected")}</p>}
       <p className="hint">{useCode ? t("server.hint") : t("server.browser.hint")}</p>
       <div className="row">
         <input

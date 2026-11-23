@@ -22,6 +22,50 @@ pub struct ConnectionView {
     pub paired: bool,
     pub server_url: String,
     pub user_name: String,
+    /// The server answered 401 to this device's token: the account was
+    /// deleted or the device removed on the website. The client counts as
+    /// unpaired until it signs in again.
+    pub rejected: bool,
+}
+
+/// Set when the server refuses the device token, cleared by any answer it
+/// accepts and by pairing again. Held in memory: after a restart the first
+/// call to the server finds out again.
+static REJECTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+static APP: std::sync::OnceLock<tauri::AppHandle> = std::sync::OnceLock::new();
+
+/// Lets [`note`] tell the window when the server stops (or starts again)
+/// accepting this device.
+pub(crate) fn init(app: &tauri::AppHandle) {
+    let _ = APP.set(app.clone());
+}
+
+/// Every call to the paired server reports its answer here. A 401 means the
+/// token is gone on the server (account deleted, device removed); the window
+/// is told once, so it can ask the player to sign in again.
+pub(crate) fn note(status: reqwest::StatusCode) {
+    use std::sync::atomic::Ordering;
+    let rejected = status == reqwest::StatusCode::UNAUTHORIZED;
+    if !rejected && !status.is_success() {
+        return;
+    }
+    if REJECTED.swap(rejected, Ordering::SeqCst) == rejected {
+        return;
+    }
+    if rejected {
+        log::warn!("the server no longer accepts this device's token; sign in again");
+    } else {
+        log::info!("the server accepts this device again");
+    }
+    if let Some(app) = APP.get() {
+        use tauri::Emitter;
+        let _ = app.emit("connection-changed", view(load_settings(app).as_ref()));
+    }
+}
+
+/// A new pairing: whatever the old token was, this one has not been refused.
+fn accepted() {
+    REJECTED.store(false, std::sync::atomic::Ordering::SeqCst);
 }
 
 fn settings_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
@@ -36,16 +80,11 @@ pub(crate) fn load_settings(app: &tauri::AppHandle) -> Option<StoredSettings> {
 
 fn view(settings: Option<&StoredSettings>) -> ConnectionView {
     match settings {
-        Some(s) if !s.token.is_empty() => ConnectionView {
-            paired: true,
-            server_url: s.server_url.clone(),
-            user_name: s.user_name.clone(),
-        },
-        _ => ConnectionView {
-            paired: false,
-            server_url: String::new(),
-            user_name: String::new(),
-        },
+        Some(s) if !s.token.is_empty() => {
+            let rejected = REJECTED.load(std::sync::atomic::Ordering::SeqCst);
+            ConnectionView { paired: !rejected, server_url: s.server_url.clone(), user_name: s.user_name.clone(), rejected }
+        }
+        _ => ConnectionView { paired: false, server_url: String::new(), user_name: String::new(), rejected: false },
     }
 }
 
@@ -58,6 +97,7 @@ pub fn get_connection(app: tauri::AppHandle) -> ConnectionView {
 pub fn unpair(app: tauri::AppHandle) -> Result<ConnectionView, String> {
     let path = settings_path(&app)?;
     let _ = fs::remove_file(path);
+    accepted();
     rsi_status::refresh_now(&app);
     crate::tester::set(&app, false);
     Ok(view(None))
@@ -148,6 +188,7 @@ fn paired_with(app: &tauri::AppHandle, server_url: String, token: String, user_n
         &serde_json::to_vec_pretty(&settings).map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
+    accepted();
     rsi_status::refresh_now(app);
     crate::tester::refresh_soon(app);
     Ok(view(Some(&settings)))
@@ -428,6 +469,7 @@ async fn post_batch(settings: &StoredSettings, events: &[&LogEvent], character: 
         .send()
         .await
         .map_err(|e| PostError { message: format!("Could not reach server: {e}"), status: None })?;
+    note(resp.status());
 
     let status = resp.status().as_u16();
     if !resp.status().is_success() {

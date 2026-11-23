@@ -69,11 +69,17 @@ function App() {
         if (!c.paired && !setupDone()) setSetupOpen(true);
       })
       .catch(() => {});
+    // The server can stop accepting this device at any time (account deleted,
+    // device removed on the website); every page then sees it as unpaired.
+    const conn = listen<ConnectionView>("connection-changed", (e) => setConnection(e.payload)).catch(() => null);
     const readKey = () => invoke<HotkeyInfo>("overlay_hotkey").then((h) => setMainKey(h.hotkeys.main ?? null)).catch(() => {});
     void readKey();
     // The footer names the key, so it follows a change made in Settings.
     const sub = listen("hotkeys-changed", () => void readKey()).catch(() => null);
-    return () => void sub.then((un) => un?.());
+    return () => {
+      void sub.then((un) => un?.());
+      void conn.then((un) => un?.());
+    };
   }, []);
 
   const onUpdate = (info: UpdateCheck, offered: boolean) => {
@@ -196,6 +202,20 @@ function App() {
 
   return (
     <Shell section={section} onSection={goSection} version={version} showingAs={mainState?.showing_as ?? "window"} mainKey={mainKey}>
+      {connection?.rejected && !setupOpen && !(section === "settings" && settingsTab === "general") && (
+        <div className="update-banner" role="alert">
+          <p style={{ flex: 1, margin: 0 }}>{t("server.rejected")}</p>
+          <button
+            className="active"
+            onClick={() => {
+              setSettingsTab("general");
+              goSection("settings");
+            }}
+          >
+            {t("server.signInAgain")}
+          </button>
+        </div>
+      )}
       {body}
     </Shell>
   );

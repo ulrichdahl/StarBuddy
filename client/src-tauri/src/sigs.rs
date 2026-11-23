@@ -200,6 +200,7 @@ pub async fn refresh(app: AppHandle) -> Result<usize, String> {
         .send()
         .await
         .map_err(|e| e.to_string())?;
+    crate::pairing::note(resp.status());
     if !resp.status().is_success() {
         return Err(format!("server said {}", resp.status()));
     }

@@ -694,6 +694,7 @@ pub async fn refinery_save(
         .send()
         .await
         .map_err(|e| format!("Could not reach server: {e}"))?;
+    crate::pairing::note(resp.status());
 
     if !resp.status().is_success() {
         let (message, fields) = crate::error_fields(resp).await;

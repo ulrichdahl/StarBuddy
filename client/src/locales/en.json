@@ -7,6 +7,8 @@
     "title": "Server",
     "pairedAs": "Paired as",
     "unpair": "Unpair",
+    "rejected": "The StarBuddy website no longer accepts this computer: the account was deleted, or this device was removed there. Sign in again to keep using the website's pages.",
+    "signInAgain": "Sign in again",
     "hint": "Sign in to your community's StarBuddy website, press Use a pairing code instead on its Desktop client page, and enter the code here.",
     "pairingCodePlaceholder": "Pairing code",
     "pair": "Pair",

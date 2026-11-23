@@ -42,6 +42,7 @@ async fn post(app: &tauri::AppHandle, body: &Value) -> Result<(), String> {
         .send()
         .await
         .map_err(|e| e.to_string())?;
+    crate::pairing::note(resp.status());
     if resp.status().is_success() {
         Ok(())
     } else {
