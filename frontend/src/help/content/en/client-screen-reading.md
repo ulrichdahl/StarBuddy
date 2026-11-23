@@ -24,9 +24,13 @@ On Windows a yellow border round the game shows that the window is being capture
 
 You don't have to frame the panel yourself. The first time you press `F8`, the client reads the whole screen and finds the work order by its text. An amber card at the top of the refinery window then asks **Use this area for the next reads?** Reads of just that area are faster and more reliable: press `Use this area`, or `No thanks`. The station name is read from the top of the screen by itself.
 
-If the panel isn't all on screen, nothing is saved. A red card, **Frame the work order**, says what was missing, for example the bottom with **TOTAL COST** and **PROCESSING TIME**. Scroll the panel or move closer, and press `F8` again.
+A long work order goes past the bottom of the screen. An amber card, **Scroll down and read again**, then says that **TOTAL COST** and **PROCESSING TIME** were not read. Scroll the work order down and press `Read more rows`: the new rows are added to the ones already read. A long order can take three or four reads. This works with a framed area too.
 
-![The refinery window when the panel's bottom was missing](screens/client-refinery-guide.png)
+![The refinery window asking for another read of a long work order](screens/client-refinery-more.png)
+
+If no work order is found, or its title or materials table is missing, nothing is saved. A red card, **Frame the work order**, says what was missing. Move closer or turn to the terminal, and press `F8` again.
+
+![The refinery window when it found no work order](screens/client-refinery-guide.png)
 
 To frame it by hand, press `Pick area` there, or go to `Settings` › `Screen reading` › **Refinery order area** › `Frame area`. Drag from the **WORK ORDER** title down to **TOTAL COST** and **PROCESSING TIME**, with the whole materials table inside.
 

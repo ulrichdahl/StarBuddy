@@ -24,9 +24,13 @@ På Windows viser en gul ramme om spillet, at vinduet bliver optaget. Windows 11
 
 Du behøver ikke indramme panelet selv. Første gang du trykker `F8`, læser klienten hele skærmen og finder arbejdsordren på dens tekst. Et ravgult kort øverst i raffinaderivinduet spørger så **Brug dette område til de næste aflæsninger?** Det er hurtigere og mere pålideligt kun at aflæse det område: tryk `Brug dette område` eller `Nej tak`. Stationens navn læses selv fra toppen af skærmen.
 
-Er panelet ikke helt på skærmen, gemmes intet. Et rødt kort, **Indram arbejdsordren**, siger, hvad der manglede, f.eks. bunden med **TOTAL COST** og **PROCESSING TIME**. Rul panelet eller gå tættere på, og tryk `F8` igen.
+En lang arbejdsordre går ud over bunden af skærmen. Et ravgult kort, **Rul ned og aflæs igen**, siger så, at **TOTAL COST** og **PROCESSING TIME** ikke blev læst. Rul arbejdsordren ned, og tryk `Aflæs flere rækker`: de nye rækker lægges til dem, der allerede er læst. En lang ordre kan tage tre eller fire aflæsninger. Det virker også med et indrammet område.
 
-![Raffinaderivinduet, når panelets bund manglede](screens/client-refinery-guide.png)
+![Raffinaderivinduet beder om endnu en aflæsning af en lang arbejdsordre](screens/client-refinery-more.png)
+
+Findes der ingen arbejdsordre, eller mangler dens titel eller materialetabel, gemmes intet. Et rødt kort, **Indram arbejdsordren**, siger, hvad der manglede. Gå tættere på eller vend dig mod terminalen, og tryk `F8` igen.
+
+![Raffinaderivinduet, når det ikke fandt nogen arbejdsordre](screens/client-refinery-guide.png)
 
 Vil du indramme det i hånden, så tryk `Vælg område` dér, eller gå til `Indstillinger` › `Skærmaflæsning` › **Raffinaderiordre-område** › `Indram område`. Træk fra titlen **WORK ORDER** ned til **TOTAL COST** og **PROCESSING TIME**, med hele materialetabellen indenfor.
 
