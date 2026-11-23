@@ -41,7 +41,14 @@ const fake = {
   app_changes: [],
   debug_mode: false,
   game_session: session,
-  get_connection: { paired: true, server_url: "https://starbuddy.uniteddanes.org", user_name: "Kestrel" },
+  // ?paired=no: the Server panel's sign-in; &pair=wait: waiting for approval in the browser.
+  // ?paired=rejected: the server refused the device token (account deleted).
+  get_connection: q.get("paired") === "no"
+    ? { paired: false, server_url: "", user_name: "", rejected: false }
+    : q.get("paired") === "rejected"
+      ? { paired: false, server_url: "https://starbuddy.uniteddanes.org", user_name: "Kestrel", rejected: true }
+      : { paired: true, server_url: "https://starbuddy.uniteddanes.org", user_name: "Kestrel", rejected: false },
+  pair_browser_start: { user_code: "KQ7M-4XRT", verification_uri_complete: "https://starbuddy.uniteddanes.org/pair?code=KQ7M-4XRT", expires_in: 600 },
   rsi_status_latest: { paired: true, error: null, fetched_at: Date.now(), status: { summary: "operational", systems: [
     { name: "Platform", status: "operational" }, { name: "Persistent Universe", status: "operational" }, { name: "Arena Commander", status: "operational" } ], fetched_at: Date.now(), status_url: "", active: [], recent: [] } },
   check_for_update: { current: "1.0.2", latest: "1.0.2", update_available: false },
@@ -53,7 +60,22 @@ const fake = {
   watcher_status: true,
   presence_sharing_get: true,
   training_sharing_get: false,
-  screen_reading: { on: true, available: true, source: "Star Citizen", error: null, picks_from_list: false, capture_border: false },
+  // ?capture=off (desktop dialog), win (Windows, no window chosen yet) or
+  // failed (the last window did not start): the scan window's setup card.
+  screen_reading: {
+    on: !q.get("capture"),
+    available: true,
+    source: q.get("capture") === "win" ? null : "Star Citizen",
+    error: q.get("capture") === "failed" ? "The window you chose is no longer open." : null,
+    picks_from_list: q.get("capture") === "win" || q.get("capture") === "failed",
+    capture_border: false,
+  },
+  screen_reading_windows: ["Star Citizen", "Firefox", "Konsole"],
+  region_current: q.get("framed") === "no" ? null : { x: 0.4, y: 0.26, w: 0.2, h: 0.14 },
+  // ?area=found|moved: the refinery window offers the panel's area; title|bottom|materials (with framed=no): the guide.
+  refinery_area_offer: !q.get("area") ? null
+    : ["found", "moved"].includes(q.get("area")) ? { area: { x: 0.3, y: 0.2, w: 0.4, h: 0.6 }, missing: null, moved: q.get("area") === "moved" }
+    : { area: null, missing: q.get("area"), moved: false },
   udi_status: { linked: true, auto_install: true, profile: { revision: 3, channel: "live", labels: true, config: true }, installed: { live: { game_version: "4.10.0", at: new Date(Date.now() - 2 * h).toISOString() } } },
   refinery_status: { phase: "done", detail: "" },
   refinery_last: { station: "ARC-L1 Wide Forest Station", ship: "Argo MOLE", capacity_percent: 64, captured_at: Date.now() - 40e3,

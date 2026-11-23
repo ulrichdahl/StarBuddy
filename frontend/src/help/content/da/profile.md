@@ -1,8 +1,8 @@
-# Profil og desktop-klient
+# Profil
 
-Åbn dit navn øverst til højre og vælg `Profil & desktopklient`. Knappen `Desktopklient` i topbjælken åbner det samme vindue, ved klient-afsnittet.
+Åbn dit navn øverst til højre og vælg `Profil`.
 
-![Profil og desktop-klient](screens/web-profile.jpg)
+![Profil](screens/web-profile.jpg)
 
 ## Identitet
 
@@ -11,15 +11,7 @@
 
 ## Desktop-klient
 
-1. Download klienten til Windows eller Linux herfra.
-2. Tryk `Generér parringskode`.
-3. Åbn `Indstillinger` › `Generelt` i klienten, skriv hjemmesidens adresse og koden, og tryk `Par`. Koden virker én gang, i 10 minutter.
-
-**Parrede enheder** viser alle klienter, der er parret med din konto, og hvornår de sidst synkroniserede. Fjern en, du ikke bruger længere. Se [Installér og par klienten](client-setup).
-
-## Skibsnavne og spilindstillinger
-
-Hvis dit fællesskab bruger UnitedDanes StarLabels (bedre skibs- og genstandsnavne) eller StarConfig (spilindstillinger), kobler du dem til her. Sæt dem op på uniteddanes.org og tryk **Send til StarBuddy** der. Dine desktop-klienter installerer så `global.ini` og `user.cfg` i spilmappen og henter nye navne, når spillet opdateres. `Fjern forbindelse` sletter indstillingerne hos UDI, og de filer, der allerede er installeret, bliver liggende.
+Desktop-klienten, dine parrede enheder og de skibsnavne og spilindstillinger, den installerer, har deres egen side: tryk `Desktopklient` i topbjælken. Se [Installér og par klienten](client-setup) og [StarLabels og StarConfig](starlabels).
 
 ## Dit lager
 
@@ -30,3 +22,8 @@ Efter et game wipe rydder du det, patchen tog, fra dit eget lager:
 3. Skriv `CLEAR` og bekræft.
 
 Det fjerner både dine private og dine org-synlige stakke, og aldrig andres. Det kan ikke fortrydes.
+
+## Dine data
+
+- `Hent mine data` gemmer alt, hvad StarBuddy har om dig, som én JSON-fil: din konto, dit lager, dine blueprints, raffinaderiordrer, din indsamlingsliste, dine point, spilhændelser, org-medlemskaber, parrede klienter og log ind. Hemmeligheder, som forbindelsen til uniteddanes.org, er udeladt.
+- `Slet min konto…` sletter din konto og alt, hvad der er dit: lager, blueprints, raffinaderiordrer, indsamlingsliste, point, skærmbilleder, parrede klienter og org-medlemskaber. Dine StarLabels- og StarConfig-indstillinger på uniteddanes.org forsvinder også, og filerne i din spilmappe bliver liggende. Dine desktop-klienter beder dig så logge ind igen. Skriv `DELETE` for at bekræfte. Det kan ikke fortrydes. Logger du ind med Discord igen senere, får du en ny, tom konto.

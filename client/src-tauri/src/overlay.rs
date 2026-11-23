@@ -296,6 +296,15 @@ pub fn toggle(app: &AppHandle, name: &str) -> Result<bool, String> {
         create(app, name)?;
         true
     };
+    // The player opening the scan window is the ask to scan. Only here, not
+    // in on_shown: a window brought back at start-up waits for its button.
+    if name == crate::scan::SCAN {
+        if now_visible {
+            crate::scan::auto_start(app);
+        } else {
+            crate::scan::window_closed(app);
+        }
+    }
     update_prefs(app, name, |w| w.open = now_visible);
     save(app, true);
     Ok(now_visible)
@@ -782,6 +791,9 @@ pub fn overlay_close(app: AppHandle, window: tauri::WebviewWindow) -> Result<(),
     update_prefs(&app, &name, |w| w.open = false);
     save(&app, true);
     on_hidden(&app, &name, &window);
+    if name == crate::scan::SCAN {
+        crate::scan::window_closed(&app);
+    }
     Ok(())
 }
 

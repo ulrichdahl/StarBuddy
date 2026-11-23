@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
@@ -50,6 +51,7 @@ import { LocationSelect } from '../components/LocationSelect'
 import { PlaceSelect, type Place } from '../components/PlaceSelect'
 import { OrgMatrixTable } from '../components/OrgMatrixTable'
 import { useViewParam } from '../lib/useViewParam'
+import { EmptyRow } from '../components/EmptyState'
 
 function EditItemStackDialog({ stack, onClose }: { stack: ItemStack; onClose: () => void }) {
   const { t } = useTranslation()
@@ -499,13 +501,25 @@ export function ItemsPage() {
                 </TableRow>
               ))}
               {!isLoading && stacks.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={9}>
-                    <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                      {t('items.empty')}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
+                search || place || mineOnly || filterVisibility ? (
+                  <EmptyRow colSpan={9} text={t('common.noMatches')} />
+                ) : (
+                  <EmptyRow
+                    colSpan={9}
+                    title={t('items.emptyTitle')}
+                    text={t('items.empty')}
+                    actions={
+                      <>
+                        <Button variant="contained" onClick={() => setBulkOpen(true)}>
+                          {t('items.emptyAdd')}
+                        </Button>
+                        <Button component={RouterLink} to="/import" variant="outlined" color="inherit">
+                          {t('common.emptyImport')}
+                        </Button>
+                      </>
+                    }
+                  />
+                )
               )}
             </TableBody>
           </Table>

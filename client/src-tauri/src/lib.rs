@@ -146,11 +146,13 @@ pub fn run() {
                 .with_handler(|app, shortcut, event| overlay::on_shortcut(app, shortcut, event.state()))
                 .build(),
         )
+        .manage(pairing::BrowserFlow::default())
         .manage(watcher::WatcherState::default())
         .manage(game_session::SessionState::default())
         .manage(udi::UdiState::default())
         .manage(rsi_status::RsiStatusState::default())
         .setup(|app| {
+            pairing::init(app.handle());
             let handle = app.handle().clone();
             log::info!(
                 "StarBuddy client v{} {} starting ({} {})",
@@ -164,7 +166,6 @@ pub fn run() {
             }
             webview2_args::log_effective();
             log::info!("OCR threads: {}", std::env::var("RTEN_NUM_THREADS").unwrap_or_default());
-            host::migrate_old_config_dir(&handle);
             app.manage(overlay::OverlayState::load(&handle));
             app.manage(outbox::OutboxState::load(&handle));
             outbox::send_at_start(&handle);
@@ -232,6 +233,8 @@ pub fn run() {
             game_dir::scan_backlog,
             pairing::get_connection,
             pairing::pair_device,
+            pairing::pair_browser_start,
+            pairing::pair_browser_cancel,
             pairing::unpair,
             pairing::sync_events,
             pairing::fetch_status,
@@ -253,6 +256,9 @@ pub fn run() {
             refinery::refinery_read,
             refinery::refinery_last,
             refinery::refinery_status,
+            refinery::refinery_area_offer,
+            refinery::refinery_use_area,
+            refinery::refinery_dismiss_area,
             refinery::refinery_save,
             refinery::refinery_clear,
             region::region_select,
@@ -296,6 +302,7 @@ pub fn run() {
             diagnostics::open_log_dir,
             changes::app_changes,
             scan::scan_live_toggle,
+            scan::scan_start,
             scan::scan_live_running,
             scan::scan_region_get,
             scan::scan_region_set,

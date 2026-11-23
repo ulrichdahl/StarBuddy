@@ -8,19 +8,37 @@ StarBuddys desktop-klient kører ved siden af Star Citizen på Windows og Linux.
 
 ## 1. Installér
 
-Log ind på hjemmesiden, åbn dit navn øverst til højre og vælg `Profil & desktopklient`. Download **Windows-installeren**, eller til Linux **AppImage**, **deb** eller **rpm**. Installér og start den.
+Log ind på hjemmesiden. Brug **Kom i gang** på oversigten, eller tryk `Desktopklient` i topbjælken. Download-knappen vælger filen til dit system: `Download til Windows`, eller til Linux AppImage (deb eller rpm på distributioner, der bruger dem). De andre filer står under den. Installér og start den.
+
+![Siden Desktopklient](screens/web-client.jpg)
+
+Knappen `Desktopklient` i topbjælken har en orange prik, indtil en af dine klienter er forbundet. Dens side viser også dine **Parrede enheder**, og hvornår hver sidst synkroniserede: fjern en, du ikke bruger længere. De skibsnavne og spilindstillinger, klienten installerer, kobles også til dér: se [StarLabels og StarConfig](starlabels).
 
 Klienten søger selv efter opdateringer og tilbyder at installere dem. Se [Indstillinger](client-settings).
 
-## 2. Par den med hjemmesiden
+## Første start
+
+![Opsætningen ved første start](screens/client-setup.jpg)
+
+Første gang du starter den, fører klienten dig gennem fire trin, ét kort ad gangen: `Log ind`, `Find Game.log`, `Vælg spillets vindue` og `Prøv en genvejstast`. Hvert trin kan springes over, og `Spring opsætningen over. Alt findes i Indstillinger.` går ud med det samme. Det sidste kort viser, hvad der er sat op, og hvad du sprang over. En org er valgfri: StarBuddy virker også for en solospiller.
+
+Kør den igen når som helst under `Indstillinger` › `Generelt` › **Opsætning** › `Kør opsætning igen`.
+
+## 2. Log ind
+
+![Log ind med browseren](screens/client-sign-in-browser.jpg)
+
+1. I opsætningen, eller under `Indstillinger` › `Generelt` › **Server**: tjek adressen (den er udfyldt), og tryk `Log ind med browser`.
+2. Din browser åbner hjemmesiden. Log ind med Discord, hvis den beder om det.
+3. Tjek, at siden viser samme kode som klienten, og tryk `Forbind`.
+
+Klienten viser så **Parret som** med dit navn. Koden virker i 10 minutter. `Åbn siden igen` åbner den igen, hvis du lukkede den. Fjern parringen under **Server**, eller fjern enheden på hjemmesiden.
+
+Hvis hjemmesiden ikke længere accepterer computeren, fordi du har fjernet enheden dér eller slettet din konto, siger alle sider i klienten det. Tryk `Log ind igen`, og log ind med browseren. Spilhændelser, der ikke er sendt endnu, gemmes og sendes, når du har logget ind.
+
+**Med en parringskode i stedet:** tryk `Indtast en parringskode i stedet` i klienten. Tryk `Brug en parringskode i stedet` på hjemmesidens side `Desktopklient`, skriv så adressen og koden i klienten, og tryk `Par`.
 
 ![Indstillinger › Generelt i klienten](screens/client-settings-general.jpg)
-
-1. Tryk `Generér parringskode` under `Profil & desktopklient` på hjemmesiden.
-2. Åbn `Indstillinger` › `Generelt` i klienten.
-3. Skriv hjemmesidens adresse (`https://…`) og koden under **Server**, og tryk `Par`.
-
-Koden virker én gang, i 10 minutter. Klienten viser så **Parret som** med dit navn. Du fjerner parringen her eller ved at fjerne enheden på hjemmesiden.
 
 ## 3. Peg den på spillet
 

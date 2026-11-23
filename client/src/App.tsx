@@ -11,6 +11,7 @@ import { GameFolderPanel } from "./main-window/GameFolderPanel";
 import { IncidentBanner } from "./main-window/IncidentBanner";
 import { OpenAsPanel, OverlayPanel, PresencePanel, useDebugMode, useHeardHotkey } from "./main-window/OverlayPanel";
 import { ServerPanel } from "./main-window/ServerPanel";
+import { Setup, setupDone } from "./main-window/Setup";
 import { UpdateBanner } from "./main-window/UpdateBanner";
 import { useWatcher, WatcherPanel } from "./main-window/WatcherPanel";
 import { Home } from "./main-window/Home";
@@ -48,6 +49,9 @@ function App() {
   const [connection, setConnection] = useState<ConnectionView | null>(null);
   const [update, setUpdate] = useState<UpdateCheck | null>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
+  // First-run setup: on the first start of a client that is not paired, and
+  // again whenever Settings asks for it.
+  const [setupOpen, setSetupOpen] = useState(false);
   const watcher = useWatcher(liveDir, customDir);
   const heard = useHeardHotkey();
   const debug = useDebugMode();
@@ -59,12 +63,23 @@ function App() {
     invoke<{ version: string }>("app_version").then((v) => setVersion(v.version)).catch(() => {});
     // The pairing, for every section that talks to the website, not only for
     // the Settings panel that changes it.
-    invoke<ConnectionView>("get_connection").then(setConnection).catch(() => {});
+    invoke<ConnectionView>("get_connection")
+      .then((c) => {
+        setConnection(c);
+        if (!c.paired && !setupDone()) setSetupOpen(true);
+      })
+      .catch(() => {});
+    // The server can stop accepting this device at any time (account deleted,
+    // device removed on the website); every page then sees it as unpaired.
+    const conn = listen<ConnectionView>("connection-changed", (e) => setConnection(e.payload)).catch(() => null);
     const readKey = () => invoke<HotkeyInfo>("overlay_hotkey").then((h) => setMainKey(h.hotkeys.main ?? null)).catch(() => {});
     void readKey();
     // The footer names the key, so it follows a change made in Settings.
     const sub = listen("hotkeys-changed", () => void readKey()).catch(() => null);
-    return () => void sub.then((un) => un?.());
+    return () => {
+      void sub.then((un) => un?.());
+      void conn.then((un) => un?.());
+    };
   }, []);
 
   const onUpdate = (info: UpdateCheck, offered: boolean) => {
@@ -73,8 +88,28 @@ function App() {
   };
 
   const paired = Boolean(connection?.paired);
+  // Choosing a section in the frame leaves the setup.
+  const goSection = (s: typeof section) => {
+    setSetupOpen(false);
+    setSection(s);
+  };
+
   let body;
-  if (section === "gathering") {
+  if (setupOpen) {
+    body = (
+      <Setup
+        connection={connection}
+        onConnection={setConnection}
+        liveDir={liveDir}
+        onLiveDir={setLiveDir}
+        heard={heard}
+        onClose={() => {
+          setSetupOpen(false);
+          setSection("home");
+        }}
+      />
+    );
+  } else if (section === "gathering") {
     body = <Gathering paired={paired} onSection={setSection} />;
   } else if (section === "blueprints") {
     body = <Blueprints paired={paired} />;
@@ -124,6 +159,15 @@ function App() {
             <>
               <OpenAsPanel mainState={mainState} onMainMode={setMainMode} />
               <ServerPanel connection={connection} onConnection={setConnection} />
+              <section className="panel">
+                <h2>{t("setup.panelTitle")}</h2>
+                <div className="row">
+                  <p className="hint" style={{ flex: 1, margin: 0 }}>
+                    {t("setup.panelHint")}
+                  </p>
+                  <button onClick={() => setSetupOpen(true)}>{t("setup.reopen")}</button>
+                </div>
+              </section>
               <PresencePanel />
               <section className="panel">
                 <h2>{t("header.language")}</h2>
@@ -157,7 +201,21 @@ function App() {
   }
 
   return (
-    <Shell section={section} onSection={setSection} version={version} showingAs={mainState?.showing_as ?? "window"} mainKey={mainKey}>
+    <Shell section={section} onSection={goSection} version={version} showingAs={mainState?.showing_as ?? "window"} mainKey={mainKey}>
+      {connection?.rejected && !setupOpen && !(section === "settings" && settingsTab === "general") && (
+        <div className="update-banner" role="alert">
+          <p style={{ flex: 1, margin: 0 }}>{t("server.rejected")}</p>
+          <button
+            className="active"
+            onClick={() => {
+              setSettingsTab("general");
+              goSection("settings");
+            }}
+          >
+            {t("server.signInAgain")}
+          </button>
+        </div>
+      )}
       {body}
     </Shell>
   );

@@ -8,7 +8,9 @@ En org samler det, medlemmerne vælger at dele: org-synlige materialer og gensta
 
 ## Meld dig ind i en org
 
-Tryk `Anmod om medlemskab` på org'ens kort. Der står **Afventer godkendelse**, indtil en manager godkender dig. Du kan være med i mere end én org.
+Tryk `Anmod om medlemskab` på org'ens kort. Der står **Afventer godkendelse**, indtil en manager godkender dig. Org'ens managere får en Discord-besked om din anmodning, og du får en, når du er godkendt. Du kan være med i mere end én org.
+
+En org er valgfri. Alt andet i StarBuddy virker også for en solospiller.
 
 ## Din hoved-org
 
@@ -24,7 +26,7 @@ Er du med i flere org'er, er én af dem din **hoved-org**: den får dine point o
 
 ## Administrér medlemmer
 
-Managere trykker `Administrér medlemmer` for at godkende eller afvise anmodninger og for at smide medlemmer ud. Listen viser også, hvor meget hvert medlem deler.
+Managere får en direkte besked på Discord, når nogen beder om at blive medlem, og oversigten viser, hvor mange der venter, med `Se dem`. Tryk på den eller på `Administrér medlemmer` for at godkende eller afvise anmodninger og for at smide medlemmer ud. Listen viser også, hvor meget hvert medlem deler.
 
 ## Forlad en org
 

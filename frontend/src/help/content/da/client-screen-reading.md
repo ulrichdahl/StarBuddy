@@ -18,13 +18,45 @@ På Windows viser en gul ramme om spillet, at vinduet bliver optaget. Windows 11
 4. Tjek det, der er markeret til tjek, og ret det i vinduet.
 5. Tryk `Gem ordre`. Den står nu på din side [Raffinering](refinery) på hjemmesiden.
 
-Hvis aflæsningen ikke finder panelet, så indram det: `Indstillinger` › `Skærmaflæsning` › **Raffinaderiordre-område** › `Indram område`, og træk hen over panelet med titellinjen.
+### Arbejdsordrens område
+
+![Raffinaderivinduet tilbyder det område, det fandt](screens/client-refinery-area.png)
+
+Du behøver ikke indramme panelet selv. Første gang du trykker `F8`, læser klienten hele skærmen og finder arbejdsordren på dens tekst. Et ravgult kort øverst i raffinaderivinduet spørger så **Brug dette område til de næste aflæsninger?** Det er hurtigere og mere pålideligt kun at aflæse det område: tryk `Brug dette område` eller `Nej tak`. Stationens navn læses selv fra toppen af skærmen.
+
+En lang arbejdsordre går ud over bunden af skærmen. Et ravgult kort, **Rul ned og aflæs igen**, siger så, at **TOTAL COST** og **PROCESSING TIME** ikke blev læst. Rul arbejdsordren ned, og tryk `Aflæs flere rækker`: de nye rækker lægges til dem, der allerede er læst. En lang ordre kan tage tre eller fire aflæsninger. Det virker også med et indrammet område.
+
+![Raffinaderivinduet beder om endnu en aflæsning af en lang arbejdsordre](screens/client-refinery-more.png)
+
+Findes der ingen arbejdsordre, eller mangler dens titel eller materialetabel, gemmes intet. Et rødt kort, **Indram arbejdsordren**, siger, hvad der manglede. Gå tættere på eller vend dig mod terminalen, og tryk `F8` igen.
+
+![Raffinaderivinduet, når det ikke fandt nogen arbejdsordre](screens/client-refinery-guide.png)
+
+Vil du indramme det i hånden, så tryk `Vælg område` dér, eller gå til `Indstillinger` › `Skærmaflæsning` › **Raffinaderiordre-område** › `Indram område`. Træk fra titlen **WORK ORDER** ned til **TOTAL COST** og **PROCESSING TIME**, med hele materialetabellen indenfor.
+
+Flytter panelet sig senere ud af dit område, f.eks. efter et skift af opløsning, finder klienten det én gang på hele skærmen og spørger **Brug, hvor arbejdsordren er nu?**
 
 ## Læs minescanninger
 
 ![Scanningsvinduet](screens/client-scan.png)
 
-Tryk `F7` for at starte live-scanningen. Mens den kører, holder klienten øje med signatur-mærket nær midten af skærmen og læser det cirka én gang i sekundet. Ping en sten i scanningstilstand, så viser scanningsvinduet mineralet, eller klyngen, med andel, modstand og kvalitetsbånd. Tryk `F7` igen for at stoppe.
+Tryk `F7`, eller slå scanningsvinduet til under overlays. Når scanningsvinduet åbner, starter det hele: det slår skærmaflæsning til, hvis den er slået fra, og derefter live-scanningen. Mens den kører, holder klienten øje med signatur-mærket nær midten af skærmen og læser det cirka én gang i sekundet. Ping en sten i scanningstilstand, så viser scanningsvinduet mineralet, eller klyngen, med andel, modstand og kvalitetsbånd.
+
+Når scanningsvinduet er åbent, slår `F7` live-scanningen fra og til, ligesom knappen `Live: til` i vinduet. Lukker du vinduet, stopper live-scanningen. Skærmaflæsning bliver ved med at være slået til, fordi `F8` også bruger den.
+
+### Når scanningen ikke kan starte
+
+![Scanningsvinduet, når skærmaflæsning er slået fra](screens/client-scan-setup.png)
+
+Kan skærmaflæsning ikke starte, viser scanningsvinduet **Skærmaflæsning er slået fra** og det ene trin, der løser det:
+
+- **Windows, første gang:** vælg spillets vindue på listen og tryk `Start scanning`. Valget huskes, så næste gang starter scanningen, så snart vinduet åbner.
+- **Windows, sidste vindue fejlede** (spillet var f.eks. lukket): tryk `Start scanning` igen, eller vælg vinduet i `Indstillinger` › `Skærmaflæsning`. Årsagen står med rødt.
+- **Linux:** tryk `Start scanning`, og vælg spillets vindue i skrivebordets dialog. Valget huskes.
+
+Et scanningsvindue, der stod åbent, da klienten lukkede, kommer igen ved opstart, men venter på `Start scanning`.
+
+Er der ikke indrammet et scanningsområde, siger vinduet, at mærket søges midt på skærmen. Med `Indram område` trækker du hen over mærkets plads, så aflæsningen bliver mere sikker.
 
 Forekomster på jorden og vragrester viser kun deres størrelse i signaturen: mineralet afhænger af, hvor du er.
 

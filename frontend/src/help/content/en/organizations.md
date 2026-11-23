@@ -8,7 +8,9 @@ Open your name in the top right corner and choose `Organizations`.
 
 ## Join an org
 
-Press `Request to join` on the org's card. It shows **Pending approval** until a manager accepts you. You can be in more than one org.
+Press `Request to join` on the org's card. It shows **Pending approval** until a manager accepts you. The org's managers get a Discord message about your request, and you get one when you are accepted. You can be in more than one org.
+
+An org is optional. Everything else in StarBuddy works for a solo player too.
 
 ## Your main org
 
@@ -24,7 +26,7 @@ If you are in several orgs, one is your **main org**: it gets your points and is
 
 ## Manage members
 
-Managers press `Manage members` to accept or decline requests and to kick members. The list also shows how much each member shares.
+Managers get a Discord direct message when someone asks to join, and the dashboard says how many are waiting, with `Review`. Press it, or `Manage members`, to accept or decline requests and to kick members. The list also shows how much each member shares.
 
 ## Leave an org
 

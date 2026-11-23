@@ -10,6 +10,6 @@ The client's pages show the same data as the website, so you can look things up 
 - **Refinery:** your refinery orders with the time left. `Collect` an order that is ready and say where it went. See [Refinery](refinery).
 - **My stash:** your items, and the items the org shares.
 - **Org:** your main org's members, who is playing now, where and in which ship. Only members who share their game status show it.
-- **Tools:** your org's website pages, community tools (UEX, Regolith, Erkul, the wiki, Cornerstone, SC Trade Tools) and your own links. Also where UnitedDanes StarLabels and StarConfig are installed. See [Profile](profile).
+- **Tools:** your org's website pages, community tools (UEX, Regolith, Erkul, the wiki, Cornerstone, SC Trade Tools) and your own links. Also where UnitedDanes StarLabels and StarConfig are installed. See [StarLabels and StarConfig](starlabels).
 
 ![Org in the client](screens/client-org.jpg)

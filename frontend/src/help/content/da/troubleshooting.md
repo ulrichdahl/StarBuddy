@@ -2,11 +2,13 @@
 
 ## Log ind
 
-**"Den Discord-konto er ikke medlem af denne StarBuddys Discord-server."** Meld dig ind på fællesskabets Discord-server med den konto, og log ind igen. Har du flere Discord-konti, så tjek, hvilken browseren er logget ind med.
+**"Den Discord-konto er ikke medlem af denne StarBuddys Discord-server."** Meld dig ind på fællesskabets Discord-server med den konto (log ind-siden viser en knap med serverens navn og ikon, når den har et invitationslink sat op), og log ind igen. Har du flere Discord-konti, så tjek, hvilken browseren er logget ind med.
 
 **Jeg kan ikke se min orgs lager.** Din anmodning kan stadig afvente godkendelse. Åbn `Organisationer` og tjek. En manager skal godkende den.
 
 ## Desktop-klienten
+
+**Klienten siger, at hjemmesiden ikke længere accepterer computeren.** Enheden er fjernet på hjemmesiden, eller kontoen er slettet. Tryk `Log ind igen`. Se [Installér og par klienten](client-setup).
 
 **Parringen fejler.** Koden virker én gang, i 10 minutter: lav en ny. Tjek, at adressen er hjemmesidens egen og starter med `https://`.
 

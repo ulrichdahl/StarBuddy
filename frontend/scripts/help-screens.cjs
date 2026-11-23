@@ -18,15 +18,17 @@ const { execSync } = require('child_process');
 
 const repo = path.join(__dirname, '..', '..');
 const { chromium } = require(path.join(repo, 'video/node_modules/playwright-core'));
-const seed = JSON.parse(fs.readFileSync(path.join(repo, 'video/work/seed.json'), 'utf8'));
 const exe = process.env.CHROME || execSync('ls ~/.cache/ms-playwright/chromium_headless_shell-*/*/chrome-headless-shell | tail -1').toString().trim();
-const sql = (q) => execSync(`docker exec starbuddy-db-1 psql -U starmaker -d starmaker -Atc "${q}"`).toString().trim();
+const sql = (q) => execSync(`docker exec starbuddy-db-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "$0"' "${q}"`).toString().trim();
 
 const args = process.argv.slice(2);
 const langArg = args.find((a) => a.startsWith('--lang='));
 const LANGS = langArg ? [langArg.slice(7)] : ['en', 'da'];
 const parts = args.filter((a) => !a.startsWith('--'));
 const want = new Set(parts.length ? parts : ['web', 'client']);
+// Only the web shots sign in as the demo pilot; the client shots run on the
+// preview's stub alone, without a seed.
+const seed = want.has('web') ? JSON.parse(fs.readFileSync(path.join(repo, 'video/work/seed.json'), 'utf8')) : null;
 const WEB = 'http://localhost:8090';
 const CLIENT = 'http://localhost:8767';
 const DEMO = "discord_id like 'demo-%'";
@@ -35,12 +37,16 @@ const settle = (p, ms = 2500) => p.waitForTimeout(ms);
 const jpg = (p, file, opts = {}) => p.screenshot({ path: file, type: 'jpeg', quality: 82, ...opts });
 
 async function web(browser, lang, out) {
-  const opts = { colorScheme: 'dark', locale: lang === 'da' ? 'da-DK' : 'en-GB', timezoneId: 'Europe/Copenhagen', viewport: { width: 1600, height: 900 } };
+  // A Windows browser, like most players': the client download offers the Windows installer.
+  const windows = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
+  const opts = { colorScheme: 'dark', locale: lang === 'da' ? 'da-DK' : 'en-GB', timezoneId: 'Europe/Copenhagen', viewport: { width: 1600, height: 900 }, userAgent: windows };
 
   // The sign-in page, as a stranger sees it: the language comes from the browser.
   const guest = await browser.newContext(opts);
   const g = await guest.newPage();
   await g.addInitScript((l) => localStorage.setItem('starbuddy.locale', l), lang);
+  // The dev stack's own Discord server stays out of the public help.
+  await g.route('**/api/instance', (r) => r.fulfill({ json: { discord_invite: null, discord_server: { name: 'United Danes', icon_url: null } } }));
   await g.goto(WEB + '/');
   await settle(g);
   await jpg(g, `${out}/web-login.jpg`);
@@ -51,8 +57,25 @@ async function web(browser, lang, out) {
   sql(`update users set locale = '${lang}' where ${DEMO}`);
   const role = process.env.STARBUDDY_TESTER_ROLE_ID || execSync('docker exec starbuddy-app-1 printenv STARBUDDY_TESTER_ROLE_ID || true').toString().trim();
   if (role) sql(`update users set discord_role_ids = '[\\"${role}\\"]' where ${DEMO} and handle = 'Kestrel'`);
+  // The first-login guide, as a new member sees it: no handle, no
+  // org, no client. The demo pilot's answers are swapped for a newcomer's.
+  const fresh = await browser.newContext(opts);
+  await fresh.addCookies([{ name: seed.cookie, value: seed.value, domain: 'localhost', path: '/' }]);
+  const f = await fresh.newPage();
+  await f.route('**/api/me', async (r) => {
+    const res = await r.fetch();
+    await r.fulfill({ response: res, json: { ...(await res.json()), handle: null, orgs: [], main_org_id: null } });
+  });
+  await f.route('**/api/devices', (r) => r.fulfill({ json: [] }));
+  await f.goto(WEB + '/');
+  await settle(f, 3500);
+  await jpg(f, `${out}/web-get-started.jpg`);
+  await fresh.close();
+
   const ctx = await browser.newContext(opts);
   await ctx.addCookies([{ name: seed.cookie, value: seed.value, domain: 'localhost', path: '/' }]);
+  // The rest shows the pages themselves: the guide is hidden.
+  await ctx.addInitScript((id) => localStorage.setItem(`starbuddy.getStarted.hidden.${id}`, '1'), seed.me);
   const p = await ctx.newPage();
   p.on('pageerror', (e) => console.log('pageerror', p.url(), e.message));
   const page = async (route, name) => {
@@ -107,6 +130,7 @@ async function web(browser, lang, out) {
   await page('/import', 'web-import');
   await page('/admin', 'web-admin');
   await page('/training', 'web-training');
+  await page('/client', 'web-client');
   await menu(0, 'web-profile');
   await menu(1, 'web-organizations');
   await ctx.close();
@@ -131,9 +155,27 @@ async function client(browser, lang, out) {
   for (const tab of ['general', 'hotkeys', 'game', 'reading']) await shot(`s=settings&t=${tab}`, `client-settings-${tab}`);
   await ctx.close();
 
+  // An unpaired client: the first-run setup, then the browser sign-in waiting
+  // for approval (the stub's code is KQ7M-4XRT).
+  const fresh = await browser.newContext({ ...opts, viewport: { width: 1280, height: 800 } });
+  const f = await fresh.newPage();
+  await f.goto(`${CLIENT}/?lang=${lang}&paired=no`);
+  await settle(f);
+  await jpg(f, `${out}/client-setup.jpg`);
+  await f.getByRole('button', { name: /^(Skip setup|Spring opsætningen over)/ }).click();
+  await f.goto(`${CLIENT}/?lang=${lang}&paired=no&s=settings&t=general`);
+  await settle(f);
+  await f.getByRole('button', { name: /^(Sign in with browser|Log ind med browser)$/ }).click();
+  await settle(f, 1500);
+  await jpg(f, `${out}/client-sign-in-browser.jpg`);
+  await fresh.close();
+
   // Single overlay windows, on a transparent background.
   const o = await (await browser.newContext({ ...opts, viewport: { width: 460, height: 760 } })).newPage();
-  for (const [w, name] of [['scan', 'client-scan'], ['refinery', 'client-refinery-order']]) {
+  // capture=win: the scan window's setup card, as on Windows before a game window is chosen.
+  // area=found: the refinery window offering the area it found. area=bottom: a long
+  // work order asking for another read. area=title: guiding when it found none.
+  for (const [w, name] of [['scan', 'client-scan'], ['scan&capture=win', 'client-scan-setup'], ['refinery', 'client-refinery-order'], ['refinery&area=found&framed=no', 'client-refinery-area'], ['refinery&area=bottom', 'client-refinery-more'], ['refinery&area=title&framed=no', 'client-refinery-guide']]) {
     await o.goto(`${CLIENT}/?lang=${lang}&window=${w}`);
     await settle(o);
     // Cut the transparent space below the window.

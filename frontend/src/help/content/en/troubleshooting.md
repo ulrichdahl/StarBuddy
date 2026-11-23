@@ -2,11 +2,13 @@
 
 ## Sign-in
 
-**"That Discord account is not a member of this StarBuddy's Discord server."** Join the community's Discord server with that account, then sign in again. If you have several Discord accounts, check which one the browser is signed in to.
+**"That Discord account is not a member of this StarBuddy's Discord server."** Join the community's Discord server with that account (the sign-in page shows a button with the server's name and icon when it has an invite link set up), then sign in again. If you have several Discord accounts, check which one the browser is signed in to.
 
 **I cannot see my org's stock.** Your join request may still be pending. Open `Organizations` and check. A manager has to accept it.
 
 ## The desktop client
+
+**The client says the website no longer accepts this computer.** The device was removed on the website, or the account was deleted. Press `Sign in again`. See [Install and pair the client](client-setup).
 
 **Pairing fails.** The code works once, for 10 minutes: generate a new one. Check that the address is the website's own, starting with `https://`.
 

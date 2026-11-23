@@ -80,6 +80,20 @@ export const PickerIcon = (p: P) => (
 );
 
 export type PlacementMode = "floating" | "dock-left" | "dock-top" | "dock-right" | "dock-bottom";
+/** A framed area found on screen: four corner marks around a dot. */
+export const AreaIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M3 8V3h5M16 3h5v5M21 16v5h-5M8 21H3v-5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinejoin="round" strokeLinecap="round"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+  </svg>
+);
+
+/** Something needs the player's hand: a warning triangle. */
+export const WarnIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M12 3 22 20H2z" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinejoin="round"/><path d="M12 9.5v5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><circle cx="12" cy="17.3" r="1.1" fill="currentColor"/>
+  </svg>
+);
+
 export const PLACEMENT_ICONS: Record<PlacementMode, (p: P) => ReactElement> = {
   floating: FloatingIcon,
   "dock-left": DockLeftIcon,

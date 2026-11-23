@@ -500,6 +500,10 @@ body {
 .sb-hd-x svg { width: 17px; height: 17px; }
 /* Beside the section's name, a step in from the rule before it. */
 .sb .sb-help { width: 28px; height: 28px; margin-left: -6px; }
+/* A card's heading with its own help "?" at the right. */
+.sb-card-hd { display: flex; align-items: center; gap: 8px; }
+.sb-card-hd > :first-child { flex: 1; min-width: 0; }
+.sb .sb-card-hd .sb-card-help { margin: -6px -6px -6px 0; flex: none; }
 .sb-ft {
   height: 34px;
   flex: none;
@@ -853,3 +857,76 @@ body {
 .sb .sb-bp-filters .sb-bp-markall { height: 32px; box-sizing: border-box; }
 .sb .sb-bp-filters .sb-bp-markall { padding-top: 0; padding-bottom: 0; }
 .sb .sb-bp-filters .sb-bp-own button { height: 100%; }
+
+/* ── Sign in with the browser ───────────────────────────────────────────── */
+.sb-pair-wait { display: grid; gap: 10px; justify-items: start; }
+.sb-pair-wait p { margin: 0; }
+.sb-pair-code {
+  font-size: 30px;
+  letter-spacing: 0.18em;
+  color: #fff;
+  padding: 8px 16px;
+  border: 1px solid rgba(60, 201, 240, 0.5);
+  background: rgba(60, 201, 240, 0.08);
+}
+.sb button.sb-btn-quiet { border-color: var(--line2); background: transparent; color: var(--muted); }
+.sb button.sb-link-btn {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 12.5px;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  align-self: flex-start;
+  cursor: pointer;
+}
+.sb button.sb-link-btn:hover:not(:disabled) { background: none; color: var(--text); }
+
+/* ── First-run setup: one card at a time ───────────────────────────────── */
+.sb-setup { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 32px 16px; }
+.sb-setup-dots { display: flex; gap: 10px; }
+.sb .sb-setup-dot {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line2);
+  background: transparent;
+  cursor: pointer;
+}
+.sb .sb-setup-dot.ok { background: var(--green); border-color: var(--green); }
+.sb .sb-setup-dot.now { border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(60, 201, 240, 0.25); }
+.sb .sb-setup-dot.now:not(.ok) { background: rgba(60, 201, 240, 0.35); }
+.sb-setup-card { width: min(640px, 100%); gap: 12px; padding: 18px 22px 18px; }
+.sb-setup-card h2 {
+  margin: 0;
+  font-family: var(--disp);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--acc);
+}
+.sb-setup-card p { margin: 0; }
+.sb-setup-nav { display: flex; gap: 8px; margin-top: 6px; }
+.sb-setup-ok { color: var(--green); }
+.sb-setup-key kbd {
+  font-family: var(--mono, monospace);
+  font-size: 16px;
+  padding: 2px 10px;
+  margin-left: 6px;
+  border: 1px solid rgba(60, 201, 240, 0.5);
+  background: rgba(60, 201, 240, 0.08);
+  color: #fff;
+}
+.sb-setup-summary { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sb-setup-summary li { color: var(--muted); }
+.sb-setup-summary li.ok { color: var(--text); }
+.sb-setup-mark { display: inline-block; width: 20px; color: var(--muted); }
+.sb-setup-summary li.ok .sb-setup-mark { color: var(--green); }
+.sb .sb-setup > button.sb-link-btn { align-self: center; }

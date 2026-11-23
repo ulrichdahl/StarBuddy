@@ -11,7 +11,9 @@
     "undo": "Fortryd",
     "clear": "Ryd",
     "back": "Tilbage",
-    "done": "Færdig"
+    "done": "Færdig",
+    "noMatches": "Intet matcher filtrene.",
+    "emptyImport": "Importér en CSV"
   },
   "nav": {
     "dashboard": "Oversigt",
@@ -35,15 +37,20 @@
     "searchShortcut": "Tryk / for at søge",
     "gathering": "Indsamling",
     "desktopClient": "Desktopklient",
-    "desktopClientHelp": "Hent StarBuddy-desktopklienten og par den"
+    "desktopClientHelp": "Hent StarBuddy-desktopklienten og par den",
+    "noClientConnected": "Ingen desktop-klient forbundet endnu. Download den og par den her."
   },
   "login": {
-    "tagline": "Materiale- og blueprint-styring for din org i Star Citizen. Log ind med den Discord-konto, der er knyttet til din org.",
+    "tagline": "Materialer, blueprints og raffinering i Star Citizen, alene eller med din org.",
     "signIn": "Log ind med Discord",
     "introCaption": "Hvad StarBuddy kan, på under to minutter",
     "introLabel": "StarBuddy introvideo",
     "notAMember": "Den Discord-konto er ikke medlem af denne StarBuddys Discord-server. Bliv medlem af serveren, og log ind igen.",
-    "failed": "Login mislykkedes. Prøv igen."
+    "failed": "Login mislykkedes. Prøv igen.",
+    "toPair": "Log ind for at forbinde din desktop-klient.",
+    "joinDiscord": "Bliv medlem af Discord-serveren",
+    "joinServer": "Bliv medlem af {{name}} Discord-server",
+    "membersOnly": "Kun for medlemmer af {{name}} Discord-server."
   },
   "footer": {
     "notice": "Dette er en uofficiel Star Citizen-fanside uden tilknytning til Cloud Imperium-koncernen. Alt indhold på siden, som ikke er skabt af dens vært eller brugere, tilhører de respektive rettighedshavere.",
@@ -345,7 +352,12 @@
     "contributorsHelp": "Piloter der har scoret i perioden / medlemmer",
     "topMembers": "Bedste medlemmer",
     "colPilot": "Pilot",
-    "colPoints": "Point"
+    "colPoints": "Point",
+    "welcomeNew": "Velkommen til StarBuddy, {{name}}",
+    "soloHelp": "Du kan sagtens spille solo. Bliv medlem af en org for at dele lager og dyste.",
+    "review": "Se dem",
+    "pendingRequests_one": "{{count}} spiller venter på at blive medlem af {{org}}.",
+    "pendingRequests_other": "{{count}} spillere venter på at blive medlem af {{org}}."
   },
   "profile": {
     "title": "Star Citizen-handle",
@@ -379,7 +391,29 @@
     "active": "Aktiv",
     "stale": "Forældet",
     "never": "Aldrig brugt",
-    "remove": "Fjern {{name}}"
+    "remove": "Fjern {{name}}",
+    "get": {
+      "windows": "Download til Windows",
+      "appimage": "Download til Linux (AppImage)",
+      "deb": "Download til Linux (.deb)",
+      "rpm": "Download til Linux (.rpm)",
+      "windows_msi": "Download til Windows (.msi)"
+    },
+    "file": {
+      "windows": "Windows",
+      "windows_msi": "Windows .msi",
+      "appimage": "Linux AppImage",
+      "deb": ".deb",
+      "rpm": ".rpm"
+    },
+    "otherDownloads": "Andre downloads:",
+    "allDownloads": "Downloads:",
+    "onMac": "Klienten kører på Windows og Linux, hvor Star Citizen kører. Åbn siden på din gaming-pc, eller vælg en fil herunder.",
+    "onOther": "Installér klienten på den pc, du spiller Star Citizen på. Åbn siden der, eller vælg en fil herunder.",
+    "paired": "Parret med {{name}}.",
+    "version": "Version",
+    "signIn": "Tryk “Log ind med browser” i klienten, og så Forbind på siden, der åbner.",
+    "useCode": "Brug en parringskode i stedet"
   },
   "org": {
     "title": "Organisationer",
@@ -462,7 +496,7 @@
     "undoing": "Fortryder…",
     "undoConfirm": "Fortryd craft?",
     "undoTooltip": "Fortryd dette craft — fjern itemet og gendan materialerne",
-    "empty": "Ingen item-stakke endnu.",
+    "empty": "Tilføj de genstande, du har: våben, rustning, komponenter. Fremstil-siden tæller dem, og org-kammerater kan se dem, du gør org-synlige.",
     "filters": {
       "search": "Søg genstand",
       "all": "Alle"
@@ -495,7 +529,9 @@
       "title": "Tilføj flere genstande",
       "help": "Én linje pr. stak. Lokation gælder hele holdet; synlighed er pr. linje, og en ny linje arver den fra linjen ovenfor. Kvalitet er valgfri — til craftet eller købt udstyr.",
       "add": "Tilføj genstande"
-    }
+    },
+    "emptyTitle": "Ingen genstande endnu",
+    "emptyAdd": "Tilføj genstande"
   },
   "blueprints": {
     "title": "Blueprints",
@@ -597,7 +633,10 @@
       "owned": "Ejet i org'en, mig medregnet",
       "unownedByMe": "Ikke ejet af mig",
       "unowned": "Ingen i org'en ejer"
-    }
+    },
+    "emptyMineTitle": "Ingen blueprints afkrydset endnu",
+    "emptyMine": "Vis alle blueprints, og sæt kryds ved dem, du ejer. Desktop-klienten tilføjer også de blueprints, du optjener, direkte fra spillet.",
+    "showAll": "Vis alle blueprints"
   },
   "refinery": {
     "title": "Raffinering",
@@ -676,7 +715,10 @@
       "deleteHelp": "Raffinaderiet har aldrig kørt dette job",
       "deleteHelpCollected": "Materialerne den gav bliver i dit lager",
       "deleteFailed": "Kunne ikke slette ordren."
-    }
+    },
+    "emptyTitle": "Ingen raffinaderiordrer endnu",
+    "emptyHow": "Med desktop-klienten: åbn arbejdsordren ved en raffinaderiterminal og tryk F8, så læser den ordren for dig. Eller tilføj en i hånden.",
+    "emptyAdd": "Tilføj en ordre"
   },
   "materials": {
     "title": "Materialer",
@@ -693,7 +735,7 @@
     },
     "tableLabel": "Materialestakke",
     "loadError": "Kunne ikke hente materialestakke.",
-    "empty": "Ingen stakke endnu — tilføj din første med hurtigindtastningen.",
+    "empty": "Tilføj de materialer, du har, en portion ad gangen med sted og kvalitet. Hold hver stak privat, eller gør den org-synlig for at fremstille sammen med dine org-kammerater.",
     "editStack": "Rediger stak",
     "ownedBy": "{{handle}}s stak — kun ejeren kan redigere den",
     "filters": {
@@ -756,7 +798,9 @@
       "add": "Tilføj materialer"
     },
     "refining": "(raffinerer)",
-    "refiningAt": "Raffineres på {{station}} — hent den på Rafinaderi-siden"
+    "refiningAt": "Raffineres på {{station}} — hent den på Rafinaderi-siden",
+    "emptyTitle": "Ingen materialer endnu",
+    "emptyAdd": "Tilføj materialer"
   },
   "locations": {
     "label": "Lokation",
@@ -1037,12 +1081,13 @@
     }
   },
   "account": {
-    "profile": "Profil & desktopklient",
+    "profile": "Profil",
     "organizations": "Organisationer",
     "signOut": "Log ud",
     "synced": "Klient synkroniseret <t>{{time}}</t> · {{device}}",
     "stale": "Klient sidst synkroniseret {{time}}",
-    "notPaired": "Desktopklient ikke parret"
+    "notPaired": "Desktopklient ikke parret",
+    "getStarted": "Kom i gang-guide"
   },
   "ownStock": {
     "title": "Dit lager",
@@ -1052,7 +1097,7 @@
     "confirmBody": "Du er ved at slette dine egne stakke: {{scope}}. Skriv <strong>{{word}}</strong> for at bekræfte."
   },
   "profileDialog": {
-    "title": "Profil & desktopklient",
+    "title": "Profil",
     "identity": "Identitet",
     "handleLabel": "Star Citizen-handle",
     "handleHelp": "Vises for org-kammerater og bruges til at genkende dig i CSV-import.",
@@ -1113,6 +1158,7 @@
   "help": {
     "title": "Hjælp",
     "forThisPage": "Hjælp til denne side (?)",
+    "forThisSection": "Hjælp til dette afsnit",
     "openFull": "Åbn i en ny fane",
     "contents": "Indhold",
     "moreTopics": "Mere hjælp",
@@ -1127,5 +1173,74 @@
     },
     "ownServer": "Vil du også have det til din Discord-server?",
     "ownServerLink": "Sådan gør du."
+  },
+  "getStarted": {
+    "title": "Kom i gang",
+    "intro": "Skriv dit handle, så er StarBuddy klar. En org og desktop-klienten er valgfrie: spring dem over, hvis du spiller solo eller kun bruger hjemmesiden.",
+    "howItWorks": "Sådan virker StarBuddy",
+    "progress": "{{done}} af {{total}} klaret",
+    "hide": "Skjul",
+    "optional": "Valgfrit",
+    "state": {
+      "done": "Klaret",
+      "waiting": "Venter",
+      "todo": "Mangler",
+      "skipped": "Sprunget over"
+    },
+    "handle": {
+      "title": "Dit Star Citizen-handle",
+      "help": "Org-kammerater ser dig under det, og CSV-import genkender dig på det.",
+      "placeholder": "Dit handle i spillet"
+    },
+    "org": {
+      "title": "Bliv medlem af en org",
+      "help": "Din org deler materialer, genstande og blueprints, og dyster mod de andre orgs. Spiller du solo, virker alt andet på samme måde.",
+      "waiting": "Din anmodning venter på at en org-manager godkender den. Du kan bede om at komme med i en anden org imens."
+    },
+    "client": {
+      "title": "Forbind desktop-klienten",
+      "help": "Hjemmesiden virker fint alene. Klienten tilføjer blueprints og raffineringsordrer direkte fra spillet, skærmscanning og overlays i spillet.",
+      "waiting": "Parret. Start StarBuddy på din pc: den vises som forbundet efter første synkronisering.",
+      "stale": "Din klient har ikke synkroniseret i over en uge. Start StarBuddy på din pc, eller par den igen."
+    },
+    "skip": "Spring over",
+    "skipped": "Sprunget over.",
+    "undoSkip": "Fortryd",
+    "helpTitle": "Hjælp på alle sider: tryk ?",
+    "helpText": "? ved siden af en sides titel, eller i topbjælken, åbner hjælpen til den side, du er på, ved siden af siden. Tasten ? på tastaturet gør det samme."
+  },
+  "pairPage": {
+    "title": "Forbind desktop-klienten",
+    "question": "Forbind “{{name}}” med din konto?",
+    "explain": "StarBuddy-desktop-klienten bad om at logge ind som dig. Den synkroniserer din Game.log og skærmaflæsninger til din konto.",
+    "checkCode": "Tjek, at klienten viser samme kode:",
+    "approve": "Forbind",
+    "deny": "Afvis",
+    "approved": "“{{name}}” er forbundet. Gå tilbage til klienten: den logger selv ind om få sekunder.",
+    "denied": "Afvist. Klienten blev ikke forbundet.",
+    "unknown": "Koden er ukendt eller udløbet. Tryk “Log ind med browser” i desktop-klienten igen.",
+    "loadError": "Kunne ikke hente anmodningen. Prøv igen.",
+    "decideError": "Det gik ikke igennem. Prøv igen.",
+    "toDashboard": "Gå til oversigten",
+    "toClient": "Gå til Desktopklient"
+  },
+  "clientPage": {
+    "title": "Desktopklient",
+    "subtitle": "Hent klienten, forbind den med din konto, og kobl de skibsnavne og spilindstillinger til, som den installerer.",
+    "setUp": "Hent klienten",
+    "noDevices": "Ingen klient er parret endnu. Installér den, og tryk “Log ind med browser” i klienten."
+  },
+  "yourData": {
+    "title": "Dine data",
+    "help": "Hent alt, hvad StarBuddy gemmer om dig, som én fil, eller slet din konto.",
+    "export": "Hent mine data",
+    "exportError": "Kunne ikke lave filen. Prøv igen.",
+    "delete": "Slet min konto…",
+    "deleteTitle": "Slet din konto?",
+    "deleteWhat": "Din konto forsvinder sammen med dit lager, dine blueprints, raffinaderiordrer, din indsamlingsliste, dine point, skærmbilleder, parrede klienter og org-medlemskaber. Dine StarLabels- og StarConfig-indstillinger på uniteddanes.org slettes også. Filer, der er installeret i din spilmappe, bliver liggende. Logger du ind med Discord igen senere, får du en ny, tom konto.",
+    "deleteConfirm": "Det kan ikke fortrydes. Skriv <strong>{{word}}</strong> for at bekræfte.",
+    "deleteFinal": "Slet min konto",
+    "deleting": "Sletter…",
+    "deleteError": "Kontoen kunne ikke slettes. Prøv igen."
   }
 }

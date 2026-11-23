@@ -20,6 +20,11 @@ import { AdminPage } from './pages/AdminPage'
 import { TrainingPage } from './pages/TrainingPage'
 import { canSee } from './lib/access'
 import { AboutPage } from './pages/AboutPage'
+import { PairPage } from './pages/PairPage'
+import { ClientPage } from './pages/ClientPage'
+
+/** A page asked for before signing in, opened again once signed in (the client's /pair link). */
+const AFTER_LOGIN = 'starbuddy.afterLogin'
 
 // The public help: its own chunk, reachable without signing in.
 const HelpSite = lazy(() => import('./help/HelpSite').then((m) => ({ default: m.HelpSite })))
@@ -67,7 +72,25 @@ export default function App() {
   }
 
   if (!me) {
+    if (pathname === '/pair') {
+      try {
+        sessionStorage.setItem(AFTER_LOGIN, pathname + search)
+      } catch {
+        // Private window: the member opens the client's link again.
+      }
+    }
     return <LoginPage />
+  }
+
+  // Cleared by the page itself once it has opened.
+  let afterLogin: string | null = null
+  try {
+    afterLogin = sessionStorage.getItem(AFTER_LOGIN)
+  } catch {
+    afterLogin = null
+  }
+  if (afterLogin?.startsWith('/pair') && pathname === '/') {
+    return <Navigate to={afterLogin} replace />
   }
 
   return (
@@ -84,6 +107,8 @@ export default function App() {
         <Route path="/admin" element={canSee(me, 'admin') ? <AdminPage /> : <Navigate to="/" replace />} />
         <Route path="/training" element={canSee(me, 'training') ? <TrainingPage /> : <Navigate to="/" replace />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/pair" element={<PairPage />} />
+        <Route path="/client" element={<ClientPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

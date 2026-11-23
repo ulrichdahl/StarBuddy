@@ -13,7 +13,6 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableSortLabel from '@mui/material/TableSortLabel'
 import TableRow from '@mui/material/TableRow'
-import Typography from '@mui/material/Typography'
 import AddIcon from '@mui/icons-material/Add'
 import type { RefineryOrder } from '../lib/types'
 import { RefineryOrderDialog, type RefineryOrderTarget } from '../components/RefineryOrderDialog'
@@ -21,6 +20,7 @@ import { usePaginatedList } from '../lib/usePaginatedList'
 import { useNow } from '../lib/useNow'
 import { PageHeader } from '../components/PageHeader'
 import { ListPager } from '../components/ListPager'
+import { EmptyRow } from '../components/EmptyState'
 
 /**
  * Status chip for an order.
@@ -156,13 +156,16 @@ export function RefineryPage() {
                 )
               })}
               {!isLoading && orders.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={8}>
-                    <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                      {t('refinery.empty')}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
+                <EmptyRow
+                  colSpan={8}
+                  title={t('refinery.emptyTitle')}
+                  text={t('refinery.emptyHow')}
+                  actions={
+                    <Button variant="contained" onClick={() => setOpenId('new')}>
+                      {t('refinery.emptyAdd')}
+                    </Button>
+                  }
+                />
               )}
             </TableBody>
           </Table>

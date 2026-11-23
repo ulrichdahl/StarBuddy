@@ -1,8 +1,8 @@
-# Profile and desktop client
+# Profile
 
-Open your name in the top right corner and choose `Profile & desktop client`. The `Desktop client` button in the top bar opens the same window, at the client section.
+Open your name in the top right corner and choose `Profile`.
 
-![Profile and desktop client](screens/web-profile.jpg)
+![Profile](screens/web-profile.jpg)
 
 ## Identity
 
@@ -11,15 +11,7 @@ Open your name in the top right corner and choose `Profile & desktop client`. Th
 
 ## Desktop client
 
-1. Download the client for Windows or Linux from here.
-2. Press `Generate pairing code`.
-3. In the client, open `Settings` › `General`, enter this website's address and the code, and press `Pair`. The code works once, for 10 minutes.
-
-**Paired devices** lists every client paired to your account, with when it last synced. Remove one you no longer use. See [Install and pair the client](client-setup).
-
-## Ship names and game settings
-
-If your community uses UnitedDanes StarLabels (better ship and item names) or StarConfig (game settings), link them here. Set them up on uniteddanes.org and press **Send to StarBuddy** there. Your desktop clients then install `global.ini` and `user.cfg` into the game folder, and fetch new names when the game updates. `Unlink` deletes the settings stored at UDI, and the files already installed stay.
+The desktop client, your paired devices and the ship names and game settings it installs have their own page: press `Desktop client` in the top bar. See [Install and pair the client](client-setup) and [StarLabels and StarConfig](starlabels).
 
 ## Your stock
 
@@ -30,3 +22,8 @@ After a game wipe, clear what the patch took from your own stock:
 3. Type `CLEAR` and confirm.
 
 This removes your private and org-visible stacks alike, and never anyone else's. It cannot be undone.
+
+## Your data
+
+- `Download my data` saves everything StarBuddy keeps about you as one JSON file: your account, stock, blueprints, refinery orders, gathering list, points, game events, org memberships, paired clients and sign-ins. Secrets, such as the link to uniteddanes.org, are left out.
+- `Delete my account…` deletes your account and everything that is yours: stock, blueprints, refinery orders, gathering list, points, screenshots, paired clients and org memberships. Your StarLabels and StarConfig settings at uniteddanes.org go too, and the files installed in your game folder stay. Your desktop clients then ask you to sign in again. Type `DELETE` to confirm. It cannot be undone. If you sign in with Discord again later, you start a new, empty account.

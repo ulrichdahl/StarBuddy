@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { OverlayWindow } from "./OverlayWindow";
 import { listenFailed } from "../listen";
+import type { Reading } from "../main-window/types";
 
 interface OcrLine {
   text: string;
@@ -95,15 +96,31 @@ export function ScanOverlay() {
   const [showAll, setShowAll] = useState(false);
   const [live, setLive] = useState(false);
   const [reading, setReading] = useState<LiveReading | null>(null);
+  // Screen capture, which everything here reads through. Opening the window
+  // switches it and the live scan on; when that cannot happen the setup card
+  // says why and offers the one step that fixes it.
+  const [screen, setScreen] = useState<Reading | null>(null);
+  const [framed, setFramed] = useState(true);
+  const [gameWindows, setGameWindows] = useState<string[]>([]);
+  const [pick, setPick] = useState("");
+  const [starting, setStarting] = useState(false);
 
   useEffect(() => {
     const failed = listenFailed((detail) => setStatus({ phase: "error", detail, progress: null }));
     invoke<ScanResult | null>("scan_last").then((r) => r && setResult(r)).catch(() => {});
     invoke<boolean>("scan_live_running").then(setLive).catch(() => {});
+    invoke<Reading>("screen_reading").then(setScreen).catch(() => {});
+    const checkFramed = () =>
+      invoke<unknown>("region_current", { purpose: "scan" })
+        .then((r) => setFramed(r !== null))
+        .catch(() => {});
+    void checkFramed();
     const subs = [
       listen<ScanStatus>("scan-status", (e) => setStatus(e.payload)).catch(failed),
       listen<ScanResult>("scan-result", (e) => setResult(e.payload)).catch(failed),
       listen<boolean>("scan-live-state", (e) => setLive(e.payload)).catch(failed),
+      listen<Reading>("screen-reading", (e) => setScreen(e.payload)).catch(failed),
+      listen<string>("region-changed", (e) => e.payload === "scan" && void checkFramed()).catch(failed),
       listen<LiveReading>("scan-live", (e) => {
         // Keep the last reading that had a signature; a frame without one
         // (badge moved out, HUD hidden) must not blank the window.
@@ -129,6 +146,27 @@ export function ScanOverlay() {
     void invoke("scan_now").catch(showError);
   };
   const toggleLive = () => void invoke<boolean>("scan_live_toggle").then(setLive).catch(showError);
+
+  // Windows: the game is picked from a list drawn here; elsewhere the
+  // desktop's own dialog asks when capture starts.
+  const needsSetup = screen !== null && !screen.on;
+  const picks = needsSetup && screen.picks_from_list && !screen.source;
+  const listWindows = () =>
+    invoke<string[]>("screen_reading_windows")
+      .then(setGameWindows)
+      .catch(() => setGameWindows([]));
+  useEffect(() => {
+    if (picks) void listWindows();
+  }, [picks]);
+  const start = () => {
+    if (starting) return;
+    setStarting(true);
+    invoke<boolean>("scan_start", { window: pick || null })
+      .then(setLive)
+      .catch(() => {})
+      .finally(() => setStarting(false));
+  };
+  const frameArea = () => void invoke("region_select", { purpose: "scan" }).catch(showError);
 
   // Idle means "nothing to say". The instruction to press the hotkey is only
   // true when nothing is watching the screen: while live runs, the box has to
@@ -215,6 +253,61 @@ export function ScanOverlay() {
       </>
     ) : null;
 
+  const startButton = (
+    <button type="button" className="ov-btn on" onClick={start} disabled={starting || !screen?.available || (picks && !pick)}>
+      {t("overlay.scan.setup.start")}
+    </button>
+  );
+  const setupStep = !screen?.available
+    ? t("overlay.scan.setup.unsupported")
+    : picks
+      ? t("overlay.scan.setup.pickWindow")
+      : screen.picks_from_list
+        ? t("overlay.scan.setup.restart")
+        : t("overlay.scan.setup.portal");
+  const setupCard = (
+    <div className="ov-setup">
+      <p className="ov-p">{setupStep}</p>
+      {screen?.available && (
+        <div className="ov-row ov-setup-row">
+          {picks && (
+            <select className="ov-select" value={pick} onChange={(e) => setPick(e.target.value)} onMouseDown={() => void listWindows()}>
+              <option value="">{t("overlay.readingPick")}</option>
+              {gameWindows.map((w) => (
+                <option key={w} value={w}>
+                  {w}
+                </option>
+              ))}
+            </select>
+          )}
+          {startButton}
+        </div>
+      )}
+      {screen?.error && <p className="ov-p ov-err">{screen.error}</p>}
+    </div>
+  );
+
+  if (needsSetup) {
+    return (
+      <OverlayWindow
+        name="scan"
+        displayName={t("overlay.scan.windowName")}
+        accent="ov-accent-none"
+        eyebrow={t("overlay.scan.eyebrow")}
+        title={t("overlay.scan.setup.title")}
+        firstBox={<div className="ov-box">{setupCard}</div>}
+        strip={
+          <>
+            <span className="ov-muted ov-strip-item">{t("overlay.scan.setup.title")}</span>
+            {!picks && <span className="ov-strip-item">{startButton}</span>}
+          </>
+        }
+      >
+        {null}
+      </OverlayWindow>
+    );
+  }
+
   return (
     <OverlayWindow
       name="scan"
@@ -268,6 +361,15 @@ export function ScanOverlay() {
         </>
       }
     >
+      {!framed && (
+        <div className="ov-row ov-setup-row">
+          <span className="ov-dim" style={{ flex: "1 1 0", minWidth: 0 }}>{t("overlay.scan.setup.frame")}</span>
+          <button type="button" className="ov-btn push" onClick={frameArea}>
+            {t("overlay.scan.setup.frameButton")}
+          </button>
+        </div>
+      )}
+      {screen?.border_refused && <p className="ov-p ov-dim">{t("overlay.scan.setup.border")}</p>}
       {best !== null && best.rows.length > 0 && (
         <table className="ov-cand">
           <thead>

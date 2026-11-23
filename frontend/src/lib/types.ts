@@ -47,6 +47,8 @@ export interface OrgSummary {
   total_pieces: number
   blueprint_count: number
   membership: OrgMembership | null
+  /** Join requests waiting for a manager; null unless the caller manages the org. */
+  pending_count?: number | null
 }
 
 /** One member row, from GET /api/orgs/{id}/members (managers only). */

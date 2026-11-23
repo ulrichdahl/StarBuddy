@@ -7,11 +7,26 @@
     "title": "Server",
     "pairedAs": "Paired as",
     "unpair": "Unpair",
-    "hint": "Sign in to your community's StarBuddy website, generate a pairing code on the dashboard, and enter it here.",
+    "rejected": "The StarBuddy website no longer accepts this computer: the account was deleted, or this device was removed there. Sign in again to keep using the website's pages.",
+    "signInAgain": "Sign in again",
+    "hint": "Sign in to your community's StarBuddy website, press Use a pairing code instead on its Desktop client page, and enter the code here.",
     "pairingCodePlaceholder": "Pairing code",
     "pair": "Pair",
     "pairing": "Pairing…",
-    "urlPlaceholder": "https://starbuddy.example.org"
+    "urlPlaceholder": "https://starbuddy.example.org",
+    "urlLabel": "Server address",
+    "browser": {
+      "hint": "Sign in on the StarBuddy website in your browser and approve this computer. Nothing to type.",
+      "signIn": "Sign in with browser",
+      "approve": "Approve in your browser. Check that the page shows this code.",
+      "openAgain": "Open the page again",
+      "cancel": "Cancel",
+      "useCode": "Enter a pairing code instead",
+      "useBrowser": "Sign in with the browser instead",
+      "denied": "The sign-in was denied on the website.",
+      "expired": "The code ran out after 10 minutes. Sign in again.",
+      "failed": "The sign-in did not finish. Try again."
+    }
   },
   "scan": {
     "title": "Star Citizen installation",
@@ -242,7 +257,18 @@
         "legendary": "legendary"
       },
       "qualityBand": "Q {{from}}–{{to}}",
-      "pinShape": "pin {{shape}}"
+      "pinShape": "pin {{shape}}",
+      "setup": {
+        "title": "Screen capture is off",
+        "start": "Start scanning",
+        "pickWindow": "Choose the game's window and start. StarBuddy remembers it, so next time the scan starts when you open this window.",
+        "restart": "Screen capture did not start on the window you chose last time. Start again, or choose the game's window in Settings › Screen reading.",
+        "portal": "Start, then pick the game's window in your desktop's dialog. The choice is remembered, so next time the scan starts when you open this window.",
+        "unsupported": "Screen capture is not supported on this system yet.",
+        "frame": "No scan area framed: the badge is looked for mid-screen.",
+        "frameButton": "Frame area",
+        "border": "Windows is drawing a capture border round the game. Settings › Screen reading says how to turn it off."
+      }
     },
     "liveScanStart": "Start live scan (F7)",
     "liveScanStop": "Stop live scan (F7)",
@@ -258,7 +284,7 @@
         "scan": "Drag across the scan signature badge"
       },
       "need": {
-        "refinery": "Include the title bar: the station name is read from the \"… REFINEMENT CENTER\" line.",
+        "refinery": "From the WORK ORDER title down to TOTAL COST and PROCESSING TIME, with the whole materials table inside. The station name is read from the top of the screen by itself.",
         "scan": "Frame the badge only — the tighter the area, the more reliable the read."
       },
       "hint": "Escape keeps the area you had before.",
@@ -321,7 +347,24 @@
       "notRefined": "Not being refined (no yield)",
       "total": "Total",
       "addRow": "Add a material row",
-      "removeRow": "Remove this row"
+      "removeRow": "Remove this row",
+      "area": {
+        "foundTitle": "Use this area for the next reads?",
+        "movedTitle": "Use where the work order is now?",
+        "guideTitle": "Frame the work order",
+        "bottomTitle": "Scroll down and read again",
+        "moreHint": "Scroll the work order down and press Read more rows. The new rows are added to the ones already read. A long order can take three or four reads.",
+        "found": "StarBuddy found the work order on screen. Reading just that area is faster and more reliable.",
+        "moved": "The work order is no longer inside the area you framed.",
+        "use": "Use this area",
+        "no": "No thanks",
+        "guide": "Include everything from the WORK ORDER title down to TOTAL COST and PROCESSING TIME, with the whole materials table.",
+        "missing": {
+          "title": "No work order panel was found on screen.",
+          "bottom": "The work order goes past the bottom of the screen, so TOTAL COST and PROCESSING TIME were not read.",
+          "materials": "The work order was found, but no material rows could be read."
+        }
+      }
     },
     "capture": {
       "capturing": "Capturing the game window…",
@@ -837,5 +880,44 @@
     "rust_other": "{{count}} Rust crates",
     "npm_one": "{{count}} JavaScript package",
     "npm_other": "{{count}} JavaScript packages"
+  },
+  "setup": {
+    "panelTitle": "Setup",
+    "panelHint": "The short guided setup from the first start: sign in, Game.log, game window, a hotkey.",
+    "reopen": "Run setup again",
+    "progress": "Step {{at}} of {{of}}",
+    "back": "Back",
+    "next": "Next",
+    "skip": "Skip",
+    "skipAll": "Skip setup. Everything is in Settings.",
+    "server": {
+      "title": "Sign in",
+      "lead": "Connect StarBuddy to the website to see your blueprints, refinery orders and craft targets here. You can play solo; an org is optional."
+    },
+    "log": {
+      "title": "Find Game.log",
+      "lead": "StarBuddy reads the game's log as you play: missions, blueprints, travel and refinery jobs.",
+      "notFound": "No installation found. Choose your StarCitizen folder."
+    },
+    "window": {
+      "title": "Choose the game window",
+      "lead": "The scan window and the refinery key read the game's window. Frames are read and dropped; nothing leaves this machine.",
+      "windows": "Start the game first so its window is in the list. Or skip and do it later from the scan window.",
+      "portal": "Your desktop asks which window to share. Pick the game; the choice is remembered."
+    },
+    "hotkey": {
+      "title": "Try a hotkey",
+      "lead": "This key shows and hides the status window. Hotkeys work while the game has focus too.",
+      "press": "Press",
+      "heard": "Heard it. Hotkeys work.",
+      "blocked": "Your desktop holds the hotkeys. Settings › Hotkeys shows how to bind them.",
+      "noKey": "No key is set for the status window. Choose one in Settings › Hotkeys."
+    },
+    "end": {
+      "title": "All set",
+      "later": "set it up later in Settings",
+      "solo": "StarBuddy works solo. Join an org on the website when you want to share with others.",
+      "go": "Open StarBuddy"
+    }
   }
 }

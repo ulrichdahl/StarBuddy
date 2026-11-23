@@ -116,6 +116,7 @@ pub async fn upload(
         .send()
         .await
         .map_err(|e| format!("Could not reach server: {e}"))?;
+    crate::pairing::note(resp.status());
 
     if !resp.status().is_success() {
         let status = resp.status();

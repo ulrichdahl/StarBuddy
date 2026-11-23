@@ -1,13 +1,5 @@
 # Hosting StarBuddy
 
-> **Upgrading an instance from before the StarBuddy rename?** Run
-> `scripts/update.sh` once: it renames the `STARBUDDY_*` keys in `.env`
-> (backup kept), pins the database name/user the old defaults used, and
-> replaces the old `starmaker` containers with the `starbuddy` project.
-> Your data is untouched (it lives in `STARBUDDY_DATA_DIR`). One manual step:
-> point your reverse proxy at **`starbuddy-web`** — the `starmaker-web`
-> alias is gone.
-
 One StarBuddy instance serves **one Discord community**. Members sign in with
 Discord; only members of your configured server can join. This guide takes an
 operator from empty server to a maintained, auto-updating production instance.
@@ -123,6 +115,22 @@ Optional: `STARBUDDY_REFINERY_CHANNEL_ID=<channel id>` makes the bot post a
 ping to that channel whenever a member's refinery work order completes (live
 events only — a first-run history import never floods it). The bot needs
 *View Channel* and *Send Messages* there.
+
+Someone refused at sign-in for not being a member of your server gets a
+button to join it. Without settings, the bot makes a permanent invite to
+your server's welcome channel (or its first text channel); give its role
+*Create Invite* for that. To choose the invite yourself, set
+`STARBUDDY_DISCORD_INVITE=https://discord.gg/<code>`, made in Discord with
+*Expire after: Never*.
+
+The sign-in page names your Discord server and shows its icon ("Only for
+members of … Discord server"). The backend reads both through the bot
+(`DISCORD_BOT_TOKEN`, `STARBUDDY_HOME_GUILD_ID`), or from the invite when the
+bot isn't set up.
+
+The bot sends direct messages for org requests: a manager gets one when a
+player asks to join their org, and the player gets one when accepted. Members
+who block DMs from server members simply don't get them.
 
 Optional: `STARBUDDY_GATHERING_CHANNEL_ID=<channel id>` lets members post their
 Gathering shopping list (what their pinned craft targets still need) to that

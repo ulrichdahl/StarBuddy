@@ -119,6 +119,10 @@ pub struct RefineryTerminal {
     /// How many captures were merged to make this. A material list longer than
     /// the panel scrolls off the bottom, so several reads can build one order.
     pub captures: usize,
+    /// The size of the picture read, for turning line boxes into an area of
+    /// the screen. Not sent to the window or the server.
+    #[serde(skip)]
+    pub read_size: (u32, u32),
 }
 
 /// One row of the station's MATERIAL SPECIALIZATIONS table.
@@ -137,6 +141,21 @@ pub struct RefineryState {
     /// before there is anything listening. The window asks for this on the way
     /// up rather than showing "press the key" over a read already running.
     phase: Mutex<Phase>,
+    /// What the last whole-screen read found out about where the panel is.
+    offer: Mutex<Option<AreaOffer>>,
+}
+
+/// The work order's place on screen, found by a read of the whole screen and
+/// offered to the player as the refinery area. Sent as `refinery-area`.
+#[derive(Serialize, Clone, Debug)]
+pub struct AreaOffer {
+    /// The area to use, or none when the panel was not all there.
+    pub area: Option<ScanRegion>,
+    /// What was missing when there is no area: "title", "bottom" or "materials".
+    pub missing: Option<&'static str>,
+    /// The framed area stopped showing the panel (a new resolution or UI
+    /// scale), and this is where it is now.
+    pub moved: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -243,9 +262,72 @@ async fn read_inner(app: &AppHandle) -> Result<RefineryTerminal, String> {
     scan::ensure_models(app).await?;
     let region = current_region(app);
     status(app, "capturing", "grabbing the panel");
-    crate::analysis::run_once(app, Panel, region.unwrap_or(ScanRegion::WHOLE))
-        .await?
-        .ok_or_else(|| "nothing was read".to_string())
+    let read = |region| async move {
+        crate::analysis::run_once(app, Panel, region).await?.ok_or_else(|| "nothing was read".to_string())
+    };
+    let first = read(region.unwrap_or(ScanRegion::WHOLE)).await?;
+    match region {
+        // No area framed: the whole screen was read, which also says where
+        // the panel is.
+        None => {
+            set_offer(app, Some(offer_from(&first, false)));
+            Ok(first)
+        }
+        // The framed area holds no work order at all: the screen may have
+        // changed (resolution, UI scale). Look at the whole of it once; when
+        // the panel is there, that read stands and its area is offered.
+        Some(_) if first.orders.is_empty() => {
+            status(app, "ocr", "the whole screen");
+            let whole = read(ScanRegion::WHOLE).await?;
+            if whole.orders.is_empty() {
+                return Ok(first);
+            }
+            let offer = offer_from(&whole, true);
+            if offer.area.is_some() {
+                log::info!("refinery: the panel has moved out of the framed area");
+                set_offer(app, Some(offer));
+            }
+            Ok(whole)
+        }
+        // Inside the framed area, the one thing worth saying is that the
+        // order runs on below it: the next read after a scroll adds the rest.
+        Some(_) => {
+            let more = matches!(parse::panel_area(&first.lines), Err(parse::AreaMissing::Bottom));
+            set_offer(app, more.then_some(AreaOffer { area: None, missing: Some("bottom"), moved: false }));
+            Ok(first)
+        }
+    }
+}
+
+/// The panel's area in a whole-screen read, with 3% of the screen round it
+/// so a panel that sits a little differently next time is still inside.
+fn offer_from(read: &RefineryTerminal, moved: bool) -> AreaOffer {
+    let none = |missing| AreaOffer { area: None, missing: Some(missing), moved };
+    let (w, h) = read.read_size;
+    if w == 0 || h == 0 {
+        return none("title");
+    }
+    let (x, y, bw, bh) = match parse::panel_area(&read.lines) {
+        Ok(found) => found,
+        Err(parse::AreaMissing::Title) => return none("title"),
+        Err(parse::AreaMissing::Bottom) => return none("bottom"),
+    };
+    // Anchors without a single material row are a panel seen too badly to trust.
+    if read.orders.iter().all(|o| o.materials.is_empty()) {
+        return none("materials");
+    }
+    let (w, h) = (w as f32, h as f32);
+    let margin = 0.03;
+    let x0 = (x as f32 / w - margin).max(0.0);
+    let y0 = (y as f32 / h - margin).max(0.0);
+    let x1 = ((x + bw) as f32 / w + margin).min(1.0);
+    let y1 = ((y + bh) as f32 / h + margin).min(1.0);
+    AreaOffer { area: Some(ScanRegion { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }), missing: None, moved }
+}
+
+fn set_offer(app: &AppHandle, offer: Option<AreaOffer>) {
+    *app.state::<RefineryState>().offer.lock_or_recover() = offer.clone();
+    crate::overlay::emit_to_overlay(app, REFINERY, "refinery-area", offer);
 }
 
 /// The refinery terminal's analyzer: the framed panel read in bands, parsed
@@ -297,6 +379,7 @@ impl crate::analysis::Analyzer for Panel {
         }
         snap_qualities(app, &mut order);
         order.lines = lines;
+        order.read_size = (cap.width, cap.height);
         order.captured_at = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_millis() as i64)
@@ -498,6 +581,37 @@ pub fn refinery_clear(app: AppHandle) {
 }
 
 /// Where a read has got to, for a window that has only just opened.
+/// What the last whole-screen read found out about the panel's place.
+#[tauri::command]
+pub fn refinery_area_offer(app: AppHandle) -> Option<AreaOffer> {
+    app.state::<RefineryState>().offer.lock_or_recover().clone()
+}
+
+/// The player took the offered area: it is the refinery area from now on.
+#[tauri::command]
+pub fn refinery_use_area(app: AppHandle) -> Result<(), String> {
+    let area = app
+        .state::<RefineryState>()
+        .offer
+        .lock_or_recover()
+        .as_ref()
+        .and_then(|o| o.area)
+        .ok_or("There is no area to use; read the panel first.")?;
+    let mut prefs = crate::load_client_prefs(&app);
+    prefs.refinery_region = Some(area);
+    crate::save_client_prefs(&app, &prefs)?;
+    log::info!("refinery region set from the panel: {area:?}");
+    set_offer(&app, None);
+    let _ = tauri::Emitter::emit(&app, "region-changed", "refinery");
+    Ok(())
+}
+
+/// The player said no to the offered area.
+#[tauri::command]
+pub fn refinery_dismiss_area(app: AppHandle) {
+    set_offer(&app, None);
+}
+
 #[tauri::command]
 pub fn refinery_status(app: AppHandle) -> Phase {
     app.state::<RefineryState>().phase.lock_or_recover().clone()
@@ -580,6 +694,7 @@ pub async fn refinery_save(
         .send()
         .await
         .map_err(|e| format!("Could not reach server: {e}"))?;
+    crate::pairing::note(resp.status());
 
     if !resp.status().is_success() {
         let (message, fields) = crate::error_fields(resp).await;

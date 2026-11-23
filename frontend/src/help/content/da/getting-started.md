@@ -6,17 +6,29 @@ StarBuddy holder styr på, hvad du og din org har i Star Citizen: de materialer 
 
 ## 1. Log ind med Discord
 
-Tryk `Log ind med Discord` og godkend. StarBuddy lukker kun medlemmer af fællesskabets Discord-server ind. Hvis log ind-siden siger, at din konto ikke er medlem, så meld dig ind på Discord-serveren først og log ind igen.
+Tryk `Log ind med Discord` og godkend. StarBuddy lukker kun medlemmer af fællesskabets Discord-server ind. Hvis log ind-siden siger, at din konto ikke er medlem, så meld dig ind på Discord-serveren først (siden viser en knap til det, når serveren har et invitationslink sat op) og log ind igen.
 
 StarBuddy gemmer dit Discord-id, dit navn og din avatar, og intet andet fra Discord.
 
 Hver StarBuddy hører til én Discord-server. Vil du køre en til din egen server, så se [StarBuddy til din Discord-server](your-own-server).
 
+## Guiden Kom i gang
+
+Første gang du logger ind, viser oversigten **Kom i gang**: dit handle, din org og desktop-klienten. Hvert trin bliver krydset af af sig selv, når det er klaret. Download-knappen tilbyder klienten til dit system. Kun handlet er nødvendigt. En org og desktop-klienten er valgfrie: tryk `Spring over` ved et trin, du ikke vil have. `Skjul` guiden, når du ikke har brug for den. Den forsvinder, når alle trin er klaret eller sprunget over. Vil du se den igen, så åbn dit navn øverst til højre og vælg `Kom i gang-guide`.
+
+**Der er hjælp på alle sider.** Tryk `?` ved siden af en sides titel eller i topbjælken, eller tasten `?`, så åbner hjælpen til den side ved siden af den.
+
+![Kom i gang på oversigten](screens/web-get-started.jpg)
+
+Trinene herunder er de samme, gjort i hånden.
+
 ## 2. Skriv dit Star Citizen-handle
 
-Åbn dit navn øverst til højre og vælg `Profil & desktopklient`. Skriv dit handle fra spillet under **Identitet**. Dine org-kammerater ser det, og desktop-klienten bruger det til at vide, hvilke af spillets karakterer der er dine. Se [Profil og desktop-klient](profile).
+Åbn dit navn øverst til højre og vælg `Profil`. Skriv dit handle fra spillet under **Identitet**. Dine org-kammerater ser det, og desktop-klienten bruger det til at vide, hvilke af spillets karakterer der er dine. Se [Profil](profile).
 
-## 3. Meld dig ind i din org
+## 3. Meld dig ind i din org (valgfrit)
+
+StarBuddy virker også for en solospiller. Dine egne materialer, genstande, blueprints, raffinaderiordrer, indsamlingsliste og desktop-klienten virker alle uden en org. En org giver fælles lager, fremstilling med dine org-kammeraters materialer og placeringen mod de andre orgs.
 
 Vælg `Organisationer` i samme menu, find din org og tryk `Anmod om medlemskab`. En manager i org'en godkender dig. Indtil da er org'ens fælles lager og placering skjult. Se [Organisationer](organizations).
 

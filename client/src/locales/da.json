@@ -7,11 +7,26 @@
     "title": "Server",
     "pairedAs": "Parret som",
     "unpair": "Ophæv parring",
-    "hint": "Log ind på dit communitys StarBuddy-hjemmeside, generér en parringskode på dashboardet, og indtast den her.",
+    "rejected": "StarBuddy-hjemmesiden accepterer ikke længere denne computer: kontoen er slettet, eller enheden er fjernet der. Log ind igen for at bruge hjemmesidens sider.",
+    "signInAgain": "Log ind igen",
+    "hint": "Log ind på dit communitys StarBuddy-hjemmeside, tryk Brug en parringskode i stedet på hjemmesidens side Desktopklient, og indtast koden her.",
     "pairingCodePlaceholder": "Parringskode",
     "pair": "Par",
     "pairing": "Parrer…",
-    "urlPlaceholder": "https://starbuddy.example.org"
+    "urlPlaceholder": "https://starbuddy.example.org",
+    "urlLabel": "Serveradresse",
+    "browser": {
+      "hint": "Log ind på StarBuddy-hjemmesiden i din browser, og godkend denne computer. Intet at skrive.",
+      "signIn": "Log ind med browser",
+      "approve": "Godkend i din browser. Tjek, at siden viser denne kode.",
+      "openAgain": "Åbn siden igen",
+      "cancel": "Annullér",
+      "useCode": "Indtast en parringskode i stedet",
+      "useBrowser": "Log ind med browseren i stedet",
+      "denied": "Login blev afvist på hjemmesiden.",
+      "expired": "Koden udløb efter 10 minutter. Log ind igen.",
+      "failed": "Login blev ikke færdigt. Prøv igen."
+    }
   },
   "scan": {
     "title": "Star Citizen-installation",
@@ -242,7 +257,18 @@
         "legendary": "legendarisk"
       },
       "qualityBand": "Q {{from}}–{{to}}",
-      "pinShape": "nål {{shape}}"
+      "pinShape": "nål {{shape}}",
+      "setup": {
+        "title": "Skærmaflæsning er slået fra",
+        "start": "Start scanning",
+        "pickWindow": "Vælg spillets vindue, og start. StarBuddy husker det, så næste gang starter scanningen, når du åbner dette vindue.",
+        "restart": "Skærmaflæsning startede ikke på det vindue, du valgte sidst. Start igen, eller vælg spillets vindue i Indstillinger › Skærmaflæsning.",
+        "portal": "Start, og vælg spillets vindue i skrivebordets dialog. Valget huskes, så næste gang starter scanningen, når du åbner dette vindue.",
+        "unsupported": "Skærmaflæsning understøttes ikke på dette system endnu.",
+        "frame": "Intet scanningsområde indrammet: mærket søges midt på skærmen.",
+        "frameButton": "Indram område",
+        "border": "Windows tegner en optagekant om spillet. Indstillinger › Skærmaflæsning fortæller, hvordan den slås fra."
+      }
     },
     "liveScanStart": "Start live-scanning (F7)",
     "liveScanStop": "Stop live-scanning (F7)",
@@ -258,7 +284,7 @@
         "scan": "Træk hen over scanningens signaturmærke"
       },
       "need": {
-        "refinery": "Tag titellinjen med: stationens navn læses fra linjen \"… REFINEMENT CENTER\".",
+        "refinery": "Fra titlen WORK ORDER ned til TOTAL COST og PROCESSING TIME, med hele materialetabellen indenfor. Stationens navn læses selv fra toppen af skærmen.",
         "scan": "Tag kun selve mærket med — jo tættere område, jo mere pålidelig aflæsning."
       },
       "hint": "Escape beholder det område, du havde før.",
@@ -321,7 +347,24 @@
       "notRefined": "Bliver ikke raffineret (intet udbytte)",
       "total": "I alt",
       "addRow": "Tilføj en materialerække",
-      "removeRow": "Fjern denne række"
+      "removeRow": "Fjern denne række",
+      "area": {
+        "foundTitle": "Brug dette område til de næste aflæsninger?",
+        "movedTitle": "Brug, hvor arbejdsordren er nu?",
+        "guideTitle": "Indram arbejdsordren",
+        "bottomTitle": "Rul ned og aflæs igen",
+        "moreHint": "Rul arbejdsordren ned, og tryk Aflæs flere rækker. De nye rækker lægges til dem, der allerede er læst. En lang ordre kan tage tre eller fire aflæsninger.",
+        "found": "StarBuddy fandt arbejdsordren på skærmen. Det er hurtigere og mere pålideligt kun at aflæse det område.",
+        "moved": "Arbejdsordren er ikke længere inden for det område, du har indrammet.",
+        "use": "Brug dette område",
+        "no": "Nej tak",
+        "guide": "Tag alt med fra titlen WORK ORDER ned til TOTAL COST og PROCESSING TIME, med hele materialetabellen.",
+        "missing": {
+          "title": "Der blev ikke fundet et arbejdsordre-panel på skærmen.",
+          "bottom": "Arbejdsordren går ud over bunden af skærmen, så TOTAL COST og PROCESSING TIME blev ikke læst.",
+          "materials": "Arbejdsordren blev fundet, men ingen materialerækker kunne læses."
+        }
+      }
     },
     "capture": {
       "capturing": "Tager billede af spilvinduet…",
@@ -837,5 +880,44 @@
     "rust_other": "{{count}} Rust-crates",
     "npm_one": "{{count}} JavaScript-pakke",
     "npm_other": "{{count}} JavaScript-pakker"
+  },
+  "setup": {
+    "panelTitle": "Opsætning",
+    "panelHint": "Den korte guidede opsætning fra første start: log ind, Game.log, spillets vindue, en genvejstast.",
+    "reopen": "Kør opsætning igen",
+    "progress": "Trin {{at}} af {{of}}",
+    "back": "Tilbage",
+    "next": "Næste",
+    "skip": "Spring over",
+    "skipAll": "Spring opsætningen over. Alt findes i Indstillinger.",
+    "server": {
+      "title": "Log ind",
+      "lead": "Forbind StarBuddy med hjemmesiden for at se dine blueprints, raffinaderi-ordrer og fremstillingsmål her. Du kan spille solo; en org er valgfri."
+    },
+    "log": {
+      "title": "Find Game.log",
+      "lead": "StarBuddy læser spillets log, mens du spiller: missioner, blueprints, rejser og raffinaderi-jobs.",
+      "notFound": "Ingen installation fundet. Vælg din StarCitizen-mappe."
+    },
+    "window": {
+      "title": "Vælg spillets vindue",
+      "lead": "Scanningsvinduet og raffinaderi-tasten læser spillets vindue. Billederne læses og smides væk; intet forlader denne maskine.",
+      "windows": "Start spillet først, så dets vindue er på listen. Eller spring over, og gør det senere fra scanningsvinduet.",
+      "portal": "Dit skrivebord spørger, hvilket vindue der skal deles. Vælg spillet; valget huskes."
+    },
+    "hotkey": {
+      "title": "Prøv en genvejstast",
+      "lead": "Denne tast viser og skjuler statusvinduet. Genvejstaster virker også, mens spillet har fokus.",
+      "press": "Tryk på",
+      "heard": "Hørt. Genvejstaster virker.",
+      "blocked": "Dit skrivebord styrer genvejstasterne. Indstillinger › Genvejstaster viser, hvordan de bindes.",
+      "noKey": "Der er ingen tast til statusvinduet. Vælg en i Indstillinger › Genvejstaster."
+    },
+    "end": {
+      "title": "Klar",
+      "later": "sæt det op senere i Indstillinger",
+      "solo": "StarBuddy virker solo. Meld dig ind i en org på hjemmesiden, når du vil dele med andre.",
+      "go": "Åbn StarBuddy"
+    }
   }
 }

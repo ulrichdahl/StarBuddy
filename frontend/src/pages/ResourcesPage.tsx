@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link as RouterLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -54,6 +55,7 @@ import { VisibilitySelect } from '../components/VisibilitySelect'
 import { OrgMatrixTable } from '../components/OrgMatrixTable'
 import { useMe } from '../lib/auth'
 import { useViewParam } from '../lib/useViewParam'
+import { EmptyRow } from '../components/EmptyState'
 
 /** Desaturated WoW ladder, shared by both rarity axes. */
 
@@ -538,13 +540,25 @@ export function ResourcesPage() {
                 </TableRow>
               ))}
               {!isLoading && stacks.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={8}>
-                    <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                      {t('materials.empty')}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
+                search || qualityMin || qualityMax || place || mineOnly || filterVisibility ? (
+                  <EmptyRow colSpan={8} text={t('common.noMatches')} />
+                ) : (
+                  <EmptyRow
+                    colSpan={8}
+                    title={t('materials.emptyTitle')}
+                    text={t('materials.empty')}
+                    actions={
+                      <>
+                        <Button variant="contained" onClick={() => setBulkOpen(true)}>
+                          {t('materials.emptyAdd')}
+                        </Button>
+                        <Button component={RouterLink} to="/import" variant="outlined" color="inherit">
+                          {t('common.emptyImport')}
+                        </Button>
+                      </>
+                    }
+                  />
+                )
               )}
             </TableBody>
           </Table>

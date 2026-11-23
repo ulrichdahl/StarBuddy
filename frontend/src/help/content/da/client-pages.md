@@ -10,6 +10,6 @@ Klientens sider viser de samme data som hjemmesiden, så du kan slå ting op ude
 - **Raffinaderi:** dine raffinaderiordrer med tiden tilbage. `Hent` en ordre, der er klar, og sig, hvor den kom hen. Se [Raffinering](refinery).
 - **Mit lager:** dine genstande, og de genstande, org'en deler.
 - **Org:** din hoved-orgs medlemmer, hvem der spiller nu, hvor og i hvilket skib. Kun medlemmer, der deler deres spilstatus, viser det.
-- **Værktøjer:** din orgs sider på hjemmesiden, fællesskabets værktøjer (UEX, Regolith, Erkul, wikien, Cornerstone, SC Trade Tools) og dine egne links. Også her installeres UnitedDanes StarLabels og StarConfig. Se [Profil](profile).
+- **Værktøjer:** din orgs sider på hjemmesiden, fællesskabets værktøjer (UEX, Regolith, Erkul, wikien, Cornerstone, SC Trade Tools) og dine egne links. Også her installeres UnitedDanes StarLabels og StarConfig. Se [StarLabels og StarConfig](starlabels).
 
 ![Org i klienten](screens/client-org.jpg)

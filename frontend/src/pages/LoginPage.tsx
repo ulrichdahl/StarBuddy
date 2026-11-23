@@ -1,6 +1,9 @@
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { api } from '../lib/api'
 import Box from '@mui/material/Box'
 import Alert from '@mui/material/Alert'
+import Avatar from '@mui/material/Avatar'
 import Button from '@mui/material/Button'
 import Link from '@mui/material/Link'
 import Paper from '@mui/material/Paper'
@@ -21,6 +24,12 @@ export function LoginPage() {
   const intro = i18n.language === 'da' ? 'da' : 'en'
   // Set by the sign-in callback when it refuses the account.
   const error = new URLSearchParams(window.location.search).get('error')
+  const toPair = window.location.pathname === '/pair'
+  const { data: instance } = useQuery({
+    queryKey: ['instance'],
+    queryFn: async () => (await api.get<{ discord_invite: string | null; discord_server: { name: string; icon_url: string | null } | null }>('/api/instance')).data,
+    staleTime: Infinity,
+  })
   return (
     <Box
       sx={{
@@ -74,9 +83,40 @@ export function LoginPage() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
           {t('login.tagline')}
         </Typography>
+        {instance?.discord_server && error !== 'not_a_member' && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5, p: 1.5, border: 1, borderColor: 'divider', borderRadius: 1, textAlign: 'left' }}>
+            {instance.discord_server.icon_url && <Avatar src={instance.discord_server.icon_url} alt="" sx={{ width: 40, height: 40 }} />}
+            <Typography variant="body2" color="text.secondary">
+              {t('login.membersOnly', { name: instance.discord_server.name })}
+            </Typography>
+          </Box>
+        )}
         {error && (
           <Alert severity="error" sx={{ mb: 2, textAlign: 'left' }}>
             {t(error === 'not_a_member' ? 'login.notAMember' : 'login.failed')}
+          </Alert>
+        )}
+        {error === 'not_a_member' && instance?.discord_invite && (
+          <Button
+            variant="outlined"
+            size="large"
+            fullWidth
+            href={instance.discord_invite}
+            target="_blank"
+            rel="noopener"
+            startIcon={
+              instance.discord_server?.icon_url ? (
+                <Avatar src={instance.discord_server.icon_url} alt="" sx={{ width: 28, height: 28 }} />
+              ) : undefined
+            }
+            sx={{ mb: 1.5, py: 1, textTransform: 'none', letterSpacing: 0.2 }}
+          >
+            {instance.discord_server ? t('login.joinServer', { name: instance.discord_server.name }) : t('login.joinDiscord')}
+          </Button>
+        )}
+        {toPair && !error && (
+          <Alert severity="info" sx={{ mb: 2, textAlign: 'left' }}>
+            {t('login.toPair')}
           </Alert>
         )}
         <Button

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
+import { AreaIcon, WarnIcon } from "./icons";
 import { OverlayWindow } from "./OverlayWindow";
 import { listenFailed } from "../listen";
 
@@ -87,6 +88,13 @@ function qualityTier(quality: number | null): string | null {
  * orders at once, so each is saved on its own. Nothing reaches the server until
  * Save is pressed.
  */
+/** Where a read of the whole screen found the panel, offered as the refinery area. */
+interface AreaOffer {
+  area: { x: number; y: number; w: number; h: number } | null;
+  missing: "title" | "bottom" | "materials" | null;
+  moved: boolean;
+}
+
 export function RefineryOverlay() {
   const { t } = useTranslation();
   const [terminal, setTerminal] = useState<RefineryTerminal | null>(null);
@@ -108,6 +116,10 @@ export function RefineryOverlay() {
   const [draftDuration, setDraftDuration] = useState<{ order: number; text: string } | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [showLines, setShowLines] = useState(false);
+  // Where the panel is: whether an area is framed, and what the last read of
+  // the whole screen found out about the panel's place.
+  const [framed, setFramed] = useState(true);
+  const [offer, setOffer] = useState<AreaOffer | null>(null);
 
   /** Change the saved set, in the ref the save's reply reads and on screen. */
   const updateSaved = (next: (seen: number[]) => number[]) => {
@@ -131,8 +143,16 @@ export function RefineryOverlay() {
     // the first phases are sent before there is anything here to hear them.
     // Ask, or a read already running looks like nothing happening.
     invoke<RefineryStatus>("refinery_status").then(setStatus).catch(() => {});
+    invoke<AreaOffer | null>("refinery_area_offer").then(setOffer).catch(() => {});
+    const checkFramed = () =>
+      invoke<unknown>("region_current", { purpose: "refinery" })
+        .then((r) => setFramed(r !== null))
+        .catch(() => {});
+    void checkFramed();
     const subs = [
       listen<RefineryStatus>("refinery-status", (e) => setStatus(e.payload)).catch(failed),
+      listen<AreaOffer | null>("refinery-area", (e) => setOffer(e.payload)).catch(failed),
+      listen<string>("region-changed", (e) => e.payload === "refinery" && void checkFramed()).catch(failed),
       listen<RefineryTerminal>("refinery-order", (e) => {
         setTerminal(e.payload);
         // A fresh read describes a different screen; earlier saves no longer
@@ -530,6 +550,52 @@ export function RefineryOverlay() {
     terminal.missing.length > 0 ||
     terminal.orders.length === 0;
 
+  // The panel's area: offered when a whole-screen read found it, and how to
+  // frame it by hand when it did not.
+  const useArea = () => void invoke("refinery_use_area").catch((e: unknown) => setStatus({ phase: "error", detail: String(e) }));
+  const dismissArea = () => void invoke("refinery_dismiss_area").catch(() => {});
+  const areaBox =
+    offer?.area ? (
+      <div className="ov-box ov-area" role="status">
+        <AreaIcon className="ov-area-icon" />
+        <p className="ov-area-title">{t(offer.moved ? "overlay.refinery.area.movedTitle" : "overlay.refinery.area.foundTitle")}</p>
+        <p className="ov-p">{t(offer.moved ? "overlay.refinery.area.moved" : "overlay.refinery.area.found")}</p>
+        <div className="ov-actions">
+          <button className="ov-primary" onClick={useArea}>
+            {t("overlay.refinery.area.use")}
+          </button>
+          <button onClick={dismissArea}>{t("overlay.refinery.area.no")}</button>
+        </div>
+      </div>
+    ) : offer?.missing === "bottom" ? (
+      // The usual cause is an order longer than the panel: the rest is below,
+      // and each read after a scroll adds its rows to the ones already read.
+      <div className="ov-box ov-area" role="status">
+        <AreaIcon className="ov-area-icon" />
+        <p className="ov-area-title">{t("overlay.refinery.area.bottomTitle")}</p>
+        <p className="ov-p">{t("overlay.refinery.area.missing.bottom")}</p>
+        <p className="ov-p ov-dim">{t("overlay.refinery.area.moreHint")}</p>
+        <div className="ov-actions">
+          <button className="ov-primary" onClick={() => read(false)} disabled={busy}>
+            {busy ? t("overlay.refinery.reading") : t("overlay.refinery.readMore")}
+          </button>
+          <button onClick={pickArea}>{t("overlay.refinery.pickArea")}</button>
+        </div>
+      </div>
+    ) : !framed && offer?.missing && !(terminal && terminal.captures > 1) ? (
+      // After several reads of a scrolled order the title may be off screen:
+      // the order was read, so there is nothing to frame by hand.
+      <div className="ov-box ov-area warn" role="status">
+        <WarnIcon className="ov-area-icon" />
+        <p className="ov-area-title">{t("overlay.refinery.area.guideTitle")}</p>
+        <p className="ov-p">{t(`overlay.refinery.area.missing.${offer.missing}`)}</p>
+        <p className="ov-p ov-dim">{t("overlay.refinery.area.guide")}</p>
+        <div className="ov-actions">
+          <button className="ov-primary" onClick={pickArea}>{t("overlay.refinery.pickArea")}</button>
+        </div>
+      </div>
+    ) : null;
+
   const firstBox = !hasFirstBox ? null : (
     <div className="ov-box">
       {phaseText && <div className="ov-phase">{phaseText}</div>}
@@ -571,6 +637,7 @@ export function RefineryOverlay() {
         </span>
       }
     >
+      {areaBox}
       {terminal?.orders.map((order, index) => orderBox(order, index, false))}
 
       {terminal && (

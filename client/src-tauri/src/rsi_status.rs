@@ -80,6 +80,7 @@ async fn fetch(settings: &StoredSettings) -> Result<serde_json::Value, String> {
         .send()
         .await
         .map_err(|e| format!("Could not reach server: {e}"))?;
+    crate::pairing::note(resp.status());
     if !resp.status().is_success() {
         return Err(crate::error_body(resp).await);
     }
