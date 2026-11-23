@@ -567,7 +567,24 @@ export function RefineryOverlay() {
           <button onClick={dismissArea}>{t("overlay.refinery.area.no")}</button>
         </div>
       </div>
-    ) : !framed && offer?.missing ? (
+    ) : offer?.missing === "bottom" ? (
+      // The usual cause is an order longer than the panel: the rest is below,
+      // and each read after a scroll adds its rows to the ones already read.
+      <div className="ov-box ov-area" role="status">
+        <AreaIcon className="ov-area-icon" />
+        <p className="ov-area-title">{t("overlay.refinery.area.bottomTitle")}</p>
+        <p className="ov-p">{t("overlay.refinery.area.missing.bottom")}</p>
+        <p className="ov-p ov-dim">{t("overlay.refinery.area.moreHint")}</p>
+        <div className="ov-actions">
+          <button className="ov-primary" onClick={() => read(false)} disabled={busy}>
+            {busy ? t("overlay.refinery.reading") : t("overlay.refinery.readMore")}
+          </button>
+          <button onClick={pickArea}>{t("overlay.refinery.pickArea")}</button>
+        </div>
+      </div>
+    ) : !framed && offer?.missing && !(terminal && terminal.captures > 1) ? (
+      // After several reads of a scrolled order the title may be off screen:
+      // the order was read, so there is nothing to frame by hand.
       <div className="ov-box ov-area warn" role="status">
         <WarnIcon className="ov-area-icon" />
         <p className="ov-area-title">{t("overlay.refinery.area.guideTitle")}</p>

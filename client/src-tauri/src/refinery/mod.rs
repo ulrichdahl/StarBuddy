@@ -289,8 +289,11 @@ async fn read_inner(app: &AppHandle) -> Result<RefineryTerminal, String> {
             }
             Ok(whole)
         }
+        // Inside the framed area, the one thing worth saying is that the
+        // order runs on below it: the next read after a scroll adds the rest.
         Some(_) => {
-            set_offer(app, None);
+            let more = matches!(parse::panel_area(&first.lines), Err(parse::AreaMissing::Bottom));
+            set_offer(app, more.then_some(AreaOffer { area: None, missing: Some("bottom"), moved: false }));
             Ok(first)
         }
     }

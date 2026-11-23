@@ -350,6 +350,8 @@
         "foundTitle": "Brug dette område til de næste aflæsninger?",
         "movedTitle": "Brug, hvor arbejdsordren er nu?",
         "guideTitle": "Indram arbejdsordren",
+        "bottomTitle": "Rul ned og aflæs igen",
+        "moreHint": "Rul arbejdsordren ned, og tryk Aflæs flere rækker. De nye rækker lægges til dem, der allerede er læst. En lang ordre kan tage tre eller fire aflæsninger.",
         "found": "StarBuddy fandt arbejdsordren på skærmen. Det er hurtigere og mere pålideligt kun at aflæse det område.",
         "moved": "Arbejdsordren er ikke længere inden for det område, du har indrammet.",
         "use": "Brug dette område",
@@ -357,7 +359,7 @@
         "guide": "Tag alt med fra titlen WORK ORDER ned til TOTAL COST og PROCESSING TIME, med hele materialetabellen.",
         "missing": {
           "title": "Der blev ikke fundet et arbejdsordre-panel på skærmen.",
-          "bottom": "Bunden af arbejdsordren (TOTAL COST, PROCESSING TIME) var ikke på skærmen. Rul panelet eller gå tættere på, og aflæs igen.",
+          "bottom": "Arbejdsordren går ud over bunden af skærmen, så TOTAL COST og PROCESSING TIME blev ikke læst.",
           "materials": "Arbejdsordren blev fundet, men ingen materialerækker kunne læses."
         }
       }

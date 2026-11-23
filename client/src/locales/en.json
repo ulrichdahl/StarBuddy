@@ -350,6 +350,8 @@
         "foundTitle": "Use this area for the next reads?",
         "movedTitle": "Use where the work order is now?",
         "guideTitle": "Frame the work order",
+        "bottomTitle": "Scroll down and read again",
+        "moreHint": "Scroll the work order down and press Read more rows. The new rows are added to the ones already read. A long order can take three or four reads.",
         "found": "StarBuddy found the work order on screen. Reading just that area is faster and more reliable.",
         "moved": "The work order is no longer inside the area you framed.",
         "use": "Use this area",
@@ -357,7 +359,7 @@
         "guide": "Include everything from the WORK ORDER title down to TOTAL COST and PROCESSING TIME, with the whole materials table.",
         "missing": {
           "title": "No work order panel was found on screen.",
-          "bottom": "The bottom of the work order (TOTAL COST, PROCESSING TIME) was not on screen. Scroll the panel or move closer, and read again.",
+          "bottom": "The work order goes past the bottom of the screen, so TOTAL COST and PROCESSING TIME were not read.",
           "materials": "The work order was found, but no material rows could be read."
         }
       }
