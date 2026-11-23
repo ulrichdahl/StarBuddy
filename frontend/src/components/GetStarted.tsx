@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
@@ -10,6 +11,7 @@ import Typography from '@mui/material/Typography'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty'
+import HelpOutlineIcon from '@mui/icons-material/HelpOutlineOutlined'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutlineOutlined'
 import { api, unwrapList } from '../lib/api'
 import { hasConnectedClient, useDevices } from '../lib/devices'
@@ -146,6 +148,7 @@ function HandleForm() {
  * needed; an org and the client can be skipped, as a solo player on the
  * website alone gets the whole of StarBuddy for themselves. It goes away
  * once every step is done or skipped, or when the player hides it.
+ * `/?guide=1` (the avatar menu's Get started guide) brings it back anyway.
  */
 export function GetStarted({ me }: { me: Me }) {
   const { t } = useTranslation()
@@ -153,6 +156,11 @@ export function GetStarted({ me }: { me: Me }) {
   const [hidden, setHidden] = useState(() => readHidden(me))
   const [skipped, setSkipped] = useState(() => readSkipped(me))
   const [orgsOpen, setOrgsOpen] = useState(false)
+  const [params, setParams] = useSearchParams()
+  const asked = params.get('guide') === '1'
+  useEffect(() => {
+    if (asked) document.getElementById('get-started-title')?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+  }, [asked])
   const { data: devices, isLoading: devicesLoading } = useDevices()
   const { data: orgs } = useQuery({
     queryKey: ['orgs'],
@@ -165,7 +173,7 @@ export function GetStarted({ me }: { me: Me }) {
   const client: StepState = hasConnectedClient(devices) ? 'done' : skipped.includes('client') ? 'skipped' : devices && devices.length > 0 ? 'waiting' : 'todo'
   const done = [handle, org, client].filter((s) => s === 'done' || s === 'skipped').length
 
-  if (hidden || devicesLoading || done === 3) return null
+  if (devicesLoading || (!asked && (hidden || done === 3))) return null
 
   const skip = (step: OptionalStep) => (on: boolean) => {
     const next = on ? [...skipped.filter((s) => s !== step), step] : skipped.filter((s) => s !== step)
@@ -184,6 +192,10 @@ export function GetStarted({ me }: { me: Me }) {
       // Private window: hidden for this visit only.
     }
     setHidden(true)
+    if (asked) {
+      params.delete('guide')
+      setParams(params, { replace: true })
+    }
   }
 
   return (
@@ -204,13 +216,25 @@ export function GetStarted({ me }: { me: Me }) {
       }
     >
       <Typography variant="body2" sx={{ color: hud.textMuted, mt: -1 }}>
-        {t('getStarted.intro')}{' '}
-        {help && (
-          <Link component="button" type="button" onClick={() => help.open('getting-started')} sx={{ verticalAlign: 'baseline', fontSize: 'inherit' }}>
-            {t('getStarted.howItWorks')}
-          </Link>
-        )}
+        {t('getStarted.intro')}
       </Typography>
+      {/* Hard to miss on purpose: the "?" is where every page explains itself. */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, border: `1px solid ${hud.teal}`, bgcolor: 'rgba(79,209,197,0.07)' }}>
+        <HelpOutlineIcon sx={{ fontSize: 40, color: hud.teal, flexShrink: 0 }} aria-hidden />
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography component="p" sx={{ m: 0, fontFamily: fonts.display, fontWeight: 600, fontSize: 18, letterSpacing: '0.04em', color: hud.text }}>
+            {t('getStarted.helpTitle')}
+          </Typography>
+          <Typography variant="body2" sx={{ color: hud.textMuted, mt: 0.5, lineHeight: 1.55 }}>
+            {t('getStarted.helpText')}
+          </Typography>
+        </Box>
+        {help && (
+          <Button variant="outlined" onClick={() => help.open('getting-started')} sx={{ flexShrink: 0, display: { xs: 'none', sm: 'inline-flex' } }}>
+            {t('getStarted.howItWorks')}
+          </Button>
+        )}
+      </Box>
       <Box component="ol" sx={{ listStyle: 'none', m: 0, p: 0 }}>
         <Step n={1} state={handle} title={t('getStarted.handle.title')} help={t('getStarted.handle.help')}>
           <HandleForm />

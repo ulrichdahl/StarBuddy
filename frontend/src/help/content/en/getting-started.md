@@ -14,7 +14,9 @@ Each StarBuddy belongs to one Discord server. To run one for your own server, se
 
 ## The Get started guide
 
-The first time you sign in, the dashboard shows **Get started**: your handle, your org and the desktop client. Each step ticks off by itself when it is done. The download button offers the client for your system. Only the handle is needed. An org and the desktop client are optional: press `Skip` on a step you don't want. `Hide` the guide when you don't need it. It goes away once every step is done or skipped.
+The first time you sign in, the dashboard shows **Get started**: your handle, your org and the desktop client. Each step ticks off by itself when it is done. The download button offers the client for your system. Only the handle is needed. An org and the desktop client are optional: press `Skip` on a step you don't want. `Hide` the guide when you don't need it. It goes away once every step is done or skipped. To see it again, open your name in the top right corner and choose `Get started guide`.
+
+**Help is on every page.** Press `?` next to a page's title or in the top bar, or the `?` key, and the help for that page opens beside it.
 
 ![Get started on the dashboard](screens/web-get-started.jpg)
 

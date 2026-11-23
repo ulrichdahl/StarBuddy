@@ -1086,7 +1086,8 @@
     "signOut": "Log ud",
     "synced": "Klient synkroniseret <t>{{time}}</t> · {{device}}",
     "stale": "Klient sidst synkroniseret {{time}}",
-    "notPaired": "Desktopklient ikke parret"
+    "notPaired": "Desktopklient ikke parret",
+    "getStarted": "Kom i gang-guide"
   },
   "ownStock": {
     "title": "Dit lager",
@@ -1204,7 +1205,9 @@
     },
     "skip": "Spring over",
     "skipped": "Sprunget over.",
-    "undoSkip": "Fortryd"
+    "undoSkip": "Fortryd",
+    "helpTitle": "Hjælp på alle sider: tryk ?",
+    "helpText": "? ved siden af en sides titel, eller i topbjælken, åbner hjælpen til den side, du er på, ved siden af siden. Tasten ? på tastaturet gør det samme."
   },
   "pairPage": {
     "title": "Forbind desktop-klienten",

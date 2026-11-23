@@ -1,10 +1,12 @@
 import { Trans, useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Divider from '@mui/material/Divider'
 import ListItemIcon from '@mui/material/ListItemIcon'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
+import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined'
 import LogoutIcon from '@mui/icons-material/Logout'
 import PersonOutlinedIcon from '@mui/icons-material/PersonOutlined'
 import { api } from '../lib/api'
@@ -35,6 +37,7 @@ async function signOut() {
 /** The account menu under the avatar: who you are, client sync, profile, sign out. */
 export function UserMenu({ me, anchor, onClose, onOpenProfile, onOpenOrganizations }: UserMenuProps) {
   const { t, i18n } = useTranslation()
+  const navigate = useNavigate()
   const { data: devices } = useDevices()
   const latest = latestSync(devices)
   const org = me.orgs[0]
@@ -129,6 +132,18 @@ export function UserMenu({ me, anchor, onClose, onOpenProfile, onOpenOrganizatio
           <GroupsOutlinedIcon fontSize="small" />
         </ListItemIcon>
         {t('account.organizations')}
+      </MenuItem>
+      <MenuItem
+        sx={{ ...itemSx, mb: 0.75 }}
+        onClick={() => {
+          onClose()
+          navigate('/?guide=1')
+        }}
+      >
+        <ListItemIcon sx={{ minWidth: '0 !important', color: 'inherit' }}>
+          <FlagOutlinedIcon fontSize="small" />
+        </ListItemIcon>
+        {t('account.getStarted')}
       </MenuItem>
       <Divider sx={{ my: '0 !important' }} />
       <MenuItem sx={{ ...itemSx, my: 0.75 }} onClick={() => void signOut()}>

@@ -1089,7 +1089,8 @@
     "signOut": "Sign out",
     "synced": "Client synced <t>{{time}}</t> · {{device}}",
     "stale": "Client last synced {{time}}",
-    "notPaired": "Desktop client not paired"
+    "notPaired": "Desktop client not paired",
+    "getStarted": "Get started guide"
   },
   "ownStock": {
     "title": "Your stock",
@@ -1207,7 +1208,9 @@
     },
     "skip": "Skip",
     "skipped": "Skipped.",
-    "undoSkip": "Undo"
+    "undoSkip": "Undo",
+    "helpTitle": "Help is on every page: press ?",
+    "helpText": "The ? next to a page's title, or in the top bar, opens the help for the page you are on, beside the page. The ? key on your keyboard does the same."
   },
   "pairPage": {
     "title": "Connect the desktop client",

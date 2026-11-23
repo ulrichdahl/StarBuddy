@@ -14,7 +14,9 @@ Hver StarBuddy hører til én Discord-server. Vil du køre en til din egen serve
 
 ## Guiden Kom i gang
 
-Første gang du logger ind, viser oversigten **Kom i gang**: dit handle, din org og desktop-klienten. Hvert trin bliver krydset af af sig selv, når det er klaret. Download-knappen tilbyder klienten til dit system. Kun handlet er nødvendigt. En org og desktop-klienten er valgfrie: tryk `Spring over` ved et trin, du ikke vil have. `Skjul` guiden, når du ikke har brug for den. Den forsvinder, når alle trin er klaret eller sprunget over.
+Første gang du logger ind, viser oversigten **Kom i gang**: dit handle, din org og desktop-klienten. Hvert trin bliver krydset af af sig selv, når det er klaret. Download-knappen tilbyder klienten til dit system. Kun handlet er nødvendigt. En org og desktop-klienten er valgfrie: tryk `Spring over` ved et trin, du ikke vil have. `Skjul` guiden, når du ikke har brug for den. Den forsvinder, når alle trin er klaret eller sprunget over. Vil du se den igen, så åbn dit navn øverst til højre og vælg `Kom i gang-guide`.
+
+**Der er hjælp på alle sider.** Tryk `?` ved siden af en sides titel eller i topbjælken, eller tasten `?`, så åbner hjælpen til den side ved siden af den.
 
 ![Kom i gang på oversigten](screens/web-get-started.jpg)
 
