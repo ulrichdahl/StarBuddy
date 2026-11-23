@@ -116,8 +116,10 @@ def render(scenes, total, scene_frame, out, fps=30, preview=False):
         sys.exit("ffmpeg failed")
 
 def narration_track(scenes, total, voice_dir, music, out, max_tempo=1.15):
-    """Lines at their scene starts, music under them, ducked by the voice; -16 LUFS.
-    A line longer than its slot is sped up, at most max_tempo."""
+    """Lines at their scene starts, music under them at one low level; -16 LUFS.
+    A line longer than its slot is sped up, at most max_tempo.
+    The music used to be ducked by the voice (0.32, down to ~0.08 under
+    speech) and swelled between lines; it now stays at the ducked level."""
     inputs, parts = [], []
     for i, s in enumerate(scenes):
         p = f"{voice_dir}/{s['key']}.wav"
@@ -130,9 +132,9 @@ def narration_track(scenes, total, voice_dir, music, out, max_tempo=1.15):
         ms = int((s["start"] + LEAD) * 1000)
         parts.append(f"[{i}:a]aresample=48000,aformat=channel_layouts=stereo,atempo={tempo:.3f},adelay={ms}|{ms}[v{i}]")
     n = len(scenes)
-    g = ";".join(parts) + ";" + "".join(f"[v{i}]" for i in range(n)) + f"amix=inputs={n}:normalize=0,apad,atrim=0:{total:.2f},asplit[voice][key]"
-    g += f";[{n}:a]aresample=48000,aformat=channel_layouts=stereo,volume=0.32,afade=t=in:d=2,afade=t=out:st={total - 4:.2f}:d=4,atrim=0:{total:.2f}[mus]"
-    g += ";[mus][key]sidechaincompress=threshold=0.03:ratio=6:attack=40:release=600[duck];[voice][duck]amix=inputs=2:normalize=0,loudnorm=I=-16:TP=-1.5[a]"
+    g = ";".join(parts) + ";" + "".join(f"[v{i}]" for i in range(n)) + f"amix=inputs={n}:normalize=0,apad,atrim=0:{total:.2f}[voice]"
+    g += f";[{n}:a]aresample=48000,aformat=channel_layouts=stereo,volume=0.08,afade=t=in:d=2,afade=t=out:st={total - 4:.2f}:d=4,atrim=0:{total:.2f}[mus]"
+    g += ";[voice][mus]amix=inputs=2:normalize=0,loudnorm=I=-16:TP=-1.5[a]"
     subprocess.run(["ffmpeg", "-v", "error", "-y", *inputs, "-stream_loop", "-1", "-i", music, "-filter_complex", g,
                     "-map", "[a]", "-c:a", "aac", "-b:a", "192k", out], check=True)
 
