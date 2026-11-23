@@ -5,6 +5,34 @@ since the last live release inside the client instead. The live release
 workflow uses the matching section below as the GitHub release notes, and
 the client shows it under "What's new".
 
+## 1.1.0 — 2026-11-23
+
+**Getting started is easy: sign in with your browser, a short setup in the client, and a guide on the website. Solo play is welcome.**
+
+### New
+
+- **Sign in with your browser.** The desktop client opens the StarBuddy website, you approve the computer there, and you're done. There is no code to type. A pairing code still works as a fallback.
+- **First-run setup in the client,** one card at a time: sign in, find Game.log, choose the game window and try a hotkey. Every step can be skipped, and you can run it again from Settings.
+- **A Get started guide on the website** the first time you sign in: your handle, an org (optional) and the client (optional). It reopens from the avatar menu, and every page has its own help.
+- **A Desktop client page on the website:** the right download for your system, sign-in with the browser, your paired devices, and StarLabels and StarConfig.
+- **The scan window starts scanning when you open it.** If screen capture isn't set up yet, the window says so and shows you the one step to fix it.
+- **The refinery reader finds the work order on screen by itself.** It offers that area for the next reads, and if your framed area stops matching, it finds the work order again. A long order that runs past the bottom of the screen asks you to scroll and read more rows. The rows from each read are added together.
+- **Org join requests on Discord.** Org managers get a DM when someone asks to join, and the player gets one when accepted. The dashboard has a Review shortcut.
+- **The sign-in page names your community's Discord server,** with its icon and a button to join it.
+- **Download my data, and Delete my account,** in your Profile on the website.
+- **Help buttons** on the client's StarLabels card and on the sign-in cards, and a new help topic for StarLabels and StarConfig.
+
+### Changed
+
+- **Empty pages explain what to do next,** on the website and in the client.
+- **The intro video keeps its music low** under the narration and ends on a gentle fade.
+
+### Fixed
+
+- **A deleted account or a removed device no longer leaves the client half-paired.** The client says so on every page and asks you to sign in again. Anything it hadn't sent yet is delivered after you sign in.
+- **A fresh install of the client really starts fresh.** It no longer brings back a pairing from the client's old name.
+- **Members who don't accept Discord DMs** no longer fill the server's queue with retries.
+
 ## 1.0.6 — 2026-11-22
 
 **Signing in lands you on the website, whatever your browser.**
