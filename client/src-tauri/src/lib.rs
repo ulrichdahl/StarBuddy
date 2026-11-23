@@ -165,7 +165,6 @@ pub fn run() {
             }
             webview2_args::log_effective();
             log::info!("OCR threads: {}", std::env::var("RTEN_NUM_THREADS").unwrap_or_default());
-            host::migrate_old_config_dir(&handle);
             app.manage(overlay::OverlayState::load(&handle));
             app.manage(outbox::OutboxState::load(&handle));
             outbox::send_at_start(&handle);

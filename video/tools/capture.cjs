@@ -16,7 +16,8 @@ const OUT = path.join(WORK, LANG === 'en' ? 'hi' : `hi-${LANG}`);
 const parts = args.filter((a) => !a.startsWith('--'));
 const want = new Set(parts.length ? parts : ['web', 'client', 'overlays']);
 const opts = { colorScheme: 'dark', locale: LANG === 'da' ? 'da-DK' : 'en-GB', timezoneId: 'Europe/Copenhagen', deviceScaleFactor: 2 };
-const sql = (q) => execSync(`docker exec starbuddy-db-1 psql -U starmaker -d starmaker -Atc "${q}"`);
+// The dev DB's user and name come from the container's own environment.
+const sql = (q) => execSync(`docker exec starbuddy-db-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "$0"' "${q}"`);
 
 // Org presence counts as "playing" only while fresh: touch it right before shooting.
 const freshPresence = () => sql("update user_presence set updated_at = now() - (random()*60||' seconds')::interval where running and user_id in (select id from users where discord_id like 'demo-%')");

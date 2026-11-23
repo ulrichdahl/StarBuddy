@@ -1,6 +1,4 @@
-use std::fs;
 use std::path::PathBuf;
-use tauri::Manager;
 
 /// A Command for a *host* program (spectacle, dbus-send, …) from inside an
 /// AppImage: the runtime exports LD_LIBRARY_PATH, QT_PLUGIN_PATH, GTK_PATH,
@@ -27,22 +25,4 @@ pub(crate) fn host_command(program: &str) -> std::process::Command {
         }
     }
     cmd
-}
-
-/// The app identifier changed with the StarBuddy rename, which moves the
-/// per-user config directory. Carry pairing and overlay prefs over from
-/// the old location the first time the renamed client starts.
-pub(crate) fn migrate_old_config_dir(app: &tauri::AppHandle) {
-    let Ok(new_dir) = app.path().app_config_dir() else { return };
-    let Some(old_dir) = new_dir.parent().map(|p| p.join("io.github.ulrichdahl.starmaker")) else { return };
-    if new_dir.join("settings.json").exists() || !old_dir.is_dir() {
-        return;
-    }
-    let _ = fs::create_dir_all(&new_dir);
-    for name in ["settings.json", "overlay.json"] {
-        let from = old_dir.join(name);
-        if from.exists() {
-            let _ = fs::copy(&from, new_dir.join(name));
-        }
-    }
 }
