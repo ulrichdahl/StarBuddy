@@ -702,7 +702,23 @@ html.debug-bounds::after {
 
 /* ── Dashboard trackers: trackers.css, shared with the Home card ── */
 
-/* Refinery window: the panel's area offered, or how to frame it. */
-.ov-area .ov-p { margin: 0 0 8px; }
+/* Refinery window: the panel's area offered, or how to frame it. A callout
+   that stays in the flow until the player acts: amber for the offer, red for
+   the guide, which means the reads are failing. */
+.ov-box.ov-area {
+  --area: var(--amber);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  align-items: start;
+  padding: 12px 14px 12px 12px;
+  border: 1px solid color-mix(in srgb, var(--area) 50%, transparent);
+  border-left: 3px solid var(--area);
+  background: color-mix(in srgb, var(--area) 12%, transparent);
+}
+.ov-box.ov-area.warn { --area: var(--red); }
+.ov-area-icon { grid-row: 1 / span 4; width: 22px; height: 22px; color: var(--area); filter: drop-shadow(0 0 6px color-mix(in srgb, var(--area) 60%, transparent)); }
+.ov-area-title { margin: 0; font-family: var(--disp); font-size: 15px; font-weight: 700; line-height: 1.25; color: #fff; }
+.ov-area .ov-p { margin: 0; grid-column: 2; }
 .ov-area .ov-dim { color: var(--muted); }
-.ov-area .ov-actions { margin-top: 2px; }
+.ov-area .ov-actions { grid-column: 2; margin-top: 6px; }

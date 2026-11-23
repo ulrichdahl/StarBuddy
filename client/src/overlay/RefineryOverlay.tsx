@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
+import { AreaIcon, WarnIcon } from "./icons";
 import { OverlayWindow } from "./OverlayWindow";
 import { listenFailed } from "../listen";
 
@@ -555,7 +556,9 @@ export function RefineryOverlay() {
   const dismissArea = () => void invoke("refinery_dismiss_area").catch(() => {});
   const areaBox =
     offer?.area ? (
-      <div className="ov-box ov-area">
+      <div className="ov-box ov-area" role="status">
+        <AreaIcon className="ov-area-icon" />
+        <p className="ov-area-title">{t(offer.moved ? "overlay.refinery.area.movedTitle" : "overlay.refinery.area.foundTitle")}</p>
         <p className="ov-p">{t(offer.moved ? "overlay.refinery.area.moved" : "overlay.refinery.area.found")}</p>
         <div className="ov-actions">
           <button className="ov-primary" onClick={useArea}>
@@ -565,11 +568,13 @@ export function RefineryOverlay() {
         </div>
       </div>
     ) : !framed && offer?.missing ? (
-      <div className="ov-box ov-area">
+      <div className="ov-box ov-area warn" role="status">
+        <WarnIcon className="ov-area-icon" />
+        <p className="ov-area-title">{t("overlay.refinery.area.guideTitle")}</p>
         <p className="ov-p">{t(`overlay.refinery.area.missing.${offer.missing}`)}</p>
         <p className="ov-p ov-dim">{t("overlay.refinery.area.guide")}</p>
         <div className="ov-actions">
-          <button onClick={pickArea}>{t("overlay.refinery.pickArea")}</button>
+          <button className="ov-primary" onClick={pickArea}>{t("overlay.refinery.pickArea")}</button>
         </div>
       </div>
     ) : null;

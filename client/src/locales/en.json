@@ -347,11 +347,14 @@
       "addRow": "Add a material row",
       "removeRow": "Remove this row",
       "area": {
-        "found": "Found the work order on screen. Use this area for the next reads? They will be faster and more reliable.",
-        "moved": "The work order is no longer inside your framed area. Use where it is now?",
+        "foundTitle": "Use this area for the next reads?",
+        "movedTitle": "Use where the work order is now?",
+        "guideTitle": "Frame the work order",
+        "found": "StarBuddy found the work order on screen. Reading just that area is faster and more reliable.",
+        "moved": "The work order is no longer inside the area you framed.",
         "use": "Use this area",
         "no": "No thanks",
-        "guide": "Frame the work order: from the WORK ORDER title down to TOTAL COST and PROCESSING TIME, with the whole materials table inside.",
+        "guide": "Include everything from the WORK ORDER title down to TOTAL COST and PROCESSING TIME, with the whole materials table.",
         "missing": {
           "title": "No work order panel was found on screen.",
           "bottom": "The bottom of the work order (TOTAL COST, PROCESSING TIME) was not on screen. Scroll the panel or move closer, and read again.",
