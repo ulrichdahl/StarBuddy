@@ -92,4 +92,7 @@ def scene(key, lt, d, lang="en"):
     raise KeyError(key)
 
 if __name__ == "__main__":
-    run("intro", KEYS, scene, ("en", "da"), long_keys=("01_intro", "11_outro"))
+    # ending: void.mp3 drops from about -10.5 to -15 dB between 92.5 and
+    # 94.5 s; 5.4 s after the outro ends the video at ~95.5 s, so the music
+    # swells after the last line and fades out into that drop.
+    run("intro", KEYS, scene, ("en", "da"), long_keys=("01_intro", "11_outro"), ending=5.4, fade_out=2.0)

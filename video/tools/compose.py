@@ -79,8 +79,9 @@ def duration(p):
     return float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", p],
                                 capture_output=True, text=True, check=True).stdout)
 
-def timeline(keys, voice_dirs, estimate=None, long_keys=()):
-    """Scenes timed to the longest narration of each line across voice_dirs."""
+def timeline(keys, voice_dirs, estimate=None, long_keys=(), ending=0.0):
+    """Scenes timed to the longest narration of each line across voice_dirs.
+    ending: seconds added after the last line, for the music to finish."""
     scenes, t = [], 0.0
     for key in keys:
         lens = [duration(f"{d}/{key}.wav") for d in voice_dirs if os.path.exists(f"{d}/{key}.wav")]
@@ -88,10 +89,15 @@ def timeline(keys, voice_dirs, estimate=None, long_keys=()):
         d = LEAD + spoken + TAIL + (1.2 if key in long_keys else 0)
         scenes.append({"key": key, "start": t, "dur": d})
         t += d - XF
+    if scenes and ending:
+        scenes[-1]["dur"] += ending
+        scenes[-1]["ending"] = ending
+        t += ending
     return scenes, t + XF
 
-def render(scenes, total, scene_frame, out, fps=30, preview=False):
-    """Frames to an H.264 file, crossfading overlapping scenes, fading in from black."""
+def render(scenes, total, scene_frame, out, fps=30, preview=False, fade_out=0.0):
+    """Frames to an H.264 file, crossfading overlapping scenes, fading in from
+    black and, over the last fade_out seconds, out to black."""
     def frame_at(t):
         f = None
         for s in scenes:
@@ -102,6 +108,8 @@ def render(scenes, total, scene_frame, out, fps=30, preview=False):
                 f = g if f is None or a >= 1 else Image.blend(f, g, a)
         if t < 0.6:
             f = Image.blend(Image.new("RGBA", SIZE, (0, 0, 0, 255)), f, ease(t / 0.6))
+        if fade_out and t > total - fade_out:
+            f = Image.blend(Image.new("RGBA", SIZE, (0, 0, 0, 255)), f, 1 - ease((t - (total - fade_out)) / fade_out))
         return f.convert("RGB")
 
     enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", "1920x1080", "-r", str(fps),
@@ -119,24 +127,44 @@ def narration_track(scenes, total, voice_dir, music, out, max_tempo=1.15):
     """Lines at their scene starts, music under them at one low level; -16 LUFS.
     A line longer than its slot is sped up, at most max_tempo.
     The music used to be ducked by the voice (0.32, down to ~0.08 under
-    speech) and swelled between lines; it now stays at the ducked level."""
+    speech) and swelled between lines; it now stays at the ducked level.
+    With an ending on the last scene, the music rises 4 dB after the last
+    line, holds, and fades out over 4 s, 0.4 s before the end, timed to
+    where the music itself drops away."""
+    last_end = 0.0
     inputs, parts = [], []
     for i, s in enumerate(scenes):
         p = f"{voice_dir}/{s['key']}.wav"
-        slot = s["dur"] - LEAD - 0.35 - (1.2 if i == len(scenes) - 1 else 0)
+        slot = s["dur"] - LEAD - 0.35 - (1.2 if i == len(scenes) - 1 else 0) - s.get("ending", 0)
         d = duration(p)
         tempo = min(max_tempo, d / slot) if d > slot else 1.0
         if tempo > 1 or d / tempo > slot + 0.05:
             print(f"  {s['key']}: {d:.1f}s in {slot:.1f}s, tempo {tempo:.2f}")
         inputs += ["-i", p]
         ms = int((s["start"] + LEAD) * 1000)
+        last_end = s["start"] + LEAD + d / tempo
         parts.append(f"[{i}:a]aresample=48000,aformat=channel_layouts=stereo,atempo={tempo:.3f},adelay={ms}|{ms}[v{i}]")
     n = len(scenes)
     g = ";".join(parts) + ";" + "".join(f"[v{i}]" for i in range(n)) + f"amix=inputs={n}:normalize=0,apad,atrim=0:{total:.2f}[voice]"
-    g += f";[{n}:a]aresample=48000,aformat=channel_layouts=stereo,volume=0.08,afade=t=in:d=2,afade=t=out:st={total - 4:.2f}:d=4,atrim=0:{total:.2f}[mus]"
+    g += f";[{n}:a]aresample=48000,aformat=channel_layouts=stereo,{music_gain(scenes, total, last_end)},atrim=0:{total:.2f}[mus]"
     g += ";[voice][mus]amix=inputs=2:normalize=0,loudnorm=I=-16:TP=-1.5[a]"
     subprocess.run(["ffmpeg", "-v", "error", "-y", *inputs, "-stream_loop", "-1", "-i", music, "-filter_complex", g,
                     "-map", "[a]", "-c:a", "aac", "-b:a", "192k", out], check=True)
+
+def music_gain(scenes, total, last_end, base=0.08, swell_db=4.0):
+    """The music's volume filter: a 2 s fade in, then base throughout; with
+    an ending, +swell_db over 1 s from just after the last line, held, then
+    faded to silence 0.4 s before the end (squared, so it eases out)."""
+    if not scenes[-1].get("ending"):
+        return f"volume={base},afade=t=in:d=2,afade=t=out:st={total - 4:.2f}:d=4"
+    g = 10 ** (swell_db / 20)
+    a = last_end + 0.3
+    b = a + 1.0
+    e = total - 0.4
+    c = max(b, e - 4.0)
+    curve = (f"if(lt(t,{a:.2f}),1,if(lt(t,{b:.2f}),1+({g:.4f}-1)*(t-{a:.2f})/{b - a:.2f},"
+             f"if(lt(t,{c:.2f}),{g:.4f},{g:.4f}*pow(max(0,({e:.2f}-t)/{e - c:.2f}),2))))")
+    return f"volume='{base}*{curve}':eval=frame,afade=t=in:d=2"
 
 LANG = {"en": ("eng", "English"), "da": ("dan", "Dansk")}
 
@@ -157,7 +185,7 @@ def web_version(src, track, out):
                     "-preset", "slow", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
                     "-movflags", "+faststart", out], check=True)
 
-def run(name, keys, scene_frame, langs, long_keys=()):
+def run(name, keys, scene_frame, langs, long_keys=(), ending=0.0, fade_out=0.0):
     """CLI for a video folder's render.py:
       render.py preview             silent 10 fps draft, timed from estimates or existing voice
       render.py final <lang:voice>  e.g. en:emma da:roest  (voice = folder under work/<name>/voice/)
@@ -169,13 +197,13 @@ def run(name, keys, scene_frame, langs, long_keys=()):
     estimate = lambda k: len(lines["en"][k].split()) / 2.6
     music = os.path.join(CACHE, "music", "void.mp3")
     if sys.argv[1:2] == ["preview"]:
-        scenes, total = timeline(keys, [], estimate, long_keys)
-        render(scenes, total, scene_frame, os.path.join(here, "preview.mp4"), fps=10, preview=True)
+        scenes, total = timeline(keys, [], estimate, long_keys, ending)
+        render(scenes, total, scene_frame, os.path.join(here, "preview.mp4"), fps=10, preview=True, fade_out=fade_out)
         print("preview", os.path.join(here, "preview.mp4"))
         return
     picks = [a.split(":", 1) for a in sys.argv[2:]]
     dirs = [os.path.join(here, "voice", v) for _, v in picks]
-    scenes, total = timeline(keys, dirs, estimate, long_keys)
+    scenes, total = timeline(keys, dirs, estimate, long_keys, ending)
     json.dump(scenes, open(os.path.join(here, "timing.json"), "w"), indent=1)
     # One picture per language: scene_frame(key, lt, d, lang) draws that
     # language's UI. The multi-track file carries the first language's picture.
@@ -184,7 +212,7 @@ def run(name, keys, scene_frame, langs, long_keys=()):
         if lang not in silents:
             silents[lang] = os.path.join(here, f"silent-{lang}.mp4")
             print("picture", lang)
-            render(scenes, total, lambda k, lt, d, lang=lang: scene_frame(k, lt, d, lang), silents[lang])
+            render(scenes, total, lambda k, lt, d, lang=lang: scene_frame(k, lt, d, lang), silents[lang], fade_out=fade_out)
     for (lang, v), d in zip(picks, dirs):
         a = os.path.join(here, f"{lang}-{v}.m4a")
         print("track", lang, v)
