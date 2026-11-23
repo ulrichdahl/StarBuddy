@@ -38,7 +38,9 @@ export function HelpPanel({ topic, onTopic, onClose }: { topic: string; onTopic:
       open
       onKeyDown={(e) => e.key === 'Escape' && onClose()}
       sx={{
+        // Above dialogs: the "?" in a dialog opens the help beside it.
         '& .MuiDrawer-paper': {
+          zIndex: (theme) => theme.zIndex.modal + 1,
           width: { xs: '100%', sm: HELP_PANEL_WIDTH },
           top: 64,
           height: 'calc(100% - 64px)',

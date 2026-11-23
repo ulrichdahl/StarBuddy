@@ -20,7 +20,7 @@ Or with a pairing code: press `Generate pairing code` here, then in the client c
 
 ## Ship names and game settings
 
-If your community uses UnitedDanes StarLabels (better ship and item names) or StarConfig (game settings), link them here. Set them up on uniteddanes.org and press **Send to StarBuddy** there. Your desktop clients then install `global.ini` and `user.cfg` into the game folder, and fetch new names when the game updates. `Unlink` deletes the settings stored at UDI, and the files already installed stay.
+If your community uses UnitedDanes StarLabels (better ship and item names) or StarConfig (game settings), link them here. Set them up on uniteddanes.org and press **Send to StarBuddy** there. Your desktop clients then install `global.ini` and `user.cfg` into the game folder, and fetch new names when the game updates. `Unlink` deletes the settings stored at UDI, and the files already installed stay. See [StarLabels and StarConfig](starlabels).
 
 ## Your stock
 

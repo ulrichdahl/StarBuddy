@@ -77,6 +77,10 @@
       "group": "client"
     },
     {
+      "id": "starlabels",
+      "group": "client"
+    },
+    {
       "id": "troubleshooting",
       "group": "more"
     },

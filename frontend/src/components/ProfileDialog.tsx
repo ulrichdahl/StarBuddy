@@ -19,6 +19,8 @@ import { deviceState, latestSync, useDevices, type DeviceState } from '../lib/de
 import type { Me } from '../lib/types'
 import { fonts, hud } from '../theme'
 import { HudAvatar, HudBadge, HudPanel, Mono, OrgTag, StatusDot } from './hud'
+import { HelpButton } from '../help/HelpContext'
+import { useHelp } from '../help/useHelp'
 import { OwnStockSection } from './OwnStockSection'
 import { DownloadStep, PairStep } from './ClientSetup'
 
@@ -152,6 +154,7 @@ function DesktopClientSection() {
               {t('profileDialog.neverSynced')}
             </>
           )}
+          <HelpButton size="small" topic="client-setup" />
         </Box>
       }
     >
@@ -268,6 +271,7 @@ function UdiSection() {
         <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 12.5, color: hud.textMuted }}>
           <StatusDot colour={dot} />
           {text}
+          <HelpButton size="small" topic="starlabels" />
         </Box>
       }
     >
@@ -309,9 +313,17 @@ export function ProfileDialog({ me, open, focus, onClose }: { me: Me; open: bool
   const { t } = useTranslation()
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
+  const help = useHelp()
+  // With the help open beside it, the dialog moves left of the help panel.
+  const roomBesideHelp = useMediaQuery('(min-width:1300px)')
+  const besideHelp = !!help?.topic && roomBesideHelp
 
   return (
     <Dialog open={open} onClose={onClose} fullScreen={fullScreen} maxWidth={false} aria-labelledby="pm-title"
+      // The help panel opened from a section's "?" sits outside the dialog and must take focus.
+      disableEnforceFocus
+      // 520: HELP_PANEL_WIDTH, not imported so the help panel stays lazy-loaded.
+      sx={{ '& .MuiDialog-container': { pr: besideHelp ? '520px' : 0 } }}
       slotProps={{
         paper: { sx: { width: 760, maxWidth: '100%', m: fullScreen ? 0 : 2 } },
         // Opened from the header's download button: bring the client section into view.

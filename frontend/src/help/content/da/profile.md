@@ -20,7 +20,7 @@ Eller med en parringskode: tryk `Generér parringskode` her, vælg så `Indtast 
 
 ## Skibsnavne og spilindstillinger
 
-Hvis dit fællesskab bruger UnitedDanes StarLabels (bedre skibs- og genstandsnavne) eller StarConfig (spilindstillinger), kobler du dem til her. Sæt dem op på uniteddanes.org og tryk **Send til StarBuddy** der. Dine desktop-klienter installerer så `global.ini` og `user.cfg` i spilmappen og henter nye navne, når spillet opdateres. `Fjern forbindelse` sletter indstillingerne hos UDI, og de filer, der allerede er installeret, bliver liggende.
+Hvis dit fællesskab bruger UnitedDanes StarLabels (bedre skibs- og genstandsnavne) eller StarConfig (spilindstillinger), kobler du dem til her. Sæt dem op på uniteddanes.org og tryk **Send til StarBuddy** der. Dine desktop-klienter installerer så `global.ini` og `user.cfg` i spilmappen og henter nye navne, når spillet opdateres. `Fjern forbindelse` sletter indstillingerne hos UDI, og de filer, der allerede er installeret, bliver liggende. Se [StarLabels og StarConfig](starlabels).
 
 ## Dit lager
 

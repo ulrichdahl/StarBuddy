@@ -1155,6 +1155,7 @@
   "help": {
     "title": "Hjælp",
     "forThisPage": "Hjælp til denne side (?)",
+    "forThisSection": "Hjælp til dette afsnit",
     "openFull": "Åbn i en ny fane",
     "contents": "Indhold",
     "moreTopics": "Mere hjælp",

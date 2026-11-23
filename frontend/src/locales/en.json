@@ -1158,6 +1158,7 @@
   "help": {
     "title": "Help",
     "forThisPage": "Help for this page (?)",
+    "forThisSection": "Help for this section",
     "openFull": "Open in a new tab",
     "contents": "Contents",
     "moreTopics": "More help",

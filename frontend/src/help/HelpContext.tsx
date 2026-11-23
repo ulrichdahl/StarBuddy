@@ -53,18 +53,22 @@ export function HelpProvider({ children }: { children: ReactNode }) {
   )
 }
 
-/** The "?" that opens the help for the page you are on. Renders nothing outside the app. */
-export function HelpButton({ size = 'medium' }: { size?: 'small' | 'medium' }) {
+/**
+ * The "?" that opens the help for the page you are on, or for one `topic`
+ * (a section of a dialog). Renders nothing outside the app.
+ */
+export function HelpButton({ size = 'medium', topic }: { size?: 'small' | 'medium'; topic?: string }) {
   const { t } = useTranslation()
   const help = useHelp()
   if (!help) return null
-  const active = help.topic !== null
+  const active = topic ? help.topic === topic : help.topic !== null
+  const label = topic ? t('help.forThisSection') : t('help.forThisPage')
   return (
-    <Tooltip title={t('help.forThisPage')}>
+    <Tooltip title={label}>
       <IconButton
-        aria-label={t('help.forThisPage')}
+        aria-label={label}
         aria-expanded={active}
-        onClick={() => (active ? help.close() : help.open())}
+        onClick={() => (active ? help.close() : help.open(topic))}
         size={size}
         sx={{ color: active ? hud.teal : hud.textMuted, '&:hover': { color: hud.teal } }}
       >
