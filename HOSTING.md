@@ -116,12 +116,12 @@ ping to that channel whenever a member's refinery work order completes (live
 events only — a first-run history import never floods it). The bot needs
 *View Channel* and *Send Messages* there.
 
-Someone refused at sign-in for not being a member of your server gets a
-button to join it. Without settings, the bot makes a permanent invite to
-your server's welcome channel (or its first text channel); give its role
-*Create Invite* for that. To choose the invite yourself, set
-`STARBUDDY_DISCORD_INVITE=https://discord.gg/<code>`, made in Discord with
-*Expire after: Never*.
+Optional: someone refused at sign-in for not being a member of your server
+can get a button to join it. It is off until you set
+`STARBUDDY_DISCORD_INVITE`: either an invite you made in Discord with
+*Expire after: Never* (`https://discord.gg/<code>`), or `auto`, and the bot
+makes a permanent invite to your server's welcome channel (or its first text
+channel). Give the bot's role *Create Invite* for `auto`.
 
 The sign-in page names your Discord server and shows its icon ("Only for
 members of … Discord server"). The backend reads both through the bot

@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Log;
  * What the sign-in page needs to know about this instance. Public. The
  * home Discord server's name and icon come from Discord: through the bot
  * when it is set up, else from the public invite lookup. Cached for a day.
- * The invite is STARBUDDY_DISCORD_INVITE, or one the bot makes.
+ * The join button is opt-in: STARBUDDY_DISCORD_INVITE is an invite URL, or
+ * "auto" for one the bot makes. Empty, the sign-in page offers no invite.
  */
 class InstanceController extends Controller
 {
@@ -20,13 +21,13 @@ class InstanceController extends Controller
         $code = preg_match('#^https://(?:discord\.gg|discord\.com/invite)/([A-Za-z0-9-]+)/?$#', $invite, $m) ? $m[1] : null;
 
         return [
-            'discord_invite' => $code ? $invite : $this->inviteFromBot(),
+            'discord_invite' => $code ? $invite : (strtolower(trim($invite)) === 'auto' ? $this->inviteFromBot() : null),
             'discord_server' => $this->fromBot() ?? ($code ? $this->fromInvite($code) : null),
         ];
     }
 
     /**
-     * With no invite configured, the bot makes one: permanent, in the
+     * With STARBUDDY_DISCORD_INVITE=auto, the bot makes one: permanent, in the
      * server's welcome channel (or its first text channel). unique=false
      * hands back the same invite each time rather than piling up new ones.
      * Needs the bot's Create Invite permission; without it there is no link.
