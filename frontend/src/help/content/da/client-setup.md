@@ -34,6 +34,8 @@ Kør den igen når som helst under `Indstillinger` › `Generelt` › **Opsætni
 
 Klienten viser så **Parret som** med dit navn. Koden virker i 10 minutter. `Åbn siden igen` åbner den igen, hvis du lukkede den. Fjern parringen under **Server**, eller fjern enheden på hjemmesiden.
 
+Hvis hjemmesiden ikke længere accepterer computeren, fordi du har fjernet enheden dér eller slettet din konto, siger alle sider i klienten det. Tryk `Log ind igen`, og log ind med browseren. Spilhændelser, der ikke er sendt endnu, gemmes og sendes, når du har logget ind.
+
 **Med en parringskode i stedet:** tryk `Indtast en parringskode i stedet` i klienten. Tryk `Brug en parringskode i stedet` på hjemmesidens side `Desktopklient`, skriv så adressen og koden i klienten, og tryk `Par`.
 
 ![Indstillinger › Generelt i klienten](screens/client-settings-general.jpg)

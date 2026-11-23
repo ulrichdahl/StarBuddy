@@ -8,6 +8,8 @@
 
 ## The desktop client
 
+**The client says the website no longer accepts this computer.** The device was removed on the website, or the account was deleted. Press `Sign in again`. See [Install and pair the client](client-setup).
+
 **Pairing fails.** The code works once, for 10 minutes: generate a new one. Check that the address is the website's own, starting with `https://`.
 
 **Nothing is synced.** On Home, the **Game.log** box must say the watcher is running. In `Settings` › `Game install`, check that the right channel is picked (`LIVE` or `PTU`).

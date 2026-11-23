@@ -8,6 +8,8 @@
 
 ## Desktop-klienten
 
+**Klienten siger, at hjemmesiden ikke længere accepterer computeren.** Enheden er fjernet på hjemmesiden, eller kontoen er slettet. Tryk `Log ind igen`. Se [Installér og par klienten](client-setup).
+
 **Parringen fejler.** Koden virker én gang, i 10 minutter: lav en ny. Tjek, at adressen er hjemmesidens egen og starter med `https://`.
 
 **Intet bliver synkroniseret.** Boksen **Game.log** på Hjem skal sige, at overvågningen kører. Tjek i `Indstillinger` › `Spilinstallation`, at den rigtige kanal er valgt (`LIVE` eller `PTU`).

@@ -34,6 +34,8 @@ Run it again any time from `Settings` › `General` › **Setup** › `Run setup
 
 The client then shows **Paired as** with your name. The code works for 10 minutes. `Open the page again` opens it once more if you closed it. Unpair under **Server**, or remove the device from the website.
 
+If the website no longer accepts the computer, because you removed the device there or deleted your account, every page in the client says so. Press `Sign in again` and sign in with the browser. Game events not sent yet are kept and sent after you sign in.
+
 **With a pairing code instead:** press `Enter a pairing code instead` in the client. On the website's `Desktop client` page, press `Use a pairing code instead`, then type the address and the code in the client and press `Pair`.
 
 ![Settings › General in the client](screens/client-settings-general.jpg)
