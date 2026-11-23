@@ -1,13 +1,5 @@
 # Hosting StarBuddy
 
-> **Upgrading an instance from before the StarBuddy rename?** Run
-> `scripts/update.sh` once: it renames the `STARBUDDY_*` keys in `.env`
-> (backup kept), pins the database name/user the old defaults used, and
-> replaces the old `starmaker` containers with the `starbuddy` project.
-> Your data is untouched (it lives in `STARBUDDY_DATA_DIR`). One manual step:
-> point your reverse proxy at **`starbuddy-web`** — the `starmaker-web`
-> alias is gone.
-
 One StarBuddy instance serves **one Discord community**. Members sign in with
 Discord; only members of your configured server can join. This guide takes an
 operator from empty server to a maintained, auto-updating production instance.

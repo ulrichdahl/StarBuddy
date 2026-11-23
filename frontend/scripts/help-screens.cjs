@@ -19,7 +19,7 @@ const { execSync } = require('child_process');
 const repo = path.join(__dirname, '..', '..');
 const { chromium } = require(path.join(repo, 'video/node_modules/playwright-core'));
 const exe = process.env.CHROME || execSync('ls ~/.cache/ms-playwright/chromium_headless_shell-*/*/chrome-headless-shell | tail -1').toString().trim();
-const sql = (q) => execSync(`docker exec starbuddy-db-1 psql -U starmaker -d starmaker -Atc "${q}"`).toString().trim();
+const sql = (q) => execSync(`docker exec starbuddy-db-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "$0"' "${q}"`).toString().trim();
 
 const args = process.argv.slice(2);
 const langArg = args.find((a) => a.startsWith('--lang='));
