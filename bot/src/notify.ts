@@ -74,8 +74,12 @@ export function startNotifyServer(client: Client): Server {
             await user.send({ content: payload.content ?? undefined, embeds: [payload.embed], allowedMentions: { parse: [] } });
             respond(200, { ok: true, delivered: true });
           } catch (error) {
-            // 50007: cannot send messages to this user (DMs closed).
-            if ((error as { code?: number }).code === 50007) {
+            // The member can't be reached, and a retry won't change that:
+            // 50007 DMs closed, 50278 DMs closed in every shared server (or
+            // none shared any more), 10013 unknown user.
+            const code = (error as { code?: number }).code;
+            if (code === 50007 || code === 50278 || code === 10013) {
+              console.log(`Direct message not delivered (Discord ${code})`);
               respond(200, { ok: true, delivered: false });
               return;
             }

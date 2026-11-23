@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Http;
  * Deliver an embed to one member as a Discord direct message, through the
  * bot's notify server (POST /notify with user_id instead of channel_id).
  * A member who blocks DMs from server members simply doesn't get it: the
- * bot answers 200 with delivered=false, which is not retried.
+ * bot answers 200 with delivered=false (Discord 50007, 50278 or 10013),
+ * which is not retried.
  */
 class NotifyDiscordUser implements ShouldQueue
 {
