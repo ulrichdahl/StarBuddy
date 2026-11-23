@@ -36,4 +36,4 @@ Filerne virker næste gang spillet starter. Havde du din egen `user.cfg`, gemmes
 
 ## Fjern forbindelsen
 
-`Fjern forbindelse` på hjemmesiden eller `Afkobl` i klienten fjerner forbindelsen. På hjemmesiden slettes også de indstillinger, der ligger på uniteddanes.org. Filerne, der allerede er installeret i spilmappen, bliver liggende.
+`Fjern forbindelse` på hjemmesiden eller `Afkobl` i klienten fjerner forbindelsen og sletter de indstillinger, der ligger på uniteddanes.org. Filerne, der allerede er installeret i spilmappen, bliver liggende.

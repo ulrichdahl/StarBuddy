@@ -36,4 +36,4 @@ The files take effect the next time the game starts. If you had your own `user.c
 
 ## Unlink
 
-`Unlink` on the website or `Unlink` in the client removes the link. On the website it also deletes the settings stored at uniteddanes.org. The files already installed in the game folder stay.
+`Unlink` on the website or in the client removes the link and deletes the settings stored at uniteddanes.org. The files already installed in the game folder stay.
