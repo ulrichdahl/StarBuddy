@@ -18,7 +18,6 @@ const { execSync } = require('child_process');
 
 const repo = path.join(__dirname, '..', '..');
 const { chromium } = require(path.join(repo, 'video/node_modules/playwright-core'));
-const seed = JSON.parse(fs.readFileSync(path.join(repo, 'video/work/seed.json'), 'utf8'));
 const exe = process.env.CHROME || execSync('ls ~/.cache/ms-playwright/chromium_headless_shell-*/*/chrome-headless-shell | tail -1').toString().trim();
 const sql = (q) => execSync(`docker exec starbuddy-db-1 psql -U starmaker -d starmaker -Atc "${q}"`).toString().trim();
 
@@ -27,6 +26,9 @@ const langArg = args.find((a) => a.startsWith('--lang='));
 const LANGS = langArg ? [langArg.slice(7)] : ['en', 'da'];
 const parts = args.filter((a) => !a.startsWith('--'));
 const want = new Set(parts.length ? parts : ['web', 'client']);
+// Only the web shots sign in as the demo pilot; the client shots run on the
+// preview's stub alone, without a seed.
+const seed = want.has('web') ? JSON.parse(fs.readFileSync(path.join(repo, 'video/work/seed.json'), 'utf8')) : null;
 const WEB = 'http://localhost:8090';
 const CLIENT = 'http://localhost:8767';
 const DEMO = "discord_id like 'demo-%'";

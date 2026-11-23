@@ -22,15 +22,15 @@ On Windows a yellow border round the game shows that the window is being capture
 
 ![The refinery window offering the area it found](screens/client-refinery-area.png)
 
-You don't have to frame the panel yourself. The first time you press `F8`, the client reads the whole screen and finds the work order by its text. The refinery window then asks whether to use that area for the next reads, which are faster and more reliable: press `Use this area`, or `No thanks`. The station name is read from the top of the screen by itself.
+You don't have to frame the panel yourself. The first time you press `F8`, the client reads the whole screen and finds the work order by its text. An amber card at the top of the refinery window then asks **Use this area for the next reads?** Reads of just that area are faster and more reliable: press `Use this area`, or `No thanks`. The station name is read from the top of the screen by itself.
 
-If the panel isn't all on screen, nothing is saved and the window says what was missing, for example the bottom with **TOTAL COST** and **PROCESSING TIME**. Scroll the panel or move closer, and press `F8` again.
+If the panel isn't all on screen, nothing is saved. A red card, **Frame the work order**, says what was missing, for example the bottom with **TOTAL COST** and **PROCESSING TIME**. Scroll the panel or move closer, and press `F8` again.
 
 ![The refinery window when the panel's bottom was missing](screens/client-refinery-guide.png)
 
 To frame it by hand, press `Pick area` there, or go to `Settings` › `Screen reading` › **Refinery order area** › `Frame area`. Drag from the **WORK ORDER** title down to **TOTAL COST** and **PROCESSING TIME**, with the whole materials table inside.
 
-If the panel later moves out of your area, for example after a resolution change, the client finds it on the whole screen once and asks whether to use where it is now.
+If the panel later moves out of your area, for example after a resolution change, the client finds it on the whole screen once and asks **Use where the work order is now?**
 
 ## Read mining scans
 
