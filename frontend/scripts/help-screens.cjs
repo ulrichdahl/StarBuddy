@@ -130,6 +130,7 @@ async function web(browser, lang, out) {
   await page('/import', 'web-import');
   await page('/admin', 'web-admin');
   await page('/training', 'web-training');
+  await page('/client', 'web-client');
   await menu(0, 'web-profile');
   await menu(1, 'web-organizations');
   await ctx.close();

@@ -414,7 +414,9 @@
     "onMac": "The client runs on Windows and Linux, where Star Citizen runs. Open this page on your gaming PC, or pick a file below.",
     "onOther": "Install the client on the PC you play Star Citizen on. Open this page there, or pick a file below.",
     "paired": "Paired with {{name}}.",
-    "version": "Version"
+    "version": "Version",
+    "signIn": "In the client, press “Sign in with browser”, then Connect on the page that opens.",
+    "useCode": "Use a pairing code instead"
   },
   "org": {
     "title": "Organizations",
@@ -1082,7 +1084,7 @@
     }
   },
   "account": {
-    "profile": "Profile & desktop client",
+    "profile": "Profile",
     "organizations": "Organizations",
     "signOut": "Sign out",
     "synced": "Client synced <t>{{time}}</t> · {{device}}",
@@ -1097,7 +1099,7 @@
     "confirmBody": "You are about to delete your own stacks: {{scope}}. Type <strong>{{word}}</strong> to confirm."
   },
   "profileDialog": {
-    "title": "Profile & desktop client",
+    "title": "Profile",
     "identity": "Identity",
     "handleLabel": "Star Citizen handle",
     "handleHelp": "Shown to org mates and used to match you in CSV imports.",
@@ -1219,6 +1221,13 @@
     "unknown": "This code is unknown or has expired. Press “Sign in with browser” in the desktop client again.",
     "loadError": "Could not load the request. Try again.",
     "decideError": "That did not go through. Try again.",
-    "toDashboard": "Go to the dashboard"
+    "toDashboard": "Go to the dashboard",
+    "toClient": "Go to Desktop client"
+  },
+  "clientPage": {
+    "title": "Desktop client",
+    "subtitle": "Download the client, connect it to your account, and link the ship names and game settings it installs.",
+    "setUp": "Get the client",
+    "noDevices": "No client is paired yet. Install it, then press “Sign in with browser” in the client."
   }
 }

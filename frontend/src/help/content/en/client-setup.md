@@ -8,9 +8,11 @@ The StarBuddy desktop client runs beside Star Citizen on Windows and Linux. It:
 
 ## 1. Install
 
-Sign in to the website. Use **Get started** on the dashboard, or open your name in the top right corner and choose `Profile & desktop client`. The download button picks the file for your system: `Download for Windows`, or for Linux the AppImage (deb or rpm on distributions that use them). The other files are listed under it. Install and start it.
+Sign in to the website. Use **Get started** on the dashboard, or press `Desktop client` in the top bar. The download button picks the file for your system: `Download for Windows`, or for Linux the AppImage (deb or rpm on distributions that use them). The other files are listed under it. Install and start it.
 
-The `Desktop client` button in the top bar has an orange dot until a client of yours is connected.
+![The Desktop client page](screens/web-client.jpg)
+
+The `Desktop client` button in the top bar has an orange dot until a client of yours is connected. Its page also lists your **Paired devices**, with when each last synced: remove one you no longer use. The ship names and game settings the client installs are linked there too: see [StarLabels and StarConfig](starlabels).
 
 The client checks for updates by itself and offers to install them. See [Settings](client-settings).
 
@@ -32,7 +34,7 @@ Run it again any time from `Settings` › `General` › **Setup** › `Run setup
 
 The client then shows **Paired as** with your name. The code works for 10 minutes. `Open the page again` opens it once more if you closed it. Unpair under **Server**, or remove the device from the website.
 
-**With a pairing code instead:** press `Enter a pairing code instead` in the client. On the website, press `Generate pairing code` in `Profile & desktop client`, then type the address and the code in the client and press `Pair`.
+**With a pairing code instead:** press `Enter a pairing code instead` in the client. On the website's `Desktop client` page, press `Use a pairing code instead`, then type the address and the code in the client and press `Pair`.
 
 ![Settings › General in the client](screens/client-settings-general.jpg)
 

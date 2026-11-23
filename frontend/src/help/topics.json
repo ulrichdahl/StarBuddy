@@ -101,6 +101,7 @@
     "/admin": "admin",
     "/training": "training",
     "/about": "getting-started",
-    "/pair": "client-setup"
+    "/pair": "client-setup",
+    "/client": "client-setup"
   }
 }

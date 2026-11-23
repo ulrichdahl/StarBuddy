@@ -9,7 +9,7 @@ You set them up on uniteddanes.org. StarBuddy links your account to that setup, 
 
 ## On the website
 
-Open your name in the top right corner, choose `Profile & desktop client`, and find **Ship names & game settings**.
+Press `Desktop client` in the top bar, and find **Ship names & game settings**.
 
 1. Press `Open UDI StarLabels setup`. uniteddanes.org opens on your own settings.
 2. Choose your names and settings there, then press **Send to StarBuddy**.

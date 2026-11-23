@@ -149,18 +149,20 @@ export function PairStep({ step = '02' }: { step?: string }) {
         </>
       ) : (
         <>
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<LinkIcon />}
-            onClick={() => generate.mutate()}
-            disabled={generate.isPending}
-          >
-            {generate.isPending ? t('pair.generating') : code ? t('pair.generateNew') : t('pair.generate')}
-          </Button>
-          <Typography variant="body2" sx={{ fontSize: 12.5, color: hud.textDim }}>
-            {code ? t('pair.expired') : t('pair.enterWithin')}
+          {/* Sign-in with the browser is the way in; a code is the fallback. */}
+          <Typography variant="body2" sx={{ color: hud.textMuted, lineHeight: 1.55 }}>
+            {t('pair.signIn')}
           </Typography>
+          <Box>
+            <Button size="small" color="inherit" startIcon={<LinkIcon />} onClick={() => generate.mutate()} disabled={generate.isPending} sx={{ color: hud.textDim }}>
+              {generate.isPending ? t('pair.generating') : code ? t('pair.generateNew') : t('pair.useCode')}
+            </Button>
+          </Box>
+          {code && (
+            <Typography variant="body2" sx={{ fontSize: 12.5, color: hud.textDim }}>
+              {t('pair.expired')}
+            </Typography>
+          )}
         </>
       )}
     </Box>

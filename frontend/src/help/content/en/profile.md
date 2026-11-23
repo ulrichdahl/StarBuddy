@@ -1,8 +1,8 @@
-# Profile and desktop client
+# Profile
 
-Open your name in the top right corner and choose `Profile & desktop client`. The `Desktop client` button in the top bar opens the same window, at the client section.
+Open your name in the top right corner and choose `Profile`.
 
-![Profile and desktop client](screens/web-profile.jpg)
+![Profile](screens/web-profile.jpg)
 
 ## Identity
 
@@ -11,16 +11,7 @@ Open your name in the top right corner and choose `Profile & desktop client`. Th
 
 ## Desktop client
 
-1. Download the client. The button picks the file for your system, and the other files are listed under it.
-2. Connect it: press `Sign in with browser` in the client, and `Connect` on the page that opens.
-
-Or with a pairing code: press `Generate pairing code` here, then in the client choose `Enter a pairing code instead`, enter this website's address and the code, and press `Pair`. The code works once, for 10 minutes.
-
-**Paired devices** lists every client paired to your account, with when it last synced. Remove one you no longer use. See [Install and pair the client](client-setup).
-
-## Ship names and game settings
-
-If your community uses UnitedDanes StarLabels (better ship and item names) or StarConfig (game settings), link them here. Set them up on uniteddanes.org and press **Send to StarBuddy** there. Your desktop clients then install `global.ini` and `user.cfg` into the game folder, and fetch new names when the game updates. `Unlink` deletes the settings stored at UDI, and the files already installed stay. See [StarLabels and StarConfig](starlabels).
+The desktop client, your paired devices and the ship names and game settings it installs have their own page: press `Desktop client` in the top bar. See [Install and pair the client](client-setup) and [StarLabels and StarConfig](starlabels).
 
 ## Your stock
 

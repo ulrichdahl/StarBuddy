@@ -9,7 +9,7 @@ Du sætter dem op på uniteddanes.org. StarBuddy forbinder din konto med den ops
 
 ## På hjemmesiden
 
-Åbn dit navn øverst til højre, vælg `Profil & desktopklient`, og find **Skibsnavne og spilindstillinger**.
+Tryk `Desktopklient` i topbjælken, og find **Skibsnavne og spilindstillinger**.
 
 1. Tryk `Åbn UDI StarLabels-opsætning`. uniteddanes.org åbner på dine egne indstillinger.
 2. Vælg dine navne og indstillinger dér, og tryk så **Send til StarBuddy**.

@@ -22,7 +22,7 @@ Trinene herunder er de samme, gjort i hånden.
 
 ## 2. Skriv dit Star Citizen-handle
 
-Åbn dit navn øverst til højre og vælg `Profil & desktopklient`. Skriv dit handle fra spillet under **Identitet**. Dine org-kammerater ser det, og desktop-klienten bruger det til at vide, hvilke af spillets karakterer der er dine. Se [Profil og desktop-klient](profile).
+Åbn dit navn øverst til højre og vælg `Profil`. Skriv dit handle fra spillet under **Identitet**. Dine org-kammerater ser det, og desktop-klienten bruger det til at vide, hvilke af spillets karakterer der er dine. Se [Profil](profile).
 
 ## 3. Meld dig ind i din org (valgfrit)
 

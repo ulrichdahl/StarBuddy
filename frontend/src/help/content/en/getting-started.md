@@ -22,7 +22,7 @@ The steps below are the same, done by hand.
 
 ## 2. Set your Star Citizen handle
 
-Open your name in the top right corner and choose `Profile & desktop client`. Type your in-game handle under **Identity**. Org mates see it, and the desktop client uses it to know which of the game's characters is yours. See [Profile and desktop client](profile).
+Open your name in the top right corner and choose `Profile`. Type your in-game handle under **Identity**. Org mates see it, and the desktop client uses it to know which of the game's characters is yours. See [Profile](profile).
 
 ## 3. Join your org (optional)
 

@@ -113,8 +113,8 @@ export function PairPage() {
         {status === 'denied' && <Alert severity="info">{t('pairPage.denied')}</Alert>}
         {(status === 'approved' || status === 'denied' || unknown) && (
           <Box>
-            <Button component={RouterLink} to="/" variant="outlined">
-              {t('pairPage.toDashboard')}
+            <Button component={RouterLink} to="/client" variant="outlined">
+              {t('pairPage.toClient')}
             </Button>
           </Box>
         )}

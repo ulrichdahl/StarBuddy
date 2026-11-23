@@ -1,8 +1,8 @@
-# Profil og desktop-klient
+# Profil
 
-Åbn dit navn øverst til højre og vælg `Profil & desktopklient`. Knappen `Desktopklient` i topbjælken åbner det samme vindue, ved klient-afsnittet.
+Åbn dit navn øverst til højre og vælg `Profil`.
 
-![Profil og desktop-klient](screens/web-profile.jpg)
+![Profil](screens/web-profile.jpg)
 
 ## Identitet
 
@@ -11,16 +11,7 @@
 
 ## Desktop-klient
 
-1. Download klienten. Knappen vælger filen til dit system, og de andre filer står under den.
-2. Forbind den: tryk `Log ind med browser` i klienten og `Forbind` på siden, der åbner.
-
-Eller med en parringskode: tryk `Generér parringskode` her, vælg så `Indtast en parringskode i stedet` i klienten, skriv hjemmesidens adresse og koden, og tryk `Par`. Koden virker én gang, i 10 minutter.
-
-**Parrede enheder** viser alle klienter, der er parret med din konto, og hvornår de sidst synkroniserede. Fjern en, du ikke bruger længere. Se [Installér og par klienten](client-setup).
-
-## Skibsnavne og spilindstillinger
-
-Hvis dit fællesskab bruger UnitedDanes StarLabels (bedre skibs- og genstandsnavne) eller StarConfig (spilindstillinger), kobler du dem til her. Sæt dem op på uniteddanes.org og tryk **Send til StarBuddy** der. Dine desktop-klienter installerer så `global.ini` og `user.cfg` i spilmappen og henter nye navne, når spillet opdateres. `Fjern forbindelse` sletter indstillingerne hos UDI, og de filer, der allerede er installeret, bliver liggende. Se [StarLabels og StarConfig](starlabels).
+Desktop-klienten, dine parrede enheder og de skibsnavne og spilindstillinger, den installerer, har deres egen side: tryk `Desktopklient` i topbjælken. Se [Installér og par klienten](client-setup) og [StarLabels og StarConfig](starlabels).
 
 ## Dit lager
 

@@ -261,6 +261,7 @@ const HELP_WIDTH = 520
 
 function Shell({ me }: AppShellProps) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { data: devices } = useDevices()
   // undefined while loading, so the dot never flashes.
   const clientConnected = devices ? hasConnectedClient(devices) : undefined
@@ -284,7 +285,6 @@ function Shell({ me }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const [profileOpen, setProfileOpen] = useState(false)
-  const [profileFocus, setProfileFocus] = useState<'client' | undefined>()
   const [orgsOpen, setOrgsOpen] = useState(false)
   const navWidth = rail ? RAIL_WIDTH : DRAWER_WIDTH
 
@@ -308,10 +308,7 @@ function Shell({ me }: AppShellProps) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
             <Tooltip title={clientConnected === false ? t('nav.noClientConnected') : t('nav.desktopClientHelp')}>
               <ButtonBase
-                onClick={() => {
-                  setProfileFocus('client')
-                  setProfileOpen(true)
-                }}
+                onClick={() => navigate('/client')}
                 aria-label={clientConnected === false ? `${t('nav.desktopClient')}: ${t('nav.noClientConnected')}` : t('nav.desktopClient')}
                 sx={{
                   height: 44,
@@ -376,13 +373,10 @@ function Shell({ me }: AppShellProps) {
         me={me}
         anchor={menuAnchor}
         onClose={() => setMenuAnchor(null)}
-        onOpenProfile={() => {
-          setProfileFocus(undefined)
-          setProfileOpen(true)
-        }}
+        onOpenProfile={() => setProfileOpen(true)}
         onOpenOrganizations={() => setOrgsOpen(true)}
       />
-      <ProfileDialog me={me} open={profileOpen} focus={profileFocus} onClose={() => setProfileOpen(false)} />
+      <ProfileDialog me={me} open={profileOpen} onClose={() => setProfileOpen(false)} />
       <OrganizationsDialog me={me} open={orgsOpen} onClose={() => setOrgsOpen(false)} />
 
       {isDesktop ? (

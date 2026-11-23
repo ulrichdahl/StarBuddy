@@ -8,9 +8,11 @@ StarBuddys desktop-klient kører ved siden af Star Citizen på Windows og Linux.
 
 ## 1. Installér
 
-Log ind på hjemmesiden. Brug **Kom i gang** på oversigten, eller åbn dit navn øverst til højre og vælg `Profil & desktopklient`. Download-knappen vælger filen til dit system: `Download til Windows`, eller til Linux AppImage (deb eller rpm på distributioner, der bruger dem). De andre filer står under den. Installér og start den.
+Log ind på hjemmesiden. Brug **Kom i gang** på oversigten, eller tryk `Desktopklient` i topbjælken. Download-knappen vælger filen til dit system: `Download til Windows`, eller til Linux AppImage (deb eller rpm på distributioner, der bruger dem). De andre filer står under den. Installér og start den.
 
-Knappen `Desktopklient` i topbjælken har en orange prik, indtil en af dine klienter er forbundet.
+![Siden Desktopklient](screens/web-client.jpg)
+
+Knappen `Desktopklient` i topbjælken har en orange prik, indtil en af dine klienter er forbundet. Dens side viser også dine **Parrede enheder**, og hvornår hver sidst synkroniserede: fjern en, du ikke bruger længere. De skibsnavne og spilindstillinger, klienten installerer, kobles også til dér: se [StarLabels og StarConfig](starlabels).
 
 Klienten søger selv efter opdateringer og tilbyder at installere dem. Se [Indstillinger](client-settings).
 
@@ -32,7 +34,7 @@ Kør den igen når som helst under `Indstillinger` › `Generelt` › **Opsætni
 
 Klienten viser så **Parret som** med dit navn. Koden virker i 10 minutter. `Åbn siden igen` åbner den igen, hvis du lukkede den. Fjern parringen under **Server**, eller fjern enheden på hjemmesiden.
 
-**Med en parringskode i stedet:** tryk `Indtast en parringskode i stedet` i klienten. Tryk `Generér parringskode` under `Profil & desktopklient` på hjemmesiden, skriv så adressen og koden i klienten, og tryk `Par`.
+**Med en parringskode i stedet:** tryk `Indtast en parringskode i stedet` i klienten. Tryk `Brug en parringskode i stedet` på hjemmesidens side `Desktopklient`, skriv så adressen og koden i klienten, og tryk `Par`.
 
 ![Indstillinger › Generelt i klienten](screens/client-settings-general.jpg)
 

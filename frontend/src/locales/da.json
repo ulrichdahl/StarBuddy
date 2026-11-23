@@ -411,7 +411,9 @@
     "onMac": "Klienten kører på Windows og Linux, hvor Star Citizen kører. Åbn siden på din gaming-pc, eller vælg en fil herunder.",
     "onOther": "Installér klienten på den pc, du spiller Star Citizen på. Åbn siden der, eller vælg en fil herunder.",
     "paired": "Parret med {{name}}.",
-    "version": "Version"
+    "version": "Version",
+    "signIn": "Tryk “Log ind med browser” i klienten, og så Forbind på siden, der åbner.",
+    "useCode": "Brug en parringskode i stedet"
   },
   "org": {
     "title": "Organisationer",
@@ -1079,7 +1081,7 @@
     }
   },
   "account": {
-    "profile": "Profil & desktopklient",
+    "profile": "Profil",
     "organizations": "Organisationer",
     "signOut": "Log ud",
     "synced": "Klient synkroniseret <t>{{time}}</t> · {{device}}",
@@ -1094,7 +1096,7 @@
     "confirmBody": "Du er ved at slette dine egne stakke: {{scope}}. Skriv <strong>{{word}}</strong> for at bekræfte."
   },
   "profileDialog": {
-    "title": "Profil & desktopklient",
+    "title": "Profil",
     "identity": "Identitet",
     "handleLabel": "Star Citizen-handle",
     "handleHelp": "Vises for org-kammerater og bruges til at genkende dig i CSV-import.",
@@ -1216,6 +1218,13 @@
     "unknown": "Koden er ukendt eller udløbet. Tryk “Log ind med browser” i desktop-klienten igen.",
     "loadError": "Kunne ikke hente anmodningen. Prøv igen.",
     "decideError": "Det gik ikke igennem. Prøv igen.",
-    "toDashboard": "Gå til oversigten"
+    "toDashboard": "Gå til oversigten",
+    "toClient": "Gå til Desktopklient"
+  },
+  "clientPage": {
+    "title": "Desktopklient",
+    "subtitle": "Hent klienten, forbind den med din konto, og kobl de skibsnavne og spilindstillinger til, som den installerer.",
+    "setUp": "Hent klienten",
+    "noDevices": "Ingen klient er parret endnu. Installér den, og tryk “Log ind med browser” i klienten."
   }
 }

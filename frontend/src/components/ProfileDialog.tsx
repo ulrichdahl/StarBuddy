@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
@@ -11,18 +11,11 @@ import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import CloseIcon from '@mui/icons-material/Close'
-import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
-import DesktopWindowsOutlinedIcon from '@mui/icons-material/DesktopWindowsOutlined'
-import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { api } from '../lib/api'
-import { deviceState, latestSync, useDevices, type DeviceState } from '../lib/devices'
 import type { Me } from '../lib/types'
 import { fonts, hud } from '../theme'
-import { HudAvatar, HudBadge, HudPanel, Mono, OrgTag, StatusDot } from './hud'
-import { HelpButton } from '../help/HelpContext'
-import { useHelp } from '../help/useHelp'
+import { HudAvatar, HudPanel, OrgTag } from './hud'
 import { OwnStockSection } from './OwnStockSection'
-import { DownloadStep, PairStep } from './ClientSetup'
 
 const labelSx = {
   fontFamily: fonts.display,
@@ -32,14 +25,6 @@ const labelSx = {
   textTransform: 'uppercase',
   color: hud.textDim,
 } as const
-
-const STATE_COLOUR: Record<DeviceState, string> = { active: hud.teal, stale: hud.amber, never: hud.textFaint }
-
-function useStamp() {
-  const { i18n } = useTranslation()
-  return (iso: string) =>
-    new Date(iso).toLocaleString(i18n.language, { dateStyle: 'short', timeStyle: 'short' })
-}
 
 function IdentitySection({ me }: { me: Me }) {
   const { t } = useTranslation()
@@ -124,210 +109,16 @@ function IdentitySection({ me }: { me: Me }) {
   )
 }
 
-function DesktopClientSection() {
-  const { t } = useTranslation()
-  const stamp = useStamp()
-  const queryClient = useQueryClient()
-  const { data: devices } = useDevices()
-  const latest = latestSync(devices)
-  const revoke = useMutation({
-    mutationFn: async (id: number) => api.delete(`/api/devices/${id}`),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['devices'] }),
-  })
-
-  return (
-    <HudPanel
-      title={t('pair.title')}
-      component="h3"
-      id="pm-client"
-      raised
-      aside={
-        <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 12.5, color: hud.textMuted }}>
-          {latest?.last_used_at ? (
-            <>
-              <StatusDot />
-              {t('profileDialog.lastSync')} <Mono colour={hud.text}>{stamp(latest.last_used_at)}</Mono>
-            </>
-          ) : (
-            <>
-              <StatusDot colour={hud.textFaint} />
-              {t('profileDialog.neverSynced')}
-            </>
-          )}
-          <HelpButton size="small" topic="client-setup" />
-        </Box>
-      }
-    >
-      <Typography variant="body2" sx={{ color: hud.textMuted, lineHeight: 1.55 }}>
-        {t('pair.clientHelp')}
-      </Typography>
-
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: 1.5 }}>
-        <DownloadStep />
-        <PairStep />
-      </Box>
-
-      {devices && devices.length > 0 && (
-        <Box>
-          <Box sx={{ ...labelSx, pb: 1 }}>{t('pair.pairedDevices')}</Box>
-          {devices.map((d) => {
-            const state = deviceState(d)
-            return (
-              <Box key={d.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.25, borderTop: `1px solid ${hud.lineSoft}` }}>
-                <DesktopWindowsOutlinedIcon sx={{ color: state === 'active' ? hud.teal : hud.textFaint }} fontSize="small" />
-                <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                  <Box component="span" sx={{ fontWeight: 500, color: state === 'active' ? hud.text : hud.textMuted, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {d.name}
-                  </Box>
-                  <Box component="span" sx={{ fontSize: 12, color: hud.textDim }}>
-                    {d.last_used_at ? (
-                      <>
-                        {t('profileDialog.lastSync')} <Mono>{stamp(d.last_used_at)}</Mono>
-                      </>
-                    ) : (
-                      t('pair.never')
-                    )}
-                  </Box>
-                </Box>
-                <HudBadge colour={STATE_COLOUR[state]}>{t(`pair.${state}`)}</HudBadge>
-                <IconButton
-                  aria-label={t('pair.remove', { name: `${d.name} (${t(`pair.${state}`)})` })}
-                  onClick={() => revoke.mutate(d.id)}
-                  disabled={revoke.isPending}
-                  sx={{ width: 40, height: 40, border: `1px solid ${hud.lineStrong}`, color: hud.textDim, '&:hover': { color: hud.amber, borderColor: hud.amber } }}
-                >
-                  <DeleteOutlinedIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            )
-          })}
-        </Box>
-      )}
-    </HudPanel>
-  )
-}
-
-interface UdiStatus {
-  linked: boolean
-  reachable: boolean | null
-  profile: { revision: number; updated_at: string; channel: 'live' | 'ptu'; labels: boolean; config: boolean } | null
-}
-
-/**
- * The link to the UDI StarLabels/StarConfig tools on uniteddanes.org: the
- * player sets up ship names and game settings there, and their StarBuddy
- * desktop clients install global.ini and user.cfg. The token lives on the
- * account; it goes to UDI only in the setup URL's fragment.
- */
-function UdiSection() {
-  const { t, i18n } = useTranslation()
-  const stamp = useStamp()
-  const queryClient = useQueryClient()
-  const { data: status } = useQuery({
-    queryKey: ['udi-link-status'],
-    queryFn: async () => (await api.get<UdiStatus>('/api/me/udi-link/status')).data,
-  })
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['udi-link-status'] })
-
-  const open = useMutation({
-    mutationFn: async () => {
-      // Open the tab first, inside the click, so no popup blocker stops it.
-      const tab = window.open('about:blank', '_blank')
-      try {
-        const { data } = await api.get<{ token: string; setup_url: Record<string, string> }>('/api/me/udi-link')
-        const url = data.setup_url[i18n.language.startsWith('da') ? 'da' : 'en']
-        if (tab) {
-          tab.opener = null
-          tab.location.href = `${url}#starbuddy=${data.token}`
-        }
-      } catch (error) {
-        tab?.close()
-        throw error
-      }
-    },
-    onSettled: refresh,
-  })
-  const unlink = useMutation({
-    mutationFn: async () => api.delete('/api/me/udi-link'),
-    onSuccess: refresh,
-  })
-
-  const profile = status?.profile
-  const [dot, text] = !status?.linked
-    ? [hud.textFaint, t('udi.notLinked')]
-    : profile
-      ? [hud.teal, t('udi.sent', { revision: profile.revision })]
-      : status.reachable === false
-        ? [hud.amber, t('udi.unreachable')]
-        : [hud.amber, t('udi.waiting')]
-
-  return (
-    <HudPanel
-      title={t('udi.title')}
-      component="h3"
-      id="pm-udi"
-      raised
-      aside={
-        <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: 12.5, color: hud.textMuted }}>
-          <StatusDot colour={dot} />
-          {text}
-          <HelpButton size="small" topic="starlabels" />
-        </Box>
-      }
-    >
-      <Typography variant="body2" sx={{ color: hud.textMuted, lineHeight: 1.55 }}>
-        {t('udi.help')}
-      </Typography>
-      {profile && (
-        <Typography variant="body2" sx={{ color: hud.textDim }}>
-          {t('udi.details', {
-            channel: profile.channel.toUpperCase(),
-            what: [profile.labels && 'global.ini', profile.config && 'user.cfg'].filter(Boolean).join(' + ') || '—',
-          })}{' '}
-          <Mono colour={hud.text}>{stamp(profile.updated_at)}</Mono>
-        </Typography>
-      )}
-      {open.isError && <Alert severity="error">{t('udi.openError')}</Alert>}
-      {unlink.isError && <Alert severity="error">{t('udi.unlinkError')}</Alert>}
-      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-        <Button variant="outlined" color="primary" startIcon={<OpenInNewIcon />} onClick={() => open.mutate()} disabled={open.isPending}>
-          {t('udi.open')}
-        </Button>
-        {status?.linked && (
-          <Button
-            variant="outlined"
-            color="inherit"
-            disabled={unlink.isPending}
-            onClick={() => window.confirm(t('udi.unlinkConfirm')) && unlink.mutate()}
-          >
-            {t('udi.unlink')}
-          </Button>
-        )}
-      </Box>
-    </HudPanel>
-  )
-}
-
-/** Profile & desktop client, opened from the avatar menu. */
-export function ProfileDialog({ me, open, focus, onClose }: { me: Me; open: boolean; focus?: 'client'; onClose: () => void }) {
+/** The member's profile, opened from the avatar menu. The desktop client and the UDI link have their own page, /client. */
+export function ProfileDialog({ me, open, onClose }: { me: Me; open: boolean; onClose: () => void }) {
   const { t } = useTranslation()
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
-  const help = useHelp()
-  // With the help open beside it, the dialog moves left of the help panel.
-  const roomBesideHelp = useMediaQuery('(min-width:1300px)')
-  const besideHelp = !!help?.topic && roomBesideHelp
 
   return (
     <Dialog open={open} onClose={onClose} fullScreen={fullScreen} maxWidth={false} aria-labelledby="pm-title"
-      // The help panel opened from a section's "?" sits outside the dialog and must take focus.
-      disableEnforceFocus
-      // 520: HELP_PANEL_WIDTH, not imported so the help panel stays lazy-loaded.
-      sx={{ '& .MuiDialog-container': { pr: besideHelp ? '520px' : 0 } }}
       slotProps={{
         paper: { sx: { width: 760, maxWidth: '100%', m: fullScreen ? 0 : 2 } },
-        // Opened from the header's download button: bring the client section into view.
-        transition: { onEntered: () => focus === 'client' && document.getElementById('pm-client-title')?.scrollIntoView({ block: 'start', behavior: 'smooth' }) },
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.75, py: 2, pl: 2.75, pr: 2, borderBottom: `1px solid ${hud.lineSoft}` }}>
@@ -340,8 +131,6 @@ export function ProfileDialog({ me, open, focus, onClose }: { me: Me; open: bool
       </Box>
       <Box sx={{ p: 2.75, display: 'flex', flexDirection: 'column', gap: 2.25, overflowY: 'auto' }}>
         <IdentitySection me={me} />
-        <DesktopClientSection />
-        <UdiSection />
         <OwnStockSection />
       </Box>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', py: 1.75, px: 2.75, borderTop: `1px solid ${hud.lineSoft}`, bgcolor: hud.well }}>

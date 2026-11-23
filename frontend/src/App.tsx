@@ -21,6 +21,7 @@ import { TrainingPage } from './pages/TrainingPage'
 import { canSee } from './lib/access'
 import { AboutPage } from './pages/AboutPage'
 import { PairPage } from './pages/PairPage'
+import { ClientPage } from './pages/ClientPage'
 
 /** A page asked for before signing in, opened again once signed in (the client's /pair link). */
 const AFTER_LOGIN = 'starbuddy.afterLogin'
@@ -107,6 +108,7 @@ export default function App() {
         <Route path="/training" element={canSee(me, 'training') ? <TrainingPage /> : <Navigate to="/" replace />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/pair" element={<PairPage />} />
+        <Route path="/client" element={<ClientPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
