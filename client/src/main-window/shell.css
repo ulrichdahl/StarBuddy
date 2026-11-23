@@ -500,6 +500,10 @@ body {
 .sb-hd-x svg { width: 17px; height: 17px; }
 /* Beside the section's name, a step in from the rule before it. */
 .sb .sb-help { width: 28px; height: 28px; margin-left: -6px; }
+/* A card's heading with its own help "?" at the right. */
+.sb-card-hd { display: flex; align-items: center; gap: 8px; }
+.sb-card-hd > :first-child { flex: 1; min-width: 0; }
+.sb .sb-card-hd .sb-card-help { margin: -6px -6px -6px 0; flex: none; }
 .sb-ft {
   height: 34px;
   flex: none;

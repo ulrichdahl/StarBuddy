@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useTranslation } from "react-i18next";
+import { HelpButton } from "./Help";
 import { ServerPanel } from "./ServerPanel";
 import { ScreenReadingPanel } from "./ScreenReadingPanel";
 import type { HeardHotkey } from "./OverlayPanel";
@@ -185,7 +186,10 @@ export function Setup({
         ))}
       </div>
       <section className="sb-card sb-setup-card">
-        <h2>{title}</h2>
+        <div className="sb-card-hd">
+          <h2>{title}</h2>
+          <HelpButton topic="client-setup" className="sb-card-help" />
+        </div>
         {card}
         {error && <p className="error">{error}</p>}
         <div className="sb-setup-nav">

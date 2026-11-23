@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useTranslation } from "react-i18next";
+import { HelpButton } from "./Help";
 import type { ConnectionView } from "./types";
 
 /** Where a new player signs in, unless they run their own server. */
@@ -176,7 +177,10 @@ export function ServerPanel({
   if (bare) return body;
   return (
     <section className="panel">
-      <h2>{t("server.title")}</h2>
+      <div className="sb-card-hd">
+        <h2>{t("server.title")}</h2>
+        <HelpButton topic="client-setup" className="sb-card-help" />
+      </div>
       {body}
     </section>
   );

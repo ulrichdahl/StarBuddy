@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
+import { HelpButton } from "./Help";
 
 interface UdiStatus {
   linked: boolean;
@@ -135,7 +136,10 @@ export function UdiCard() {
 
   return (
     <section className="sb-card">
-      <div className="sb-eyebrow">{t("udi.title")}</div>
+      <div className="sb-card-hd">
+        <div className="sb-eyebrow">{t("udi.title")}</div>
+        <HelpButton topic="starlabels" className="sb-card-help" />
+      </div>
       <p className="sb-card-sub">{t("udi.lead")}</p>
 
       {status === null ? (
