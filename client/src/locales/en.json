@@ -7,7 +7,7 @@
     "title": "Server",
     "pairedAs": "Paired as",
     "unpair": "Unpair",
-    "hint": "Sign in to your community's StarBuddy website, generate a pairing code on the dashboard, and enter it here.",
+    "hint": "Sign in to your community's StarBuddy website, press Use a pairing code instead on its Desktop client page, and enter the code here.",
     "pairingCodePlaceholder": "Pairing code",
     "pair": "Pair",
     "pairing": "Pairing…",
