@@ -96,3 +96,81 @@ The script searches the whole exe for:
 - Log lines containing `[Subscriber][`, "subscriber perk" or "party subscriber tier".
 
 A later build may add switches under other names. The script won't show them until they are added to `$switches` at the top of the script. The script loads the whole exe into memory, which takes about 600 MB.
+
+## telemetry-schema.py
+
+Prints the layout of the game's telemetry stream in a Star Citizen build: every message, field, enum and call of the `sc.game.telemetry.v1` service.
+
+The game can serve this stream on `127.0.0.1:2942` when `user.cfg` has `grpc.client.server.enabled = 1`. StarBuddy's beacon window reads it for the ship's heading and speed. The stream's layout is stored inside `StarCitizen.exe`, so this script shows what a new build can send before anyone plays it. Use it to check a new PTU for new data, such as a position.
+
+It reads two files and changes nothing:
+
+- `<channel>/Bin64/StarCitizen.exe`
+- `<channel>/build_manifest.id`
+
+It needs Python 3.9 or newer and no extra packages.
+
+### Run
+
+```sh
+# PTU, from the default install folder (Windows, or Wine at ~/Games/star-citizen)
+python3 tools/telemetry-schema.py
+
+# LIVE
+python3 tools/telemetry-schema.py --channel LIVE
+
+# Another install folder
+python3 tools/telemetry-schema.py --root "D:/Games/StarCitizen"
+
+# One exe
+python3 tools/telemetry-schema.py --exe path/to/StarCitizen.exe
+```
+
+| Parameter | Default | Meaning |
+|---|---|---|
+| `--root` | `C:\Program Files\Roberts Space Industries\StarCitizen`, or the Wine folder under `~/Games/star-citizen` on Linux | The folder that holds `LIVE`, `PTU` and the other channels. |
+| `--channel` | `PTU` | The channel folder to read. |
+| `--exe` | | Read this `StarCitizen.exe` instead. |
+
+### Output
+
+It prints the schema in `.proto` style. Part of LIVE 4.10.201:
+
+```
+// sc-alpha-4.10.0 4.10.201.48085, changelist 13220821, built Wed Nov 18 2026
+
+// sc/game/telemetry/v1/types.proto
+message VehicleFlightInstruments {
+  float speed = 1;
+  float hydrogen_fuel = 2;
+  float quantum_fuel = 3;
+  Gauge g_meter = 4;
+  VehicleThrusterBoost boost = 5;
+  float altitude = 6;
+  float radar_altitude = 7;
+  float vertical_speed_indicator = 8;
+  float atmospheric_density = 9;
+  float heading = 10;
+}
+...
+service GameTelemetryService {
+  rpc TelemetryStream(TelemetryStreamRequest) returns (stream TelemetryStreamResponse);
+}
+```
+
+A build without the stream prints `No game telemetry in this build.`.
+
+The two builds compare like this:
+
+- **LIVE 4.10.201:** ship, weapons, the player's vitals, and events. There is no location.
+- **PTU 5.0.202:** adds quantum travel, location names, jurisdiction, shard, the tracked contract, and calls that trigger game actions. Neither build has an x/y/z position.
+
+What was measured in a LIVE 4.10 flight:
+
+- **Fields left out:** the stream leaves out any field that is 0 or off, so a missing field means 0.
+- **`heading`:** the HUD compass heading, sent only inside a planet's atmosphere.
+- **`speed`:** freezes at its last value during quantum travel.
+
+### How it works
+
+The schema is stored in the exe as two serialized `FileDescriptorProto`s, named `sc/game/telemetry/v1/types.proto` and `api.proto`. The script finds each name, reads the descriptor that starts there up to the first byte that cannot belong to it, and decodes the messages, enums and service by hand.
