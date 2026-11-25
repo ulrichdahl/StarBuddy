@@ -39,6 +39,12 @@ pub(crate) struct ClientPrefs {
     /// until they do. It used to be on unless switched off (`presence_off`);
     /// that key is ignored now, so everyone starts from off.
     pub(crate) share_presence: bool,
+    /// The game's telemetry switch in user.cfg (game_cfg.rs): None until
+    /// the player has been asked.
+    pub(crate) game_telemetry: Option<bool>,
+    /// `r_DisplayInfo = 1` in user.cfg, the position text the beacon reads
+    /// (game_cfg.rs): None until the player has been asked.
+    pub(crate) game_display_info: Option<bool>,
     /// The link to United Danes' StarLabels and StarConfig (udi.rs).
     pub(crate) udi: crate::udi::UdiPrefs,
 }

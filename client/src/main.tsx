@@ -34,6 +34,8 @@ const WINDOWS: Record<string, React.LazyExoticComponent<React.ComponentType>> = 
   gathering: lazy(() => import("./overlay/TrackerOverlays").then((m) => ({ default: m.GatheringOverlay }))),
   orders: lazy(() => import("./overlay/TrackerOverlays").then((m) => ({ default: m.OrdersOverlay }))),
   points: lazy(() => import("./overlay/TrackerOverlays").then((m) => ({ default: m.PointsOverlay }))),
+  // EXPERIMENT: location and beacon.
+  beacon: lazy(() => import("./overlay/BeaconOverlay").then((m) => ({ default: m.BeaconOverlay }))),
   region: lazy(() => import("./overlay/RegionSelector").then((m) => ({ default: m.RegionSelector }))),
 };
 const Root = (overlay && WINDOWS[overlay]) || App;

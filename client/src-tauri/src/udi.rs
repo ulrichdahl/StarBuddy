@@ -47,6 +47,28 @@ pub(crate) struct Installed {
     pub(crate) at: Option<String>,
 }
 
+/// The user.cfg the game reads in `dir`, as StarConfig picks it: a casing
+/// the player made themselves before one StarBuddy wrote, else the first.
+pub(crate) fn user_cfg_path(app: &tauri::AppHandle, dir: &Path) -> PathBuf {
+    let prefs = load_client_prefs(app);
+    let written = prefs.udi.installed.get(&*dir.to_string_lossy()).and_then(|h| h.cfg_written.clone());
+    let is_ours = |p: &Path| std::fs::read(p).is_ok_and(|b| written.as_deref() == Some(fingerprint(&b).as_str()));
+    let variants = named_ci(dir, "user.cfg");
+    variants.iter().find(|p| !is_ours(p)).or(variants.first()).cloned().unwrap_or_else(|| dir.join("user.cfg"))
+}
+
+/// Another part of StarBuddy changed a user.cfg StarConfig wrote: it is
+/// still StarConfig's, so the next update replaces it rather than backing
+/// it up as the player's own.
+pub(crate) fn rewrote_cfg(app: &tauri::AppHandle, dir: &Path, before: &[u8], after: &[u8]) {
+    let mut prefs = load_client_prefs(app);
+    let Some(here) = prefs.udi.installed.get_mut(&*dir.to_string_lossy()) else { return };
+    if here.cfg_written.as_deref() == Some(fingerprint(before).as_str()) {
+        here.cfg_written = Some(fingerprint(after));
+        let _ = save_client_prefs(app, &prefs);
+    }
+}
+
 /// GET /api/starbuddy/profile.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Profile {
@@ -263,7 +285,8 @@ async fn install_into(app: &tauri::AppHandle, live_dir: &str, force: bool) -> Re
     let profile = udi_profile(app.clone()).await?.ok_or("Nothing has been sent from uniteddanes.org yet.")?;
     let mut prefs = load_client_prefs(app);
     let mut here = prefs.udi.installed.get(live_dir).cloned().unwrap_or_default();
-    let result = fetch_and_write(&token, &dir, &profile, &mut here, force).await?;
+    let lines = crate::game_cfg::GameLines { telemetry: prefs.game_telemetry, display_info: prefs.game_display_info };
+    let result = fetch_and_write(&token, &dir, &profile, &mut here, force, lines).await?;
     here.at = Some(chrono_now());
     prefs.udi.revision = Some(profile.revision);
     prefs.udi.installed.insert(live_dir.to_string(), here);
@@ -272,8 +295,17 @@ async fn install_into(app: &tauri::AppHandle, live_dir: &str, force: bool) -> Re
 }
 
 /// The files of one Send, fetched and written into `dir`; `here` is what
-/// was installed there before and is brought up to date.
-async fn fetch_and_write(token: &str, dir: &Path, profile: &Profile, here: &mut Installed, force: bool) -> Result<InstallResult, String> {
+/// was installed there before and is brought up to date. `lines` keeps the
+/// player's telemetry and position-text choices in the user.cfg written
+/// (game_cfg.rs).
+async fn fetch_and_write(
+    token: &str,
+    dir: &Path,
+    profile: &Profile,
+    here: &mut Installed,
+    force: bool,
+    lines: crate::game_cfg::GameLines,
+) -> Result<InstallResult, String> {
     let token = token.to_string();
     let dir = dir.to_path_buf();
     let mut result = InstallResult::default();
@@ -311,6 +343,7 @@ async fn fetch_and_write(token: &str, dir: &Path, profile: &Profile, here: &mut 
             200 => {
                 let new_etag = header(&resp, "ETag");
                 let body = resp.bytes().await.map_err(|e| e.to_string())?;
+                let body = crate::game_cfg::merge(&body, lines);
                 // The user.cfg the game reads, in whatever casing it has: the
                 // player's own if there is one, else one StarBuddy wrote.
                 let is_ours = |path: &Path| {
@@ -620,7 +653,7 @@ mod tests {
             assert_eq!(resp.status().as_u16(), 200, "no profile for the token");
             let profile: Profile = resp.json().await.unwrap();
             let mut here = Installed::default();
-            let r = fetch_and_write(&token, &dir, &profile, &mut here, true).await.unwrap();
+            let r = fetch_and_write(&token, &dir, &profile, &mut here, true, Default::default()).await.unwrap();
             println!("first: ini {} cfg {} backed_up {} version {:?}", r.ini, r.cfg, r.backed_up, r.game_version);
             assert!(r.ini && r.cfg && r.backed_up);
             assert!(dir.join("Data/Localization/english/global.ini").is_file());
@@ -630,7 +663,7 @@ mod tests {
             let cfg = std::fs::read_to_string(dir.join("USER.cfg")).unwrap();
             println!("user.cfg: {cfg:?}");
             // Nothing changed at UDI: both answer 304 and nothing is written.
-            let again = fetch_and_write(&token, &dir, &profile, &mut here, false).await.unwrap();
+            let again = fetch_and_write(&token, &dir, &profile, &mut here, false, Default::default()).await.unwrap();
             println!("again: ini {} cfg {}", again.ini, again.cfg);
             assert!(!again.ini && !again.cfg && !again.backed_up);
         });

@@ -34,7 +34,12 @@ dirs = "7"
 # NASM objects, so the Windows build still needs nothing but MSVC.
 reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "rustls"] }
 # The RSI status loop sleeps and is woken; tauri already runs on tokio.
-tokio = { version = "1", features = ["time", "sync"] }
+tokio = { version = "1", features = ["time", "sync", "net", "rt"] }
+# EXPERIMENT: the game's telemetry stream is gRPC over plain HTTP/2 on
+# 127.0.0.1; one stream and one field need no gRPC stack.
+h2 = "0.4"
+http = "1"
+bytes = "1"
 hostname = "0.4"
 ocrs = "0.13"
 rten = "0.26"

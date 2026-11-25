@@ -406,7 +406,9 @@
       "overlay-pools": "blueprint pools window",
       "overlay-gathering": "gathering window",
       "overlay-orders": "refinery orders window",
-      "overlay-points": "points window"
+      "overlay-points": "points window",
+      "overlay-beacon": "location window",
+      "beacon": "location beacon"
     },
     "report": "System info",
     "reportCopy": "Copy",
@@ -662,7 +664,9 @@
       "overlay-pools": "Blueprint pools window",
       "overlay-gathering": "Gathering window",
       "overlay-orders": "Refinery orders window",
-      "overlay-points": "Points window"
+      "overlay-points": "Points window",
+      "overlay-beacon": "Location window (experimental)",
+      "beacon": "Set location beacon"
     },
     "hkSub": {
       "main": "The one key to remember",
@@ -677,9 +681,12 @@
       "overlay-pools": "Open or close",
       "overlay-gathering": "Open or close",
       "overlay-orders": "Open or close",
-      "overlay-points": "Open or close"
+      "overlay-points": "Open or close",
+      "overlay-beacon": "Open or close",
+      "beacon": "Where you are now"
     },
     "change": "Change",
+    "locationWindow": "Open location window (experimental)",
     "groupWindows": "Windows",
     "groupCapture": "Screen capture",
     "captureNeedsReading": "These read the game's window: turn screen reading on first.",
@@ -919,5 +926,18 @@
       "solo": "StarBuddy works solo. Join an org on the website when you want to share with others.",
       "go": "Open StarBuddy"
     }
+  },
+  "gameLines": {
+    "title": "Game settings for the beacon window",
+    "ask": "New for the beacon window: StarBuddy can add two lines to the game's user.cfg, which the game reads as it starts. Turn on the ticked ones?",
+    "display_info": "Position text in the corner (r_DisplayInfo = 1): where the beacon window reads your position",
+    "telemetry": "Game telemetry: your ship's heading in a planet's atmosphere, even hovering still, and the game's own speed",
+    "display_infoHint": "Adds r_DisplayInfo = 1 to user.cfg, so you need not type it in the console each time. A higher level you set yourself is kept.",
+    "telemetryHint": "Adds grpc.client.server.enabled = 1 to user.cfg. The game shares it with this computer only.",
+    "restart": "The game reads user.cfg as it starts: restart the game after a change.",
+    "yes": "Turn on",
+    "no": "Not now",
+    "saidYes": "Done. It works from the next time you start the game.",
+    "saidNo": "Left off. You can turn them on later under Settings › Game install."
   }
 }

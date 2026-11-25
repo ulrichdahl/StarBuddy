@@ -11,7 +11,7 @@ import type { HotkeyInfo, Reading } from "./types";
 import { useTester } from "./useTester";
 
 /** The overlay windows with a key of their own to open and close them, none by default. */
-const OVERLAY_KEYS = ["scan", "refinery", "pools", "gathering", "orders", "points"].map((w) => `overlay-${w}`);
+const OVERLAY_KEYS = ["scan", "refinery", "pools", "gathering", "orders", "points", "beacon"].map((w) => `overlay-${w}`);
 import type { MainMode, MainState } from "./mainMode";
 
 /** Which of the panel's three parts a Settings tab shows. */
@@ -381,6 +381,13 @@ export function OverlayPanel({
         {row("overlays")}
         {row("status")}
         {OVERLAY_KEYS.map(row)}
+        {/* EXPERIMENT: location and beacon. */}
+        {row("beacon")}
+        <p>
+          <button type="button" onClick={() => void invoke("location_window").catch(() => {})}>
+            {t("settings.locationWindow")}
+          </button>
+        </p>
       </section>
       <section className="panel">
         <h2>{t("settings.groupCapture")}</h2>

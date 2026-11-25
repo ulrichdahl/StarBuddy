@@ -13,6 +13,8 @@ import { OpenAsPanel, OverlayPanel, PresencePanel, useDebugMode, useHeardHotkey 
 import { ServerPanel } from "./main-window/ServerPanel";
 import { Setup, setupDone } from "./main-window/Setup";
 import { UpdateBanner } from "./main-window/UpdateBanner";
+import { TelemetryBanner, TelemetryPanel } from "./main-window/TelemetryPanel";
+import { newsWaiting } from "./main-window/news";
 import { useWatcher, WatcherPanel } from "./main-window/WatcherPanel";
 import { Home } from "./main-window/Home";
 import { Refinery } from "./main-window/Refinery";
@@ -39,6 +41,13 @@ import "./App.css";
 function App() {
   const { t, i18n } = useTranslation();
   const [section, setSection] = useSection();
+  // Something new announced on Home: open there, once, at start.
+  useEffect(() => {
+    newsWaiting()
+      .then((yes) => yes && setSection("home"))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [settingsTab, setSettingsTab] = useSettingsTab();
   const [mainState, setMainMode] = useMainMode();
   const [mainKey, setMainKey] = useState<string | null>(null);
@@ -126,6 +135,7 @@ function App() {
       <>
         <IncidentBanner />
         <UpdateBanner update={update} dismissed={updateDismissed} onDismiss={() => setUpdateDismissed(true)} />
+        <TelemetryBanner />
         <Home watcher={watcher} canStart={canStart} onSection={setSection} />
         <Footer part="credits" update={update} onUpdate={onUpdate} />
       </>
@@ -151,6 +161,7 @@ function App() {
                 onResult={setResult}
               />
               <WatcherPanel watcher={watcher} canStart={canStart} />
+              <TelemetryPanel />
               {result && <EventsTable result={result} paired={paired} />}
             </>
           ),

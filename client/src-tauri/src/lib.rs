@@ -6,11 +6,14 @@ mod capture;
 mod changes;
 mod diagnostics;
 mod fs_atomic;
+mod game_cfg;
 mod game_dir;
 mod host;
 mod http;
 mod kde_rule;
 mod lock;
+// EXPERIMENT: location from r_DisplayInfo, and a beacon.
+pub mod location;
 mod main_window;
 mod outbox;
 mod pairing;
@@ -191,6 +194,8 @@ pub fn run() {
             for tracker in overlay::TRACKERS {
                 overlay::show_if_open(&handle, tracker);
             }
+            overlay::show_if_open(&handle, location::WINDOW);
+            location::start(&handle);
             let args: Vec<String> = std::env::args().collect();
             if let Some(action) = overlay::action_in(&args) {
                 overlay::run_action(&handle, &action);
@@ -219,10 +224,17 @@ pub fn run() {
             watcher::start_at_launch(&handle);
             presence::start(&handle);
             udi::start(&handle);
+            // A user.cfg replaced since (a reinstall, the player) gets the switch back.
+            game_cfg::apply(&handle);
             tester::start(&handle);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            location::location_view,
+            location::location_track,
+            game_cfg::game_lines_get,
+            game_cfg::game_lines_set,
+            location::location_window,
             game_dir::detect_game_log,
             game_dir::game_channels,
             reading::screen_reading,

@@ -33,7 +33,7 @@ pub const TRACKERS: [&str; 4] = ["pools", "gathering", "orders", "points"];
 /// The rest open and close one overlay window each, or hide and show them all
 /// at once. They have no key until the player gives them one: a key the game
 /// or another program uses is worse than none.
-pub const DEFAULT_HOTKEYS: [(&str, &str); 13] = [
+pub const DEFAULT_HOTKEYS: [(&str, &str); 15] = [
     // Insert: bound to nothing in Star Citizen's default profile
     // (Data/Libs/Config/defaultProfile.xml, 4.x), where F12 is chat.
     ("main", "Insert"),
@@ -49,11 +49,14 @@ pub const DEFAULT_HOTKEYS: [(&str, &str); 13] = [
     ("overlay-gathering", ""),
     ("overlay-orders", ""),
     ("overlay-points", ""),
+    // EXPERIMENT: the location window, and setting its beacon from the game.
+    ("overlay-beacon", ""),
+    ("beacon", ""),
 ];
 
 /// Every overlay window, in the order the "overlays" key goes through them.
 pub fn overlay_windows() -> impl Iterator<Item = &'static str> {
-    [STATUS, crate::scan::SCAN, crate::refinery::REFINERY].into_iter().chain(TRACKERS)
+    [STATUS, crate::scan::SCAN, crate::refinery::REFINERY].into_iter().chain(TRACKERS).chain([crate::location::WINDOW])
 }
 /// Every overlay's window is destroyed after it has been hidden this long.
 /// A hidden webview is a whole browser process kept alive for nothing: measured
@@ -958,6 +961,8 @@ pub fn describe_action(action: &str) -> &'static str {
         "overlay-gathering" => "Open or close the gathering window",
         "overlay-orders" => "Open or close the refinery orders window",
         "overlay-points" => "Open or close the points window",
+        "overlay-beacon" => "Open or close the location window",
+        "beacon" => "Set the location beacon here",
         _ => "StarBuddy",
     }
 }
@@ -1127,6 +1132,11 @@ pub fn run_action(app: &AppHandle, action: &str) {
         "capture" => crate::training::trigger(&app2),
         "reading" => crate::reading::trigger(&app2),
         "overlays" => toggle_all(&app2),
+        "beacon" => {
+            if let Err(e) = crate::location::set_beacon(&app2) {
+                log::warn!("beacon: {e}");
+            }
+        }
         other if other.starts_with("overlay-") => {
             let name = &other["overlay-".len()..];
             if let Err(e) = toggle(&app2, name) {

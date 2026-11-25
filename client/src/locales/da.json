@@ -406,7 +406,9 @@
       "overlay-pools": "blueprint-puljer-vindue",
       "overlay-gathering": "indsamlingsvindue",
       "overlay-orders": "raffinaderiordrer-vindue",
-      "overlay-points": "pointvindue"
+      "overlay-points": "pointvindue",
+      "overlay-beacon": "positionsvindue",
+      "beacon": "positionsfyr"
     },
     "report": "Systemoplysninger",
     "reportCopy": "Kopiér",
@@ -662,7 +664,9 @@
       "overlay-pools": "Blueprint-puljer-vindue",
       "overlay-gathering": "Indsamlingsvindue",
       "overlay-orders": "Raffinaderiordrer-vindue",
-      "overlay-points": "Pointvindue"
+      "overlay-points": "Pointvindue",
+      "overlay-beacon": "Positionsvindue (eksperimentelt)",
+      "beacon": "Sæt positionsfyr"
     },
     "hkSub": {
       "main": "Den ene tast at huske",
@@ -677,9 +681,12 @@
       "overlay-pools": "Åbn eller luk",
       "overlay-gathering": "Åbn eller luk",
       "overlay-orders": "Åbn eller luk",
-      "overlay-points": "Åbn eller luk"
+      "overlay-points": "Åbn eller luk",
+      "overlay-beacon": "Åbn eller luk",
+      "beacon": "Hvor du er nu"
     },
     "change": "Skift",
+    "locationWindow": "Åbn positionsvindue (eksperimentelt)",
     "groupWindows": "Vinduer",
     "groupCapture": "Skærmaflæsning",
     "captureNeedsReading": "Disse aflæser spillets vindue: slå skærmaflæsning til først.",
@@ -919,5 +926,18 @@
       "solo": "StarBuddy virker solo. Meld dig ind i en org på hjemmesiden, når du vil dele med andre.",
       "go": "Åbn StarBuddy"
     }
+  },
+  "gameLines": {
+    "title": "Spilindstillinger til positionsvinduet",
+    "ask": "Nyt til positionsvinduet: StarBuddy kan tilføje to linjer til spillets user.cfg, som spillet læser, når det starter. Slå dem med flueben til?",
+    "display_info": "Positionstekst i hjørnet (r_DisplayInfo = 1): der, hvor positionsvinduet læser din position",
+    "telemetry": "Spillets telemetri: dit skibs kurs i en planets atmosfære, også når du står stille i luften, og spillets egen fart",
+    "display_infoHint": "Tilføjer r_DisplayInfo = 1 til user.cfg, så du ikke skal skrive det i konsollen hver gang. Et højere trin, du selv har sat, beholdes.",
+    "telemetryHint": "Tilføjer grpc.client.server.enabled = 1 til user.cfg. Spillet deler den kun med denne computer.",
+    "restart": "Spillet læser user.cfg, når det starter: genstart spillet efter en ændring.",
+    "yes": "Slå til",
+    "no": "Ikke nu",
+    "saidYes": "Klar. Det virker fra næste gang, du starter spillet.",
+    "saidNo": "Ikke slået til. Du kan slå dem til senere under Indstillinger › Spilinstallation."
   }
 }

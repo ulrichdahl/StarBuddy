@@ -69,7 +69,7 @@ impl Frame {
         self.rect_rgb(0, top, self.width, height)
     }
 
-    fn rect_rgb(&self, x: u32, y: u32, w: u32, h: u32) -> Result<Captured, String> {
+    pub(crate) fn rect_rgb(&self, x: u32, y: u32, w: u32, h: u32) -> Result<Captured, String> {
         if w == 0 || h == 0 || x + w > self.width || y + h > self.height {
             return Err(format!("{w}×{h} at {x},{y} is outside the {}×{} frame", self.width, self.height));
         }
