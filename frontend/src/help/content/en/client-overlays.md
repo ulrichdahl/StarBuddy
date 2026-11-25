@@ -24,6 +24,7 @@ While the game is not running, StarBuddy always opens as a window.
 | Gathering | Your shopping list | none |
 | Refinery orders | Your open orders, ready ones first and framed green. Each fills up as it refines, with the station, time left, ores and total yield | none |
 | Your points | Your points this month and your org's rank | none |
+| Location (experimental) | Direction, distance and arrival time to a beacon. See [Location beacons](client-beacons) | none |
 
 Open and close them from **Windows over the game** on Home, or give each one a key in `Settings` › `Hotkeys`. One more key can hide every open window and show them again.
 

@@ -31,6 +31,7 @@ class User extends Authenticatable
             'udi_link_token' => 'encrypted',
             'udi_linked_at' => 'datetime',
             'discord_role_ids' => 'array',
+            'current_shard_at' => 'datetime',
         ];
     }
 
@@ -106,6 +107,11 @@ class User extends Authenticatable
     public function blueprintsOwned(): HasMany
     {
         return $this->hasMany(BlueprintOwned::class);
+    }
+
+    public function beacons(): HasMany
+    {
+        return $this->hasMany(Beacon::class);
     }
 
     public function refineryOrders(): HasMany

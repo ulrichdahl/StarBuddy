@@ -564,3 +564,32 @@ export interface Competition {
   orgs: CompetitionOrg[]
   contribution: Record<CompetitionMetric, { mine: number; org: number }> | null
 }
+
+/**
+ * A location beacon set in the desktop client, from GET /api/beacons: a
+ * point in one coordinate frame on one game shard.
+ */
+export interface Beacon {
+  id: number
+  name: string
+  /** The exact SolarSystem_<n> zone: one star system on one game shard. */
+  shard: string
+  /** OOC_<system>_<n>_<planet> for a planet (turns with it), or the shard name for space. */
+  frame: string
+  /** Metres in the frame. */
+  pos: [number, number, number]
+  system: string | null
+  location: string | null
+  server: string | null
+  set_at: string
+  /** Shared with the owner's org mates. */
+  shared: boolean
+  mine: boolean
+  owner: { id: number; name: string }
+}
+
+/** The shard the player's client last reported, from GET /api/me/shard. */
+export interface CurrentShard {
+  shard: string | null
+  at: string | null
+}

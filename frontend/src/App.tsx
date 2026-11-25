@@ -15,6 +15,7 @@ import { ResourcesPage } from './pages/ResourcesPage'
 import { ItemsPage } from './pages/ItemsPage'
 import { BlueprintsPage } from './pages/BlueprintsPage'
 import { RefineryPage } from './pages/RefineryPage'
+import { BeaconsPage } from './pages/BeaconsPage'
 import { ImportPage } from './pages/ImportPage'
 import { AdminPage } from './pages/AdminPage'
 import { TrainingPage } from './pages/TrainingPage'
@@ -103,6 +104,7 @@ export default function App() {
         <Route path="/items" element={<ItemsPage />} />
         <Route path="/blueprints" element={<BlueprintsPage />} />
         <Route path="/refinery" element={<RefineryPage />} />
+        <Route path="/beacons" element={<BeaconsPage />} />
         <Route path="/import" element={<ImportPage />} />
         <Route path="/admin" element={canSee(me, 'admin') ? <AdminPage /> : <Navigate to="/" replace />} />
         <Route path="/training" element={canSee(me, 'training') ? <TrainingPage /> : <Navigate to="/" replace />} />

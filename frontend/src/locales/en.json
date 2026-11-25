@@ -38,7 +38,8 @@
     "gathering": "Gathering",
     "desktopClient": "Desktop client",
     "desktopClientHelp": "Download the StarBuddy desktop client and pair it",
-    "noClientConnected": "No desktop client connected yet. Download it and pair it here."
+    "noClientConnected": "No desktop client connected yet. Download it and pair it here.",
+    "beacons": "Beacons"
   },
   "login": {
     "tagline": "Materials, blueprints and refinery tracking for Star Citizen, solo or with your org.",
@@ -1245,5 +1246,48 @@
     "deleteFinal": "Delete my account",
     "deleting": "Deleting…",
     "deleteError": "Your account could not be deleted. Try again."
+  },
+  "beacons": {
+    "title": "Beacons",
+    "subtitle": "Points you marked in the game with the desktop client, and the ones your org mates share. You set beacons in the client's location window. What was left at a beacon exists only on the game shard it was set on.",
+    "import": "Import",
+    "exportAll": "Export all",
+    "exportSelected": "Export {{count}} selected",
+    "currentShard": "Your client last reported shard {{shard}} ({{full}}) at {{at}}. Beacons on another shard are marked.",
+    "noShard": "Your client has not reported a shard yet. Open the location window in the client in-game to compare shards.",
+    "imported_one": "Imported {{count}} beacon. It is yours and not shared.",
+    "imported_other": "Imported {{count}} beacons. They are yours and not shared.",
+    "importNoShard": "Open the location window in the client in-game to compare shards.",
+    "importOtherShard_one": "{{count}} of them is on another shard than the one your client is on ({{shard}}). It will not lead you to the right place there:",
+    "importOtherShard_other": "{{count}} of them are on another shard than the one your client is on ({{shard}}). They will not lead you to the right place there:",
+    "importNotJson": "That file is not a beacon export. Choose a starbuddy-beacons.json file.",
+    "importFailed": "The import failed.",
+    "shardLabel": "shard",
+    "saveFailed": "The change was not saved. Try again.",
+    "loadFailed": "The beacons could not be loaded.",
+    "tableAria": "Beacons",
+    "selectAll": "Select all beacons",
+    "select": "Select {{name}}",
+    "rename": "Rename",
+    "renameAria": "Rename {{name}}",
+    "shareAria": "Share {{name}} with your org",
+    "deleteAria": "Delete {{name}}",
+    "deleteTitle": "Delete this beacon?",
+    "deleteWhat": "{{name}} is deleted for you and for any org mates you shared it with.",
+    "otherShard": "Other shard",
+    "space": "Space",
+    "you": "You",
+    "sharedWithYou": "Shared with you",
+    "emptyTitle": "No beacons yet",
+    "emptyHow": "Turn on r_DisplayInfo in the game, open the location window in the desktop client and set one. You can also import a file a friend exported.",
+    "columns": {
+      "name": "Name",
+      "system": "System",
+      "shard": "Shard",
+      "body": "Planet or space",
+      "owner": "Owner",
+      "setAt": "Set",
+      "shared": "Shared"
+    }
   }
 }

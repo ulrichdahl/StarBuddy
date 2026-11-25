@@ -21,6 +21,7 @@ import DiamondOutlinedIcon from '@mui/icons-material/DiamondOutlined'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
 import SchemaOutlinedIcon from '@mui/icons-material/SchemaOutlined'
 import FactoryOutlinedIcon from '@mui/icons-material/FactoryOutlined'
+import MyLocationOutlinedIcon from '@mui/icons-material/MyLocationOutlined'
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined'
 import PhotoCameraOutlinedIcon from '@mui/icons-material/PhotoCameraOutlined'
 import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined'
@@ -65,6 +66,7 @@ const NAV_GROUPS: { key: string; items: NavItem[] }[] = [
       { key: 'items', to: '/items', icon: <Inventory2OutlinedIcon /> },
       { key: 'blueprints', to: '/blueprints', icon: <SchemaOutlinedIcon /> },
       { key: 'refinery', to: '/refinery', icon: <FactoryOutlinedIcon /> },
+      { key: 'beacons', to: '/beacons', icon: <MyLocationOutlinedIcon /> },
     ],
   },
   {

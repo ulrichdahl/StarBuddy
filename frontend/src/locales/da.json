@@ -38,7 +38,8 @@
     "gathering": "Indsamling",
     "desktopClient": "Desktopklient",
     "desktopClientHelp": "Hent StarBuddy-desktopklienten og par den",
-    "noClientConnected": "Ingen desktop-klient forbundet endnu. Download den og par den her."
+    "noClientConnected": "Ingen desktop-klient forbundet endnu. Download den og par den her.",
+    "beacons": "Positionsfyr"
   },
   "login": {
     "tagline": "Materialer, blueprints og raffinering i Star Citizen, alene eller med din org.",
@@ -1242,5 +1243,48 @@
     "deleteFinal": "Slet min konto",
     "deleting": "Sletter…",
     "deleteError": "Kontoen kunne ikke slettes. Prøv igen."
+  },
+  "beacons": {
+    "title": "Positionsfyr",
+    "subtitle": "Punkter du har markeret i spillet med desktop-klienten, og dem dine org-kammerater deler. Du sætter positionsfyr i klientens positionsvindue. Det, der blev efterladt ved et positionsfyr, findes kun på den spil-shard, det blev sat på.",
+    "import": "Importér",
+    "exportAll": "Eksportér alle",
+    "exportSelected": "Eksportér {{count}} valgte",
+    "currentShard": "Din klient meldte sidst shard {{shard}} ({{full}}) kl. {{at}}. Positionsfyr på en anden shard er markeret.",
+    "noShard": "Din klient har ikke meldt en shard endnu. Åbn positionsvinduet i klienten i spillet for at sammenligne shards.",
+    "imported_one": "{{count}} positionsfyr importeret. Det er dit og ikke delt.",
+    "imported_other": "{{count}} positionsfyr importeret. De er dine og ikke delt.",
+    "importNoShard": "Åbn positionsvinduet i klienten i spillet for at sammenligne shards.",
+    "importOtherShard_one": "{{count}} af dem er på en anden shard end den, din klient er på ({{shard}}). Det fører dig ikke til det rigtige sted der:",
+    "importOtherShard_other": "{{count}} af dem er på en anden shard end den, din klient er på ({{shard}}). De fører dig ikke til det rigtige sted der:",
+    "importNotJson": "Den fil er ikke en eksport af positionsfyr. Vælg en starbuddy-beacons.json-fil.",
+    "importFailed": "Importen mislykkedes.",
+    "shardLabel": "shard",
+    "saveFailed": "Ændringen blev ikke gemt. Prøv igen.",
+    "loadFailed": "Positionsfyrene kunne ikke hentes.",
+    "tableAria": "Positionsfyr",
+    "selectAll": "Vælg alle positionsfyr",
+    "select": "Vælg {{name}}",
+    "rename": "Omdøb",
+    "renameAria": "Omdøb {{name}}",
+    "shareAria": "Del {{name}} med din org",
+    "deleteAria": "Slet {{name}}",
+    "deleteTitle": "Slet dette positionsfyr?",
+    "deleteWhat": "{{name}} slettes for dig og for de org-kammerater, du har delt det med.",
+    "otherShard": "Anden shard",
+    "space": "Rummet",
+    "you": "Dig",
+    "sharedWithYou": "Delt med dig",
+    "emptyTitle": "Ingen positionsfyr endnu",
+    "emptyHow": "Slå r_DisplayInfo til i spillet, åbn positionsvinduet i desktop-klienten, og sæt et. Du kan også importere en fil, en ven har eksporteret.",
+    "columns": {
+      "name": "Navn",
+      "system": "System",
+      "shard": "Shard",
+      "body": "Planet eller rummet",
+      "owner": "Ejer",
+      "setAt": "Sat",
+      "shared": "Delt"
+    }
   }
 }

@@ -17,7 +17,7 @@ class AccountController extends Controller
 {
     /** Tables that hold a member's own rows in user_id. */
     private const OWN_TABLES = [
-        'blueprint_owned', 'craft_targets', 'ingest_events', 'item_stacks', 'locations',
+        'beacons', 'blueprint_owned', 'craft_targets', 'ingest_events', 'item_stacks', 'locations',
         'org_members', 'refinery_orders', 'resource_stacks', 'score_events',
         'screenshot_submissions', 'tracked_pools', 'user_game_accounts', 'user_presence',
     ];

@@ -41,6 +41,10 @@
       "group": "website"
     },
     {
+      "id": "beacons",
+      "group": "website"
+    },
+    {
       "id": "import",
       "group": "website"
     },
@@ -73,6 +77,10 @@
       "group": "client"
     },
     {
+      "id": "client-beacons",
+      "group": "client"
+    },
+    {
       "id": "client-settings",
       "group": "client"
     },
@@ -97,6 +105,7 @@
     "/items": "items",
     "/blueprints": "blueprints",
     "/refinery": "refinery",
+    "/beacons": "beacons",
     "/import": "import",
     "/admin": "admin",
     "/training": "training",

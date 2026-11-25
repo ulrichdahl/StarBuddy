@@ -38,6 +38,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // The member's own data, as one file, or the whole account gone.
     Route::get('me/export', [\App\Http\Controllers\AccountController::class, 'export'])->middleware('throttle:6,1');
     Route::delete('me', [\App\Http\Controllers\AccountController::class, 'destroy'])->middleware('throttle:6,1');
+    // The game shard (SolarSystem_<n>) the desktop client is on, so the
+    // website can say which beacons are on another one.
+    Route::get('me/shard', [\App\Http\Controllers\BeaconController::class, 'showShard']);
+    Route::put('me/shard', [\App\Http\Controllers\BeaconController::class, 'updateShard'])->middleware('throttle:30,1');
 
     Route::get('dashboard', DashboardController::class);
     Route::get('dashboard/competition', \App\Http\Controllers\CompetitionController::class);
@@ -84,6 +88,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('tracked-pools', [\App\Http\Controllers\TrackedPoolController::class, 'index']);
     Route::post('tracked-pools', [\App\Http\Controllers\TrackedPoolController::class, 'store']);
     Route::delete('tracked-pools/{poolKey}', [\App\Http\Controllers\TrackedPoolController::class, 'destroy'])->where('poolKey', '.*');
+
+    // Location beacons set in the desktop client: own, plus org mates' shared ones.
+    Route::get('beacons', [\App\Http\Controllers\BeaconController::class, 'index']);
+    Route::post('beacons/import', [\App\Http\Controllers\BeaconController::class, 'import'])->middleware('throttle:10,1');
+    Route::post('beacons', [\App\Http\Controllers\BeaconController::class, 'store'])->middleware('throttle:60,1');
+    Route::patch('beacons/{beacon}', [\App\Http\Controllers\BeaconController::class, 'update']);
+    Route::delete('beacons/{beacon}', [\App\Http\Controllers\BeaconController::class, 'destroy']);
 
     Route::get('refinery-orders', [RefineryOrderController::class, 'index']);
     Route::post('refinery-orders', [RefineryOrderController::class, 'store']);
