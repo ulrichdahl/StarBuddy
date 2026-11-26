@@ -145,6 +145,25 @@ jobs:
           (cd "$GITHUB_WORKSPACE/client" && npx tauri signer sign "$OLDPWD/$APPIMAGE")
           test -s "$APPIMAGE.sig"
 
+      # The updater checks that the signature names the version latest.json
+      # announces (tauri-plugin-updater 2.14). The build signed the bundles
+      # as the release's version (1.1.0), the manifest says 1.1.0-dev.<stamp>:
+      # sign them again for the dev version.
+      - name: Sign the update bundles for the dev version
+        shell: bash
+        env:
+          STAMP: ${{ needs.stamp.outputs.stamp }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          VER=$(node -p "require('./client/src-tauri/tauri.conf.json').version")
+          shopt -s nullglob
+          for f in client/src-tauri/target/release/bundle/appimage/*.AppImage client/src-tauri/target/release/bundle/nsis/*-setup.exe; do
+            rm -f "$f.sig"
+            (cd client && npx tauri signer sign --app-version "$VER-dev.${STAMP//-/}" "$GITHUB_WORKSPACE/$f")
+            test -s "$f.sig"
+          done
+
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.os }}
