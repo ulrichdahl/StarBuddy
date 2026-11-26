@@ -111,19 +111,16 @@ async fn listen(open: &impl Fn() -> bool) -> Result<(), String> {
 
 /// The flight in one TelemetryStreamResponse: vehicle (3) › state (2) ›
 /// flight (8) › instruments (3), with speed (1), atmospheric_density (9) and
-/// heading (10). Proto3 leaves a 0 out: a missing speed is standing still,
-/// a missing heading due north when the ship is in an atmosphere (density
-/// above 0) and no heading at all otherwise.
+/// heading (10). Proto3 leaves a 0 out: a missing speed is standing still.
+/// A missing heading is no heading, not due north: high above a planet (80 km
+/// up) the density is still above 0 but the game sends none, and
+/// reading that as 0° pinned the turn to the bearing. A float exactly 0.0 is
+/// too rare to matter; the turn then comes from travel for that frame.
 pub fn frame_flight(msg: &[u8]) -> Option<Flight> {
     let flight = [3, 2, 8].iter().try_fold(msg, |m, &n| bytes_field(m, n))?;
     let ins = bytes_field(flight, 3).unwrap_or(&[]);
     let speed = f32_field(ins, 1).filter(|v| v.is_finite()).unwrap_or(0.0) as f64;
-    let density = f32_field(ins, 9).unwrap_or(0.0);
-    let heading = match f32_field(ins, 10) {
-        Some(h) if h.is_finite() => Some(h as f64),
-        None if density > 0.0 => Some(0.0),
-        _ => None,
-    };
+    let heading = f32_field(ins, 10).filter(|h| h.is_finite()).map(|h| h as f64);
     Some(Flight { speed, heading })
 }
 
@@ -203,8 +200,9 @@ mod tests {
     }
 
     #[test]
-    fn left_out_numbers_are_zero_and_no_heading_in_space() {
-        assert_eq!(frame_flight(&frame(&f32(9, 1.2))), Some(Flight { speed: 0.0, heading: Some(0.0) }));
+    fn left_out_speed_is_zero_and_no_heading_is_no_heading() {
+        // High above a planet: a trace of air, no heading.
+        assert_eq!(frame_flight(&frame(&f32(9, 0.000117))), Some(Flight { speed: 0.0, heading: None }));
         assert_eq!(frame_flight(&frame(&f32(1, 145.0))).unwrap().heading, None);
         // On foot: no vehicle at all.
         assert_eq!(frame_flight(&len(6, &[])), None);
