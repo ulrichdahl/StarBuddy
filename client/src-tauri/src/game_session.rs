@@ -101,6 +101,7 @@ impl GameSession {
 pub struct Names {
     ini: Option<PathBuf>,
     cache: HashMap<String, String>,
+    keys: HashMap<String, Option<String>>,
 }
 
 /// Codes whose name lives under a key the code does not lead to.
@@ -127,7 +128,17 @@ impl Names {
             .iter()
             .map(|d| live_dir.join(d).join("Localization/english/global.ini"))
             .find(|p| p.is_file());
-        Self { ini, cache: HashMap::new() }
+        Self { ini, cache: HashMap::new(), keys: HashMap::new() }
+    }
+
+    /// The text under one global.ini key, looked up once.
+    pub fn key(&mut self, key: &str) -> Option<String> {
+        if let Some(v) = self.keys.get(key) {
+            return v.clone();
+        }
+        let v = self.lookup(&[key.to_string()]);
+        self.keys.insert(key.to_string(), v.clone());
+        v
     }
 
     /// The keys a location code may be named under, most exact first.

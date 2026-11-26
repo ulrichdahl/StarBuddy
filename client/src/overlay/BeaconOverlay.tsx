@@ -56,6 +56,8 @@ interface Here {
   server: string | null;
   /** A name for the place, for a new beacon's default name. */
   area: string;
+  /** The frame's star map name, when the game has one. */
+  place: string | null;
 }
 interface View {
   status: "off" | "waiting" | "no-text" | "ok" | "";
@@ -66,6 +68,8 @@ interface View {
   nav: Nav | null;
   /** Why there is no way to it: `system` (another system) or `frame` (on a planet you are not near). */
   beacon_elsewhere: "system" | "frame" | null;
+  /** The beacon's frame by its star map name (`ArcCorp`, `ARC L2`). */
+  beacon_place: string | null;
   /** Tracked, but with a doubt: `shard` (set on another shard). */
   beacon_warning: "shard" | null;
   held: boolean;
@@ -371,8 +375,13 @@ export function BeaconOverlay() {
 
   let warning: string | null = null;
   if (beacon && view?.beacon_elsewhere === "system") warning = `${beacon.name} is in ${beacon.system ?? "another system"}.`;
-  else if (beacon && view?.beacon_elsewhere === "frame")
-    warning = `${beacon.name} is on ${planetOf(beacon.frame) ?? "a planet"}. Fly there to get directions.`;
+  else if (beacon && view?.beacon_elsewhere === "frame") {
+    // The star map's name, so it can be found there: ARC L2, ArcCorp.
+    const place = view.beacon_place ?? planetOf(beacon.frame);
+    warning = place
+      ? `${beacon.name} is ${/ L\d+$/.test(place) ? "at" : "on"} ${place}. Fly there to get directions.`
+      : `${beacon.name} is on a planet you are not near. Fly there to get directions.`;
+  }
   const shardNote =
     beacon && view?.beacon_warning === "shard"
       ? "Set on another shard: the spot is the same, but what was left there may not be."

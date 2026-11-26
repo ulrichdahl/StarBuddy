@@ -62,9 +62,10 @@ impl Fix {
     }
 
     /// A short name for where the player is, for a new beacon: the landing
-    /// zone or station (`Area18`, `RR HUR L3`), else the planet or moon
-    /// (`ArcCorp`, `Ita`), else `Stanton space`.
-    pub fn area(&self) -> String {
+    /// zone or station (`Area18`, `RR HUR L3`), else the planet, moon or
+    /// Lagrange point by the name the star map uses (`place`: `ArcCorp`,
+    /// `ARC L2`), else `Stanton space`.
+    pub fn area(&self, place: Option<&str>) -> String {
         let system = self.system_name();
         if let Some(loc) = self.location.as_deref() {
             let loc = loc.split("(LZ").next().unwrap_or("").trim();
@@ -72,14 +73,25 @@ impl Fix {
                 .split_whitespace()
                 .filter(|w| {
                     // `Stanton3`, `Stanton1d`, `StantonSolarSystem`, `Nyx`: the system, not the place.
-                    let named = |n: &str| Some(n) == system.as_deref() || SYSTEMS.contains(&n);
+                    // A letter misread (`Stahton3`) is still the system.
+                    let named = |n: &str| {
+                        system.iter().map(String::as_str).chain(SYSTEMS).any(|s| s == n || one_letter_off(s, n))
+                    };
                     let numbered = SYSTEM_IN_PLACE.captures(w).is_some_and(|c| &c[0] == *w && named(&c[1]));
                     !(numbered || named(w))
                 })
                 .collect();
             if !words.is_empty() && !loc.eq_ignore_ascii_case("INVALID LOCATION ID") {
-                return words.join(" ");
+                let short = words.join(" ");
+                // `Stanton3 L2` says only `L2`; the star map says `ARC L2`.
+                if let Some(p) = place.filter(|p| p.ends_with(&format!(" {short}"))) {
+                    return p.to_string();
+                }
+                return short;
             }
+        }
+        if let Some(p) = place {
+            return p.to_string();
         }
         if let Some(z) = self.planet_zone() {
             let part = PLANET_PART.replace(&z.name, "").replace('_', " ");
@@ -92,6 +104,11 @@ impl Fix {
             None => "Space".into(),
         }
     }
+}
+
+/// Same length, one letter different: a misread, not another word.
+fn one_letter_off(a: &str, b: &str) -> bool {
+    a.len() == b.len() && a.len() >= 4 && a.bytes().zip(b.bytes()).filter(|(x, y)| x != y).count() == 1
 }
 
 static ZONE: LazyLock<Regex> = LazyLock::new(|| {
@@ -153,16 +170,21 @@ mod tests {
             server: None,
         };
         let f = fix(Some("Stanton3 Area18 (LZ : Stanton3 Area18)"), &["Hangar_X_1", "OOC_Stanton_3_ArcCorp", "SolarSystem_1"]);
-        assert_eq!(f.area(), "Area18");
+        assert_eq!(f.area(None), "Area18");
         assert_eq!(f.system_name().as_deref(), Some("Stanton"));
-        assert_eq!(fix(Some("Hospital Stanton4 NewBabbage  (LZ : Stanton4 NewBabbage)"), &[]).area(), "Hospital NewBabbage");
-        assert_eq!(fix(Some("RR HUR L3 (LZ : RR HUR L3)"), &[]).area(), "RR HUR L3");
-        assert_eq!(fix(Some("Stanton1d"), &["OOC_Stanton_1d_Ita", "SolarSystem_1"]).area(), "Ita");
-        assert_eq!(fix(Some("StantonSolarSystem"), &["SolarSystem_1"]).area(), "Stanton space");
+        assert_eq!(fix(Some("Hospital Stanton4 NewBabbage  (LZ : Stanton4 NewBabbage)"), &[]).area(None), "Hospital NewBabbage");
+        assert_eq!(fix(Some("RR HUR L3 (LZ : RR HUR L3)"), &[]).area(None), "RR HUR L3");
+        assert_eq!(fix(Some("Stanton1d"), &["OOC_Stanton_1d_Ita", "SolarSystem_1"]).area(None), "Ita");
+        assert_eq!(fix(Some("StantonSolarSystem"), &["SolarSystem_1"]).area(None), "Stanton space");
         let nyx = fix(Some("Nyx Levski  (LZ : Nyx Levski)"), &["SolarSystem_1"]);
-        assert_eq!(nyx.area(), "Levski");
+        assert_eq!(nyx.area(None), "Levski");
         assert_eq!(nyx.system_name().as_deref(), Some("Nyx"));
-        assert_eq!(fix(None, &["SolarSystem_1"]).area(), "Space");
+        assert_eq!(fix(None, &["SolarSystem_1"]).area(None), "Space");
+        // The star map's names, misread system and all.
+        let l2 = fix(Some("Stahton3 L2"), &["OOC_Stanton3_L2", "SolarSystem_1"]);
+        assert_eq!(l2.area(Some("ARC L2")), "ARC L2");
+        assert_eq!(fix(None, &["OOC_Stanton_3_ArcCorp", "SolarSystem_1"]).area(Some("ArcCorp")), "ArcCorp");
+        assert_eq!(f.area(Some("ArcCorp")), "Area18");
     }
 
     use super::*;

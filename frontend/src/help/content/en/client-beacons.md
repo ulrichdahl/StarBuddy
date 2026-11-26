@@ -23,7 +23,7 @@ Choose a beacon from the list: your own, and the ones your org mates share. The 
 - which way to turn (`Turn right 32°, down 6°` or `Straight ahead`),
 - the arrival time at your current speed.
 
-Sitting in a ship in a planet's atmosphere with game telemetry (below) on, the turn is counted from your ship's nose, so it works hovering still and follows you as you turn. Otherwise it is counted from the way you are moving, and standing still the arrow shows the direction in the planet's or system's own axes: start moving to get a heading. A beacon on a planet you are not near says so: fly to that planet to get directions.
+Sitting in a ship in a planet's atmosphere with game telemetry (below) on, the turn is counted from your ship's nose, so it works hovering still and follows you as you turn. Otherwise it is counted from the way you are moving, and standing still the arrow shows the direction in the planet's or system's own axes: start moving to get a heading. A beacon on a planet, moon or Lagrange point you are not near says so, by the name the star map uses (ArcCorp, Ita, ARC L2): fly there to get directions.
 
 A beacon on a planet or moon turns with it, so a beacon at a landing zone stays at the landing zone while the planet spins. A beacon in space stays put in the star system.
 

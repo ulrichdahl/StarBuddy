@@ -64,6 +64,18 @@ fn is_system(z: &Zone) -> bool {
     z.name.starts_with("SolarSystem")
 }
 
+/// A Lagrange point's frame (`OOC_Stanton3_L2`): far from its origin like a
+/// planet's, but with no ground, and a telemetry heading frozen there (69.6°
+/// at ARC L2, flying 200 to 450 m/s and turning).
+fn is_lagrange(z: &Zone) -> bool {
+    z.name.rsplit('_').next().is_some_and(|w| w.len() >= 2 && w.starts_with('L') && w[1..].chars().all(|c| c.is_ascii_digit()))
+}
+
+/// Space without ground: up is the frame's own +z.
+fn is_space(z: &Zone) -> bool {
+    is_system(z) || is_lagrange(z)
+}
+
 /// How the player moved between two fixes `dt` seconds apart, in every
 /// frame both name: (frame, velocity in m/s).
 pub fn velocities(before: &[Zone], now: &[Zone], dt: f64) -> Vec<(String, V)> {
@@ -115,8 +127,8 @@ pub fn to_beacon(now: &[Zone], beacon: &[Zone], vels: &[(String, V)], heading: O
     let (here, there) = common(now, beacon)?;
     let d = sub(there.pos, here.pos);
     let distance = len(d);
-    // The system's frame has no ground: its own axes, +z up.
-    let (up, east, north) = if is_system(here) { axes([0.0; 3]) } else { axes(here.pos) };
+    // The system's and a Lagrange point's frames have no ground: their own axes, +z up.
+    let (up, east, north) = if is_space(here) { axes([0.0; 3]) } else { axes(here.pos) };
     let dh = flat(d, up);
     let azimuth = (dot(dh, east).atan2(dot(dh, north)).to_degrees() + 360.0) % 360.0;
     let elevation = dot(d, up).atan2(len(dh)).to_degrees();
@@ -157,7 +169,7 @@ pub fn to_beacon(now: &[Zone], beacon: &[Zone], vels: &[(String, V)], heading: O
     // The compass counts from the planet's north, as `axes` does, so the
     // turn is the bearing less the heading. It wins over travel: the nose is
     // where the player looks, and it is known hovering.
-    let on_planet = !is_system(here) && len(here.pos) > PLANET_FRAME;
+    let on_planet = !is_space(here) && len(here.pos) > PLANET_FRAME;
     if let (Some(h), true) = (heading, on_planet) {
         nav.turn = Some(wrap(azimuth - h));
         nav.compass = true;
@@ -231,5 +243,10 @@ mod tests {
         let sys = vec![z("SolarSystem_1", [r, 0.0, 0.0])];
         let nav = to_beacon(&sys, &[z("SolarSystem_1", [r, 1000.0, 0.0])], &[], Some(0.0)).unwrap();
         assert!(nav.turn.is_none() && !nav.compass);
+        // Nor at a Lagrange point, where it is frozen: the turn is from travel.
+        let l2 = vec![z("OOC_Stanton3_L2", [r, 0.0, 0.0])];
+        let vels = vec![("OOC_Stanton3_L2".to_string(), [0.0, 10.0, 0.0])];
+        let nav = to_beacon(&l2, &[z("OOC_Stanton3_L2", [r + 100.0, 100.0, 0.0])], &vels, Some(69.6)).unwrap();
+        assert!(!nav.compass && (nav.turn.unwrap() - 45.0).abs() < 1e-6, "{nav:?}");
     }
 }

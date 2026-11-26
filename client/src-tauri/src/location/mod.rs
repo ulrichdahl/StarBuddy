@@ -15,6 +15,7 @@
 pub mod glyphs;
 pub mod nav;
 pub mod parse;
+pub mod places;
 pub mod recorder;
 pub mod stable;
 pub mod telemetry;
@@ -82,6 +83,8 @@ pub struct Here {
     pub server: Option<String>,
     /// A short name for the place, for a new beacon's default name.
     pub area: String,
+    /// The frame's name on the star map (`ArcCorp`, `ARC L2`), when the game has one.
+    pub place: Option<String>,
 }
 
 /// What the window shows.
@@ -99,6 +102,8 @@ pub struct View {
     /// Why there is no way to the beacon: `system` (it is in another star
     /// system) or `frame` (on a planet you are not near).
     pub beacon_elsewhere: Option<&'static str>,
+    /// The beacon's frame by its star map name (`ARC L2`): where to fly.
+    pub beacon_place: Option<String>,
     /// Steering to it, with a doubt: `shard` (set on another shard; the
     /// coordinates match, what was left there may not).
     pub beacon_warning: Option<&'static str>,
@@ -131,6 +136,7 @@ fn here(state: &State) -> Option<Here> {
     let (fix, _) = state.last.as_ref()?;
     let system = fix.system()?;
     let frame = fix.planet_zone().unwrap_or(system);
+    let place = places::name(&frame.name);
     Some(Here {
         shard: system.name.clone(),
         system: fix.system_name().or_else(|| state.systems.get(&system.name).cloned()),
@@ -138,7 +144,8 @@ fn here(state: &State) -> Option<Here> {
         pos: frame.pos,
         location: fix.location.clone(),
         server: fix.server.clone(),
-        area: fix.area(),
+        area: fix.area(place.as_deref()),
+        place,
     })
 }
 
@@ -158,6 +165,7 @@ fn refresh(state: &mut State) {
     state.view.here = here(state);
     state.view.beacon = state.beacon.clone();
     state.view.beacon_elsewhere = None;
+    state.view.beacon_place = state.beacon.as_ref().and_then(|b| places::name(&b.frame));
     state.view.beacon_warning = None;
     state.view.nav = None;
     let (Some((fix, _)), Some(here), Some(b)) = (&state.last, &state.view.here, &state.beacon) else { return };
@@ -271,6 +279,10 @@ pub fn start(app: &AppHandle) {
     std::thread::Builder::new()
         .name("location".into())
         .spawn(move || {
+            // global.ini, for the star map's names.
+            if let Some(dir) = crate::game_dir::detect_game_log(app.clone()) {
+                places::set_game_dir(std::path::Path::new(&dir));
+            }
             let mut last = Instant::now();
             loop {
                 std::thread::sleep(TICK);
